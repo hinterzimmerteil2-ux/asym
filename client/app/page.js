@@ -34,6 +34,7 @@ export default function LobbyPage() {
   const [timeRemainingMs, setTimeRemainingMs] = useState(null);
   const [lastActionFeedback, setLastActionFeedback] = useState(null);
   const [gameOverInfo, setGameOverInfo] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -46,11 +47,29 @@ export default function LobbyPage() {
     }
   }, []);
 
+  const roomIdRef = useRef(null);
+  const sessionTokenRef = useRef(null);
+  useEffect(() => { roomIdRef.current = roomId; }, [roomId]);
+  useEffect(() => { sessionTokenRef.current = sessionToken; }, [sessionToken]);
+
+  const hasConnectedOnceRef = useRef(false);
   useEffect(() => {
-    if (status !== 'logged_in') return;
+    const shouldConnect = status === 'logged_in' || status === 'in_room';
+    if (!shouldConnect || hasConnectedOnceRef.current) return;
+    hasConnectedOnceRef.current = true;
     const conn = createGameConnection({
-      onOpen: () => {},
-      onClose: () => {},
+      onOpen: () => {
+        setIsConnected(true);
+        // Si ya estábamos en una sala y se cayó la conexión (por ejemplo,
+        // un redeploy del servidor), hay que volver a mandar join_room:
+        // la conexión vieja murió junto con el estado de esa sala en el
+        // servidor, así que sin este re-join los botones quedan "muertos"
+        // (el cliente cree que sigue en la sala pero el servidor no lo sabe).
+        if (roomIdRef.current && sessionTokenRef.current) {
+          conn.send('join_room', { roomId: roomIdRef.current, token: sessionTokenRef.current });
+        }
+      },
+      onClose: () => setIsConnected(false),
       onMessage: (type, payload) => {
         switch (type) {
           case 'room_joined':
@@ -106,9 +125,12 @@ export default function LobbyPage() {
       },
     });
     connRef.current = conn;
-    return () => conn.close();
+    return () => {
+      conn.close();
+      hasConnectedOnceRef.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status === 'logged_in']);
+  }, [status === 'logged_in' || status === 'in_room']);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -139,9 +161,11 @@ export default function LobbyPage() {
 
   function handleJoin(e) {
     e.preventDefault();
-    if (!roomId.trim() || !sessionToken) return;
+    const trimmedRoomId = roomId.trim();
+    if (!trimmedRoomId || !sessionToken) return;
     setErrorMsg(null);
-    connRef.current?.send('join_room', { roomId: roomId.trim(), token: sessionToken });
+    setRoomId(trimmedRoomId);
+    connRef.current?.send('join_room', { roomId: trimmedRoomId, token: sessionToken });
   }
 
   function handleStart() {
@@ -280,6 +304,10 @@ export default function LobbyPage() {
         </p>
 
         {errorMsg && <p style={styles.errorOverlay}>{errorMsg}</p>}
+
+        {!isConnected && (
+          <p style={styles.reconnectingOverlay}>Reconectando con el servidor...</p>
+        )}
 
         {gameOverInfo && (
           <div style={styles.gameOverOverlay}>
@@ -594,6 +622,19 @@ const styles = {
     background: 'rgba(224, 85, 95, 0.9)',
     padding: '8px 14px',
     borderRadius: 6,
+  },
+  reconnectingOverlay: {
+    position: 'absolute',
+    top: 16,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#12131a',
+    background: '#f2a154',
+    padding: '8px 14px',
+    borderRadius: 6,
+    margin: 0,
   },
   hpBarContainer: {
     position: 'absolute',
