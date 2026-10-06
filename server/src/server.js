@@ -165,13 +165,22 @@ const heartbeatInterval = setInterval(() => {
 
 wss.on('close', () => clearInterval(heartbeatInterval));
 
+// El juego principal (lobby, chat, partida, curar/autodañarse) no depende de
+// Postgres: solo lo necesita el login con cuenta (Google/Discord). Si la DB
+// no está configurada o no responde, el servidor sigue arriba igual —
+// simplemente el login con cuenta no va a funcionar hasta que se resuelva.
 initSchema()
   .then(() => {
+    console.log('Base de datos lista (auth con cuenta habilitado).');
+  })
+  .catch((err) => {
+    console.warn(
+      'No se pudo inicializar la base de datos, el servidor sigue arriba sin auth con cuenta:',
+      err.message
+    );
+  })
+  .finally(() => {
     httpServer.listen(PORT, () => {
       console.log(`Servidor escuchando en puerto ${PORT}`);
     });
-  })
-  .catch((err) => {
-    console.error('No se pudo inicializar la base de datos:', err.message);
-    process.exit(1);
   });
