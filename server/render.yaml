@@ -1,0 +1,47 @@
+databases:
+  - name: asym-game-db
+    plan: free
+    region: oregon
+
+services:
+  - type: web
+    name: asym-game-server
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 18.20.0
+      # Se conecta automáticamente a la base de arriba (mismo host, sin
+      # que tengas que copiar la connection string a mano).
+      - key: DATABASE_URL
+        fromDatabase:
+          name: asym-game-db
+          property: connectionString
+      # Estos 5 los tenés que cargar vos a mano en el panel de Render
+      # (Environment > Add Environment Variable), no van en este archivo
+      # porque son secretos / dependen de tu deploy específico:
+      #   JWT_SECRET        → cualquier string largo random, ej: openssl rand -hex 32
+      #   CLIENT_URL         → la URL de tu app en Vercel, ej: https://tu-juego.vercel.app
+      #   SERVER_URL         → la URL de ESTE servicio en Render (se genera al crear el servicio)
+      #   GOOGLE_CLIENT_ID     → del panel de Google Cloud Console (ver README)
+      #   GOOGLE_CLIENT_SECRET → ídem
+      #   DISCORD_CLIENT_ID    → del panel de Discord Developer Portal (ver README)
+      #   DISCORD_CLIENT_SECRET → ídem
+      - key: JWT_SECRET
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: SERVER_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
