@@ -13,7 +13,29 @@ const roomManager = new RoomManager();
 const httpRoutes = new Map();
 registerAuthRoutes(httpRoutes);
 
+// El cliente (Vercel) y el servidor (Render) viven en dominios distintos,
+// así que el navegador exige CORS en toda respuesta HTTP (incluido el
+// preflight OPTIONS) o bloquea el fetch con "Failed to fetch" sin siquiera
+// mostrar el error real del servidor.
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+
+function applyCors(req, res) {
+  const origin = req.headers.origin;
+  res.setHeader('Access-Control-Allow-Origin', origin || CLIENT_URL);
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
 const httpServer = http.createServer((req, res) => {
+  applyCors(req, res);
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   if (url.pathname === '/health') {
