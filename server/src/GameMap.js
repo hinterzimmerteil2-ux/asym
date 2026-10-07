@@ -70,6 +70,49 @@ const MAPS = {
 const DEFAULT_MAP_ID = 'default';
 
 /**
+ * Mapas creados desde el editor visual (/editor) y guardados en el
+ * servidor. Viven en memoria — igual que las salas — así que no
+ * requieren Postgres; se pierden si el servidor se reinicia, que es
+ * una limitación aceptable para un modo constructor de este alcance.
+ */
+function registerMap(layout) {
+  if (!layout || typeof layout.id !== 'string' || !layout.id.trim()) {
+    throw new Error('El mapa necesita un id');
+  }
+  if (!Array.isArray(layout.selfDamageObjects) || !Array.isArray(layout.collisionObjects)) {
+    throw new Error('El mapa necesita selfDamageObjects y collisionObjects');
+  }
+  MAPS[layout.id] = {
+    id: layout.id,
+    name: typeof layout.name === 'string' && layout.name.trim() ? layout.name.trim() : layout.id,
+    custom: true,
+    selfDamageObjects: layout.selfDamageObjects.map((o) => ({
+      id: String(o.id),
+      xFrac: clampFrac(o.xFrac),
+      zFrac: clampFrac(o.zFrac),
+    })),
+    collisionObjects: layout.collisionObjects.map((o) => ({
+      id: String(o.id),
+      type: typeof o.type === 'string' ? o.type : 'gurney',
+      xFrac: clampFrac(o.xFrac),
+      zFrac: clampFrac(o.zFrac),
+      radiusFrac: Math.max(0.01, Math.min(0.2, Number(o.radiusFrac) || 0.04)),
+    })),
+  };
+  return MAPS[layout.id];
+}
+
+function clampFrac(n) {
+  const v = Number(n);
+  if (Number.isNaN(v)) return 0;
+  return Math.max(-1, Math.min(1, v));
+}
+
+function listMaps() {
+  return Object.values(MAPS).map((m) => ({ id: m.id, name: m.name, custom: Boolean(m.custom) }));
+}
+
+/**
  * Convierte el layout relativo de un mapa a coordenadas absolutas reales,
  * para el área dada. Es el único punto donde fracción -> unidad de mundo
  * ocurre — Room.js y el cliente trabajan siempre con el resultado de
@@ -127,4 +170,6 @@ module.exports = {
   resolveCollisionObjects,
   getPatientSpawnPositions,
   getCuratorSpawn,
+  registerMap,
+  listMaps,
 };

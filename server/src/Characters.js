@@ -5,6 +5,14 @@ const CHARACTERS = {
     weaponName: 'Vara de hierbas medicinales',
     unlockedByDefault: true,
   },
+  enfermera_buenaventura: {
+    id: 'enfermera_buenaventura',
+    displayName: 'Enfermera Buenaventura',
+    weaponName: 'Jeringa de suero milagroso',
+    // Mismas stats que Vorhees Jason — la diferencia es solo estética/flavor,
+    // como se definió al agregar este segundo personaje.
+    unlockedByDefault: true,
+  },
 };
 
 const DEFAULT_CHARACTER_ID = 'vorhees_jason';
@@ -19,4 +27,18 @@ function getUnlockedCharacterIds() {
     .map((c) => c.id);
 }
 
-module.exports = { CHARACTERS, DEFAULT_CHARACTER_ID, getCharacter, getUnlockedCharacterIds };
+function listCharacters() {
+  return Object.values(CHARACTERS).map((c) => ({
+    id: c.id,
+    displayName: c.displayName,
+    weaponName: c.weaponName,
+  }));
+}
+
+module.exports = {
+  CHARACTERS,
+  DEFAULT_CHARACTER_ID,
+  getCharacter,
+  getUnlockedCharacterIds,
+  listCharacters,
+};

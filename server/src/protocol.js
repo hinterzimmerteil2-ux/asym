@@ -15,6 +15,12 @@ const MessageType = {
   START_GAME: 'start_game',         // client(host) -> server: {}
   GAME_STARTED: 'game_started',     // server -> todos: { phase, state, collisionObjects[] }
 
+  // --- Elección de rol y personaje (en el lobby, antes de iniciar) ---
+  SET_ASYM_ROLE: 'set_asym_role',       // client(host) -> server: { targetPlayerId } — asigna quién es el Curador
+  SELECT_CHARACTER: 'select_character', // client(Curador) -> server: { characterId }
+  CHARACTER_LIST: 'character_list',     // server -> client (al unirse): { characters[] }
+  SET_MAP: 'set_map',                   // client(host) -> server: { mapId } — elige el mapa para la próxima partida
+
   // --- Chat de sala ---
   CHAT_MESSAGE: 'chat_message',
   CHAT_BROADCAST: 'chat_broadcast',

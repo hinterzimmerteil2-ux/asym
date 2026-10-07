@@ -3,6 +3,7 @@ const { WebSocketServer } = require('ws');
 const { MessageType, encode, decode } = require('./protocol');
 const { RoomManager } = require('./RoomManager');
 const GameMap = require('./GameMap');
+const Characters = require('./Characters');
 const { registerAuthRoutes } = require('./auth/routes');
 const { initSchema } = require('./auth/db');
 const { verifyToken } = require('./auth/jwt');
@@ -44,6 +45,29 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
 
+  if (url.pathname === '/maps' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ maps: GameMap.listMaps() }));
+    return;
+  }
+
+  if (url.pathname === '/maps' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const layout = JSON.parse(body || '{}');
+        const saved = GameMap.registerMap(layout);
+        res.writeHead(201, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ map: { id: saved.id, name: saved.name, custom: true } }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
   const handler = httpRoutes.get(url.pathname);
   if (handler) {
     handler(req, res, url);
@@ -76,7 +100,7 @@ wss.on('connection', (ws) => {
         }
         const session = verifyToken(token);
         if (!session) {
-          ws.send(encode(MessageType.ERROR, { message: 'Sesión inválida o expirada. Iniciá sesión de nuevo.' }));
+          ws.send(encode(MessageType.ERROR, { message: 'Sesión inválida o expirada. Inicia sesión de nuevo.' }));
           return;
         }
         playerId = session.userId;
@@ -97,9 +121,34 @@ wss.on('connection', (ws) => {
           players: room.getPlayersSummary(),
           isAsymRole: room.players.get(playerId).isAsymRole,
           chatHistory: room.chatHistory,
+          hostId: room.hostId,
+          characters: Characters.listCharacters(),
+          mapId: room.mapId,
+          maps: GameMap.listMaps(),
         }));
 
-        room.broadcast(MessageType.ROOM_UPDATE, { players: room.getPlayersSummary() }, playerId);
+        room.broadcast(MessageType.ROOM_UPDATE, { players: room.getPlayersSummary(), hostId: room.hostId }, playerId);
+        break;
+      }
+
+      case MessageType.SET_ASYM_ROLE: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.setAsymRole(playerId, msg.payload.targetPlayerId);
+        break;
+      }
+
+      case MessageType.SELECT_CHARACTER: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.selectCharacter(playerId, msg.payload.characterId);
+        break;
+      }
+
+      case MessageType.SET_MAP: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.setMap(playerId, msg.payload.mapId);
         break;
       }
 
@@ -171,7 +220,7 @@ wss.on('connection', (ws) => {
     const room = roomManager.getRoom(currentRoomId);
     if (!room) return;
     room.removePlayer(playerId);
-    room.broadcast(MessageType.ROOM_UPDATE, { players: room.getPlayersSummary() });
+    room.broadcast(MessageType.ROOM_UPDATE, { players: room.getPlayersSummary(), hostId: room.hostId });
     roomManager.removeRoomIfEmpty(currentRoomId);
     currentRoomId = null;
   }

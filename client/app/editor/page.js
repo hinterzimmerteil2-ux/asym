@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import Link from 'next/link';
+
+const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001';
 
 // Tamaño en píxeles del lienzo cuadrado del editor — el área jugable
 // (MATCH_AREA, halfSize=30 por defecto en GameMap.js) se dibuja a esta
@@ -86,6 +89,9 @@ export default function MapEditorPage() {
   const [selectedTool, setSelectedTool] = useState('self_damage'); // 'self_damage' | tipo de collision
   const [draggingId, setDraggingId] = useState(null);
   const [exportedJson, setExportedJson] = useState(null);
+  const [mapName, setMapName] = useState('');
+  const [mapId, setMapId] = useState('');
+  const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | { error }
   const canvasRef = useRef(null);
 
   /**
@@ -144,12 +150,13 @@ export default function MapEditorPage() {
     setCollisionObjects((prev) => prev.map((o) => (o.id === id ? { ...o, radiusFrac: newRadiusFrac } : o)));
   }
 
-  function handleExport() {
+  function buildLayout(id, name) {
     // Mismo formato exacto que DEFAULT_MAP_LAYOUT en GameMap.js — así el
-    // resultado se puede pegar directo ahí sin transformación adicional.
-    const layout = {
-      id: 'custom',
-      name: 'Mapa personalizado',
+    // resultado se puede pegar directo ahí sin transformación adicional,
+    // y es exactamente lo que acepta POST /maps en el servidor.
+    return {
+      id,
+      name,
       selfDamageObjects: selfDamageObjects.map((o) => ({
         id: o.id,
         xFrac: round3(o.xFrac),
@@ -163,7 +170,38 @@ export default function MapEditorPage() {
         radiusFrac: round3(o.radiusFrac),
       })),
     };
+  }
+
+  function handleExport() {
+    const layout = buildLayout(mapId.trim() || 'custom', mapName.trim() || 'Mapa personalizado');
     setExportedJson(JSON.stringify(layout, null, 2));
+  }
+
+  async function handleSaveToServer() {
+    const trimmedId = mapId.trim();
+    const trimmedName = mapName.trim();
+    if (!trimmedId) {
+      setSaveStatus({ error: 'Poné un id para el mapa (sin espacios, ej. "quirofano_2").' });
+      return;
+    }
+    if (selfDamageObjects.length === 0 && collisionObjects.length === 0) {
+      setSaveStatus({ error: 'El mapa está vacío — colocá al menos un objeto antes de guardar.' });
+      return;
+    }
+    setSaveStatus('saving');
+    try {
+      const layout = buildLayout(trimmedId, trimmedName || trimmedId);
+      const res = await fetch(`${SERVER_URL}/maps`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(layout),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo guardar el mapa.');
+      setSaveStatus('saved');
+    } catch (err) {
+      setSaveStatus({ error: err.message });
+    }
   }
 
   function handleClear() {
@@ -234,6 +272,44 @@ export default function MapEditorPage() {
             </div>
           )}
 
+          <div style={styles.saveBox}>
+            <label style={styles.saveLabel}>
+              Id del mapa
+              <input
+                style={styles.saveInput}
+                value={mapId}
+                onChange={(e) => { setMapId(e.target.value.trim()); setSaveStatus(null); }}
+                placeholder="ej. quirofano_2"
+                maxLength={40}
+              />
+            </label>
+            <label style={styles.saveLabel}>
+              Nombre
+              <input
+                style={styles.saveInput}
+                value={mapName}
+                onChange={(e) => { setMapName(e.target.value); setSaveStatus(null); }}
+                placeholder="ej. Quirófano 2"
+                maxLength={60}
+              />
+            </label>
+            <button
+              style={styles.saveButton(saveStatus === 'saving')}
+              onClick={handleSaveToServer}
+              disabled={saveStatus === 'saving'}
+            >
+              {saveStatus === 'saving' ? 'Guardando...' : 'Guardar mapa en el servidor'}
+            </button>
+            {saveStatus === 'saved' && (
+              <p style={styles.saveSuccess}>
+                ✓ Guardado. Ya se puede elegir "{mapName.trim() || mapId}" desde el lobby.
+              </p>
+            )}
+            {saveStatus && saveStatus.error && (
+              <p style={styles.saveError}>{saveStatus.error}</p>
+            )}
+          </div>
+
           <div style={styles.actionsRow}>
             <button style={styles.exportButton} onClick={handleExport}>
               Exportar JSON
@@ -242,6 +318,8 @@ export default function MapEditorPage() {
               Limpiar todo
             </button>
           </div>
+
+          <Link href="/" style={styles.backLink}>← Volver al lobby</Link>
         </div>
 
         <div style={styles.canvasArea}>
@@ -407,6 +485,37 @@ const styles = {
   radiusRow: { display: 'flex', flexDirection: 'column', gap: 2 },
   radiusLabel: { fontSize: 11, color: '#8a8da3' },
   radiusSlider: { width: '100%' },
+  saveBox: {
+    padding: 12,
+    borderRadius: 8,
+    background: '#1b1d29',
+    border: '1px solid #2a2d3d',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  saveLabel: { display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, color: '#8a8da3' },
+  saveInput: {
+    padding: '7px 10px',
+    borderRadius: 6,
+    border: '1px solid #2a2d3d',
+    background: '#12131a',
+    color: '#e8e8ef',
+    fontSize: 13,
+  },
+  saveButton: (saving) => ({
+    padding: '9px 14px',
+    borderRadius: 6,
+    border: 'none',
+    background: saving ? '#2a2d3d' : '#5fd58c',
+    color: saving ? '#8a8da3' : '#12131a',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: saving ? 'default' : 'pointer',
+  }),
+  saveSuccess: { fontSize: 11, color: '#5fd58c', margin: 0, lineHeight: 1.5 },
+  saveError: { fontSize: 11, color: '#e0555f', margin: 0, lineHeight: 1.5 },
+  backLink: { fontSize: 12, color: '#8a8da3', textDecoration: 'none' },
   actionsRow: { display: 'flex', gap: 8 },
   exportButton: {
     flex: 1,

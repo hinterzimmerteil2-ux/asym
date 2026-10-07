@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { createGameConnection } from '../lib/socket';
 import {
   getStoredToken,
@@ -35,6 +36,10 @@ export default function LobbyPage() {
   const [lastActionFeedback, setLastActionFeedback] = useState(null);
   const [gameOverInfo, setGameOverInfo] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [hostId, setHostId] = useState(null);
+  const [characters, setCharacters] = useState([]);
+  const [maps, setMaps] = useState([]);
+  const [mapId, setMapId] = useState('default');
 
   useEffect(() => {
     const token = getStoredToken();
@@ -78,9 +83,15 @@ export default function LobbyPage() {
             setIsAsymRole(payload.isAsymRole);
             setPlayers(payload.players);
             setChatMessages(payload.chatHistory || []);
+            setHostId(payload.hostId ?? null);
+            setCharacters(payload.characters || []);
+            setMaps(payload.maps || []);
+            setMapId(payload.mapId || 'default');
             break;
           case 'room_update':
             setPlayers(payload.players);
+            if (payload.hostId !== undefined) setHostId(payload.hostId);
+            if (payload.mapId !== undefined) setMapId(payload.mapId);
             break;
           case 'chat_broadcast':
             setChatMessages((prev) => [...prev, payload]);
@@ -136,6 +147,16 @@ export default function LobbyPage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // El host puede reasignar quién es el Curador en cualquier momento del
+  // lobby (room_update), así que el propio rol no puede quedar fijo desde
+  // el room_joined inicial: hay que derivarlo de la lista de jugadores
+  // actualizada en cada cambio.
+  useEffect(() => {
+    if (!myPlayerId) return;
+    const me = players.find((p) => p.id === myPlayerId);
+    if (me) setIsAsymRole(me.isAsymRole);
+  }, [players, myPlayerId]);
+
   useEffect(() => {
     if (!lastActionFeedback) return;
     const timeout = setTimeout(() => setLastActionFeedback(null), 3000);
@@ -172,6 +193,18 @@ export default function LobbyPage() {
     connRef.current?.send('start_game', {});
   }
 
+  function handleSetAsymRole(targetPlayerId) {
+    connRef.current?.send('set_asym_role', { targetPlayerId });
+  }
+
+  function handleSelectCharacter(characterId) {
+    connRef.current?.send('select_character', { characterId });
+  }
+
+  function handleSetMap(newMapId) {
+    connRef.current?.send('set_map', { mapId: newMapId });
+  }
+
   function handleSendChat(e) {
     e.preventDefault();
     const text = chatInput.trim();
@@ -196,7 +229,7 @@ export default function LobbyPage() {
     setStatus('needs_login');
   }
 
-  const isHost = players.length > 0 && players[0].id === myPlayerId;
+  const isHost = hostId !== null && hostId === myPlayerId;
 
   if (status === 'in_room') {
     return (
@@ -231,23 +264,79 @@ export default function LobbyPage() {
 
         <div style={styles.playersOverlay}>
           <ul style={styles.playerList}>
-            {players.map((p, i) => {
+            {players.map((p) => {
               const patientInfo = patients[p.id];
               const characterTag =
-                phase === 'action' && p.isAsymRole && p.character
+                p.isAsymRole && p.character
                   ? `· ${p.character.displayName} (${p.character.weaponName})`
                   : '';
               return (
                 <li key={p.id} style={styles.playerItem}>
-                  <span>{p.name}{p.id === myPlayerId ? ' (vos)' : ''}</span>
+                  <span>
+                    {p.isAsymRole ? '🩺 ' : ''}{p.name}{p.id === myPlayerId ? ' (tú)' : ''}
+                  </span>
                   <span style={styles.playerTag}>
-                    {i === 0 ? 'Host' : ''} {characterTag}
+                    {p.id === hostId ? 'Host' : ''} {characterTag}
                     {phase === 'action' && patientInfo ? ` · HP ${patientInfo.hp}/120` : ''}
                   </span>
+                  {phase === 'lobby' && isHost && !p.isAsymRole && (
+                    <button
+                      style={styles.smallButton}
+                      onClick={() => handleSetAsymRole(p.id)}
+                      title="Hacer Curador a este jugador"
+                    >
+                      Hacer Curador
+                    </button>
+                  )}
                 </li>
               );
             })}
           </ul>
+
+          {phase === 'lobby' && isAsymRole && characters.length > 0 && (
+            <div style={styles.characterPicker}>
+              <p style={styles.characterPickerLabel}>Elegí tu personaje</p>
+              {characters.map((c) => {
+                const mine = players.find((p) => p.id === myPlayerId);
+                const selected = mine?.characterId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    style={styles.characterOption(selected)}
+                    onClick={() => handleSelectCharacter(c.id)}
+                  >
+                    {c.displayName}
+                    <span style={styles.characterWeapon}>{c.weaponName}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {phase === 'lobby' && (
+            <div style={styles.mapPicker}>
+              <p style={styles.characterPickerLabel}>Mapa</p>
+              {isHost ? (
+                <select
+                  style={styles.mapSelect}
+                  value={mapId}
+                  onChange={(e) => handleSetMap(e.target.value)}
+                >
+                  {maps.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}{m.custom ? ' (personalizado)' : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p style={styles.mapReadOnly}>
+                  {maps.find((m) => m.id === mapId)?.name || mapId}
+                </p>
+              )}
+              <Link href="/editor" style={styles.editorLink}>Crear mapa nuevo →</Link>
+            </div>
+          )}
+
           {phase === 'lobby' && isHost && (
             <button style={styles.button} onClick={handleStart}>Iniciar partida</button>
           )}
@@ -274,7 +363,7 @@ export default function LobbyPage() {
             {chatMessages.map((m, i) => (
               <p key={i} style={styles.chatLine}>
                 <span style={styles.chatAuthor(m.playerId === myPlayerId)}>
-                  {m.playerId === myPlayerId ? 'Vos' : m.playerName}:
+                  {m.playerId === myPlayerId ? 'Tú' : m.playerName}:
                 </span>{' '}
                 <span style={styles.chatText}>{m.text}</span>
               </p>
@@ -286,7 +375,7 @@ export default function LobbyPage() {
               style={styles.chatInput}
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Escribí un mensaje..."
+              placeholder="Escribe un mensaje..."
               maxLength={300}
             />
             <button style={styles.chatSendButton(!chatInput.trim())} type="submit" disabled={!chatInput.trim()}>
@@ -329,7 +418,7 @@ export default function LobbyPage() {
                   const player = players.find((p) => p.id === playerId);
                   return (
                     <li key={playerId} style={styles.gameOverListItem}>
-                      <span>{player?.name || playerId}{playerId === myPlayerId ? ' (vos)' : ''}</span>
+                      <span>{player?.name || playerId}{playerId === myPlayerId ? ' (tú)' : ''}</span>
                       <span style={styles.gameOverResultTag(result.status)}>
                         {result.status === 'eliminated' && 'Eliminado'}
                         {result.status === 'self_won' && 'Ganó'}
@@ -505,13 +594,69 @@ const styles = {
   playerList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 },
   playerItem: {
     display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 6,
     padding: '8px 10px',
     borderRadius: 6,
     background: '#12131a',
     fontSize: 14,
   },
   playerTag: { fontSize: 12, color: '#8a8da3' },
+  smallButton: {
+    padding: '4px 8px',
+    borderRadius: 6,
+    border: '1px solid #2a2d3d',
+    background: '#1b1d29',
+    color: '#e8e8ef',
+    fontSize: 11,
+    cursor: 'pointer',
+    width: '100%',
+  },
+  characterPicker: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    padding: 10,
+    borderRadius: 6,
+    background: '#12131a',
+  },
+  characterPickerLabel: { fontSize: 12, color: '#8a8da3', margin: '0 0 2px' },
+  characterOption: (selected) => ({
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 2,
+    padding: '8px 10px',
+    borderRadius: 6,
+    border: selected ? '1px solid #f2a154' : '1px solid #2a2d3d',
+    background: selected ? 'rgba(242, 161, 84, 0.12)' : '#1b1d29',
+    color: '#e8e8ef',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+    textAlign: 'left',
+  }),
+  characterWeapon: { fontSize: 11, fontWeight: 400, color: '#8a8da3' },
+  mapPicker: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    padding: 10,
+    borderRadius: 6,
+    background: '#12131a',
+  },
+  mapSelect: {
+    padding: '7px 10px',
+    borderRadius: 6,
+    border: '1px solid #2a2d3d',
+    background: '#1b1d29',
+    color: '#e8e8ef',
+    fontSize: 13,
+  },
+  mapReadOnly: { fontSize: 13, color: '#e8e8ef', margin: 0 },
+  editorLink: { fontSize: 11, color: '#5468ff', textDecoration: 'none' },
   roleTag: (isAsym) => ({ fontSize: 13, fontWeight: 600, color: isAsym ? '#f2a154' : '#5fd58c', margin: 0 }),
   timerTag: (ms) => ({
     fontSize: 13,

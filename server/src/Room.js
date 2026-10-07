@@ -120,10 +120,89 @@ class Room {
         id,
         name: p.name,
         isAsymRole: p.isAsymRole,
+        characterId: p.isAsymRole ? (p.characterId || Characters.DEFAULT_CHARACTER_ID) : null,
         character: characterData
           ? { displayName: characterData.displayName, weaponName: characterData.weaponName }
           : null,
       };
+    });
+  }
+
+  /**
+   * El host elige manualmente quién es el Curador, en vez de que siempre
+   * sea el primero en entrar. Solo tiene efecto en el lobby, antes de
+   * iniciar la partida.
+   */
+  setAsymRole(requesterId, targetPlayerId) {
+    if (this.phase !== 'lobby') {
+      this.sendTo(requesterId, MessageType.ERROR, { message: 'Solo se puede cambiar el rol antes de iniciar la partida' });
+      return;
+    }
+    if (requesterId !== this.hostId) {
+      this.sendTo(requesterId, MessageType.ERROR, { message: 'Solo el host puede asignar quién es el Curador' });
+      return;
+    }
+    const target = this.players.get(targetPlayerId);
+    if (!target) {
+      this.sendTo(requesterId, MessageType.ERROR, { message: 'Ese jugador ya no está en la sala' });
+      return;
+    }
+    for (const [id, p] of this.players) {
+      const wasAsym = p.isAsymRole;
+      p.isAsymRole = id === targetPlayerId;
+      if (p.isAsymRole && !wasAsym && !p.characterId) {
+        p.characterId = Characters.DEFAULT_CHARACTER_ID;
+      }
+    }
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
+  }
+
+  /**
+   * El Curador elige entre los personajes disponibles (mismas stats,
+   * solo cambia nombre/arma). Solo en el lobby.
+   */
+  selectCharacter(playerId, characterId) {
+    if (this.phase !== 'lobby') {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Solo se puede elegir personaje antes de iniciar la partida' });
+      return;
+    }
+    const player = this.players.get(playerId);
+    if (!player || !player.isAsymRole) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Solo el Curador elige personaje' });
+      return;
+    }
+    const validIds = Characters.getUnlockedCharacterIds();
+    if (!validIds.includes(characterId)) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Ese personaje no existe' });
+      return;
+    }
+    player.characterId = characterId;
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
+  }
+
+  /**
+   * El host elige qué mapa se juega la próxima partida — solo en el
+   * lobby. mapId debe existir en el catálogo de GameMap (incluye los
+   * mapas guardados desde el editor visual).
+   */
+  setMap(requesterId, mapId) {
+    if (this.phase !== 'lobby') {
+      this.sendTo(requesterId, MessageType.ERROR, { message: 'Solo se puede cambiar el mapa antes de iniciar la partida' });
+      return;
+    }
+    if (requesterId !== this.hostId) {
+      this.sendTo(requesterId, MessageType.ERROR, { message: 'Solo el host puede elegir el mapa' });
+      return;
+    }
+    if (!GameMap.MAPS[mapId]) {
+      this.sendTo(requesterId, MessageType.ERROR, { message: 'Ese mapa no existe' });
+      return;
+    }
+    this.mapId = mapId;
+    this.broadcast(MessageType.ROOM_UPDATE, {
+      players: this.getPlayersSummary(),
+      hostId: this.hostId,
+      mapId: this.mapId,
     });
   }
 
@@ -319,7 +398,7 @@ class Room {
       return;
     }
     if (distanceBetween(curadorEntity, targetEntity) > INTERACTION_RADIUS) {
-      this.sendTo(curadorId, MessageType.ERROR, { message: 'Estás muy lejos para curar a ese Paciente' });
+      this.sendTo(curadorId, MessageType.ERROR, { message: 'Estás demasiado lejos para curar a ese Paciente' });
       return;
     }
 
@@ -348,7 +427,7 @@ class Room {
 
     const patient = this.gameState.patients[playerId];
     if (!patient || patient.status !== 'alive') {
-      this.sendTo(playerId, MessageType.ERROR, { message: 'No sos un Paciente activo' });
+      this.sendTo(playerId, MessageType.ERROR, { message: 'No eres un Paciente activo' });
       return;
     }
 
@@ -364,7 +443,7 @@ class Room {
       return;
     }
     if (distanceBetween(playerEntity, objectPos) > INTERACTION_RADIUS) {
-      this.sendTo(playerId, MessageType.ERROR, { message: 'Estás muy lejos de ese objeto' });
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Estás demasiado lejos de ese objeto' });
       return;
     }
 
