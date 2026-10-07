@@ -338,7 +338,14 @@ export default function LobbyPage() {
           )}
 
           {phase === 'lobby' && isHost && (
-            <button style={styles.button} onClick={handleStart}>Iniciar partida</button>
+            <button
+              style={styles.button}
+              onClick={handleStart}
+              disabled={players.length < 2}
+              title={players.length < 2 ? 'Hace falta al menos 1 Curador y 1 Paciente' : undefined}
+            >
+              Iniciar partida{players.length < 2 ? ' (falta 1 jugador)' : ''}
+            </button>
           )}
         </div>
 

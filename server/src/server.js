@@ -159,6 +159,10 @@ wss.on('connection', (ws) => {
           ws.send(encode(MessageType.ERROR, { message: 'Solo el host puede iniciar la partida' }));
           return;
         }
+        if (room.players.size < 2) {
+          ws.send(encode(MessageType.ERROR, { message: 'Hace falta al menos 1 Curador y 1 Paciente para empezar' }));
+          return;
+        }
         room.switchPhase('action', 'inicio de partida');
         room.broadcast(MessageType.GAME_STARTED, {
           phase: 'action',

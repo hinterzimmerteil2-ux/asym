@@ -102,6 +102,7 @@ class Room {
   }
 
   removePlayer(playerId) {
+    const wasAsymRole = this.players.get(playerId)?.isAsymRole;
     this.players.delete(playerId);
     delete this.gameState.entities[playerId];
     delete this.gameState.patients[playerId];
@@ -109,6 +110,15 @@ class Room {
     if (this.hostId === playerId) {
       const next = this.players.keys().next();
       this.hostId = next.done ? null : next.value;
+    }
+    // Si el Curador se desconecta en el lobby, la sala se queda sin nadie
+    // en ese rol. Se lo reasignamos a otro jugador para que la partida
+    // siga siendo iniciable — igual que pasa al entrar el primer jugador.
+    if (wasAsymRole && this.phase === 'lobby' && this.players.size > 0) {
+      const next = this.players.keys().next().value;
+      const nextPlayer = this.players.get(next);
+      nextPlayer.isAsymRole = true;
+      if (!nextPlayer.characterId) nextPlayer.characterId = Characters.DEFAULT_CHARACTER_ID;
     }
     if (this.isEmpty()) this.stopTickLoop();
   }
