@@ -1,9 +1,8 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
-import { BoxGeometry } from 'three';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { BoxGeometry, Vector3 } from 'three';
 
 const LOBBY_HALF_SIZE = 15;
 const MATCH_HALF_SIZE = 30;
@@ -167,7 +166,80 @@ function CollisionObject({ obj }) {
   );
 }
 
-function useKeyboardInput(sendInput) {
+/**
+ * Cámara en tercera persona pegada al personaje propio: sigue su
+ * posición en vez de quedar libre sobre todo el mapa (era un "god view"
+ * con OrbitControls apuntando al centro del escenario). Arrastrar con
+ * el mouse orbita alrededor del personaje; la rueda acerca/aleja.
+ * Expone el ángulo horizontal actual (yawRef) para que el movimiento
+ * WASD sea relativo a hacia dónde mira la cámara, no a los ejes fijos
+ * del mundo — así "adelante" siempre es "hacia donde estoy mirando".
+ */
+function FollowCamera({ myEntity, yawRef }) {
+  const { camera, gl } = useThree();
+  const yaw = useRef(Math.PI);
+  const pitch = useRef(0.5);
+  const distance = useRef(7);
+  const dragging = useRef(false);
+  const lastPointer = useRef({ x: 0, y: 0 });
+  const smoothedTarget = useRef(new Vector3(0, 1, 0));
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+
+    function onPointerDown(e) {
+      dragging.current = true;
+      lastPointer.current = { x: e.clientX, y: e.clientY };
+    }
+    function onPointerUp() { dragging.current = false; }
+    function onPointerMove(e) {
+      if (!dragging.current) return;
+      const dx = e.clientX - lastPointer.current.x;
+      const dy = e.clientY - lastPointer.current.y;
+      lastPointer.current = { x: e.clientX, y: e.clientY };
+      yaw.current -= dx * 0.006;
+      pitch.current = Math.max(0.15, Math.min(1.4, pitch.current - dy * 0.006));
+    }
+    function onWheel(e) {
+      e.preventDefault();
+      distance.current = Math.max(2.5, Math.min(14, distance.current + e.deltaY * 0.01));
+    }
+
+    canvas.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('wheel', onWheel);
+    };
+  }, [gl]);
+
+  useFrame((_, delta) => {
+    if (!myEntity) return;
+    yawRef.current = yaw.current;
+
+    const t = Math.min(1, delta * 10);
+    smoothedTarget.current.x += (myEntity.x - smoothedTarget.current.x) * t;
+    smoothedTarget.current.y += (myEntity.y + 1.1 - smoothedTarget.current.y) * t;
+    smoothedTarget.current.z += (myEntity.z - smoothedTarget.current.z) * t;
+
+    const horizontalRadius = Math.cos(pitch.current) * distance.current;
+    const height = Math.sin(pitch.current) * distance.current;
+    camera.position.set(
+      smoothedTarget.current.x + Math.sin(yaw.current) * horizontalRadius,
+      smoothedTarget.current.y + height,
+      smoothedTarget.current.z + Math.cos(yaw.current) * horizontalRadius
+    );
+    camera.lookAt(smoothedTarget.current);
+  });
+
+  return null;
+}
+
+function useKeyboardInput(sendInput, yawRef) {
   const keysPressed = useRef(new Set());
 
   useEffect(() => {
@@ -184,21 +256,35 @@ function useKeyboardInput(sendInput) {
   useEffect(() => {
     const interval = setInterval(() => {
       const keys = keysPressed.current;
-      let moveX = 0, moveZ = 0;
-      if (keys.has('KeyW') || keys.has('ArrowUp')) moveZ -= 1;
-      if (keys.has('KeyS') || keys.has('ArrowDown')) moveZ += 1;
-      if (keys.has('KeyA') || keys.has('ArrowLeft')) moveX -= 1;
-      if (keys.has('KeyD') || keys.has('ArrowRight')) moveX += 1;
+      // Ejes LOCALES a la intención del jugador (adelante/atrás/lateral),
+      // rotados después según hacia dónde mira la cámara — así W siempre
+      // avanza "hacia adelante en pantalla" en vez de "hacia +Z del mundo",
+      // que es lo que hacía que moverse se sintiera desconectado de la
+      // cámara libre anterior.
+      let inputZ = 0, inputX = 0;
+      if (keys.has('KeyW') || keys.has('ArrowUp')) inputZ -= 1;
+      if (keys.has('KeyS') || keys.has('ArrowDown')) inputZ += 1;
+      if (keys.has('KeyA') || keys.has('ArrowLeft')) inputX -= 1;
+      if (keys.has('KeyD') || keys.has('ArrowRight')) inputX += 1;
       const jump = keys.has('Space');
-      if (moveX !== 0 && moveZ !== 0) {
+
+      if (inputX !== 0 && inputZ !== 0) {
         const norm = Math.SQRT1_2;
-        moveX *= norm;
-        moveZ *= norm;
+        inputX *= norm;
+        inputZ *= norm;
       }
+
+      const yaw = yawRef.current || 0;
+      const sinY = Math.sin(yaw);
+      const cosY = Math.cos(yaw);
+      // Rota el vector de intención por el yaw de la cámara.
+      const moveX = inputX * cosY + inputZ * sinY;
+      const moveZ = inputZ * cosY - inputX * sinY;
+
       sendInput({ moveX, moveZ, jump });
     }, 50);
     return () => clearInterval(interval);
-  }, [sendInput]);
+  }, [sendInput, yawRef]);
 }
 
 export default function GameScene({
@@ -211,15 +297,19 @@ export default function GameScene({
   sendInput,
   sendAction,
 }) {
-  useKeyboardInput(sendInput);
+  const yawRef = useRef(Math.PI);
+  useKeyboardInput(sendInput, yawRef);
 
   const playerById = new Map(players.map((p) => [p.id, p]));
   const areaHalfSize = phase === 'action' ? MATCH_HALF_SIZE : LOBBY_HALF_SIZE;
+  const myEntity = entities[myPlayerId];
 
   return (
-    <Canvas shadows camera={{ position: [12, 10, 12], fov: 50 }}>
+    <Canvas shadows camera={{ position: [0, 3, 7], fov: 60 }}>
       <ambientLight intensity={phase === 'action' ? 0.5 : 0.4} />
       <directionalLight position={[8, 12, 6]} intensity={1.1} castShadow shadow-mapSize={[1024, 1024]} />
+
+      <FollowCamera myEntity={myEntity} yawRef={yawRef} />
 
       <Ground halfSize={areaHalfSize} themed={phase === 'action'} />
 
@@ -260,12 +350,6 @@ export default function GameScene({
         );
       })}
 
-      <OrbitControls
-        makeDefault
-        maxPolarAngle={Math.PI / 2 - 0.05}
-        minDistance={4}
-        maxDistance={areaHalfSize * 2}
-      />
     </Canvas>
   );
 }
