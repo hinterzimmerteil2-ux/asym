@@ -178,6 +178,13 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.RETURN_TO_LOBBY: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.returnToLobby(playerId);
+        break;
+      }
+
       case MessageType.CHAT_MESSAGE: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;

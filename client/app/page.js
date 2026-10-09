@@ -122,6 +122,16 @@ export default function LobbyPage() {
             break;
           case 'phase_change':
             setPhase(payload.newPhase);
+            if (payload.newPhase === 'lobby') {
+              // Volvimos al lobby (game over o el host canceló la partida):
+              // limpiamos todo rastro de la partida anterior para que la UI
+              // no se quede mostrando HP, resultado o colisiones viejas.
+              setGameOverInfo(null);
+              setPatients({});
+              setCollisionObjects([]);
+              setTimeRemainingMs(null);
+              setLastActionFeedback(null);
+            }
             break;
           case 'error':
             setErrorMsg(payload.message);
@@ -207,6 +217,10 @@ export default function LobbyPage() {
 
   function handleSetMap(newMapId) {
     connRef.current?.send('set_map', { mapId: newMapId });
+  }
+
+  function handleReturnToLobby() {
+    connRef.current?.send('return_to_lobby', {});
   }
 
   function handleSendChat(e) {
@@ -440,7 +454,14 @@ export default function LobbyPage() {
                   );
                 })}
               </ul>
-              <button style={styles.button} onClick={() => setGameOverInfo(null)}>Cerrar</button>
+              {isHost ? (
+                <button style={styles.button} onClick={handleReturnToLobby}>Volver al lobby</button>
+              ) : (
+                <>
+                  <p style={styles.waitingForHost}>Esperando a que el host vuelva al lobby...</p>
+                  <button style={styles.linkButton} onClick={() => setGameOverInfo(null)}>Cerrar este cartel</button>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -841,6 +862,7 @@ const styles = {
     textAlign: 'center',
   }),
   gameOverReason: { fontSize: 13, color: '#8a8da3', textAlign: 'center', margin: '0 0 18px' },
+  waitingForHost: { fontSize: 12, color: '#8a8da3', textAlign: 'center', margin: '0 0 10px' },
   gameOverList: { listStyle: 'none', padding: 0, margin: '0 0 20px', display: 'flex', flexDirection: 'column', gap: 8 },
   gameOverListItem: {
     display: 'flex',

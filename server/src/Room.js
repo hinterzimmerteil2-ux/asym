@@ -267,6 +267,8 @@ class Room {
 
   initGameState() {
     this.gameState.patients = {};
+    this.gameState.gameOver = false;
+    this.gameState.frozen = false;
 
     const patientIds = [];
     for (const [playerId, player] of this.players) {
@@ -330,6 +332,7 @@ class Room {
   }
 
   stepPhysics(dt) {
+    if (this.gameState.frozen) return;
     const area = this.getCurrentArea();
     const collisionObjects =
       this.phase === 'action' ? GameMap.resolveCollisionObjects(this.mapId, GameMap.MATCH_AREA) : [];
@@ -493,7 +496,15 @@ class Room {
   endGame(reason) {
     if (this.gameState.gameOver) return;
     this.gameState.gameOver = true;
-    this.stopTickLoop();
+    // OJO: antes esto dejaba this.phase === 'action' para siempre (el tick
+    // loop se paraba pero la fase nunca volvía a 'lobby'), así que la sala
+    // quedaba trabada: nadie podía iniciar una partida nueva, y con
+    // gameOver=true pero phase='action' el estado era incoherente. No
+    // tocamos this.phase acá — seguimos en 'action' mientras se muestra el
+    // resultado — pero dejamos de simular movimiento/física mientras se ve
+    // el cartel de fin de partida, ya que seguir corriendo por el mapa
+    // después de terminado no tenía sentido.
+    this.gameState.frozen = true;
 
     const patientResults = {};
     let eliminatedCount = 0;
@@ -510,6 +521,24 @@ class Room {
     const curatorWon = eliminatedCount >= majorityThreshold;
 
     this.broadcast(MessageType.GAME_OVER, { curatorWon, patientResults, reason });
+  }
+
+  /**
+   * Vuelve la sala al lobby después de terminar una partida (o si el host
+   * quiere cancelarla a mitad de camino). Esto es lo que faltaba: antes no
+   * existía ningún camino de vuelta a 'lobby' una vez que se entraba a
+   * 'action', por eso "se podía seguir jugando" después del game over —
+   * en realidad era que la sala nunca salía de ese estado.
+   */
+  returnToLobby(requesterId) {
+    if (requesterId !== this.hostId) {
+      this.sendTo(requesterId, MessageType.ERROR, { message: 'Solo el host puede volver al lobby' });
+      return;
+    }
+    this.gameState.gameOver = false;
+    this.gameState.frozen = false;
+    this.gameState.patients = {};
+    this.switchPhase('lobby', 'vuelta al lobby');
   }
 
   switchPhase(newPhase, reason = '') {

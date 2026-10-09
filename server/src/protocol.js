@@ -37,6 +37,7 @@ const MessageType = {
 
   // --- Fin de partida ---
   GAME_OVER: 'game_over',
+  RETURN_TO_LOBBY: 'return_to_lobby', // client(host) -> server: {} — vuelve la sala a 'lobby' tras el game over
 
   // --- Fase turnos (NO usada por las reglas actuales, se deja disponible) ---
   TURN_START: 'turn_start',
