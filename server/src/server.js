@@ -93,7 +93,13 @@ wss.on('connection', (ws) => {
 
     switch (msg.type) {
       case MessageType.JOIN_ROOM: {
-        const { roomId, token } = msg.payload;
+        const { token } = msg.payload;
+        // Dos jugadores que escriben "Sala1" y "sala1 " (con espacio o
+        // mayúsculas distintas) deben terminar en la MISMA sala. Sin
+        // normalizar acá, el Map de RoomManager los trata como salas
+        // distintas y cada uno ve el lobby "vacío" — la causa más común
+        // de "no encuentro al otro jugador".
+        const roomId = typeof msg.payload.roomId === 'string' ? msg.payload.roomId.trim().toLowerCase() : '';
         if (!roomId || !token) {
           ws.send(encode(MessageType.ERROR, { message: 'roomId y token son requeridos' }));
           return;

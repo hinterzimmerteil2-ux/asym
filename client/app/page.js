@@ -182,7 +182,11 @@ export default function LobbyPage() {
 
   function handleJoin(e) {
     e.preventDefault();
-    const trimmedRoomId = roomId.trim();
+    // Normalizamos igual que el servidor para que lo que se muestra en
+    // pantalla coincida con el id real de la sala (el servidor también
+    // normaliza, esto es solo para que la UI y el reconnect usen el
+    // mismo valor desde el principio).
+    const trimmedRoomId = roomId.trim().toLowerCase();
     if (!trimmedRoomId || !sessionToken) return;
     setErrorMsg(null);
     setRoomId(trimmedRoomId);
