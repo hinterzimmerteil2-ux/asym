@@ -26,6 +26,8 @@ export default function LobbyPage() {
   const [phase, setPhase] = useState('lobby');
   const [errorMsg, setErrorMsg] = useState(null);
   const [guestLoading, setGuestLoading] = useState(false);
+  const [joinLoading, setJoinLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [entities, setEntities] = useState({});
@@ -78,6 +80,7 @@ export default function LobbyPage() {
       onMessage: (type, payload) => {
         switch (type) {
           case 'room_joined':
+            setJoinLoading(false);
             setStatus('in_room');
             setMyPlayerId(payload.playerId);
             setIsAsymRole(payload.isAsymRole);
@@ -118,6 +121,7 @@ export default function LobbyPage() {
             setCollisionObjects(payload.collisionObjects || []);
             break;
           case 'room_full':
+            setJoinLoading(false);
             setErrorMsg('La sala está llena.');
             break;
           case 'phase_change':
@@ -134,6 +138,7 @@ export default function LobbyPage() {
             }
             break;
           case 'error':
+            setJoinLoading(false);
             setErrorMsg(payload.message);
             if (payload.message?.toLowerCase().includes('sesión')) {
               clearSession();
@@ -173,6 +178,16 @@ export default function LobbyPage() {
     return () => clearTimeout(timeout);
   }, [lastActionFeedback]);
 
+  // Antes un error se quedaba pegado en pantalla para siempre hasta la
+  // próxima acción — ahora se auto-oculta (salvo que el usuario ya lo haya
+  // cerrado a mano) y además se puede cerrar con el botón de la propia
+  // tarjeta de error.
+  useEffect(() => {
+    if (!errorMsg) return;
+    const timeout = setTimeout(() => setErrorMsg(null), 6000);
+    return () => clearTimeout(timeout);
+  }, [errorMsg]);
+
   async function handleGuestLogin(e) {
     e.preventDefault();
     if (!guestNameInput.trim()) return;
@@ -199,6 +214,7 @@ export default function LobbyPage() {
     const trimmedRoomId = roomId.trim().toLowerCase();
     if (!trimmedRoomId || !sessionToken) return;
     setErrorMsg(null);
+    setJoinLoading(true);
     setRoomId(trimmedRoomId);
     connRef.current?.send('join_room', { roomId: trimmedRoomId, token: sessionToken });
   }
@@ -357,7 +373,7 @@ export default function LobbyPage() {
 
           {phase === 'lobby' && isHost && (
             <button
-              style={styles.button}
+              style={styles.button(players.length < 2)}
               onClick={handleStart}
               disabled={players.length < 2}
               title={players.length < 2 ? 'Hace falta al menos 1 Curador y 1 Paciente' : undefined}
@@ -417,7 +433,19 @@ export default function LobbyPage() {
             : 'WASD para moverte · Espacio para saltar · Arrastrá para rotar cámara'}
         </p>
 
-        {errorMsg && <p style={styles.errorOverlay}>{errorMsg}</p>}
+        {errorMsg && (
+          <p style={styles.errorOverlay}>
+            {errorMsg}
+            <button
+              type="button"
+              onClick={() => setErrorMsg(null)}
+              style={styles.errorDismiss}
+              aria-label="Cerrar error"
+            >
+              ✕
+            </button>
+          </p>
+        )}
 
         {!isConnected && (
           <p style={styles.reconnectingOverlay}>Reconectando con el servidor...</p>
@@ -455,11 +483,11 @@ export default function LobbyPage() {
                 })}
               </ul>
               {isHost ? (
-                <button style={styles.button} onClick={handleReturnToLobby}>Volver al lobby</button>
+                <button style={styles.button(false)} onClick={handleReturnToLobby}>Volver al lobby</button>
               ) : (
                 <>
                   <p style={styles.waitingForHost}>Esperando a que el host vuelva al lobby...</p>
-                  <button style={styles.linkButton} onClick={() => setGameOverInfo(null)}>Cerrar este cartel</button>
+                  <button style={styles.linkButton(false)} onClick={() => setGameOverInfo(null)}>Cerrar este cartel</button>
                 </>
               )}
             </div>
@@ -481,11 +509,19 @@ export default function LobbyPage() {
 
         {status === 'needs_login' && (
           <div style={styles.form}>
-            <button style={styles.oauthButton('#4285F4')} onClick={() => redirectToOAuthLogin('google')}>
-              Continuar con Google
+            <button
+              style={styles.oauthButton('#4285F4', oauthLoading !== null)}
+              onClick={() => { setOauthLoading('google'); redirectToOAuthLogin('google'); }}
+              disabled={oauthLoading !== null}
+            >
+              {oauthLoading === 'google' ? 'Redirigiendo...' : 'Continuar con Google'}
             </button>
-            <button style={styles.oauthButton('#5865F2')} onClick={() => redirectToOAuthLogin('discord')}>
-              Continuar con Discord
+            <button
+              style={styles.oauthButton('#5865F2', oauthLoading !== null)}
+              onClick={() => { setOauthLoading('discord'); redirectToOAuthLogin('discord'); }}
+              disabled={oauthLoading !== null}
+            >
+              {oauthLoading === 'discord' ? 'Redirigiendo...' : 'Continuar con Discord'}
             </button>
             <div style={styles.divider}>
               <span style={styles.dividerLine} />
@@ -501,9 +537,14 @@ export default function LobbyPage() {
                   onChange={(e) => setGuestNameInput(e.target.value)}
                   placeholder="Nombre de invitado"
                   maxLength={30}
+                  disabled={guestLoading}
                 />
               </label>
-              <button style={styles.button} type="submit" disabled={guestLoading || !guestNameInput.trim()}>
+              <button
+                style={styles.button(guestLoading || !guestNameInput.trim())}
+                type="submit"
+                disabled={guestLoading || !guestNameInput.trim()}
+              >
                 {guestLoading ? 'Entrando...' : 'Entrar como invitado'}
               </button>
             </form>
@@ -520,14 +561,36 @@ export default function LobbyPage() {
                 value={roomId}
                 onChange={(e) => setRoomId(e.target.value)}
                 placeholder="ID de sala"
+                disabled={joinLoading}
+                autoFocus
               />
             </label>
-            <button style={styles.button} type="submit">Unirse a la sala</button>
-            <button type="button" onClick={handleLogout} style={styles.linkButton}>Cerrar sesión</button>
+            <button
+              style={styles.button(joinLoading || !roomId.trim())}
+              type="submit"
+              disabled={joinLoading || !roomId.trim()}
+            >
+              {joinLoading ? 'Uniéndose...' : 'Unirse a la sala'}
+            </button>
+            <button type="button" onClick={handleLogout} style={styles.linkButton(joinLoading)} disabled={joinLoading}>
+              Cerrar sesión
+            </button>
           </form>
         )}
 
-        {errorMsg && <p style={styles.error}>{errorMsg}</p>}
+        {errorMsg && (
+          <p style={styles.error}>
+            {errorMsg}
+            <button
+              type="button"
+              onClick={() => setErrorMsg(null)}
+              style={styles.errorDismiss}
+              aria-label="Cerrar error"
+            >
+              ✕
+            </button>
+          </p>
+        )}
       </div>
     </main>
   );
@@ -588,7 +651,7 @@ const styles = {
     color: '#e8e8ef',
     fontSize: 14,
   },
-  button: {
+  button: (disabled) => ({
     marginTop: 6,
     padding: '10px 16px',
     borderRadius: 8,
@@ -597,9 +660,11 @@ const styles = {
     color: '#fff',
     fontSize: 14,
     fontWeight: 600,
-    cursor: 'pointer',
-  },
-  oauthButton: (bgColor) => ({
+    cursor: disabled ? 'default' : 'pointer',
+    opacity: disabled ? 0.6 : 1,
+    transition: 'opacity 0.15s ease',
+  }),
+  oauthButton: (bgColor, disabled) => ({
     padding: '10px 16px',
     borderRadius: 8,
     border: 'none',
@@ -607,20 +672,23 @@ const styles = {
     color: '#fff',
     fontSize: 14,
     fontWeight: 600,
-    cursor: 'pointer',
+    cursor: disabled ? 'default' : 'pointer',
+    opacity: disabled ? 0.6 : 1,
+    transition: 'opacity 0.15s ease',
   }),
   divider: { display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' },
   dividerLine: { flex: 1, height: 1, background: '#2a2d3d' },
   dividerText: { fontSize: 12, color: '#8a8da3' },
-  linkButton: {
+  linkButton: (disabled) => ({
     background: 'none',
     border: 'none',
     color: '#8a8da3',
     fontSize: 12,
-    cursor: 'pointer',
+    cursor: disabled ? 'default' : 'pointer',
+    opacity: disabled ? 0.5 : 1,
     textDecoration: 'underline',
     padding: 0,
-  },
+  }),
   roomLabel: { fontSize: 14, color: '#8a8da3', margin: 0 },
   phaseLabel: { fontSize: 13, color: '#8a8da3', margin: 0 },
   playerList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 },
@@ -697,7 +765,25 @@ const styles = {
     color: ms < 30000 ? '#e0555f' : '#e8e8ef',
     margin: 0,
   }),
-  error: { marginTop: 14, fontSize: 13, color: '#e0555f' },
+  error: {
+    marginTop: 14,
+    fontSize: 13,
+    color: '#e0555f',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  errorDismiss: {
+    background: 'none',
+    border: 'none',
+    color: 'inherit',
+    cursor: 'pointer',
+    fontSize: 12,
+    opacity: 0.8,
+    padding: '2px 4px',
+    lineHeight: 1,
+  },
   chatHistory: {
     height: 180,
     overflowY: 'auto',
@@ -799,6 +885,10 @@ const styles = {
     background: 'rgba(224, 85, 95, 0.9)',
     padding: '8px 14px',
     borderRadius: 6,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    maxWidth: 320,
   },
   reconnectingOverlay: {
     position: 'absolute',
