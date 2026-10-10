@@ -38,6 +38,10 @@ const MessageType = {
   SELF_DAMAGE_ACTION: 'self_damage_action',
   SELF_DAMAGE_RESULT: 'self_damage_result',
 
+  // --- Habilidad especial del Curador: "Embestida" (dash con cooldown) ---
+  CURATOR_DASH_ACTION: 'curator_dash_action', // client(Curador) -> server: {}
+  CURATOR_DASH_RESULT: 'curator_dash_result', // server -> todos: { playerId, cooldownUntil }
+
   // --- Fin de partida ---
   GAME_OVER: 'game_over',
   RETURN_TO_LOBBY: 'return_to_lobby', // client(host) -> server: {} — vuelve la sala a 'lobby' tras el game over

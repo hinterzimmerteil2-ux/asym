@@ -33,6 +33,15 @@ const PLAYER_COLLISION_RADIUS = 0.4;
 // instante del click, no una zona de colisión continua.
 const INTERACTION_RADIUS = 2.5;
 
+// --- Habilidad especial del Curador: "Embestida" ---
+// Un dash corto en la dirección de movimiento actual (o hacia adelante
+// si está quieto), con cooldown largo — le da al Curador una herramienta
+// táctica para alcanzar a un Paciente que huye, sin volverlo imparable
+// (el cooldown es mucho más largo que la propia duración del dash).
+const CURATOR_DASH_SPEED_MULTIPLIER = 3;
+const CURATOR_DASH_DURATION_MS = 250;
+const CURATOR_DASH_COOLDOWN_MS = 6000;
+
 function clampUnit(value) {
   const n = typeof value === 'number' && !Number.isNaN(value) ? value : 0;
   return Math.max(-1, Math.min(1, n));
@@ -96,6 +105,10 @@ class Room {
       velocityY: 0,
       onGround: true,
       input: { moveX: 0, moveZ: 0, jump: false },
+      dashUntil: 0,
+      dashCooldownUntil: 0,
+      dashDirX: 0,
+      dashDirZ: -1,
     };
 
     this.startTickLoop();
@@ -311,6 +324,8 @@ class Room {
       entity.y = GROUND_Y;
       entity.velocityY = 0;
       entity.onGround = true;
+      entity.dashUntil = 0;
+      entity.dashCooldownUntil = 0;
     }
 
     this.gameState.patientsInitialCount = patientIds.length;
@@ -336,7 +351,7 @@ class Room {
       if (this.gameState.timeRemainingMs === 0) this.endGame('timeout');
     }
 
-    this.stepPhysics(dt);
+    this.stepPhysics(dt, now);
 
     this.broadcast(MessageType.STATE_SNAPSHOT, {
       tick: this.tickCount,
@@ -347,7 +362,7 @@ class Room {
     });
   }
 
-  stepPhysics(dt) {
+  stepPhysics(dt, now = Date.now()) {
     if (this.gameState.frozen) return;
     const area = this.getCurrentArea();
     const collisionObjects =
@@ -355,9 +370,19 @@ class Room {
 
     for (const entity of Object.values(this.gameState.entities)) {
       const { input } = entity;
+      const isDashing = entity.dashUntil > now;
 
-      entity.x += input.moveX * MOVE_SPEED * dt;
-      entity.z += input.moveZ * MOVE_SPEED * dt;
+      // Durante el dash el movimiento usa la dirección congelada en el
+      // momento de activarlo (dashDirX/Z), no el input en vivo — así el
+      // dash completa su recorrido aunque el jugador suelte las teclas a
+      // mitad de camino, en vez de frenar en seco.
+      if (isDashing) {
+        entity.x += entity.dashDirX * MOVE_SPEED * CURATOR_DASH_SPEED_MULTIPLIER * dt;
+        entity.z += entity.dashDirZ * MOVE_SPEED * CURATOR_DASH_SPEED_MULTIPLIER * dt;
+      } else {
+        entity.x += input.moveX * MOVE_SPEED * dt;
+        entity.z += input.moveZ * MOVE_SPEED * dt;
+      }
 
       for (const obj of collisionObjects) {
         const dx = entity.x - obj.x;
@@ -396,6 +421,49 @@ class Room {
     entity.input.moveX = clampUnit(input.moveX);
     entity.input.moveZ = clampUnit(input.moveZ);
     entity.input.jump = Boolean(input.jump);
+
+    // Guardamos la última dirección de movimiento no nula, normalizada,
+    // para que la Embestida tenga hacia dónde ir incluso si se activa en
+    // el mismo instante en que se sueltan las teclas.
+    const mag = Math.sqrt(entity.input.moveX ** 2 + entity.input.moveZ ** 2);
+    if (mag > 0.01) {
+      entity.dashDirX = entity.input.moveX / mag;
+      entity.dashDirZ = entity.input.moveZ / mag;
+    }
+  }
+
+  /**
+   * Habilidad especial del Curador: un dash corto en la última dirección
+   * de movimiento, con cooldown. Mismo patrón de validación que
+   * applyCure/applySelfDamage: se valida acá, no se confía en el cliente.
+   */
+  applyCuratorDash(playerId) {
+    if (this.gameState.gameOver || this.gameState.frozen) return;
+
+    const curador = this.players.get(playerId);
+    if (!curador || !curador.isAsymRole) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Solo el Curador puede usar la Embestida' });
+      return;
+    }
+
+    const entity = this.gameState.entities[playerId];
+    if (!entity) return;
+
+    const now = Date.now();
+    if (entity.dashCooldownUntil > now) {
+      this.sendTo(playerId, MessageType.ERROR, {
+        message: `Embestida en recarga (${Math.ceil((entity.dashCooldownUntil - now) / 1000)}s)`,
+      });
+      return;
+    }
+
+    entity.dashUntil = now + CURATOR_DASH_DURATION_MS;
+    entity.dashCooldownUntil = now + CURATOR_DASH_COOLDOWN_MS;
+
+    this.broadcast(MessageType.CURATOR_DASH_RESULT, {
+      playerId,
+      cooldownUntil: entity.dashCooldownUntil,
+    });
   }
 
   /**

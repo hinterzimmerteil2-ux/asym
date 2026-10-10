@@ -221,6 +221,13 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.CURATOR_DASH_ACTION: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room || room.phase !== 'action') return;
+        room.applyCuratorDash(playerId);
+        break;
+      }
+
       case MessageType.LEAVE_ROOM: {
         handleLeave();
         break;

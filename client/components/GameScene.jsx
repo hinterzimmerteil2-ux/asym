@@ -239,11 +239,22 @@ function FollowCamera({ myEntity, yawRef }) {
   return null;
 }
 
-function useKeyboardInput(sendInput, yawRef) {
+function useKeyboardInput(sendInput, yawRef, onDash) {
   const keysPressed = useRef(new Set());
 
   useEffect(() => {
-    function handleKeyDown(e) { keysPressed.current.add(e.code); }
+    function handleKeyDown(e) {
+      // Disparamos el dash solo en el flanco de bajada (primera vez que se
+      // detecta la tecla apretada), no en cada repeat del navegador — si
+      // no, mantener Shift apretado mandaría curator_dash_action sin
+      // parar y el servidor lo rechazaría todas las veces salvo la
+      // primera (está en cooldown de todos modos, pero no tiene sentido
+      // spamear mensajes).
+      if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !keysPressed.current.has(e.code)) {
+        onDash?.();
+      }
+      keysPressed.current.add(e.code);
+    }
     function handleKeyUp(e) { keysPressed.current.delete(e.code); }
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
@@ -251,7 +262,7 @@ function useKeyboardInput(sendInput, yawRef) {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+  }, [onDash]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -296,9 +307,10 @@ export default function GameScene({
   collisionObjects,
   sendInput,
   sendAction,
+  onDash,
 }) {
   const yawRef = useRef(Math.PI);
-  useKeyboardInput(sendInput, yawRef);
+  useKeyboardInput(sendInput, yawRef, onDash);
 
   const playerById = new Map(players.map((p) => [p.id, p]));
   const areaHalfSize = phase === 'action' ? MATCH_HALF_SIZE : LOBBY_HALF_SIZE;
