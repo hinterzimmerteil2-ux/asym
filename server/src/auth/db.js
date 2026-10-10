@@ -61,4 +61,12 @@ async function getUserById(userId) {
   return result.rows[0] || null;
 }
 
-module.exports = { pool, initSchema, findOrCreateUser, getUserById };
+async function updateDisplayName(userId, displayName) {
+  const result = await pool.query(
+    `UPDATE users SET display_name = $2 WHERE id = $1 RETURNING id, display_name`,
+    [userId, displayName]
+  );
+  return result.rows[0] || null;
+}
+
+module.exports = { pool, initSchema, findOrCreateUser, getUserById, updateDisplayName };

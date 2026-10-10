@@ -139,6 +139,22 @@ class Room {
   }
 
   /**
+   * Cambia el nombre visible del jugador dentro de esta sala (chat,
+   * lista de jugadores, cartel de fin de partida). El nombre "real" de
+   * la cuenta/invitado vive en el JWT y se actualiza aparte vía HTTP
+   * (/auth/update-name) — esto solo mantiene en sincro lo que ya se
+   * está mostrando en una sala sin forzar una reconexión.
+   */
+  setDisplayName(playerId, displayName) {
+    const player = this.players.get(playerId);
+    if (!player) return;
+    const trimmed = typeof displayName === 'string' ? displayName.trim().slice(0, 30) : '';
+    if (!trimmed) return;
+    player.name = trimmed;
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
+  }
+
+  /**
    * El host elige manualmente quién es el Curador, en vez de que siempre
    * sea el primero en entrar. Solo tiene efecto en el lobby, antes de
    * iniciar la partida.

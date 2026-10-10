@@ -9,6 +9,7 @@ import {
   loginAsGuest,
   redirectToOAuthLogin,
   clearSession,
+  updateDisplayName,
 } from '../lib/session';
 import GameScene from '../components/GameScene';
 
@@ -42,6 +43,9 @@ export default function LobbyPage() {
   const [characters, setCharacters] = useState([]);
   const [maps, setMaps] = useState([]);
   const [mapId, setMapId] = useState('default');
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [nameSaving, setNameSaving] = useState(false);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -239,6 +243,36 @@ export default function LobbyPage() {
     connRef.current?.send('return_to_lobby', {});
   }
 
+  function handleStartEditName() {
+    setNameInput(displayName || '');
+    setEditingName(true);
+  }
+
+  async function handleSaveDisplayName(e) {
+    e.preventDefault();
+    const trimmed = nameInput.trim();
+    if (!trimmed || !sessionToken) return;
+    setNameSaving(true);
+    setErrorMsg(null);
+    try {
+      const newToken = await updateDisplayName(sessionToken, trimmed);
+      setSessionToken(newToken);
+      setDisplayName(trimmed);
+      sessionTokenRef.current = newToken;
+      // Si ya estamos dentro de una sala, avisamos al servidor para que
+      // el nombre se actualice ahí mismo sin tener que reconectar —
+      // el nuevo token solo se usa en la próxima conexión/join_room.
+      if (status === 'in_room') {
+        connRef.current?.send('set_display_name', { displayName: trimmed });
+      }
+      setEditingName(false);
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setNameSaving(false);
+    }
+  }
+
   function handleSendChat(e) {
     e.preventDefault();
     const text = chatInput.trim();
@@ -293,6 +327,37 @@ export default function LobbyPage() {
           </span>
           {phase === 'action' && timeRemainingMs !== null && (
             <span style={styles.timerTag(timeRemainingMs)}>{formatTime(timeRemainingMs)}</span>
+          )}
+          {editingName ? (
+            <form onSubmit={handleSaveDisplayName} style={styles.nameEditRow}>
+              <input
+                style={styles.inRoomNameInput}
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                maxLength={30}
+                autoFocus
+                disabled={nameSaving}
+              />
+              <button
+                type="submit"
+                style={styles.linkButton(nameSaving || !nameInput.trim())}
+                disabled={nameSaving || !nameInput.trim()}
+              >
+                ✓
+              </button>
+              <button
+                type="button"
+                style={styles.linkButton(nameSaving)}
+                disabled={nameSaving}
+                onClick={() => setEditingName(false)}
+              >
+                ✕
+              </button>
+            </form>
+          ) : (
+            <button type="button" style={styles.linkButton(false)} onClick={handleStartEditName}>
+              cambiar nombre
+            </button>
           )}
         </div>
 
@@ -553,7 +618,41 @@ export default function LobbyPage() {
 
         {status === 'logged_in' && (
           <form onSubmit={handleJoin} style={styles.form}>
-            <p style={styles.roomLabel}>Jugando como {displayName}</p>
+            {editingName ? (
+              <form onSubmit={handleSaveDisplayName} style={styles.nameEditRow}>
+                <input
+                  style={styles.input}
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  placeholder="Tu nombre"
+                  maxLength={30}
+                  autoFocus
+                  disabled={nameSaving}
+                />
+                <button
+                  type="submit"
+                  style={styles.button(nameSaving || !nameInput.trim())}
+                  disabled={nameSaving || !nameInput.trim()}
+                >
+                  {nameSaving ? '...' : 'Guardar'}
+                </button>
+                <button
+                  type="button"
+                  style={styles.linkButton(nameSaving)}
+                  disabled={nameSaving}
+                  onClick={() => setEditingName(false)}
+                >
+                  Cancelar
+                </button>
+              </form>
+            ) : (
+              <p style={styles.roomLabel}>
+                Jugando como {displayName}{' '}
+                <button type="button" style={styles.linkButton(false)} onClick={handleStartEditName}>
+                  cambiar nombre
+                </button>
+              </p>
+            )}
             <label style={styles.label}>
               Sala
               <input
@@ -690,6 +789,16 @@ const styles = {
     padding: 0,
   }),
   roomLabel: { fontSize: 14, color: '#8a8da3', margin: 0 },
+  nameEditRow: { display: 'flex', gap: 6, alignItems: 'center' },
+  inRoomNameInput: {
+    padding: '4px 8px',
+    borderRadius: 6,
+    border: '1px solid #2a2d3d',
+    background: '#12131a',
+    color: '#e8e8ef',
+    fontSize: 12,
+    width: 110,
+  },
   phaseLabel: { fontSize: 13, color: '#8a8da3', margin: 0 },
   playerList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 },
   playerItem: {

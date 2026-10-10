@@ -1,7 +1,9 @@
 const { randomUUID } = require('crypto');
 const { getAuthorizationUrl, exchangeCodeForProfile } = require('./oauth');
-const { findOrCreateUser } = require('./db');
-const { signAccountToken, signGuestToken } = require('./jwt');
+const { findOrCreateUser, updateDisplayName } = require('./db');
+const { signAccountToken, signGuestToken, verifyToken } = require('./jwt');
+
+const DISPLAY_NAME_MAX_LENGTH = 30;
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3001';
@@ -35,6 +37,7 @@ function registerAuthRoutes(routes) {
   routes.set('/auth/callback/google', (req, res, url) => handleOAuthCallback('google', req, res, url));
   routes.set('/auth/callback/discord', (req, res, url) => handleOAuthCallback('discord', req, res, url));
   routes.set('/auth/guest', (req, res) => handleGuestLogin(req, res));
+  routes.set('/auth/update-name', (req, res) => handleUpdateDisplayName(req, res));
 }
 
 function startOAuthLogin(provider, res) {
@@ -87,6 +90,52 @@ function handleGuestLogin(req, res) {
     const token = signGuestToken(guestId, displayName);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ token, displayName, kind: 'guest' }));
+  });
+}
+
+/**
+ * El nombre viaja embebido en el JWT (payload.name), así que cambiarlo no
+ * alcanza con tocar la fila en la DB: el token viejo seguiría firmando el
+ * nombre anterior. Por eso esta ruta devuelve un token NUEVO ya con el
+ * nombre actualizado, y el cliente lo reemplaza en localStorage. Para
+ * invitados (sin fila en users) no hay nada que persistir, solo se
+ * re-firma el token con el nombre nuevo.
+ */
+function handleUpdateDisplayName(req, res) {
+  let body = '';
+  req.on('data', (chunk) => { body += chunk; });
+  req.on('end', async () => {
+    try {
+      const parsed = JSON.parse(body || '{}');
+      const session = verifyToken(parsed.token);
+      if (!session) {
+        respondError(res, 401, 'Sesión inválida o expirada. Inicia sesión de nuevo.');
+        return;
+      }
+      const displayName = typeof parsed.displayName === 'string' ? parsed.displayName.trim() : '';
+      if (!displayName) {
+        respondError(res, 400, 'El nombre no puede estar vacío.');
+        return;
+      }
+      if (displayName.length > DISPLAY_NAME_MAX_LENGTH) {
+        respondError(res, 400, `El nombre no puede superar los ${DISPLAY_NAME_MAX_LENGTH} caracteres.`);
+        return;
+      }
+
+      let token;
+      if (session.kind === 'account') {
+        await updateDisplayName(session.userId, displayName);
+        token = signAccountToken(session.userId, displayName);
+      } else {
+        token = signGuestToken(session.userId, displayName);
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ token, displayName }));
+    } catch (err) {
+      console.error('Error actualizando nombre:', err.message);
+      respondError(res, 500, 'No se pudo actualizar el nombre.');
+    }
   });
 }
 

@@ -46,3 +46,19 @@ export async function loginAsGuest(displayName) {
 export function redirectToOAuthLogin(provider) {
   window.location.href = `${SERVER_URL}/auth/${provider}`;
 }
+
+export async function updateDisplayName(token, newDisplayName) {
+  const response = await fetch(`${SERVER_URL}/auth/update-name`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, displayName: newDisplayName }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'No se pudo actualizar el nombre.');
+  // El nombre viaja embebido en el JWT, así que el servidor devuelve un
+  // token nuevo ya firmado con el nombre actualizado — hay que reemplazar
+  // el viejo o las próximas conexiones seguirían mandando el nombre
+  // anterior.
+  storeSession(data.token, data.displayName);
+  return data.token;
+}

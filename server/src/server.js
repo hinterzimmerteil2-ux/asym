@@ -178,6 +178,13 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.SET_DISPLAY_NAME: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.setDisplayName(playerId, msg.payload.displayName);
+        break;
+      }
+
       case MessageType.RETURN_TO_LOBBY: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
