@@ -46,8 +46,8 @@ export default function LobbyPage() {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [nameSaving, setNameSaving] = useState(false);
-  const [dashCooldownUntil, setDashCooldownUntil] = useState(0);
-  const [dashCooldownNow, setDashCooldownNow] = useState(0);
+  const [pulseCooldownUntil, setPulseCooldownUntil] = useState(0);
+  const [pulseCooldownNow, setPulseCooldownNow] = useState(0);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -121,8 +121,14 @@ export default function LobbyPage() {
                 : `Te hiciste daño (HP: ${payload.newHp})`
             );
             break;
-          case 'curator_dash_result':
-            if (payload.playerId === myPlayerIdRef.current) setDashCooldownUntil(payload.cooldownUntil);
+          case 'curator_pulse_result':
+            if (payload.patients) setPatients(payload.patients);
+            if (payload.playerId === myPlayerIdRef.current) {
+              setPulseCooldownUntil(payload.cooldownUntil);
+              if (payload.healedPlayerIds?.length > 0) {
+                setLastActionFeedback(`Pulso de Curación: ${payload.healedPlayerIds.length} Paciente(s) curado(s)`);
+              }
+            }
             break;
           case 'game_over':
             setGameOverInfo(payload);
@@ -146,7 +152,7 @@ export default function LobbyPage() {
               setCollisionObjects([]);
               setTimeRemainingMs(null);
               setLastActionFeedback(null);
-              setDashCooldownUntil(0);
+              setPulseCooldownUntil(0);
             }
             break;
           case 'error':
@@ -190,14 +196,14 @@ export default function LobbyPage() {
     return () => clearTimeout(timeout);
   }, [lastActionFeedback]);
 
-  // Refresca el HUD del cooldown de la Embestida mientras está activo —
-  // dashCooldownUntil es un timestamp fijo, necesitamos un "ahora" que
-  // avance para poder mostrar la cuenta regresiva.
+  // Refresca el HUD del cooldown del Pulso de Curación mientras está
+  // activo — pulseCooldownUntil es un timestamp fijo, necesitamos un
+  // "ahora" que avance para poder mostrar la cuenta regresiva.
   useEffect(() => {
-    if (dashCooldownUntil <= Date.now()) return;
-    const interval = setInterval(() => setDashCooldownNow(Date.now()), 200);
+    if (pulseCooldownUntil <= Date.now()) return;
+    const interval = setInterval(() => setPulseCooldownNow(Date.now()), 200);
     return () => clearInterval(interval);
-  }, [dashCooldownUntil]);
+  }, [pulseCooldownUntil]);
 
   // Antes un error se quedaba pegado en pantalla para siempre hasta la
   // próxima acción — ahora se auto-oculta (salvo que el usuario ya lo haya
@@ -306,12 +312,12 @@ export default function LobbyPage() {
     connRef.current?.send(type, payload);
   }, []);
 
-  const handleDash = useCallback(() => {
+  const handlePulse = useCallback(() => {
     // Validamos en el cliente solo para no spamear el servidor con un
     // mensaje que de todos modos va a rechazar — la validación real
-    // (rol, cooldown, fase) vive en Room.applyCuratorDash.
+    // (rol, cooldown, fase) vive en Room.applyCuratorPulse.
     if (!isAsymRole || phase !== 'action') return;
-    connRef.current?.send('curator_dash_action', {});
+    connRef.current?.send('curator_pulse_action', {});
   }, [isAsymRole, phase]);
 
   function handleLogout() {
@@ -337,7 +343,7 @@ export default function LobbyPage() {
             collisionObjects={collisionObjects}
             sendInput={handleSendInput}
             sendAction={handleSendAction}
-            onDash={handleDash}
+            onPulse={handlePulse}
           />
         </div>
 
@@ -488,13 +494,13 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && isAsymRole && (
-          <div style={styles.dashHud}>
-            {dashCooldownUntil > dashCooldownNow ? (
-              <span style={styles.dashHudCooldown}>
-                Embestida: {Math.ceil((dashCooldownUntil - dashCooldownNow) / 1000)}s
+          <div style={styles.pulseHud}>
+            {pulseCooldownUntil > pulseCooldownNow ? (
+              <span style={styles.pulseHudCooldown}>
+                Pulso de Curación: {Math.ceil((pulseCooldownUntil - pulseCooldownNow) / 1000)}s
               </span>
             ) : (
-              <span style={styles.dashHudReady}>Embestida lista (Shift)</span>
+              <span style={styles.pulseHudReady}>Pulso de Curación listo (Shift)</span>
             )}
           </div>
         )}
@@ -531,7 +537,7 @@ export default function LobbyPage() {
         <p style={styles.controlsHint}>
           {phase === 'action'
             ? isAsymRole
-              ? `WASD para moverte · Click en un Paciente para curarlo con tu ${players.find((p) => p.id === myPlayerId)?.character?.weaponName || 'arma'} · Shift para Embestida`
+              ? `WASD para moverte · Click en un Paciente para curarlo con tu ${players.find((p) => p.id === myPlayerId)?.character?.weaponName || 'arma'} · Shift para Pulso de Curación en área`
               : 'WASD para moverte · Espacio para saltar · Click en un objeto rojo para auto-dañarte'
             : 'WASD para moverte · Espacio para saltar · Arrastrá para rotar cámara'}
         </p>
@@ -1063,7 +1069,7 @@ const styles = {
     backdropFilter: 'blur(4px)',
   },
   hpBarLabel: { fontSize: 12, color: '#8a8da3', marginBottom: 6, textAlign: 'center' },
-  dashHud: {
+  pulseHud: {
     position: 'absolute',
     bottom: 16,
     left: '50%',
@@ -1074,8 +1080,8 @@ const styles = {
     border: '1px solid #2a2d3d',
     backdropFilter: 'blur(4px)',
   },
-  dashHudReady: { fontSize: 13, fontWeight: 600, color: '#f2a154' },
-  dashHudCooldown: { fontSize: 13, fontWeight: 600, color: '#8a8da3', fontVariantNumeric: 'tabular-nums' },
+  pulseHudReady: { fontSize: 13, fontWeight: 600, color: '#5fd58c' },
+  pulseHudCooldown: { fontSize: 13, fontWeight: 600, color: '#8a8da3', fontVariantNumeric: 'tabular-nums' },
   hpBarTrack: { height: 8, borderRadius: 4, background: '#12131a', overflow: 'hidden' },
   hpBarFill: (hp) => {
     const ratio = Math.max(0, Math.min(1, hp / 120));

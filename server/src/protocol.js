@@ -38,9 +38,9 @@ const MessageType = {
   SELF_DAMAGE_ACTION: 'self_damage_action',
   SELF_DAMAGE_RESULT: 'self_damage_result',
 
-  // --- Habilidad especial del Curador: "Embestida" (dash con cooldown) ---
-  CURATOR_DASH_ACTION: 'curator_dash_action', // client(Curador) -> server: {}
-  CURATOR_DASH_RESULT: 'curator_dash_result', // server -> todos: { playerId, cooldownUntil }
+  // --- Habilidad especial del Curador: "Pulso de Curación" (AoE, cooldown) ---
+  CURATOR_PULSE_ACTION: 'curator_pulse_action', // client(Curador) -> server: {}
+  CURATOR_PULSE_RESULT: 'curator_pulse_result', // server -> todos: { playerId, cooldownUntil, healedPlayerIds[], patients }
 
   // --- Fin de partida ---
   GAME_OVER: 'game_over',
