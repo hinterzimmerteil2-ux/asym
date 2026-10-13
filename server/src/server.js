@@ -188,7 +188,14 @@ wss.on('connection', (ws) => {
       case MessageType.USE_CARD_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
-        room.useCard(playerId, msg.payload.cardId);
+        room.useCard(playerId, msg.payload.slot);
+        break;
+      }
+
+      case MessageType.CHOOSE_CARD_ACTION: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.chooseCard(playerId, msg.payload.slot, msg.payload.cardId);
         break;
       }
 

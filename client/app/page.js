@@ -52,6 +52,8 @@ export default function LobbyPage() {
   const [hand, setHand] = useState([]);
   const [cardCooldowns, setCardCooldowns] = useState({});
   const [cardCooldownNow, setCardCooldownNow] = useState(0);
+  const [draftEndsAt, setDraftEndsAt] = useState(0);
+  const [draftNow, setDraftNow] = useState(0);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -137,13 +139,18 @@ export default function LobbyPage() {
               }
             }
             break;
+          case 'card_offer':
+            setHand(payload.slots.map((slot) => ({ options: slot.options, chosen: null })));
+            setDraftEndsAt(payload.draftEndsAt);
+            setCardCooldowns({});
+            break;
+          case 'card_chosen':
+            setHand((prev) => prev.map((slot, i) => (i === payload.slot ? { ...slot, chosen: payload.card } : slot)));
+            break;
           case 'card_result':
             if (payload.playerId === myPlayerIdRef.current) {
-              if (payload.hand) setHand(payload.hand);
-              if (payload.cardId) {
-                setCardCooldowns((prev) => ({ ...prev, [payload.cardId]: payload.cooldownUntil }));
-                setLastActionFeedback(`Usaste: ${payload.cardId}`);
-              }
+              setCardCooldowns((prev) => ({ ...prev, [payload.slot]: payload.cooldownUntil }));
+              setLastActionFeedback(`Usaste: ${payload.cardId}`);
             }
             break;
           case 'game_over':
@@ -172,6 +179,7 @@ export default function LobbyPage() {
               setFlojera(null);
               setHand([]);
               setCardCooldowns({});
+              setDraftEndsAt(0);
             }
             break;
           case 'error':
@@ -223,6 +231,12 @@ export default function LobbyPage() {
     const interval = setInterval(() => setPulseCooldownNow(Date.now()), 200);
     return () => clearInterval(interval);
   }, [pulseCooldownUntil]);
+
+  useEffect(() => {
+    if (draftEndsAt <= Date.now()) return;
+    const interval = setInterval(() => setDraftNow(Date.now()), 250);
+    return () => clearInterval(interval);
+  }, [draftEndsAt]);
 
   useEffect(() => {
     const anyActive = Object.values(cardCooldowns).some((until) => until > Date.now());
@@ -338,6 +352,8 @@ export default function LobbyPage() {
     connRef.current?.send(type, payload);
   }, []);
 
+  const myPulseName = players.find((p) => p.id === myPlayerId)?.character?.pulseName || 'Pulso de Curación';
+
   const handlePulse = useCallback(() => {
     // Validamos en el cliente solo para no spamear el servidor con un
     // mensaje que de todos modos va a rechazar — la validación real
@@ -346,9 +362,14 @@ export default function LobbyPage() {
     connRef.current?.send('curator_pulse_action', {});
   }, [isAsymRole, phase]);
 
-  const handleUseCard = useCallback((cardId) => {
+  const handleUseCard = useCallback((slot) => {
     if (isAsymRole || phase !== 'action') return;
-    connRef.current?.send('use_card_action', { cardId });
+    connRef.current?.send('use_card_action', { slot });
+  }, [isAsymRole, phase]);
+
+  const handleChooseCard = useCallback((slot, cardId) => {
+    if (isAsymRole || phase !== 'action') return;
+    connRef.current?.send('choose_card_action', { slot, cardId });
   }, [isAsymRole, phase]);
 
   function handleLogout() {
@@ -524,11 +545,12 @@ export default function LobbyPage() {
           </div>
         )}
 
-        {phase === 'action' && !isAsymRole && flojera && (
+        {phase === 'action' && flojera && (
           <div style={styles.flojeraBarContainer}>
             <div style={styles.flojeraBarLabel}>
               Flojera: {Math.round(flojera.value)}/{flojera.max}
               {flojera.locked && ' (¡exhausto, no puedes correr!)'}
+              {flojera.sprinting && ' (¡sprint!)'}
             </div>
             <div style={styles.flojeraBarTrack}>
               <div style={styles.flojeraBarFill(flojera.value, flojera.max, flojera.locked)} />
@@ -538,19 +560,39 @@ export default function LobbyPage() {
 
         {phase === 'action' && !isAsymRole && hand.length > 0 && (
           <div style={styles.handContainer}>
-            {hand.map((card, i) => {
-              const cooldownUntil = cardCooldowns[card.id] || 0;
+            {hand.map((slot, i) => {
+              if (!slot.chosen) {
+                const secondsLeft = Math.max(0, Math.ceil((draftEndsAt - Math.max(draftNow, Date.now())) / 1000));
+                return (
+                  <div key={i} style={styles.draftSlot}>
+                    <span style={styles.draftTitle}>Slot {i + 1} · elige ({secondsLeft}s)</span>
+                    {slot.options.map((card) => (
+                      <button
+                        key={card.id}
+                        type="button"
+                        onClick={() => handleChooseCard(i, card.id)}
+                        style={styles.draftOption(card.rarity)}
+                        title={card.description}
+                      >
+                        <span style={styles.cardButtonName}>{card.displayName}</span>
+                        <span style={styles.draftDescription}>{card.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                );
+              }
+              const cooldownUntil = cardCooldowns[i] || 0;
               const onCooldown = cooldownUntil > cardCooldownNow;
               return (
                 <button
-                  key={`${card.id}-${i}`}
+                  key={i}
                   type="button"
                   disabled={onCooldown}
-                  onClick={() => handleUseCard(card.id)}
+                  onClick={() => handleUseCard(i)}
                   style={styles.cardButton(onCooldown)}
-                  title={card.description}
+                  title={slot.chosen.description}
                 >
-                  <span style={styles.cardButtonName}>{card.displayName}</span>
+                  <span style={styles.cardButtonName}>{slot.chosen.displayName}</span>
                   {onCooldown && (
                     <span style={styles.cardButtonCooldown}>
                       {Math.ceil((cooldownUntil - cardCooldownNow) / 1000)}s
@@ -566,10 +608,10 @@ export default function LobbyPage() {
           <div style={styles.pulseHud}>
             {pulseCooldownUntil > pulseCooldownNow ? (
               <span style={styles.pulseHudCooldown}>
-                Pulso de Curación: {Math.ceil((pulseCooldownUntil - pulseCooldownNow) / 1000)}s
+                {myPulseName}: {Math.ceil((pulseCooldownUntil - pulseCooldownNow) / 1000)}s
               </span>
             ) : (
-              <span style={styles.pulseHudReady}>Pulso de Curación listo (Shift)</span>
+              <span style={styles.pulseHudReady}>{myPulseName} listo (E)</span>
             )}
           </div>
         )}
@@ -606,8 +648,8 @@ export default function LobbyPage() {
         <p style={styles.controlsHint}>
           {phase === 'action'
             ? isAsymRole
-              ? `WASD para moverte · Click en un Paciente para curarlo con tu ${players.find((p) => p.id === myPlayerId)?.character?.weaponName || 'arma'} · Shift para Pulso de Curación en área`
-              : 'WASD para moverte (gasta Flojera) · Shift para ir más lento sin gastar Flojera · Espacio para saltar · Click en un objeto rojo para auto-dañarte'
+              ? `WASD para moverte · Click en un Paciente para curarlo con tu ${players.find((p) => p.id === myPlayerId)?.character?.weaponName || 'arma'} · E para ${myPulseName} · Shift para ir más lento sin gastar Flojera`
+              : 'WASD para moverte rápido (gasta Flojera) · Shift para ir más lento sin gastar Flojera · Espacio para saltar · Click en un objeto rojo para auto-dañarte'
             : 'WASD para moverte · Espacio para saltar · Arrastrá para rotar cámara'}
         </p>
 
@@ -1179,7 +1221,31 @@ const styles = {
     fontWeight: 600,
     fontSize: 13,
   }),
-  cardButtonName: { fontSize: 13 },
+  cardButtonName: { fontSize: 13, fontWeight: 600 },
+  draftSlot: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    padding: 8,
+    borderRadius: 8,
+    background: 'rgba(27, 29, 41, 0.9)',
+    border: '1px solid #2a2d3d',
+    width: 170,
+  },
+  draftTitle: { fontSize: 11, color: '#8a8da3', textAlign: 'center' },
+  draftOption: (rarity) => ({
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    padding: '6px 8px',
+    borderRadius: 6,
+    border: `1px solid ${rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#5468ff' : '#2a2d3d'}`,
+    background: 'rgba(18, 19, 26, 0.9)',
+    color: '#e8e9f0',
+    cursor: 'pointer',
+    textAlign: 'left',
+  }),
+  draftDescription: { fontSize: 10, color: '#8a8da3', fontWeight: 400 },
   cardButtonCooldown: { fontSize: 11, fontVariantNumeric: 'tabular-nums' },
   pulseHud: {
     position: 'absolute',

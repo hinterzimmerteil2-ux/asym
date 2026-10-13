@@ -44,9 +44,14 @@ const INTERACTION_RADIUS = 2.5;
 // directo cada uno, para no volverlo estrictamente mejor que curar uno
 // por uno), premiando que el Curador juegue alrededor del grupo en vez
 // de perseguir a un Paciente aislado.
-const CURATOR_PULSE_RADIUS = 6;
-const CURATOR_PULSE_CURE_AMOUNT = 8;
-const CURATOR_PULSE_COOLDOWN_MS = 10000;
+const FAST_MULTIPLIER = 1.4;
+const SPRINT_CARD_MULTIPLIER = 1.5;
+const ROLL_DISTANCE = 4;
+const SEGUNDO_ALIENTO_AMOUNT = 60;
+const JERINGA_ROTA_CURE_FACTOR = 0.4;
+const HUMO_RADIUS = 7;
+const HUMO_SLOW_MULTIPLIER = 0.5;
+const GOLPE_DOBLE_FACTOR = 2;
 
 const FLOJERA_MAX = 100;
 const FLOJERA_DRAIN_PER_SEC = 20;
@@ -121,8 +126,12 @@ class Room {
       flojera: FLOJERA_MAX,
       flojeraLockedUntil: 0,
       hand: [],
+      draftEndsAt: 0,
       cardCooldowns: {},
-      activeCardEffect: null,
+      sprintUntil: 0,
+      cureReductionUntil: 0,
+      slowedUntil: 0,
+      doubleSelfDamage: false,
     };
 
     this.startTickLoop();
@@ -159,7 +168,7 @@ class Room {
         isAsymRole: p.isAsymRole,
         characterId: p.isAsymRole ? (p.characterId || Characters.DEFAULT_CHARACTER_ID) : null,
         character: characterData
-          ? { displayName: characterData.displayName, weaponName: characterData.weaponName }
+          ? { displayName: characterData.displayName, weaponName: characterData.weaponName, pulseName: characterData.pulse.name }
           : null,
       };
     });
@@ -342,8 +351,12 @@ class Room {
       entity.flojera = FLOJERA_MAX;
       entity.flojeraLockedUntil = 0;
       entity.cardCooldowns = {};
-      entity.activeCardEffect = null;
-      entity.hand = player.isAsymRole ? [] : Cards.dealHand(2);
+      entity.sprintUntil = 0;
+      entity.cureReductionUntil = 0;
+      entity.slowedUntil = 0;
+      entity.doubleSelfDamage = false;
+      entity.hand = player.isAsymRole ? [] : Cards.dealSlots();
+      entity.draftEndsAt = player.isAsymRole ? 0 : Date.now() + Cards.DRAFT_DURATION_MS;
     }
 
     this.gameState.patientsInitialCount = patientIds.length;
@@ -370,17 +383,16 @@ class Room {
     }
 
     this.stepPhysics(dt);
+    if (this.phase === 'action') this.autoPickExpiredDrafts(now);
 
     const flojeraByPlayerId = {};
     for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
-      const player = this.players.get(entityPlayerId);
-      if (player && !player.isAsymRole) {
-        flojeraByPlayerId[entityPlayerId] = {
-          value: entity.flojera,
-          max: FLOJERA_MAX,
-          locked: entity.flojeraLockedUntil > now,
-        };
-      }
+      flojeraByPlayerId[entityPlayerId] = {
+        value: entity.flojera,
+        max: FLOJERA_MAX,
+        locked: entity.flojeraLockedUntil > now,
+        sprinting: entity.sprintUntil > now,
+      };
     }
 
     this.broadcast(MessageType.STATE_SNAPSHOT, {
@@ -402,35 +414,30 @@ class Room {
     const now = Date.now();
     for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
       const { input } = entity;
-      const player = this.players.get(entityPlayerId);
-      const isPatient = player && !player.isAsymRole;
+      const inAction = this.phase === 'action';
+      const isMoving = input.moveX !== 0 || input.moveZ !== 0;
+      const sprinting = entity.sprintUntil > now;
+      const locked = entity.flojeraLockedUntil > now;
+      const wantsSlow = !sprinting && (Boolean(input.slow) || (inAction && locked));
 
-      let speedMultiplier = 1;
-      if (isPatient) {
-        if (entity.activeCardEffect && entity.activeCardEffect.until <= now) {
-          entity.activeCardEffect = null;
-        }
-        const cardEffect = entity.activeCardEffect;
+      let speedMultiplier = FAST_MULTIPLIER;
+      if (sprinting) {
+        speedMultiplier = FAST_MULTIPLIER * SPRINT_CARD_MULTIPLIER;
+      } else if (wantsSlow) {
+        speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
+      }
+      if (entity.slowedUntil > now) speedMultiplier *= HUMO_SLOW_MULTIPLIER;
 
-        const isMoving = input.moveX !== 0 || input.moveZ !== 0;
-        const locked = entity.flojeraLockedUntil > now;
-        const wantsSlow = !cardEffect && (Boolean(input.slow) || locked);
-
-        if (cardEffect) {
-          speedMultiplier = cardEffect.speedMultiplier;
-          if (!cardEffect.ignoresFlojeraDrain) {
-            entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
+      if (inAction) {
+        if (sprinting || wantsSlow || !isMoving) {
+          if (!sprinting) {
+            entity.flojera = Math.min(FLOJERA_MAX, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);
           }
-        } else if (wantsSlow) {
-          speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
-          entity.flojera = Math.min(FLOJERA_MAX, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);
-        } else if (isMoving) {
+        } else {
           entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
           if (entity.flojera <= 0) {
             entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
           }
-        } else {
-          entity.flojera = Math.min(FLOJERA_MAX, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);
         }
       }
 
@@ -491,7 +498,7 @@ class Room {
 
     const curador = this.players.get(playerId);
     if (!curador || !curador.isAsymRole) {
-      this.sendTo(playerId, MessageType.ERROR, { message: 'Solo el Curador puede usar el Pulso de Curación' });
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Solo el Curador puede usar su habilidad' });
       return;
     }
 
@@ -506,16 +513,17 @@ class Room {
       return;
     }
 
-    curadorEntity.pulseCooldownUntil = now + CURATOR_PULSE_COOLDOWN_MS;
+    const pulse = Characters.getCharacter(curador.characterId).pulse;
+    curadorEntity.pulseCooldownUntil = now + pulse.cooldownMs;
 
     const healedPlayerIds = [];
     for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
       if (patient.status !== 'alive') continue;
       const targetEntity = this.gameState.entities[targetPlayerId];
       if (!targetEntity) continue;
-      if (distanceBetween(curadorEntity, targetEntity) > CURATOR_PULSE_RADIUS) continue;
+      if (distanceBetween(curadorEntity, targetEntity) > pulse.radius) continue;
 
-      patient.hp = Math.min(PATIENT_HP_MAX, patient.hp + CURATOR_PULSE_CURE_AMOUNT);
+      patient.hp = Math.min(PATIENT_HP_MAX, patient.hp + this.scaleCure(targetEntity, pulse.cureAmount, now));
       if (patient.hp >= PATIENT_HP_MAX) {
         patient.status = 'eliminated';
         this.onPatientFullyCured();
@@ -532,7 +540,51 @@ class Room {
     if (healedPlayerIds.length > 0) this.checkGameEndConditions();
   }
 
-  useCard(playerId, cardId) {
+  scaleCure(targetEntity, amount, now) {
+    return targetEntity.cureReductionUntil > now ? amount * JERINGA_ROTA_CURE_FACTOR : amount;
+  }
+
+  autoPickExpiredDrafts(now) {
+    for (const [playerId, entity] of Object.entries(this.gameState.entities)) {
+      if (!entity.hand.length || entity.draftEndsAt === 0 || now < entity.draftEndsAt) continue;
+      entity.hand.forEach((slot, index) => {
+        if (!slot.chosen) this.finalizeChoice(playerId, index, slot.options[0]);
+      });
+      entity.draftEndsAt = 0;
+    }
+  }
+
+  finalizeChoice(playerId, slotIndex, cardId) {
+    const entity = this.gameState.entities[playerId];
+    const slot = entity.hand[slotIndex];
+    slot.chosen = cardId;
+    this.sendTo(playerId, MessageType.CARD_CHOSEN, { slot: slotIndex, card: Cards.getCard(cardId) });
+  }
+
+  chooseCard(playerId, slotIndex, cardId) {
+    if (this.phase !== 'action' || this.gameState.gameOver) return;
+    const player = this.players.get(playerId);
+    const entity = this.gameState.entities[playerId];
+    if (!player || player.isAsymRole || !entity) return;
+
+    const slot = entity.hand[slotIndex];
+    if (!slot) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Ese slot no existe' });
+      return;
+    }
+    if (slot.chosen) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Ya elegiste carta para ese slot' });
+      return;
+    }
+    if (!slot.options.includes(cardId)) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Esa carta no está entre tus opciones' });
+      return;
+    }
+    this.finalizeChoice(playerId, slotIndex, cardId);
+    if (entity.hand.every((s) => s.chosen)) entity.draftEndsAt = 0;
+  }
+
+  useCard(playerId, slotIndex) {
     if (this.gameState.gameOver || this.gameState.frozen) return;
 
     const player = this.players.get(playerId);
@@ -544,19 +596,15 @@ class Room {
     const entity = this.gameState.entities[playerId];
     if (!entity) return;
 
-    if (!entity.hand.includes(cardId)) {
-      this.sendTo(playerId, MessageType.ERROR, { message: 'Esa carta no está en tu mano' });
+    const slot = entity.hand[slotIndex];
+    if (!slot || !slot.chosen) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Primero elige una carta para ese slot' });
       return;
     }
 
-    const card = Cards.getCard(cardId);
-    if (!card) {
-      this.sendTo(playerId, MessageType.ERROR, { message: 'Esa carta no existe' });
-      return;
-    }
-
+    const card = Cards.getCard(slot.chosen);
     const now = Date.now();
-    const cooldownUntil = entity.cardCooldowns[cardId] || 0;
+    const cooldownUntil = entity.cardCooldowns[slotIndex] || 0;
     if (cooldownUntil > now) {
       this.sendTo(playerId, MessageType.ERROR, {
         message: `${card.displayName} en recarga (${Math.ceil((cooldownUntil - now) / 1000)}s)`,
@@ -564,19 +612,53 @@ class Room {
       return;
     }
 
-    entity.cardCooldowns[cardId] = now + card.cooldownMs;
-    entity.activeCardEffect = {
-      cardId,
-      speedMultiplier: card.speedMultiplier,
-      ignoresFlojeraDrain: true,
-      until: now + card.durationMs,
-    };
+    entity.cardCooldowns[slotIndex] = now + card.cooldownMs;
+    this.applyCardEffect(playerId, entity, card, now);
 
     this.broadcast(MessageType.CARD_RESULT, {
       playerId,
-      cardId,
-      cooldownUntil: entity.cardCooldowns[cardId],
+      slot: slotIndex,
+      cardId: card.id,
+      cooldownUntil: entity.cardCooldowns[slotIndex],
     });
+  }
+
+  applyCardEffect(playerId, entity, card, now) {
+    switch (card.id) {
+      case 'sprint_panico':
+        entity.sprintUntil = now + card.durationMs;
+        break;
+      case 'segundo_aliento':
+        entity.flojera = Math.min(FLOJERA_MAX, entity.flojera + SEGUNDO_ALIENTO_AMOUNT);
+        entity.flojeraLockedUntil = 0;
+        break;
+      case 'rodar': {
+        const length = Math.sqrt(entity.input.moveX ** 2 + entity.input.moveZ ** 2);
+        if (length > 0) {
+          const area = this.getCurrentArea();
+          entity.x = Math.max(-area.halfSize, Math.min(area.halfSize, entity.x + (entity.input.moveX / length) * ROLL_DISTANCE));
+          entity.z = Math.max(-area.halfSize, Math.min(area.halfSize, entity.z + (entity.input.moveZ / length) * ROLL_DISTANCE));
+        }
+        break;
+      }
+      case 'jeringa_rota':
+        entity.cureReductionUntil = now + card.durationMs;
+        break;
+      case 'humo_yodo':
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const otherEntity = this.gameState.entities[otherId];
+          if (otherEntity && distanceBetween(entity, otherEntity) <= HUMO_RADIUS) {
+            otherEntity.slowedUntil = now + card.durationMs;
+          }
+        }
+        break;
+      case 'golpe_doble':
+        entity.doubleSelfDamage = true;
+        break;
+      default:
+        break;
+    }
   }
 
   /**
@@ -612,7 +694,7 @@ class Room {
       return;
     }
 
-    patient.hp = Math.min(PATIENT_HP_MAX, patient.hp + CURE_AMOUNT);
+    patient.hp = Math.min(PATIENT_HP_MAX, patient.hp + this.scaleCure(targetEntity, CURE_AMOUNT, Date.now()));
     if (patient.hp >= PATIENT_HP_MAX) {
       patient.status = 'eliminated';
       this.onPatientFullyCured();
@@ -657,7 +739,9 @@ class Room {
       return;
     }
 
-    patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - SELF_DAMAGE_AMOUNT);
+    const damageFactor = playerEntity.doubleSelfDamage ? GOLPE_DOBLE_FACTOR : 1;
+    playerEntity.doubleSelfDamage = false;
+    patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - SELF_DAMAGE_AMOUNT * damageFactor);
     if (patient.hp <= PATIENT_HP_MIN) patient.status = 'self_won';
 
     const allPositions = GameMap.resolveSelfDamagePositions(this.mapId, GameMap.MATCH_AREA);
@@ -746,9 +830,9 @@ class Room {
         if (player.isAsymRole) continue;
         const entity = this.gameState.entities[playerId];
         if (!entity) continue;
-        this.sendTo(playerId, MessageType.CARD_RESULT, {
-          playerId,
-          hand: entity.hand.map((cardId) => Cards.getCard(cardId)),
+        this.sendTo(playerId, MessageType.CARD_OFFER, {
+          slots: entity.hand.map((slot) => ({ options: slot.options.map((id) => Cards.getCard(id)) })),
+          draftEndsAt: entity.draftEndsAt,
         });
       }
     }

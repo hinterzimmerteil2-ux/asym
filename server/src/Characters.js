@@ -4,14 +4,24 @@ const CHARACTERS = {
     displayName: 'Vorhees Jason',
     weaponName: 'Vara de hierbas medicinales',
     unlockedByDefault: true,
+    pulse: {
+      name: 'Pulso de Hierbas',
+      radius: 6,
+      cureAmount: 8,
+      cooldownMs: 10000,
+    },
   },
   enfermera_buenaventura: {
     id: 'enfermera_buenaventura',
     displayName: 'Enfermera Buenaventura',
     weaponName: 'Jeringa de suero milagroso',
-    // Mismas stats que Vorhees Jason — la diferencia es solo estética/flavor,
-    // como se definió al agregar este segundo personaje.
     unlockedByDefault: true,
+    pulse: {
+      name: 'Ronda de Suero',
+      radius: 4,
+      cureAmount: 15,
+      cooldownMs: 14000,
+    },
   },
 };
 
@@ -32,6 +42,10 @@ function listCharacters() {
     id: c.id,
     displayName: c.displayName,
     weaponName: c.weaponName,
+    pulseName: c.pulse.name,
+    pulseRadius: c.pulse.radius,
+    pulseCureAmount: c.pulse.cureAmount,
+    pulseCooldownMs: c.pulse.cooldownMs,
   }));
 }
 

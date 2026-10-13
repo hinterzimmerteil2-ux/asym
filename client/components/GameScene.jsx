@@ -250,7 +250,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse) {
       // parar y el servidor lo rechazaría todas las veces salvo la
       // primera (está en cooldown de todos modos, pero no tiene sentido
       // spamear mensajes).
-      if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !keysPressed.current.has(e.code)) {
+      if (e.code === 'KeyE' && !keysPressed.current.has(e.code)) {
         onPulse?.();
       }
       keysPressed.current.add(e.code);

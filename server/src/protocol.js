@@ -43,8 +43,11 @@ const MessageType = {
   CURATOR_PULSE_RESULT: 'curator_pulse_result', // server -> todos: { playerId, cooldownUntil, healedPlayerIds[], patients }
 
   // --- Mano de cartas de los Pacientes ---
-  USE_CARD_ACTION: 'use_card_action', // client(Paciente) -> server: { cardId }
-  CARD_RESULT: 'card_result',         // server -> todos: { playerId, cardId, cooldownUntil }
+  CARD_OFFER: 'card_offer',                 // server -> Paciente: { slots[{options[]}], draftEndsAt }
+  CHOOSE_CARD_ACTION: 'choose_card_action', // client(Paciente) -> server: { slot, cardId }
+  CARD_CHOSEN: 'card_chosen',               // server -> Paciente: { slot, card }
+  USE_CARD_ACTION: 'use_card_action',       // client(Paciente) -> server: { slot }
+  CARD_RESULT: 'card_result',               // server -> todos: { playerId, slot, cardId, cooldownUntil }
 
   // --- Fin de partida ---
   GAME_OVER: 'game_over',

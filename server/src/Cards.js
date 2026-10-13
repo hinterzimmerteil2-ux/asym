@@ -2,25 +2,89 @@ const CARDS = {
   sprint_panico: {
     id: 'sprint_panico',
     displayName: 'Sprint de Pánico',
-    description: 'Velocidad +60% por 4s, sin gastar Flojera.',
+    description: 'Velocidad x1.5 por 4s sin gastar Flojera.',
+    rarity: 'common',
+    weight: 50,
     durationMs: 4000,
-    cooldownMs: 20000,
-    speedMultiplier: 1.6,
+    cooldownMs: 18000,
+  },
+  segundo_aliento: {
+    id: 'segundo_aliento',
+    displayName: 'Segundo Aliento',
+    description: 'Recupera 60 de Flojera al instante.',
+    rarity: 'common',
+    weight: 45,
+    cooldownMs: 25000,
+  },
+  rodar: {
+    id: 'rodar',
+    displayName: 'Rodar',
+    description: 'Dash corto en la dirección en que te mueves.',
+    rarity: 'uncommon',
+    weight: 25,
+    cooldownMs: 12000,
+  },
+  jeringa_rota: {
+    id: 'jeringa_rota',
+    displayName: 'Jeringa Rota',
+    description: 'Por 6s recibes 60% menos curación.',
+    rarity: 'uncommon',
+    weight: 22,
+    durationMs: 6000,
+    cooldownMs: 24000,
+  },
+  humo_yodo: {
+    id: 'humo_yodo',
+    displayName: 'Humo de Yodo',
+    description: 'El Curador cercano (radio 7) va 50% más lento por 4s.',
+    rarity: 'rare',
+    weight: 10,
+    durationMs: 4000,
+    cooldownMs: 30000,
+  },
+  golpe_doble: {
+    id: 'golpe_doble',
+    displayName: 'Golpe Doble',
+    description: 'Tu próximo auto-daño hace el doble.',
+    rarity: 'rare',
+    weight: 10,
+    cooldownMs: 30000,
   },
 };
 
-const DECK_POOL = ['sprint_panico'];
+const SLOT_COUNT = 2;
+const OPTIONS_PER_SLOT = 3;
+const DRAFT_DURATION_MS = 12000;
 
 function getCard(cardId) {
   return CARDS[cardId] || null;
 }
 
-function dealHand(handSize = 2) {
-  const hand = [];
-  for (let i = 0; i < handSize; i++) {
-    hand.push(DECK_POOL[Math.floor(Math.random() * DECK_POOL.length)]);
+function pickWeighted(pool) {
+  const total = pool.reduce((sum, card) => sum + card.weight, 0);
+  let roll = Math.random() * total;
+  for (const card of pool) {
+    roll -= card.weight;
+    if (roll <= 0) return card;
   }
-  return hand;
+  return pool[pool.length - 1];
 }
 
-module.exports = { CARDS, DECK_POOL, getCard, dealHand };
+function dealSlot() {
+  const pool = Object.values(CARDS);
+  const options = [];
+  while (options.length < OPTIONS_PER_SLOT && pool.length > 0) {
+    const card = pickWeighted(pool);
+    options.push(card.id);
+    pool.splice(pool.indexOf(card), 1);
+  }
+  return { options, chosen: null };
+}
+
+function dealSlots() {
+  const slots = [];
+  for (let i = 0; i < SLOT_COUNT; i++) slots.push(dealSlot());
+  return slots;
+}
+
+module.exports = { CARDS, SLOT_COUNT, OPTIONS_PER_SLOT, DRAFT_DURATION_MS, getCard, dealSlots };
