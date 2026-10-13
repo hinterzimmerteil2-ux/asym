@@ -49,6 +49,9 @@ export default function LobbyPage() {
   const [pulseCooldownUntil, setPulseCooldownUntil] = useState(0);
   const [pulseCooldownNow, setPulseCooldownNow] = useState(0);
   const [flojera, setFlojera] = useState(null);
+  const [hand, setHand] = useState([]);
+  const [cardCooldowns, setCardCooldowns] = useState({});
+  const [cardCooldownNow, setCardCooldownNow] = useState(0);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -134,6 +137,15 @@ export default function LobbyPage() {
               }
             }
             break;
+          case 'card_result':
+            if (payload.playerId === myPlayerIdRef.current) {
+              if (payload.hand) setHand(payload.hand);
+              if (payload.cardId) {
+                setCardCooldowns((prev) => ({ ...prev, [payload.cardId]: payload.cooldownUntil }));
+                setLastActionFeedback(`Usaste: ${payload.cardId}`);
+              }
+            }
+            break;
           case 'game_over':
             setGameOverInfo(payload);
             break;
@@ -158,6 +170,8 @@ export default function LobbyPage() {
               setLastActionFeedback(null);
               setPulseCooldownUntil(0);
               setFlojera(null);
+              setHand([]);
+              setCardCooldowns({});
             }
             break;
           case 'error':
@@ -209,6 +223,13 @@ export default function LobbyPage() {
     const interval = setInterval(() => setPulseCooldownNow(Date.now()), 200);
     return () => clearInterval(interval);
   }, [pulseCooldownUntil]);
+
+  useEffect(() => {
+    const anyActive = Object.values(cardCooldowns).some((until) => until > Date.now());
+    if (!anyActive) return;
+    const interval = setInterval(() => setCardCooldownNow(Date.now()), 200);
+    return () => clearInterval(interval);
+  }, [cardCooldowns]);
 
   // Antes un error se quedaba pegado en pantalla para siempre hasta la
   // próxima acción — ahora se auto-oculta (salvo que el usuario ya lo haya
@@ -323,6 +344,11 @@ export default function LobbyPage() {
     // (rol, cooldown, fase) vive en Room.applyCuratorPulse.
     if (!isAsymRole || phase !== 'action') return;
     connRef.current?.send('curator_pulse_action', {});
+  }, [isAsymRole, phase]);
+
+  const handleUseCard = useCallback((cardId) => {
+    if (isAsymRole || phase !== 'action') return;
+    connRef.current?.send('use_card_action', { cardId });
   }, [isAsymRole, phase]);
 
   function handleLogout() {
@@ -507,6 +533,32 @@ export default function LobbyPage() {
             <div style={styles.flojeraBarTrack}>
               <div style={styles.flojeraBarFill(flojera.value, flojera.max, flojera.locked)} />
             </div>
+          </div>
+        )}
+
+        {phase === 'action' && !isAsymRole && hand.length > 0 && (
+          <div style={styles.handContainer}>
+            {hand.map((card, i) => {
+              const cooldownUntil = cardCooldowns[card.id] || 0;
+              const onCooldown = cooldownUntil > cardCooldownNow;
+              return (
+                <button
+                  key={`${card.id}-${i}`}
+                  type="button"
+                  disabled={onCooldown}
+                  onClick={() => handleUseCard(card.id)}
+                  style={styles.cardButton(onCooldown)}
+                  title={card.description}
+                >
+                  <span style={styles.cardButtonName}>{card.displayName}</span>
+                  {onCooldown && (
+                    <span style={styles.cardButtonCooldown}>
+                      {Math.ceil((cooldownUntil - cardCooldownNow) / 1000)}s
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -1106,6 +1158,29 @@ const styles = {
     background: locked ? '#e0555f' : '#5468ff',
     transition: 'width 0.15s linear',
   }),
+  handContainer: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    display: 'flex',
+    gap: 8,
+  },
+  cardButton: (onCooldown) => ({
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 2,
+    padding: '10px 14px',
+    borderRadius: 8,
+    border: '1px solid #2a2d3d',
+    background: onCooldown ? 'rgba(27, 29, 41, 0.6)' : 'rgba(95, 213, 140, 0.15)',
+    color: onCooldown ? '#8a8da3' : '#5fd58c',
+    cursor: onCooldown ? 'default' : 'pointer',
+    fontWeight: 600,
+    fontSize: 13,
+  }),
+  cardButtonName: { fontSize: 13 },
+  cardButtonCooldown: { fontSize: 11, fontVariantNumeric: 'tabular-nums' },
   pulseHud: {
     position: 'absolute',
     bottom: 16,

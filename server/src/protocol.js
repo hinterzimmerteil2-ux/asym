@@ -42,6 +42,10 @@ const MessageType = {
   CURATOR_PULSE_ACTION: 'curator_pulse_action', // client(Curador) -> server: {}
   CURATOR_PULSE_RESULT: 'curator_pulse_result', // server -> todos: { playerId, cooldownUntil, healedPlayerIds[], patients }
 
+  // --- Mano de cartas de los Pacientes ---
+  USE_CARD_ACTION: 'use_card_action', // client(Paciente) -> server: { cardId }
+  CARD_RESULT: 'card_result',         // server -> todos: { playerId, cardId, cooldownUntil }
+
   // --- Fin de partida ---
   GAME_OVER: 'game_over',
   RETURN_TO_LOBBY: 'return_to_lobby', // client(host) -> server: {} — vuelve la sala a 'lobby' tras el game over

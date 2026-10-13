@@ -185,6 +185,13 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.USE_CARD_ACTION: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.useCard(playerId, msg.payload.cardId);
+        break;
+      }
+
       case MessageType.RETURN_TO_LOBBY: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;

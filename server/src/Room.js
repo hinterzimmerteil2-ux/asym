@@ -1,6 +1,7 @@
 const { MessageType, encode } = require('./protocol');
 const GameMap = require('./GameMap');
 const Characters = require('./Characters');
+const Cards = require('./Cards');
 
 const MAX_PLAYERS = 10;
 const TICK_RATE_MS = 1000 / 20;
@@ -119,6 +120,9 @@ class Room {
       pulseCooldownUntil: 0,
       flojera: FLOJERA_MAX,
       flojeraLockedUntil: 0,
+      hand: [],
+      cardCooldowns: {},
+      activeCardEffect: null,
     };
 
     this.startTickLoop();
@@ -337,6 +341,9 @@ class Room {
       entity.pulseCooldownUntil = 0;
       entity.flojera = FLOJERA_MAX;
       entity.flojeraLockedUntil = 0;
+      entity.cardCooldowns = {};
+      entity.activeCardEffect = null;
+      entity.hand = player.isAsymRole ? [] : Cards.dealHand(2);
     }
 
     this.gameState.patientsInitialCount = patientIds.length;
@@ -400,11 +407,21 @@ class Room {
 
       let speedMultiplier = 1;
       if (isPatient) {
+        if (entity.activeCardEffect && entity.activeCardEffect.until <= now) {
+          entity.activeCardEffect = null;
+        }
+        const cardEffect = entity.activeCardEffect;
+
         const isMoving = input.moveX !== 0 || input.moveZ !== 0;
         const locked = entity.flojeraLockedUntil > now;
-        const wantsSlow = Boolean(input.slow) || locked;
+        const wantsSlow = !cardEffect && (Boolean(input.slow) || locked);
 
-        if (wantsSlow) {
+        if (cardEffect) {
+          speedMultiplier = cardEffect.speedMultiplier;
+          if (!cardEffect.ignoresFlojeraDrain) {
+            entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
+          }
+        } else if (wantsSlow) {
           speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
           entity.flojera = Math.min(FLOJERA_MAX, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);
         } else if (isMoving) {
@@ -513,6 +530,53 @@ class Room {
       patients: this.gameState.patients,
     });
     if (healedPlayerIds.length > 0) this.checkGameEndConditions();
+  }
+
+  useCard(playerId, cardId) {
+    if (this.gameState.gameOver || this.gameState.frozen) return;
+
+    const player = this.players.get(playerId);
+    if (!player || player.isAsymRole) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Solo los Pacientes pueden usar cartas' });
+      return;
+    }
+
+    const entity = this.gameState.entities[playerId];
+    if (!entity) return;
+
+    if (!entity.hand.includes(cardId)) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Esa carta no está en tu mano' });
+      return;
+    }
+
+    const card = Cards.getCard(cardId);
+    if (!card) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Esa carta no existe' });
+      return;
+    }
+
+    const now = Date.now();
+    const cooldownUntil = entity.cardCooldowns[cardId] || 0;
+    if (cooldownUntil > now) {
+      this.sendTo(playerId, MessageType.ERROR, {
+        message: `${card.displayName} en recarga (${Math.ceil((cooldownUntil - now) / 1000)}s)`,
+      });
+      return;
+    }
+
+    entity.cardCooldowns[cardId] = now + card.cooldownMs;
+    entity.activeCardEffect = {
+      cardId,
+      speedMultiplier: card.speedMultiplier,
+      ignoresFlojeraDrain: true,
+      until: now + card.durationMs,
+    };
+
+    this.broadcast(MessageType.CARD_RESULT, {
+      playerId,
+      cardId,
+      cooldownUntil: entity.cardCooldowns[cardId],
+    });
   }
 
   /**
@@ -678,6 +742,15 @@ class Room {
     this.phase = newPhase;
     if (newPhase === 'action') {
       this.initGameState();
+      for (const [playerId, player] of this.players) {
+        if (player.isAsymRole) continue;
+        const entity = this.gameState.entities[playerId];
+        if (!entity) continue;
+        this.sendTo(playerId, MessageType.CARD_RESULT, {
+          playerId,
+          hand: entity.hand.map((cardId) => Cards.getCard(cardId)),
+        });
+      }
     }
     this.broadcast(MessageType.PHASE_CHANGE, { newPhase, reason });
   }
