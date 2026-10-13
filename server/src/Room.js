@@ -47,6 +47,12 @@ const CURATOR_PULSE_RADIUS = 6;
 const CURATOR_PULSE_CURE_AMOUNT = 8;
 const CURATOR_PULSE_COOLDOWN_MS = 10000;
 
+const FLOJERA_MAX = 100;
+const FLOJERA_DRAIN_PER_SEC = 20;
+const FLOJERA_REGEN_PER_SEC = 12;
+const FLOJERA_SLOW_MULTIPLIER = 0.5;
+const FLOJERA_EXHAUST_LOCKOUT_MS = 3000;
+
 function clampUnit(value) {
   const n = typeof value === 'number' && !Number.isNaN(value) ? value : 0;
   return Math.max(-1, Math.min(1, n));
@@ -109,8 +115,10 @@ class Room {
       z: Math.sin(spawnAngle) * spawnRadius,
       velocityY: 0,
       onGround: true,
-      input: { moveX: 0, moveZ: 0, jump: false },
+      input: { moveX: 0, moveZ: 0, jump: false, slow: false },
       pulseCooldownUntil: 0,
+      flojera: FLOJERA_MAX,
+      flojeraLockedUntil: 0,
     };
 
     this.startTickLoop();
@@ -327,6 +335,8 @@ class Room {
       entity.velocityY = 0;
       entity.onGround = true;
       entity.pulseCooldownUntil = 0;
+      entity.flojera = FLOJERA_MAX;
+      entity.flojeraLockedUntil = 0;
     }
 
     this.gameState.patientsInitialCount = patientIds.length;
@@ -354,7 +364,20 @@ class Room {
 
     this.stepPhysics(dt);
 
+    const flojeraByPlayerId = {};
+    for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
+      const player = this.players.get(entityPlayerId);
+      if (player && !player.isAsymRole) {
+        flojeraByPlayerId[entityPlayerId] = {
+          value: entity.flojera,
+          max: FLOJERA_MAX,
+          locked: entity.flojeraLockedUntil > now,
+        };
+      }
+    }
+
     this.broadcast(MessageType.STATE_SNAPSHOT, {
+      flojera: flojeraByPlayerId,
       tick: this.tickCount,
       entities: this.gameState.entities,
       timeRemainingMs: this.gameState.timeRemainingMs,
@@ -369,11 +392,33 @@ class Room {
     const collisionObjects =
       this.phase === 'action' ? GameMap.resolveCollisionObjects(this.mapId, GameMap.MATCH_AREA) : [];
 
-    for (const entity of Object.values(this.gameState.entities)) {
+    const now = Date.now();
+    for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
       const { input } = entity;
+      const player = this.players.get(entityPlayerId);
+      const isPatient = player && !player.isAsymRole;
 
-      entity.x += input.moveX * MOVE_SPEED * dt;
-      entity.z += input.moveZ * MOVE_SPEED * dt;
+      let speedMultiplier = 1;
+      if (isPatient) {
+        const isMoving = input.moveX !== 0 || input.moveZ !== 0;
+        const locked = entity.flojeraLockedUntil > now;
+        const wantsSlow = Boolean(input.slow) || locked;
+
+        if (wantsSlow) {
+          speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
+          entity.flojera = Math.min(FLOJERA_MAX, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);
+        } else if (isMoving) {
+          entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
+          if (entity.flojera <= 0) {
+            entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
+          }
+        } else {
+          entity.flojera = Math.min(FLOJERA_MAX, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);
+        }
+      }
+
+      entity.x += input.moveX * MOVE_SPEED * speedMultiplier * dt;
+      entity.z += input.moveZ * MOVE_SPEED * speedMultiplier * dt;
 
       for (const obj of collisionObjects) {
         const dx = entity.x - obj.x;
@@ -412,6 +457,7 @@ class Room {
     entity.input.moveX = clampUnit(input.moveX);
     entity.input.moveZ = clampUnit(input.moveZ);
     entity.input.jump = Boolean(input.jump);
+    entity.input.slow = Boolean(input.slow);
   }
 
   /**

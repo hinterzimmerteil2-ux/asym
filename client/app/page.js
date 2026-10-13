@@ -48,6 +48,7 @@ export default function LobbyPage() {
   const [nameSaving, setNameSaving] = useState(false);
   const [pulseCooldownUntil, setPulseCooldownUntil] = useState(0);
   const [pulseCooldownNow, setPulseCooldownNow] = useState(0);
+  const [flojera, setFlojera] = useState(null);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -112,6 +113,9 @@ export default function LobbyPage() {
             setSelfDamageObjects(payload.selfDamageObjects || {});
             setPatients(payload.patients || {});
             setTimeRemainingMs(payload.timeRemainingMs ?? null);
+            if (payload.flojera && myPlayerIdRef.current) {
+              setFlojera(payload.flojera[myPlayerIdRef.current] || null);
+            }
             break;
           case 'cure_result':
           case 'self_damage_result':
@@ -153,6 +157,7 @@ export default function LobbyPage() {
               setTimeRemainingMs(null);
               setLastActionFeedback(null);
               setPulseCooldownUntil(0);
+              setFlojera(null);
             }
             break;
           case 'error':
@@ -493,6 +498,18 @@ export default function LobbyPage() {
           </div>
         )}
 
+        {phase === 'action' && !isAsymRole && flojera && (
+          <div style={styles.flojeraBarContainer}>
+            <div style={styles.flojeraBarLabel}>
+              Flojera: {Math.round(flojera.value)}/{flojera.max}
+              {flojera.locked && ' (¡exhausto, no puedes correr!)'}
+            </div>
+            <div style={styles.flojeraBarTrack}>
+              <div style={styles.flojeraBarFill(flojera.value, flojera.max, flojera.locked)} />
+            </div>
+          </div>
+        )}
+
         {phase === 'action' && isAsymRole && (
           <div style={styles.pulseHud}>
             {pulseCooldownUntil > pulseCooldownNow ? (
@@ -538,7 +555,7 @@ export default function LobbyPage() {
           {phase === 'action'
             ? isAsymRole
               ? `WASD para moverte · Click en un Paciente para curarlo con tu ${players.find((p) => p.id === myPlayerId)?.character?.weaponName || 'arma'} · Shift para Pulso de Curación en área`
-              : 'WASD para moverte · Espacio para saltar · Click en un objeto rojo para auto-dañarte'
+              : 'WASD para moverte (gasta Flojera) · Shift para ir más lento sin gastar Flojera · Espacio para saltar · Click en un objeto rojo para auto-dañarte'
             : 'WASD para moverte · Espacio para saltar · Arrastrá para rotar cámara'}
         </p>
 
@@ -1069,6 +1086,26 @@ const styles = {
     backdropFilter: 'blur(4px)',
   },
   hpBarLabel: { fontSize: 12, color: '#8a8da3', marginBottom: 6, textAlign: 'center' },
+  flojeraBarContainer: {
+    position: 'absolute',
+    bottom: 86,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: 220,
+    padding: '8px 14px',
+    borderRadius: 8,
+    background: 'rgba(27, 29, 41, 0.85)',
+    border: '1px solid #2a2d3d',
+    backdropFilter: 'blur(4px)',
+  },
+  flojeraBarLabel: { fontSize: 12, color: '#8a8da3', marginBottom: 6, textAlign: 'center' },
+  flojeraBarTrack: { height: 6, borderRadius: 3, background: '#12131a', overflow: 'hidden' },
+  flojeraBarFill: (value, max, locked) => ({
+    height: '100%',
+    width: `${Math.max(0, Math.min(1, value / max)) * 100}%`,
+    background: locked ? '#e0555f' : '#5468ff',
+    transition: 'width 0.15s linear',
+  }),
   pulseHud: {
     position: 'absolute',
     bottom: 16,

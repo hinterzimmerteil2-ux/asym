@@ -278,6 +278,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse) {
       if (keys.has('KeyA') || keys.has('ArrowLeft')) inputX -= 1;
       if (keys.has('KeyD') || keys.has('ArrowRight')) inputX += 1;
       const jump = keys.has('Space');
+      const slow = keys.has('ShiftLeft') || keys.has('ShiftRight');
 
       if (inputX !== 0 && inputZ !== 0) {
         const norm = Math.SQRT1_2;
@@ -292,7 +293,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse) {
       const moveX = inputX * cosY + inputZ * sinY;
       const moveZ = inputZ * cosY - inputX * sinY;
 
-      sendInput({ moveX, moveZ, jump });
+      sendInput({ moveX, moveZ, jump, slow });
     }, 50);
     return () => clearInterval(interval);
   }, [sendInput, yawRef]);
