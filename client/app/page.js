@@ -56,6 +56,7 @@ export default function LobbyPage() {
   const [chatInput, setChatInput] = useState('');
   const [entities, setEntities] = useState({});
   const [selfDamageObjects, setSelfDamageObjects] = useState({});
+  const [zones, setZones] = useState([]);
   const [collisionObjects, setCollisionObjects] = useState([]);
   const [patients, setPatients] = useState({});
   const [timeRemainingMs, setTimeRemainingMs] = useState(null);
@@ -139,6 +140,7 @@ export default function LobbyPage() {
           case 'state_snapshot':
             setEntities(payload.entities || {});
             setSelfDamageObjects(payload.selfDamageObjects || {});
+            setZones(payload.zones || []);
             setPatients(payload.patients || {});
             setTimeRemainingMs(payload.timeRemainingMs ?? null);
             if (payload.flojera && myPlayerIdRef.current) {
@@ -418,6 +420,7 @@ export default function LobbyPage() {
             myPlayerId={myPlayerId}
             phase={phase}
             selfDamageObjects={selfDamageObjects}
+            zones={zones}
             collisionObjects={collisionObjects}
             sendInput={handleSendInput}
             sendAction={handleSendAction}
@@ -486,7 +489,7 @@ export default function LobbyPage() {
                   </span>
                   <span style={styles.playerTag}>
                     {p.id === hostId ? 'Host' : ''} {characterTag}
-                    {phase === 'action' && patientInfo ? ` · HP ${patientInfo.hp}/120` : ''}
+                    {phase === 'action' && patientInfo ? ` · HP ${Math.round(patientInfo.hp)}/${patientInfo.maxHp || 120}` : ''}
                   </span>
                   {phase === 'lobby' && isHost && !p.isAsymRole && (
                     <button
@@ -561,12 +564,12 @@ export default function LobbyPage() {
         {phase === 'action' && !isAsymRole && myPlayerId && patients[myPlayerId] && (
           <div style={styles.hpBarContainer}>
             <div style={styles.hpBarLabel}>
-              Tu HP: {patients[myPlayerId].hp}/120
+              Tu HP: {Math.round(patients[myPlayerId].hp)}/{patients[myPlayerId].maxHp || 120}
               {patients[myPlayerId].hp <= 20 && ' (¡cerca de ganar!)'}
-              {patients[myPlayerId].hp >= 100 && ' (¡cerca de ser curado del todo!)'}
+              {patients[myPlayerId].hp >= (patients[myPlayerId].maxHp || 120) - 20 && ' (¡cerca de ser curado del todo!)'}
             </div>
             <div style={styles.hpBarTrack}>
-              <div style={styles.hpBarFill(patients[myPlayerId].hp)} />
+              <div style={styles.hpBarFill(patients[myPlayerId].hp, patients[myPlayerId].maxHp || 120)} />
             </div>
           </div>
         )}
@@ -598,10 +601,11 @@ export default function LobbyPage() {
                         key={card.id}
                         type="button"
                         onClick={() => handleChooseCard(i, card.id)}
-                        style={styles.draftOption(card.rarity)}
+                        style={styles.draftOption(card.rarity, card.corrupt)}
                         title={card.description}
                       >
                         <span style={styles.cardButtonName}>{card.displayName}</span>
+                        {card.deck && <span style={styles.draftDeck}>Mazo {card.deck}{card.corrupt ? ' · corrupto' : ''}</span>}
                         <span style={styles.draftDescription}>{card.description}</span>
                         <span style={styles.keywordRow}>
                           {(card.keywords || []).map((k) => <KeywordChip key={k} id={k} />)}
@@ -745,7 +749,7 @@ export default function LobbyPage() {
                         {result.status === 'eliminated' && 'Eliminado'}
                         {result.status === 'self_won' && 'Ganó'}
                         {result.status === 'timeout' && 'Sobrevivió'}
-                        {' · '}{result.hp}/120
+                        {' · '}{Math.round(result.hp)}
                       </span>
                     </li>
                   );
@@ -1282,18 +1286,19 @@ const styles = {
     width: 170,
   },
   draftTitle: { fontSize: 11, color: '#8a8da3', textAlign: 'center' },
-  draftOption: (rarity) => ({
+  draftOption: (rarity, corrupt) => ({
     display: 'flex',
     flexDirection: 'column',
     gap: 2,
     padding: '6px 8px',
     borderRadius: 6,
-    border: `1px solid ${rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#5468ff' : '#2a2d3d'}`,
+    border: `1px solid ${corrupt ? '#d94fd0' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#5468ff' : '#2a2d3d'}`,
     background: 'rgba(18, 19, 26, 0.9)',
     color: '#e8e9f0',
     cursor: 'pointer',
     textAlign: 'left',
   }),
+  draftDeck: { fontSize: 9, color: '#8a8da3', textTransform: 'uppercase', letterSpacing: 0.4 },
   draftDescription: { fontSize: 10, color: '#8a8da3', fontWeight: 400 },
   cardButtonCooldown: { fontSize: 11, fontVariantNumeric: 'tabular-nums' },
   skillBar: {
@@ -1334,8 +1339,8 @@ const styles = {
   pulseHudReady: { fontSize: 13, fontWeight: 600, color: '#5fd58c' },
   pulseHudCooldown: { fontSize: 13, fontWeight: 600, color: '#8a8da3', fontVariantNumeric: 'tabular-nums' },
   hpBarTrack: { height: 8, borderRadius: 4, background: '#12131a', overflow: 'hidden' },
-  hpBarFill: (hp) => {
-    const ratio = Math.max(0, Math.min(1, hp / 120));
+  hpBarFill: (hp, maxHp = 120) => {
+    const ratio = Math.max(0, Math.min(1, hp / maxHp));
     const color = ratio < 0.5 ? '#5fd58c' : ratio < 0.85 ? '#f2a154' : '#e0555f';
     return { height: '100%', width: `${ratio * 100}%`, background: color, transition: 'width 0.2s ease, background 0.3s ease' };
   },

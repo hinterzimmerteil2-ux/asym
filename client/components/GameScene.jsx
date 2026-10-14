@@ -158,6 +158,19 @@ function CollisionObjectMesh({ type, radius }) {
   }
 }
 
+const ZONE_COLORS = { rimac: '#6b8f3a', puddle: '#5fd58c', trap: '#f2d154' };
+
+function ZoneDisc({ zone }) {
+  const color = ZONE_COLORS[zone.kind] || '#ffffff';
+  const opacity = zone.kind === 'trap' ? (zone.armed ? 0.55 : 0.25) : 0.35;
+  return (
+    <mesh position={[zone.x, 0.04, zone.z]} rotation={[-Math.PI / 2, 0, 0]}>
+      <circleGeometry args={[zone.radius, 32]} />
+      <meshBasicMaterial color={color} transparent opacity={opacity} />
+    </mesh>
+  );
+}
+
 function CollisionObject({ obj }) {
   return (
     <group position={[obj.x, 0, obj.z]}>
@@ -308,6 +321,7 @@ export default function GameScene({
   myPlayerId,
   phase,
   selfDamageObjects,
+  zones,
   collisionObjects,
   sendInput,
   sendAction,
@@ -328,6 +342,8 @@ export default function GameScene({
       <FollowCamera myEntity={myEntity} yawRef={yawRef} />
 
       <Ground halfSize={areaHalfSize} themed={phase === 'action'} />
+
+      {phase === 'action' && (zones || []).map((zone) => <ZoneDisc key={zone.id} zone={zone} />)}
 
       {phase === 'action' &&
         (collisionObjects || []).map((obj) => <CollisionObject key={obj.id} obj={obj} />)}

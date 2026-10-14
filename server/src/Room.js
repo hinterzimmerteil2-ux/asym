@@ -54,6 +54,18 @@ const HUMO_SLOW_MULTIPLIER = 0.5;
 const GOLPE_DOBLE_FACTOR = 2;
 const TROPIEZO_RADIUS = 3;
 const RELOCATE_INTERVAL_MS = 25000;
+const CHICHARRON_DAMAGE = 25;
+const CHICHARRON_FLOOR = 40;
+const GOYSLOP_DAMAGE = 45;
+const GOYSLOP_FLOOR = 15;
+const GOYSLOP_MAX_HP_LOSS = 30;
+const MAX_HP_MINIMUM = 60;
+const RED_MIST_RADIUS = 6;
+const RED_MIST_HEAL = 35;
+const TRAP_RADIUS = 1.5;
+const TRAP_ARM_MS = 800;
+const TRAP_LIFETIME_MS = 30000;
+const RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC = 18;
 
 const FLOJERA_MAX = 100;
 const FLOJERA_DRAIN_PER_SEC = 20;
@@ -93,6 +105,7 @@ class Room {
       timeRemainingMs: GAME_DURATION_MS,
       gameOver: false,
       selfDamageObjectPositions: {},
+      zones: [],
     };
   }
 
@@ -348,7 +361,7 @@ class Room {
         entity.x = spawn.x;
         entity.z = spawn.z;
         patientIndex++;
-        this.gameState.patients[playerId] = { hp: PATIENT_HP_START, status: 'alive' };
+        this.gameState.patients[playerId] = { hp: PATIENT_HP_START, status: 'alive', maxHp: PATIENT_HP_MAX };
       }
       entity.y = GROUND_Y;
       entity.velocityY = 0;
@@ -374,6 +387,7 @@ class Room {
     this.gameState.gameOver = false;
 
     this.lastRelocateAt = Date.now();
+    this.gameState.zones = [];
     this.gameState.selfDamageObjectPositions = {};
     const selfDamagePositions = GameMap.resolveSelfDamagePositions(this.mapId, GameMap.MATCH_AREA);
     for (const obj of selfDamagePositions) {
@@ -396,6 +410,7 @@ class Room {
     this.stepPhysics(dt);
     if (this.phase === 'action' && !this.gameState.gameOver) {
       this.autoPickExpiredDrafts(now);
+      this.tickZones(now, dt);
       if (now - this.lastRelocateAt >= RELOCATE_INTERVAL_MS) this.relocateSelfDamageObjects(now);
     }
 
@@ -417,6 +432,7 @@ class Room {
       timeRemainingMs: this.gameState.timeRemainingMs,
       patients: this.gameState.patients,
       selfDamageObjects: this.gameState.selfDamageObjectPositions,
+      zones: this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt })),
     });
   }
 
@@ -551,8 +567,8 @@ class Room {
         if (dist > skill.radius) continue;
 
         if (skill.type === 'pulse') {
-          patient.hp = Math.min(PATIENT_HP_MAX, patient.hp + this.scaleCure(targetEntity, skill.cureAmount, now));
-          if (patient.hp >= PATIENT_HP_MAX) {
+          patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, skill.cureAmount, now));
+          if (patient.hp >= patient.maxHp) {
             patient.status = 'eliminated';
             this.onPatientFullyCured();
           }
@@ -588,6 +604,81 @@ class Room {
       patients: this.gameState.patients,
     });
     if (healedAny) this.checkGameEndConditions();
+  }
+
+  damagePatient(playerId, amount, floor = 0) {
+    const patient = this.gameState.patients[playerId];
+    if (!patient || patient.status !== 'alive') return false;
+    const target = Math.max(floor, patient.hp - amount);
+    if (target >= patient.hp) return false;
+    patient.hp = target;
+    if (patient.hp <= PATIENT_HP_MIN) {
+      patient.hp = PATIENT_HP_MIN;
+      patient.status = 'self_won';
+    }
+    return true;
+  }
+
+  healPatient(playerId, amount) {
+    const patient = this.gameState.patients[playerId];
+    if (!patient || patient.status !== 'alive') return false;
+    patient.hp = Math.min(patient.maxHp, patient.hp + amount);
+    if (patient.hp >= patient.maxHp) {
+      patient.status = 'eliminated';
+      this.onPatientFullyCured();
+    }
+    return true;
+  }
+
+  addZone(zone) {
+    this.gameState.zones.push({ id: `z${this.zoneCounter = (this.zoneCounter || 0) + 1}`, ...zone });
+  }
+
+  tickZones(now, dt) {
+    let statusChanged = false;
+    const remaining = [];
+    for (const zone of this.gameState.zones) {
+      if (now >= zone.until) {
+        if (zone.onExpire) zone.onExpire(zone);
+        continue;
+      }
+      remaining.push(zone);
+
+      if (zone.kind === 'rimac' || zone.kind === 'puddle') {
+        for (const [playerId, patient] of Object.entries(this.gameState.patients)) {
+          if (patient.status !== 'alive') continue;
+          const entity = this.gameState.entities[playerId];
+          if (!entity || distanceBetween(entity, zone) > zone.radius) continue;
+          const before = patient.status;
+          if (zone.kind === 'rimac') this.damagePatient(playerId, zone.perSecond * dt);
+          else this.healPatient(playerId, zone.perSecond * dt);
+          if (patient.status !== before) statusChanged = true;
+        }
+        if (zone.kind === 'rimac') {
+          for (const [playerId, player] of this.players) {
+            if (!player.isAsymRole) continue;
+            const entity = this.gameState.entities[playerId];
+            if (!entity || distanceBetween(entity, zone) > zone.radius) continue;
+            entity.flojera = Math.max(0, entity.flojera - RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC * dt);
+            entity.slowedUntil = Math.max(entity.slowedUntil, now + 300);
+          }
+        }
+      } else if (zone.kind === 'trap' && now >= zone.armedAt) {
+        let triggered = false;
+        for (const [playerId, player] of this.players) {
+          const entity = this.gameState.entities[playerId];
+          if (!entity || distanceBetween(entity, zone) > TRAP_RADIUS) continue;
+          const isOwner = playerId === zone.ownerId;
+          if (isOwner && !zone.hitsOwner) continue;
+          if (!player.isAsymRole && !isOwner) continue;
+          entity.stunnedUntil = now + zone.stunMs;
+          triggered = true;
+        }
+        if (triggered) remaining.pop();
+      }
+    }
+    this.gameState.zones = remaining;
+    if (statusChanged) this.checkGameEndConditions();
   }
 
   relocateSelfDamageObjects(now) {
@@ -714,6 +805,64 @@ class Room {
           }
         }
         break;
+      case 'chicharron':
+        this.damagePatient(playerId, CHICHARRON_DAMAGE, CHICHARRON_FLOOR);
+        this.checkGameEndConditions();
+        break;
+      case 'goyslop': {
+        const patient = this.gameState.patients[playerId];
+        if (patient) {
+          patient.maxHp = Math.max(MAX_HP_MINIMUM, patient.maxHp - GOYSLOP_MAX_HP_LOSS);
+          patient.hp = Math.min(patient.hp, patient.maxHp - 1);
+        }
+        this.damagePatient(playerId, GOYSLOP_DAMAGE, GOYSLOP_FLOOR);
+        this.checkGameEndConditions();
+        break;
+      }
+      case 'cascara_platano':
+      case 'platano_podrido':
+        this.addZone({
+          kind: 'trap',
+          x: entity.x,
+          z: entity.z,
+          radius: TRAP_RADIUS,
+          ownerId: playerId,
+          armedAt: now + TRAP_ARM_MS,
+          until: now + TRAP_LIFETIME_MS,
+          hitsOwner: card.id === 'platano_podrido',
+          stunMs: card.id === 'platano_podrido' ? 3500 : 2000,
+        });
+        break;
+      case 'agua_rimac':
+        this.addZone({ kind: 'rimac', x: entity.x, z: entity.z, radius: 4, perSecond: 4, ownerId: playerId, until: now + 5000 });
+        break;
+      case 'rimac_sin_filtrar': {
+        const { x, z } = entity;
+        this.addZone({
+          kind: 'rimac',
+          x,
+          z,
+          radius: 6,
+          perSecond: 8,
+          ownerId: playerId,
+          until: now + 6000,
+          onExpire: () => {
+            this.addZone({ kind: 'puddle', x, z, radius: 6, perSecond: 7, ownerId: playerId, until: Date.now() + 8000 });
+          },
+        });
+        break;
+      }
+      case 'red_mist':
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const otherEntity = this.gameState.entities[otherId];
+          if (otherEntity && distanceBetween(entity, otherEntity) <= RED_MIST_RADIUS) {
+            otherEntity.stunnedUntil = now + card.durationMs;
+          }
+        }
+        this.healPatient(playerId, RED_MIST_HEAL);
+        this.checkGameEndConditions();
+        break;
       case 'tropiezo':
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
@@ -768,8 +917,8 @@ class Room {
     }
 
     const boost = curadorEntity.cureBoostUntil > Date.now() ? curadorEntity.cureBoostFactor : 1;
-    patient.hp = Math.min(PATIENT_HP_MAX, patient.hp + this.scaleCure(targetEntity, CURE_AMOUNT * boost, Date.now()));
-    if (patient.hp >= PATIENT_HP_MAX) {
+    patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, CURE_AMOUNT * boost, Date.now()));
+    if (patient.hp >= patient.maxHp) {
       patient.status = 'eliminated';
       this.onPatientFullyCured();
     }
@@ -866,7 +1015,7 @@ class Room {
     for (const [playerId, patient] of Object.entries(this.gameState.patients)) {
       let finalStatus = patient.status;
       if (finalStatus === 'alive') {
-        finalStatus = patient.hp > PATIENT_HP_MAX / 2 ? 'eliminated' : 'timeout';
+        finalStatus = patient.hp > patient.maxHp / 2 ? 'eliminated' : 'timeout';
       }
       patientResults[playerId] = { hp: patient.hp, status: finalStatus };
       if (finalStatus === 'eliminated') eliminatedCount++;
@@ -893,6 +1042,7 @@ class Room {
     this.gameState.gameOver = false;
     this.gameState.frozen = false;
     this.gameState.patients = {};
+    this.gameState.zones = [];
     this.switchPhase('lobby', 'vuelta al lobby');
   }
 

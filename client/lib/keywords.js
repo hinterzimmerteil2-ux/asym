@@ -12,5 +12,10 @@ export const KEYWORDS = {
   impulso: { label: 'Impulso', description: 'Te desplaza al instante.', color: '#f2d154' },
   resistencia: { label: 'Resistencia', description: 'Reduce el efecto de lo que te hacen.', color: '#5fd58c' },
   sabotaje: { label: 'Sabotaje', description: 'Afecta directamente al Curador.', color: '#e0555f' },
+  comida: { label: 'Comida', description: 'Consumes algo y pierdes HP hasta un mínimo.', color: '#f2a154' },
+  zona: { label: 'Zona', description: 'Crea un área en el suelo con efecto temporal.', color: '#54d1f2' },
+  trampa: { label: 'Trampa', description: 'Se arma en el suelo y se activa al pisarla.', color: '#f2a154' },
+  vida_max: { label: 'HP máximo', description: 'Modifica tu HP máximo: si baja, te curan del todo con menos.', color: '#e0555f' },
+  corrupto: { label: 'Corrupto', description: 'Versión más fuerte pero con un costo oculto.', color: '#d94fd0' },
   daño: { label: 'Daño', description: 'Modifica el daño que te haces a ti mismo.', color: '#e0555f' },
 };
