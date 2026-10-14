@@ -12,6 +12,7 @@ import {
   updateDisplayName,
 } from '../lib/session';
 import GameScene from '../components/GameScene';
+import SkillIcon from '../components/SkillIcon';
 import { KEYWORDS } from '../lib/keywords';
 
 function KeywordChip({ id }) {
@@ -604,7 +605,7 @@ export default function LobbyPage() {
                         style={styles.draftOption(card.rarity, card.corrupt)}
                         title={card.description}
                       >
-                        <span style={styles.cardButtonName}>{card.displayName}</span>
+                        <span style={styles.draftHeader}><SkillIcon id={card.id} size={26} /><span style={styles.cardButtonName}>{card.displayName}</span></span>
                         {card.deck && <span style={styles.draftDeck}>Mazo {card.deck}{card.corrupt ? ' · corrupto' : ''}</span>}
                         <span style={styles.draftDescription}>{card.description}</span>
                         <span style={styles.keywordRow}>
@@ -626,6 +627,7 @@ export default function LobbyPage() {
                   style={styles.cardButton(onCooldown)}
                   title={slot.chosen.description}
                 >
+                  <SkillIcon id={slot.chosen.id} />
                   <span style={styles.cardButtonName}>{slot.chosen.displayName}</span>
                   <span style={styles.keywordRow}>
                     {(slot.chosen.keywords || []).map((k) => <KeywordChip key={k} id={k} />)}
@@ -656,6 +658,7 @@ export default function LobbyPage() {
                   title={skill.description}
                 >
                   <span style={styles.skillKey}>{['Q', 'E', 'R', 'F'][i]}</span>
+                  <SkillIcon id={skill.id} />
                   <span style={styles.cardButtonName}>{skill.name}</span>
                   <span style={styles.keywordRow}>
                     {(skill.keywords || []).map((k) => <KeywordChip key={k} id={k} />)}
@@ -678,6 +681,7 @@ export default function LobbyPage() {
                   title="Aturde 1.2s al Paciente más cercano a menos de 2.5."
                 >
                   <span style={styles.skillKey}>G</span>
+                  <SkillIcon id="golpe_aturdidor" />
                   <span style={styles.cardButtonName}>Golpe Aturdidor</span>
                   <span style={styles.keywordRow}><KeywordChip id="aturdir" /></span>
                   {onCooldown && (
@@ -1318,6 +1322,7 @@ const styles = {
     cursor: 'pointer',
     textAlign: 'left',
   }),
+  draftHeader: { display: 'flex', alignItems: 'center', gap: 6 },
   draftDeck: { fontSize: 9, color: '#8a8da3', textTransform: 'uppercase', letterSpacing: 0.4 },
   draftDescription: { fontSize: 10, color: '#8a8da3', fontWeight: 400 },
   cardButtonCooldown: { fontSize: 11, fontVariantNumeric: 'tabular-nums' },

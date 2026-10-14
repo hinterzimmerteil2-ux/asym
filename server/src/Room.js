@@ -869,6 +869,15 @@ class Room {
         });
         break;
       }
+      case 'tajo_carmesi':
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const otherEntity = this.gameState.entities[otherId];
+          if (otherEntity && distanceBetween(entity, otherEntity) <= 3.5) {
+            otherEntity.stunnedUntil = now + card.durationMs;
+          }
+        }
+        break;
       case 'red_mist':
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
