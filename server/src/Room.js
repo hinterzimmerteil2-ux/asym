@@ -56,10 +56,9 @@ const TROPIEZO_RADIUS = 3;
 const RELOCATE_INTERVAL_MS = 25000;
 const CURATOR_HP_START = 800;
 const CURATOR_HP_MAX = 1500;
-const STUN_HP_FACTOR = 0.1;
-const PUDDLE_CURATOR_PER_SEC = 18;
+const PUDDLE_CURATOR_PER_SEC = 10;
 const REGALO_RADIUS = 8;
-const REGALO_HP = 250;
+const REGALO_HP = 150;
 const CHICHARRON_DAMAGE = 25;
 const CHICHARRON_FLOOR = 40;
 const GOYSLOP_DAMAGE = 45;
@@ -635,10 +634,10 @@ class Room {
     if (healedAny) this.checkGameEndConditions();
   }
 
-  stun(playerId, entity, ms, now) {
+  stun(playerId, entity, ms, now, hpLoss = 0) {
     entity.stunnedUntil = Math.max(entity.stunnedUntil, now + ms);
     const player = this.players.get(playerId);
-    if (player && player.isAsymRole) this.adjustCuratorHp(-ms * STUN_HP_FACTOR);
+    if (player && player.isAsymRole && hpLoss > 0) this.adjustCuratorHp(-hpLoss);
   }
 
   adjustCuratorHp(delta) {
@@ -723,7 +722,7 @@ class Room {
           const isOwner = playerId === zone.ownerId;
           if (isOwner && !zone.hitsOwner) continue;
           if (!player.isAsymRole && !isOwner) continue;
-          this.stun(playerId, entity, zone.stunMs, now);
+          this.stun(playerId, entity, zone.stunMs, now, zone.hpLoss || 0);
           triggered = true;
         }
         if (triggered) remaining.pop();
@@ -883,6 +882,7 @@ class Room {
           until: now + TRAP_LIFETIME_MS,
           hitsOwner: card.id === 'platano_podrido',
           stunMs: card.id === 'platano_podrido' ? 3500 : 2000,
+          hpLoss: card.curatorHpLoss || 0,
         });
         break;
       case 'agua_rimac':
@@ -909,7 +909,7 @@ class Room {
           if (!other.isAsymRole) continue;
           const otherEntity = this.gameState.entities[otherId];
           if (otherEntity && distanceBetween(entity, otherEntity) <= 3.5) {
-            this.stun(otherId, otherEntity, card.durationMs, now);
+            this.stun(otherId, otherEntity, card.durationMs, now, card.curatorHpLoss || 0);
           }
         }
         break;
@@ -918,7 +918,7 @@ class Room {
           if (!other.isAsymRole) continue;
           const otherEntity = this.gameState.entities[otherId];
           if (otherEntity && distanceBetween(entity, otherEntity) <= RED_MIST_RADIUS) {
-            this.stun(otherId, otherEntity, card.durationMs, now);
+            this.stun(otherId, otherEntity, card.durationMs, now, card.curatorHpLoss || 0);
           }
         }
         this.healPatient(playerId, RED_MIST_HEAL);
@@ -929,7 +929,7 @@ class Room {
           if (!other.isAsymRole) continue;
           const otherEntity = this.gameState.entities[otherId];
           if (otherEntity && distanceBetween(entity, otherEntity) <= TROPIEZO_RADIUS) {
-            this.stun(otherId, otherEntity, card.durationMs, now);
+            this.stun(otherId, otherEntity, card.durationMs, now, card.curatorHpLoss || 0);
           }
         }
         break;
