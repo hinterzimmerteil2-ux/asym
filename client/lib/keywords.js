@@ -1,0 +1,16 @@
+export const KEYWORDS = {
+  aturdir: { label: 'Aturdir', description: 'El objetivo no puede moverse ni saltar.', color: '#e0555f' },
+  ralentizar: { label: 'Ralentizar', description: 'Reduce la velocidad del objetivo a la mitad.', color: '#5468ff' },
+  atraer: { label: 'Atraer', description: 'Arrastra a los objetivos hacia el lanzador.', color: '#b07cf2' },
+  purga: { label: 'Purga', description: 'Anula los efectos activos de cartas.', color: '#8a8da3' },
+  curacion: { label: 'Curación', description: 'Sube el HP de los Pacientes.', color: '#5fd58c' },
+  potenciar: { label: 'Potenciar', description: 'Mejora temporalmente tus propias acciones.', color: '#f2a154' },
+  area: { label: 'Área', description: 'Afecta a todos los objetivos dentro de un radio.', color: '#8a8da3' },
+  veloz: { label: 'Veloz', description: 'Aumenta tu velocidad de movimiento.', color: '#f2d154' },
+  sin_gasto: { label: 'Sin gasto', description: 'Correr no consume Flojera mientras dura.', color: '#54d1f2' },
+  flojera: { label: 'Flojera', description: 'Interactúa con tu reserva de Flojera.', color: '#54d1f2' },
+  impulso: { label: 'Impulso', description: 'Te desplaza al instante.', color: '#f2d154' },
+  resistencia: { label: 'Resistencia', description: 'Reduce el efecto de lo que te hacen.', color: '#5fd58c' },
+  sabotaje: { label: 'Sabotaje', description: 'Afecta directamente al Curador.', color: '#e0555f' },
+  daño: { label: 'Daño', description: 'Modifica el daño que te haces a ti mismo.', color: '#e0555f' },
+};

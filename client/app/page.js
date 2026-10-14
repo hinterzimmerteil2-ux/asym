@@ -12,6 +12,29 @@ import {
   updateDisplayName,
 } from '../lib/session';
 import GameScene from '../components/GameScene';
+import { KEYWORDS } from '../lib/keywords';
+
+function KeywordChip({ id }) {
+  const k = KEYWORDS[id];
+  if (!k) return null;
+  return (
+    <span
+      title={`${k.label}: ${k.description}`}
+      style={{
+        fontSize: 9,
+        fontWeight: 600,
+        padding: '1px 5px',
+        borderRadius: 4,
+        border: `1px solid ${k.color}`,
+        color: k.color,
+        textTransform: 'uppercase',
+        letterSpacing: 0.3,
+      }}
+    >
+      {k.label}
+    </span>
+  );
+}
 
 export default function LobbyPage() {
   const connRef = useRef(null);
@@ -46,8 +69,8 @@ export default function LobbyPage() {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [nameSaving, setNameSaving] = useState(false);
-  const [pulseCooldownUntil, setPulseCooldownUntil] = useState(0);
-  const [pulseCooldownNow, setPulseCooldownNow] = useState(0);
+  const [skillCooldowns, setSkillCooldowns] = useState({});
+  const [skillCooldownNow, setSkillCooldownNow] = useState(0);
   const [flojera, setFlojera] = useState(null);
   const [hand, setHand] = useState([]);
   const [cardCooldowns, setCardCooldowns] = useState({});
@@ -133,9 +156,11 @@ export default function LobbyPage() {
           case 'curator_pulse_result':
             if (payload.patients) setPatients(payload.patients);
             if (payload.playerId === myPlayerIdRef.current) {
-              setPulseCooldownUntil(payload.cooldownUntil);
+              setSkillCooldowns((prev) => ({ ...prev, [payload.skillIndex]: payload.cooldownUntil }));
               if (payload.healedPlayerIds?.length > 0) {
-                setLastActionFeedback(`Pulso de Curación: ${payload.healedPlayerIds.length} Paciente(s) curado(s)`);
+                setLastActionFeedback(`${payload.skillName}: ${payload.healedPlayerIds.length} Paciente(s) curado(s)`);
+              } else if (payload.affectedPlayerIds?.length > 0) {
+                setLastActionFeedback(`${payload.skillName}: ${payload.affectedPlayerIds.length} Paciente(s) afectado(s)`);
               }
             }
             break;
@@ -175,7 +200,7 @@ export default function LobbyPage() {
               setCollisionObjects([]);
               setTimeRemainingMs(null);
               setLastActionFeedback(null);
-              setPulseCooldownUntil(0);
+              setSkillCooldowns({});
               setFlojera(null);
               setHand([]);
               setCardCooldowns({});
@@ -227,10 +252,11 @@ export default function LobbyPage() {
   // activo — pulseCooldownUntil es un timestamp fijo, necesitamos un
   // "ahora" que avance para poder mostrar la cuenta regresiva.
   useEffect(() => {
-    if (pulseCooldownUntil <= Date.now()) return;
-    const interval = setInterval(() => setPulseCooldownNow(Date.now()), 200);
+    const anyActive = Object.values(skillCooldowns).some((until) => until > Date.now());
+    if (!anyActive) return;
+    const interval = setInterval(() => setSkillCooldownNow(Date.now()), 200);
     return () => clearInterval(interval);
-  }, [pulseCooldownUntil]);
+  }, [skillCooldowns]);
 
   useEffect(() => {
     if (draftEndsAt <= Date.now()) return;
@@ -352,14 +378,14 @@ export default function LobbyPage() {
     connRef.current?.send(type, payload);
   }, []);
 
-  const myPulseName = players.find((p) => p.id === myPlayerId)?.character?.pulseName || 'Pulso de Curación';
+  const mySkills = players.find((p) => p.id === myPlayerId)?.character?.skills || [];
 
-  const handlePulse = useCallback(() => {
+  const handlePulse = useCallback((skill) => {
     // Validamos en el cliente solo para no spamear el servidor con un
     // mensaje que de todos modos va a rechazar — la validación real
     // (rol, cooldown, fase) vive en Room.applyCuratorPulse.
     if (!isAsymRole || phase !== 'action') return;
-    connRef.current?.send('curator_pulse_action', {});
+    connRef.current?.send('curator_pulse_action', { skill });
   }, [isAsymRole, phase]);
 
   const handleUseCard = useCallback((slot) => {
@@ -551,6 +577,7 @@ export default function LobbyPage() {
               Flojera: {Math.round(flojera.value)}/{flojera.max}
               {flojera.locked && ' (¡exhausto, no puedes correr!)'}
               {flojera.sprinting && ' (¡sprint!)'}
+              {flojera.stunned && ' (¡aturdido!)'}
             </div>
             <div style={styles.flojeraBarTrack}>
               <div style={styles.flojeraBarFill(flojera.value, flojera.max, flojera.locked)} />
@@ -576,6 +603,9 @@ export default function LobbyPage() {
                       >
                         <span style={styles.cardButtonName}>{card.displayName}</span>
                         <span style={styles.draftDescription}>{card.description}</span>
+                        <span style={styles.keywordRow}>
+                          {(card.keywords || []).map((k) => <KeywordChip key={k} id={k} />)}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -593,6 +623,9 @@ export default function LobbyPage() {
                   title={slot.chosen.description}
                 >
                   <span style={styles.cardButtonName}>{slot.chosen.displayName}</span>
+                  <span style={styles.keywordRow}>
+                    {(slot.chosen.keywords || []).map((k) => <KeywordChip key={k} id={k} />)}
+                  </span>
                   {onCooldown && (
                     <span style={styles.cardButtonCooldown}>
                       {Math.ceil((cooldownUntil - cardCooldownNow) / 1000)}s
@@ -604,15 +637,31 @@ export default function LobbyPage() {
           </div>
         )}
 
-        {phase === 'action' && isAsymRole && (
-          <div style={styles.pulseHud}>
-            {pulseCooldownUntil > pulseCooldownNow ? (
-              <span style={styles.pulseHudCooldown}>
-                {myPulseName}: {Math.ceil((pulseCooldownUntil - pulseCooldownNow) / 1000)}s
-              </span>
-            ) : (
-              <span style={styles.pulseHudReady}>{myPulseName} listo (E)</span>
-            )}
+        {phase === 'action' && isAsymRole && mySkills.length > 0 && (
+          <div style={styles.skillBar}>
+            {mySkills.map((skill, i) => {
+              const until = skillCooldowns[i] || 0;
+              const onCooldown = until > skillCooldownNow;
+              return (
+                <button
+                  key={skill.id}
+                  type="button"
+                  disabled={onCooldown}
+                  onClick={() => handlePulse(i)}
+                  style={styles.skillButton(onCooldown)}
+                  title={skill.description}
+                >
+                  <span style={styles.skillKey}>{['Q', 'E', 'R', 'F'][i]}</span>
+                  <span style={styles.cardButtonName}>{skill.name}</span>
+                  <span style={styles.keywordRow}>
+                    {(skill.keywords || []).map((k) => <KeywordChip key={k} id={k} />)}
+                  </span>
+                  {onCooldown && (
+                    <span style={styles.cardButtonCooldown}>{Math.ceil((until - skillCooldownNow) / 1000)}s</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -648,8 +697,8 @@ export default function LobbyPage() {
         <p style={styles.controlsHint}>
           {phase === 'action'
             ? isAsymRole
-              ? `WASD para moverte · Click en un Paciente para curarlo con tu ${players.find((p) => p.id === myPlayerId)?.character?.weaponName || 'arma'} · E para ${myPulseName} · Shift para ir más lento sin gastar Flojera`
-              : 'WASD para moverte rápido (gasta Flojera) · Shift para ir más lento sin gastar Flojera · Espacio para saltar · Click en un objeto rojo para auto-dañarte'
+              ? `WASD para moverte · Click en un Paciente para curarlo con tu ${players.find((p) => p.id === myPlayerId)?.character?.weaponName || 'arma'} · Q/E/R/F para tus habilidades · Shift para ir más lento sin gastar Flojera`
+              : 'WASD para correr (x1.4, gasta Flojera) · Shift para ir a paso normal sin gastar · Espacio para saltar · Click en un objeto rojo para auto-dañarte'
             : 'WASD para moverte · Espacio para saltar · Arrastrá para rotar cámara'}
         </p>
 
@@ -1247,6 +1296,30 @@ const styles = {
   }),
   draftDescription: { fontSize: 10, color: '#8a8da3', fontWeight: 400 },
   cardButtonCooldown: { fontSize: 11, fontVariantNumeric: 'tabular-nums' },
+  skillBar: {
+    position: 'absolute',
+    bottom: 16,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    gap: 8,
+  },
+  skillButton: (onCooldown) => ({
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 3,
+    width: 128,
+    padding: '8px 8px',
+    borderRadius: 8,
+    border: '1px solid #2a2d3d',
+    background: onCooldown ? 'rgba(27, 29, 41, 0.6)' : 'rgba(95, 213, 140, 0.15)',
+    color: onCooldown ? '#8a8da3' : '#5fd58c',
+    cursor: onCooldown ? 'default' : 'pointer',
+    fontSize: 12,
+  }),
+  skillKey: { fontSize: 10, color: '#8a8da3', fontWeight: 700 },
+  keywordRow: { display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' },
   pulseHud: {
     position: 'absolute',
     bottom: 16,

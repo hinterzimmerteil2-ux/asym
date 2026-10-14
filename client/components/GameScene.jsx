@@ -239,6 +239,8 @@ function FollowCamera({ myEntity, yawRef }) {
   return null;
 }
 
+const SKILL_KEYS = ['KeyQ', 'KeyE', 'KeyR', 'KeyF'];
+
 function useKeyboardInput(sendInput, yawRef, onPulse) {
   const keysPressed = useRef(new Set());
 
@@ -250,8 +252,9 @@ function useKeyboardInput(sendInput, yawRef, onPulse) {
       // parar y el servidor lo rechazaría todas las veces salvo la
       // primera (está en cooldown de todos modos, pero no tiene sentido
       // spamear mensajes).
-      if (e.code === 'KeyE' && !keysPressed.current.has(e.code)) {
-        onPulse?.();
+      const skillIndex = SKILL_KEYS.indexOf(e.code);
+      if (skillIndex !== -1 && !keysPressed.current.has(e.code)) {
+        onPulse?.(skillIndex);
       }
       keysPressed.current.add(e.code);
     }

@@ -4,24 +4,96 @@ const CHARACTERS = {
     displayName: 'Vorhees Jason',
     weaponName: 'Vara de hierbas medicinales',
     unlockedByDefault: true,
-    pulse: {
-      name: 'Pulso de Hierbas',
-      radius: 6,
-      cureAmount: 8,
-      cooldownMs: 10000,
-    },
+    skills: [
+      {
+        id: 'pulso_hierbas',
+        type: 'pulse',
+        name: 'Pulso de Hierbas',
+        description: 'Cura a todos los Pacientes cercanos.',
+        keywords: ['curacion', 'area'],
+        radius: 6,
+        cureAmount: 8,
+        cooldownMs: 10000,
+      },
+      {
+        id: 'somnifero_valeriana',
+        type: 'stun',
+        name: 'Somnífero de Valeriana',
+        description: 'Aturde a los Pacientes cercanos 1.5s.',
+        keywords: ['aturdir', 'area'],
+        radius: 5,
+        durationMs: 1500,
+        cooldownMs: 16000,
+      },
+      {
+        id: 'raiz_atrayente',
+        type: 'pull',
+        name: 'Raíz Atrayente',
+        description: 'Arrastra a los Pacientes hacia ti.',
+        keywords: ['atraer', 'area'],
+        radius: 9,
+        strength: 4,
+        cooldownMs: 14000,
+      },
+      {
+        id: 'tonico_reforzado',
+        type: 'boost',
+        name: 'Tónico Reforzado',
+        description: 'Tus curaciones por click valen el doble por 5s.',
+        keywords: ['curacion', 'potenciar'],
+        factor: 2,
+        durationMs: 5000,
+        cooldownMs: 18000,
+      },
+    ],
   },
   enfermera_buenaventura: {
     id: 'enfermera_buenaventura',
     displayName: 'Enfermera Buenaventura',
     weaponName: 'Jeringa de suero milagroso',
     unlockedByDefault: true,
-    pulse: {
-      name: 'Ronda de Suero',
-      radius: 4,
-      cureAmount: 15,
-      cooldownMs: 14000,
-    },
+    skills: [
+      {
+        id: 'ronda_suero',
+        type: 'pulse',
+        name: 'Ronda de Suero',
+        description: 'Cura fuerte a los Pacientes muy cercanos.',
+        keywords: ['curacion', 'area'],
+        radius: 4,
+        cureAmount: 15,
+        cooldownMs: 14000,
+      },
+      {
+        id: 'anestesia',
+        type: 'stun',
+        name: 'Anestesia',
+        description: 'Aturde a los Pacientes muy cercanos 2.2s.',
+        keywords: ['aturdir', 'area'],
+        radius: 4,
+        durationMs: 2200,
+        cooldownMs: 20000,
+      },
+      {
+        id: 'camilla_magnetica',
+        type: 'pull',
+        name: 'Camilla Magnética',
+        description: 'Arrastra con fuerza a los Pacientes lejanos.',
+        keywords: ['atraer', 'area'],
+        radius: 11,
+        strength: 6,
+        cooldownMs: 16000,
+      },
+      {
+        id: 'desinfectante',
+        type: 'purge',
+        name: 'Desinfectante',
+        description: 'Anula las cartas activas y drena 40 de Flojera.',
+        keywords: ['purga', 'flojera', 'area'],
+        radius: 7,
+        flojeraDrain: 40,
+        cooldownMs: 15000,
+      },
+    ],
   },
 };
 
@@ -37,15 +109,22 @@ function getUnlockedCharacterIds() {
     .map((c) => c.id);
 }
 
+function publicSkills(character) {
+  return character.skills.map((s) => ({
+    id: s.id,
+    name: s.name,
+    description: s.description,
+    keywords: s.keywords,
+    cooldownMs: s.cooldownMs,
+  }));
+}
+
 function listCharacters() {
   return Object.values(CHARACTERS).map((c) => ({
     id: c.id,
     displayName: c.displayName,
     weaponName: c.weaponName,
-    pulseName: c.pulse.name,
-    pulseRadius: c.pulse.radius,
-    pulseCureAmount: c.pulse.cureAmount,
-    pulseCooldownMs: c.pulse.cooldownMs,
+    skills: publicSkills(c),
   }));
 }
 
@@ -55,4 +134,5 @@ module.exports = {
   getCharacter,
   getUnlockedCharacterIds,
   listCharacters,
+  publicSkills,
 };

@@ -238,7 +238,7 @@ wss.on('connection', (ws) => {
       case MessageType.CURATOR_PULSE_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room || room.phase !== 'action') return;
-        room.applyCuratorPulse(playerId);
+        room.applyCuratorPulse(playerId, msg.payload.skill);
         break;
       }
 

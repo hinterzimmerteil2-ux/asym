@@ -52,11 +52,13 @@ const JERINGA_ROTA_CURE_FACTOR = 0.4;
 const HUMO_RADIUS = 7;
 const HUMO_SLOW_MULTIPLIER = 0.5;
 const GOLPE_DOBLE_FACTOR = 2;
+const TROPIEZO_RADIUS = 3;
+const RELOCATE_INTERVAL_MS = 25000;
 
 const FLOJERA_MAX = 100;
 const FLOJERA_DRAIN_PER_SEC = 20;
 const FLOJERA_REGEN_PER_SEC = 12;
-const FLOJERA_SLOW_MULTIPLIER = 0.5;
+const FLOJERA_SLOW_MULTIPLIER = 1;
 const FLOJERA_EXHAUST_LOCKOUT_MS = 3000;
 
 function clampUnit(value) {
@@ -122,7 +124,11 @@ class Room {
       velocityY: 0,
       onGround: true,
       input: { moveX: 0, moveZ: 0, jump: false, slow: false },
-      pulseCooldownUntil: 0,
+      skillCooldowns: {},
+      stunnedUntil: 0,
+      noDrainUntil: 0,
+      cureBoostUntil: 0,
+      cureBoostFactor: 1,
       flojera: FLOJERA_MAX,
       flojeraLockedUntil: 0,
       hand: [],
@@ -168,7 +174,7 @@ class Room {
         isAsymRole: p.isAsymRole,
         characterId: p.isAsymRole ? (p.characterId || Characters.DEFAULT_CHARACTER_ID) : null,
         character: characterData
-          ? { displayName: characterData.displayName, weaponName: characterData.weaponName, pulseName: characterData.pulse.name }
+          ? { displayName: characterData.displayName, weaponName: characterData.weaponName, skills: Characters.publicSkills(characterData) }
           : null,
       };
     });
@@ -347,7 +353,11 @@ class Room {
       entity.y = GROUND_Y;
       entity.velocityY = 0;
       entity.onGround = true;
-      entity.pulseCooldownUntil = 0;
+      entity.skillCooldowns = {};
+      entity.stunnedUntil = 0;
+      entity.noDrainUntil = 0;
+      entity.cureBoostUntil = 0;
+      entity.cureBoostFactor = 1;
       entity.flojera = FLOJERA_MAX;
       entity.flojeraLockedUntil = 0;
       entity.cardCooldowns = {};
@@ -363,6 +373,7 @@ class Room {
     this.gameState.timeRemainingMs = GAME_DURATION_MS;
     this.gameState.gameOver = false;
 
+    this.lastRelocateAt = Date.now();
     this.gameState.selfDamageObjectPositions = {};
     const selfDamagePositions = GameMap.resolveSelfDamagePositions(this.mapId, GameMap.MATCH_AREA);
     for (const obj of selfDamagePositions) {
@@ -383,7 +394,10 @@ class Room {
     }
 
     this.stepPhysics(dt);
-    if (this.phase === 'action') this.autoPickExpiredDrafts(now);
+    if (this.phase === 'action' && !this.gameState.gameOver) {
+      this.autoPickExpiredDrafts(now);
+      if (now - this.lastRelocateAt >= RELOCATE_INTERVAL_MS) this.relocateSelfDamageObjects(now);
+    }
 
     const flojeraByPlayerId = {};
     for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
@@ -392,6 +406,7 @@ class Room {
         max: FLOJERA_MAX,
         locked: entity.flojeraLockedUntil > now,
         sprinting: entity.sprintUntil > now,
+        stunned: entity.stunnedUntil > now,
       };
     }
 
@@ -415,7 +430,8 @@ class Room {
     for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
       const { input } = entity;
       const inAction = this.phase === 'action';
-      const isMoving = input.moveX !== 0 || input.moveZ !== 0;
+      const stunned = entity.stunnedUntil > now;
+      const isMoving = !stunned && (input.moveX !== 0 || input.moveZ !== 0);
       const sprinting = entity.sprintUntil > now;
       const locked = entity.flojeraLockedUntil > now;
       const wantsSlow = !sprinting && (Boolean(input.slow) || (inAction && locked));
@@ -427,13 +443,14 @@ class Room {
         speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
       }
       if (entity.slowedUntil > now) speedMultiplier *= HUMO_SLOW_MULTIPLIER;
+      if (stunned) speedMultiplier = 0;
 
       if (inAction) {
         if (sprinting || wantsSlow || !isMoving) {
           if (!sprinting) {
             entity.flojera = Math.min(FLOJERA_MAX, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);
           }
-        } else {
+        } else if (entity.noDrainUntil <= now) {
           entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
           if (entity.flojera <= 0) {
             entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
@@ -461,7 +478,7 @@ class Room {
       entity.x = Math.max(-area.halfSize, Math.min(area.halfSize, entity.x));
       entity.z = Math.max(-area.halfSize, Math.min(area.halfSize, entity.z));
 
-      if (input.jump && entity.onGround) {
+      if (input.jump && entity.onGround && !stunned) {
         entity.velocityY = JUMP_VELOCITY;
         entity.onGround = false;
       }
@@ -484,21 +501,12 @@ class Room {
     entity.input.slow = Boolean(input.slow);
   }
 
-  /**
-   * Habilidad especial del Curador: un pulso que cura a todos los
-   * Pacientes vivos dentro de CURATOR_PULSE_RADIUS, con cooldown largo.
-   * Mismo patrón de validación que applyCure/applySelfDamage: se valida
-   * acá, no se confía en el cliente. La cura por Paciente es menor que
-   * CURE_AMOUNT (el click directo) a propósito, para que el pulso premie
-   * curar a varios a la vez en vez de ser estrictamente mejor que el
-   * click uno por uno.
-   */
-  applyCuratorPulse(playerId) {
+  applyCuratorPulse(playerId, skillIndex) {
     if (this.gameState.gameOver || this.gameState.frozen) return;
 
     const curador = this.players.get(playerId);
     if (!curador || !curador.isAsymRole) {
-      this.sendTo(playerId, MessageType.ERROR, { message: 'Solo el Curador puede usar su habilidad' });
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Solo el Curador puede usar habilidades' });
       return;
     }
 
@@ -506,38 +514,91 @@ class Room {
     if (!curadorEntity) return;
 
     const now = Date.now();
-    if (curadorEntity.pulseCooldownUntil > now) {
-      this.sendTo(playerId, MessageType.ERROR, {
-        message: `Pulso en recarga (${Math.ceil((curadorEntity.pulseCooldownUntil - now) / 1000)}s)`,
-      });
+    if (curadorEntity.stunnedUntil > now) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Estás aturdido' });
       return;
     }
 
-    const pulse = Characters.getCharacter(curador.characterId).pulse;
-    curadorEntity.pulseCooldownUntil = now + pulse.cooldownMs;
+    const skills = Characters.getCharacter(curador.characterId).skills;
+    const index = Number.isInteger(skillIndex) ? skillIndex : 0;
+    const skill = skills[index];
+    if (!skill) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Esa habilidad no existe' });
+      return;
+    }
 
-    const healedPlayerIds = [];
-    for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
-      if (patient.status !== 'alive') continue;
-      const targetEntity = this.gameState.entities[targetPlayerId];
-      if (!targetEntity) continue;
-      if (distanceBetween(curadorEntity, targetEntity) > pulse.radius) continue;
+    const cooldownUntil = curadorEntity.skillCooldowns[index] || 0;
+    if (cooldownUntil > now) {
+      this.sendTo(playerId, MessageType.ERROR, {
+        message: `${skill.name} en recarga (${Math.ceil((cooldownUntil - now) / 1000)}s)`,
+      });
+      return;
+    }
+    curadorEntity.skillCooldowns[index] = now + skill.cooldownMs;
 
-      patient.hp = Math.min(PATIENT_HP_MAX, patient.hp + this.scaleCure(targetEntity, pulse.cureAmount, now));
-      if (patient.hp >= PATIENT_HP_MAX) {
-        patient.status = 'eliminated';
-        this.onPatientFullyCured();
+    const affectedPlayerIds = [];
+    let healedAny = false;
+
+    if (skill.type === 'boost') {
+      curadorEntity.cureBoostUntil = now + skill.durationMs;
+      curadorEntity.cureBoostFactor = skill.factor;
+    } else {
+      for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
+        if (patient.status !== 'alive') continue;
+        const targetEntity = this.gameState.entities[targetPlayerId];
+        if (!targetEntity) continue;
+        const dist = distanceBetween(curadorEntity, targetEntity);
+        if (dist > skill.radius) continue;
+
+        if (skill.type === 'pulse') {
+          patient.hp = Math.min(PATIENT_HP_MAX, patient.hp + this.scaleCure(targetEntity, skill.cureAmount, now));
+          if (patient.hp >= PATIENT_HP_MAX) {
+            patient.status = 'eliminated';
+            this.onPatientFullyCured();
+          }
+          healedAny = true;
+        } else if (skill.type === 'stun') {
+          targetEntity.stunnedUntil = now + skill.durationMs;
+        } else if (skill.type === 'pull') {
+          const travel = Math.min(skill.strength, Math.max(0, dist - 1));
+          if (dist > 0) {
+            targetEntity.x += ((curadorEntity.x - targetEntity.x) / dist) * travel;
+            targetEntity.z += ((curadorEntity.z - targetEntity.z) / dist) * travel;
+          }
+        } else if (skill.type === 'purge') {
+          targetEntity.sprintUntil = 0;
+          targetEntity.cureReductionUntil = 0;
+          targetEntity.noDrainUntil = 0;
+          targetEntity.slowedUntil = 0;
+          targetEntity.doubleSelfDamage = false;
+          targetEntity.flojera = Math.max(0, targetEntity.flojera - skill.flojeraDrain);
+        }
+        affectedPlayerIds.push(targetPlayerId);
       }
-      healedPlayerIds.push(targetPlayerId);
     }
 
     this.broadcast(MessageType.CURATOR_PULSE_RESULT, {
       playerId,
-      cooldownUntil: curadorEntity.pulseCooldownUntil,
-      healedPlayerIds,
+      skillIndex: index,
+      skillName: skill.name,
+      skillType: skill.type,
+      cooldownUntil: curadorEntity.skillCooldowns[index],
+      healedPlayerIds: healedAny ? affectedPlayerIds : [],
+      affectedPlayerIds,
       patients: this.gameState.patients,
     });
-    if (healedPlayerIds.length > 0) this.checkGameEndConditions();
+    if (healedAny) this.checkGameEndConditions();
+  }
+
+  relocateSelfDamageObjects(now) {
+    this.lastRelocateAt = now;
+    const allPositions = GameMap.resolveSelfDamagePositions(this.mapId, GameMap.MATCH_AREA);
+    for (const objectId of Object.keys(this.gameState.selfDamageObjectPositions)) {
+      const others = allPositions.filter((p) => p.id !== objectId);
+      if (others.length === 0) continue;
+      const newPos = others[Math.floor(Math.random() * others.length)];
+      this.gameState.selfDamageObjectPositions[objectId] = { x: newPos.x, y: GROUND_Y, z: newPos.z };
+    }
   }
 
   scaleCure(targetEntity, amount, now) {
@@ -653,6 +714,18 @@ class Room {
           }
         }
         break;
+      case 'tropiezo':
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const otherEntity = this.gameState.entities[otherId];
+          if (otherEntity && distanceBetween(entity, otherEntity) <= TROPIEZO_RADIUS) {
+            otherEntity.stunnedUntil = now + card.durationMs;
+          }
+        }
+        break;
+      case 'adrenalina':
+        entity.noDrainUntil = now + card.durationMs;
+        break;
       case 'golpe_doble':
         entity.doubleSelfDamage = true;
         break;
@@ -694,7 +767,8 @@ class Room {
       return;
     }
 
-    patient.hp = Math.min(PATIENT_HP_MAX, patient.hp + this.scaleCure(targetEntity, CURE_AMOUNT, Date.now()));
+    const boost = curadorEntity.cureBoostUntil > Date.now() ? curadorEntity.cureBoostFactor : 1;
+    patient.hp = Math.min(PATIENT_HP_MAX, patient.hp + this.scaleCure(targetEntity, CURE_AMOUNT * boost, Date.now()));
     if (patient.hp >= PATIENT_HP_MAX) {
       patient.status = 'eliminated';
       this.onPatientFullyCured();
