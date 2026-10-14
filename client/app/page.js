@@ -666,6 +666,26 @@ export default function LobbyPage() {
                 </button>
               );
             })}
+            {(() => {
+              const until = skillCooldowns.melee || 0;
+              const onCooldown = until > skillCooldownNow;
+              return (
+                <button
+                  type="button"
+                  disabled={onCooldown}
+                  onClick={() => handlePulse('melee')}
+                  style={styles.skillButton(onCooldown)}
+                  title="Aturde 1.2s al Paciente más cercano a menos de 2.5."
+                >
+                  <span style={styles.skillKey}>G</span>
+                  <span style={styles.cardButtonName}>Golpe Aturdidor</span>
+                  <span style={styles.keywordRow}><KeywordChip id="aturdir" /></span>
+                  {onCooldown && (
+                    <span style={styles.cardButtonCooldown}>{Math.ceil((until - skillCooldownNow) / 1000)}s</span>
+                  )}
+                </button>
+              );
+            })()}
           </div>
         )}
 
@@ -701,7 +721,7 @@ export default function LobbyPage() {
         <p style={styles.controlsHint}>
           {phase === 'action'
             ? isAsymRole
-              ? `WASD para moverte · Click en un Paciente para curarlo con tu ${players.find((p) => p.id === myPlayerId)?.character?.weaponName || 'arma'} · Q/E/R/F para tus habilidades · Shift para ir más lento sin gastar Flojera`
+              ? `WASD para moverte · Click en un Paciente para curarlo con tu ${players.find((p) => p.id === myPlayerId)?.character?.weaponName || 'arma'} · Q/E/R/F para tus habilidades · G para Golpe Aturdidor · Shift para ir más lento sin gastar Flojera`
               : 'WASD para correr (x1.4, gasta Flojera) · Shift para ir a paso normal sin gastar · Espacio para saltar · Click en un objeto rojo para auto-dañarte'
             : 'WASD para moverte · Espacio para saltar · Arrastrá para rotar cámara'}
         </p>

@@ -252,7 +252,7 @@ function FollowCamera({ myEntity, yawRef }) {
   return null;
 }
 
-const SKILL_KEYS = ['KeyQ', 'KeyE', 'KeyR', 'KeyF'];
+const SKILL_KEYS = ['KeyQ', 'KeyE', 'KeyR', 'KeyF', 'KeyG'];
 
 function useKeyboardInput(sendInput, yawRef, onPulse) {
   const keysPressed = useRef(new Set());
@@ -267,7 +267,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse) {
       // spamear mensajes).
       const skillIndex = SKILL_KEYS.indexOf(e.code);
       if (skillIndex !== -1 && !keysPressed.current.has(e.code)) {
-        onPulse?.(skillIndex);
+        onPulse?.(skillIndex === 4 ? 'melee' : skillIndex);
       }
       keysPressed.current.add(e.code);
     }

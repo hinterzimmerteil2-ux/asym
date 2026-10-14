@@ -97,6 +97,17 @@ const CHARACTERS = {
   },
 };
 
+const GENERIC_MELEE = {
+  id: 'golpe_aturdidor',
+  type: 'melee_stun',
+  name: 'Golpe Aturdidor',
+  description: 'Aturde 1.2s al Paciente más cercano a menos de 2.5.',
+  keywords: ['aturdir'],
+  radius: 2.5,
+  durationMs: 1200,
+  cooldownMs: 8000,
+};
+
 const DEFAULT_CHARACTER_ID = 'vorhees_jason';
 
 function getCharacter(characterId) {
@@ -131,6 +142,7 @@ function listCharacters() {
 module.exports = {
   CHARACTERS,
   DEFAULT_CHARACTER_ID,
+  GENERIC_MELEE,
   getCharacter,
   getUnlockedCharacterIds,
   listCharacters,

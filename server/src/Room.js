@@ -536,8 +536,8 @@ class Room {
     }
 
     const skills = Characters.getCharacter(curador.characterId).skills;
-    const index = Number.isInteger(skillIndex) ? skillIndex : 0;
-    const skill = skills[index];
+    const index = skillIndex === 'melee' ? 'melee' : Number.isInteger(skillIndex) ? skillIndex : 0;
+    const skill = index === 'melee' ? Characters.GENERIC_MELEE : skills[index];
     if (!skill) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Esa habilidad no existe' });
       return;
@@ -558,6 +558,23 @@ class Room {
     if (skill.type === 'boost') {
       curadorEntity.cureBoostUntil = now + skill.durationMs;
       curadorEntity.cureBoostFactor = skill.factor;
+    } else if (skill.type === 'melee_stun') {
+      let nearestId = null;
+      let nearestDist = skill.radius;
+      for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
+        if (patient.status !== 'alive') continue;
+        const targetEntity = this.gameState.entities[targetPlayerId];
+        if (!targetEntity) continue;
+        const dist = distanceBetween(curadorEntity, targetEntity);
+        if (dist <= nearestDist) {
+          nearestDist = dist;
+          nearestId = targetPlayerId;
+        }
+      }
+      if (nearestId) {
+        this.gameState.entities[nearestId].stunnedUntil = now + skill.durationMs;
+        affectedPlayerIds.push(nearestId);
+      }
     } else {
       for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
         if (patient.status !== 'alive') continue;
