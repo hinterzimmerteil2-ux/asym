@@ -626,6 +626,7 @@ class Room {
       skillIndex: index,
       skillName: skill.name,
       skillType: skill.type,
+      radius: skill.radius || 0,
       cooldownUntil: curadorEntity.skillCooldowns[index],
       healedPlayerIds: healedAny ? affectedPlayerIds : [],
       affectedPlayerIds,

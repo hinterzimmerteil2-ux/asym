@@ -17,7 +17,7 @@ const COLOR_METAL = '#8a8674';
 const COLOR_WALL_TINT = '#3d4a42';
 const COLOR_EMERGENCY_LIGHT = '#5468ff';
 
-function PlayerCapsule({ entityState, color, isMe }) {
+function PlayerCapsule({ entityState, color, isMe, stunned }) {
   const groupRef = useRef();
   const targetPos = useRef([entityState.x, entityState.y, entityState.z]);
 
@@ -39,6 +39,7 @@ function PlayerCapsule({ entityState, color, isMe }) {
         <capsuleGeometry args={[0.4, 1.1, 4, 12]} />
         <meshStandardMaterial color={color} roughness={0.4} metalness={0.1} />
       </mesh>
+      {stunned && <StunHalo />}
       {isMe && (
         <mesh position={[0, 2.1, 0]}>
           <coneGeometry args={[0.15, 0.3, 4]} />
@@ -168,6 +169,106 @@ function ZoneDisc({ zone }) {
       <circleGeometry args={[zone.radius, 32]} />
       <meshBasicMaterial color={color} transparent opacity={opacity} />
     </mesh>
+  );
+}
+
+
+const EFFECT_STYLES = {
+  skill_pulse: { color: '#5fd58c', mode: 'ring', duration: 900 },
+  skill_stun: { color: '#b07cf2', mode: 'ring', duration: 800 },
+  skill_pull: { color: '#c28f4a', mode: 'contract', duration: 800 },
+  skill_boost: { color: '#f2a154', mode: 'rise', duration: 1100, radius: 1.2 },
+  skill_purge: { color: '#54a8f2', mode: 'ring', duration: 900 },
+  skill_melee_stun: { color: '#f2d154', mode: 'burst', duration: 500, radius: 2.5 },
+  card_sprint_panico: { color: '#f2d154', mode: 'rise', duration: 700, radius: 0.9 },
+  card_segundo_aliento: { color: '#54a8f2', mode: 'rise', duration: 900, radius: 1 },
+  card_rodar: { color: '#ffffff', mode: 'burst', duration: 400, radius: 1.5 },
+  card_jeringa_rota: { color: '#e0555f', mode: 'rise', duration: 900, radius: 1 },
+  card_humo_yodo: { color: '#f2a154', mode: 'burst', duration: 1000, radius: 7 },
+  card_tropiezo: { color: '#f2d154', mode: 'burst', duration: 500, radius: 3 },
+  card_adrenalina: { color: '#e0555f', mode: 'rise', duration: 900, radius: 1 },
+  card_chicharron: { color: '#f2a154', mode: 'rise', duration: 800, radius: 0.9 },
+  card_goyslop: { color: '#8f8f4a', mode: 'rise', duration: 1000, radius: 1.2 },
+  card_cascara_platano: { color: '#f2d154', mode: 'burst', duration: 500, radius: 1.5 },
+  card_platano_podrido: { color: '#7a6a2a', mode: 'burst', duration: 500, radius: 1.5 },
+  card_agua_rimac: { color: '#6b8f3a', mode: 'ring', duration: 800, radius: 4 },
+  card_rimac_sin_filtrar: { color: '#6b8f3a', mode: 'ring', duration: 900, radius: 6 },
+  card_red_mist: { color: '#e0555f', mode: 'ring', duration: 900, radius: 6 },
+  card_tajo_carmesi: { color: '#e0555f', mode: 'burst', duration: 550, radius: 3.5 },
+  card_regalo_envenenado: { color: '#b07cf2', mode: 'ring', duration: 900, radius: 8 },
+  card_golpe_doble: { color: '#f2a154', mode: 'rise', duration: 800, radius: 0.9 },
+};
+
+function SkillEffect({ effect }) {
+  const style = EFFECT_STYLES[effect.kind] || { color: '#ffffff', mode: 'ring', duration: 800 };
+  const radius = effect.radius || style.radius || 3;
+  const groupRef = useRef();
+  const materialRef = useRef();
+
+  useFrame(() => {
+    if (!groupRef.current || !materialRef.current) return;
+    const t = Math.min(1, (Date.now() - effect.startedAt) / style.duration);
+    const fade = 1 - t;
+    materialRef.current.opacity = Math.max(0, fade * 0.7);
+    if (style.mode === 'ring') {
+      const s = Math.max(0.05, t * radius);
+      groupRef.current.scale.set(s, s, s);
+      groupRef.current.position.y = 0.1;
+    } else if (style.mode === 'contract') {
+      const s = Math.max(0.05, (1 - t) * radius);
+      groupRef.current.scale.set(s, s, s);
+      groupRef.current.position.y = 0.1;
+    } else if (style.mode === 'burst') {
+      const s = Math.max(0.05, Math.sqrt(t) * radius);
+      groupRef.current.scale.set(s, s, s);
+      groupRef.current.position.y = 0.9;
+    } else {
+      groupRef.current.scale.set(radius, 1, radius);
+      groupRef.current.position.y = 0.2 + t * 2.4;
+    }
+  });
+
+  const flat = style.mode === 'ring' || style.mode === 'contract';
+  return (
+    <group position={[effect.x, 0, effect.z]}>
+      <group ref={groupRef}>
+        {flat && (
+          <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.88, 1, 48]} />
+            <meshBasicMaterial ref={materialRef} color={style.color} transparent side={2} depthWrite={false} />
+          </mesh>
+        )}
+        {style.mode === 'burst' && (
+          <mesh>
+            <sphereGeometry args={[1, 16, 12]} />
+            <meshBasicMaterial ref={materialRef} color={style.color} transparent depthWrite={false} />
+          </mesh>
+        )}
+        {style.mode === 'rise' && (
+          <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.6, 0.08, 8, 24]} />
+            <meshBasicMaterial ref={materialRef} color={style.color} transparent depthWrite={false} />
+          </mesh>
+        )}
+      </group>
+    </group>
+  );
+}
+
+function StunHalo() {
+  const ref = useRef();
+  useFrame((_, delta) => {
+    if (ref.current) ref.current.rotation.y += delta * 5;
+  });
+  return (
+    <group ref={ref} position={[0, 2.2, 0]}>
+      {[0, 1, 2].map((i) => (
+        <mesh key={i} position={[Math.cos((i * 2 * Math.PI) / 3) * 0.45, 0, Math.sin((i * 2 * Math.PI) / 3) * 0.45]}>
+          <octahedronGeometry args={[0.11, 0]} />
+          <meshBasicMaterial color="#f2d154" />
+        </mesh>
+      ))}
+    </group>
   );
 }
 
@@ -322,6 +423,8 @@ export default function GameScene({
   phase,
   selfDamageObjects,
   zones,
+  effects,
+  stunnedIds,
   collisionObjects,
   sendInput,
   sendAction,
@@ -342,6 +445,8 @@ export default function GameScene({
       <FollowCamera myEntity={myEntity} yawRef={yawRef} />
 
       <Ground halfSize={areaHalfSize} themed={phase === 'action'} />
+
+      {phase === 'action' && (effects || []).map((effect) => <SkillEffect key={effect.id} effect={effect} />)}
 
       {phase === 'action' && (zones || []).map((zone) => <ZoneDisc key={zone.id} zone={zone} />)}
 
@@ -377,7 +482,12 @@ export default function GameScene({
               sendAction('cure_action', { targetPlayerId: playerId });
             }}
           >
-            <PlayerCapsule entityState={entityState} color={color} isMe={playerId === myPlayerId} />
+            <PlayerCapsule
+              entityState={entityState}
+              color={color}
+              isMe={playerId === myPlayerId}
+              stunned={(stunnedIds || []).includes(playerId)}
+            />
           </group>
         );
       })}

@@ -59,6 +59,10 @@ export default function LobbyPage() {
   const [selfDamageObjects, setSelfDamageObjects] = useState({});
   const [zones, setZones] = useState([]);
   const [curatorHp, setCuratorHp] = useState(null);
+  const [effects, setEffects] = useState([]);
+  const [stunnedIds, setStunnedIds] = useState([]);
+  const entitiesRef = useRef({});
+  const effectCounterRef = useRef(0);
   const [collisionObjects, setCollisionObjects] = useState([]);
   const [patients, setPatients] = useState({});
   const [timeRemainingMs, setTimeRemainingMs] = useState(null);
@@ -144,6 +148,8 @@ export default function LobbyPage() {
             setSelfDamageObjects(payload.selfDamageObjects || {});
             setZones(payload.zones || []);
             setCuratorHp(payload.curator || null);
+            entitiesRef.current = payload.entities || {};
+            setStunnedIds(Object.entries(payload.flojera || {}).filter(([, v]) => v.stunned).map(([id]) => id));
             setPatients(payload.patients || {});
             setTimeRemainingMs(payload.timeRemainingMs ?? null);
             if (payload.flojera && myPlayerIdRef.current) {
@@ -158,7 +164,19 @@ export default function LobbyPage() {
                 : `Te hiciste daño (HP: ${payload.newHp})`
             );
             break;
-          case 'curator_pulse_result':
+          case 'curator_pulse_result': {
+            const caster = entitiesRef.current[payload.playerId];
+            if (caster) {
+              const effect = {
+                id: `fx${++effectCounterRef.current}`,
+                kind: `skill_${payload.skillType}`,
+                x: caster.x,
+                z: caster.z,
+                radius: payload.radius || undefined,
+                startedAt: Date.now(),
+              };
+              setEffects((prev) => [...prev.filter((e) => Date.now() - e.startedAt < 1500), effect]);
+            }
             if (payload.patients) setPatients(payload.patients);
             if (payload.playerId === myPlayerIdRef.current) {
               setSkillCooldowns((prev) => ({ ...prev, [payload.skillIndex]: payload.cooldownUntil }));
@@ -169,6 +187,7 @@ export default function LobbyPage() {
               }
             }
             break;
+          }
           case 'card_offer':
             setHand(payload.slots.map((slot) => ({ options: slot.options, chosen: null })));
             setDraftEndsAt(payload.draftEndsAt);
@@ -177,12 +196,24 @@ export default function LobbyPage() {
           case 'card_chosen':
             setHand((prev) => prev.map((slot, i) => (i === payload.slot ? { ...slot, chosen: payload.card } : slot)));
             break;
-          case 'card_result':
+          case 'card_result': {
+            const caster = entitiesRef.current[payload.playerId];
+            if (caster) {
+              const effect = {
+                id: `fx${++effectCounterRef.current}`,
+                kind: `card_${payload.cardId}`,
+                x: caster.x,
+                z: caster.z,
+                startedAt: Date.now(),
+              };
+              setEffects((prev) => [...prev.filter((e) => Date.now() - e.startedAt < 1500), effect]);
+            }
             if (payload.playerId === myPlayerIdRef.current) {
               setCardCooldowns((prev) => ({ ...prev, [payload.slot]: payload.cooldownUntil }));
               setLastActionFeedback(`Usaste: ${payload.cardId}`);
             }
             break;
+          }
           case 'game_over':
             setGameOverInfo(payload);
             break;
@@ -424,6 +455,8 @@ export default function LobbyPage() {
             phase={phase}
             selfDamageObjects={selfDamageObjects}
             zones={zones}
+            effects={effects}
+            stunnedIds={stunnedIds}
             collisionObjects={collisionObjects}
             sendInput={handleSendInput}
             sendAction={handleSendAction}
