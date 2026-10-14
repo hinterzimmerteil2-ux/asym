@@ -54,6 +54,12 @@ const HUMO_SLOW_MULTIPLIER = 0.5;
 const GOLPE_DOBLE_FACTOR = 2;
 const TROPIEZO_RADIUS = 3;
 const RELOCATE_INTERVAL_MS = 25000;
+const CURATOR_HP_START = 800;
+const CURATOR_HP_MAX = 1500;
+const STUN_HP_FACTOR = 0.1;
+const PUDDLE_CURATOR_PER_SEC = 18;
+const REGALO_RADIUS = 8;
+const REGALO_HP = 250;
 const CHICHARRON_DAMAGE = 25;
 const CHICHARRON_FLOOR = 40;
 const GOYSLOP_DAMAGE = 45;
@@ -106,6 +112,7 @@ class Room {
       gameOver: false,
       selfDamageObjectPositions: {},
       zones: [],
+      curator: { hp: CURATOR_HP_START, max: CURATOR_HP_MAX },
     };
   }
 
@@ -388,6 +395,7 @@ class Room {
 
     this.lastRelocateAt = Date.now();
     this.gameState.zones = [];
+    this.gameState.curator = { hp: CURATOR_HP_START, max: CURATOR_HP_MAX };
     this.gameState.selfDamageObjectPositions = {};
     const selfDamagePositions = GameMap.resolveSelfDamagePositions(this.mapId, GameMap.MATCH_AREA);
     for (const obj of selfDamagePositions) {
@@ -432,6 +440,7 @@ class Room {
       timeRemainingMs: this.gameState.timeRemainingMs,
       patients: this.gameState.patients,
       selfDamageObjects: this.gameState.selfDamageObjectPositions,
+      curator: this.gameState.curator,
       zones: this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt })),
     });
   }
@@ -558,6 +567,7 @@ class Room {
     if (skill.type === 'boost') {
       curadorEntity.cureBoostUntil = now + skill.durationMs;
       curadorEntity.cureBoostFactor = skill.factor;
+      if (skill.selfHeal) this.adjustCuratorHp(skill.selfHeal);
     } else if (skill.type === 'melee_stun') {
       let nearestId = null;
       let nearestDist = skill.radius;
@@ -610,6 +620,8 @@ class Room {
       }
     }
 
+    if (skill.type === 'pulse' && skill.selfHeal) this.adjustCuratorHp(skill.selfHeal * affectedPlayerIds.length);
+
     this.broadcast(MessageType.CURATOR_PULSE_RESULT, {
       playerId,
       skillIndex: index,
@@ -621,6 +633,20 @@ class Room {
       patients: this.gameState.patients,
     });
     if (healedAny) this.checkGameEndConditions();
+  }
+
+  stun(playerId, entity, ms, now) {
+    entity.stunnedUntil = Math.max(entity.stunnedUntil, now + ms);
+    const player = this.players.get(playerId);
+    if (player && player.isAsymRole) this.adjustCuratorHp(-ms * STUN_HP_FACTOR);
+  }
+
+  adjustCuratorHp(delta) {
+    const curator = this.gameState.curator;
+    if (!curator || this.gameState.gameOver) return;
+    curator.hp = Math.max(0, Math.min(curator.max, curator.hp + delta));
+    if (curator.hp <= 0) this.endGame('curator_depleted', true);
+    else if (curator.hp >= curator.max) this.endGame('curator_overhealed', true);
   }
 
   damagePatient(playerId, amount, floor = 0) {
@@ -671,6 +697,15 @@ class Room {
           else this.healPatient(playerId, zone.perSecond * dt);
           if (patient.status !== before) statusChanged = true;
         }
+        if (zone.kind === 'puddle') {
+          for (const [playerId, player] of this.players) {
+            if (!player.isAsymRole) continue;
+            const entity = this.gameState.entities[playerId];
+            if (entity && distanceBetween(entity, zone) <= zone.radius) {
+              this.adjustCuratorHp(PUDDLE_CURATOR_PER_SEC * dt);
+            }
+          }
+        }
         if (zone.kind === 'rimac') {
           for (const [playerId, player] of this.players) {
             if (!player.isAsymRole) continue;
@@ -688,7 +723,7 @@ class Room {
           const isOwner = playerId === zone.ownerId;
           if (isOwner && !zone.hitsOwner) continue;
           if (!player.isAsymRole && !isOwner) continue;
-          entity.stunnedUntil = now + zone.stunMs;
+          this.stun(playerId, entity, zone.stunMs, now);
           triggered = true;
         }
         if (triggered) remaining.pop();
@@ -874,7 +909,7 @@ class Room {
           if (!other.isAsymRole) continue;
           const otherEntity = this.gameState.entities[otherId];
           if (otherEntity && distanceBetween(entity, otherEntity) <= 3.5) {
-            otherEntity.stunnedUntil = now + card.durationMs;
+            this.stun(otherId, otherEntity, card.durationMs, now);
           }
         }
         break;
@@ -883,7 +918,7 @@ class Room {
           if (!other.isAsymRole) continue;
           const otherEntity = this.gameState.entities[otherId];
           if (otherEntity && distanceBetween(entity, otherEntity) <= RED_MIST_RADIUS) {
-            otherEntity.stunnedUntil = now + card.durationMs;
+            this.stun(otherId, otherEntity, card.durationMs, now);
           }
         }
         this.healPatient(playerId, RED_MIST_HEAL);
@@ -894,12 +929,19 @@ class Room {
           if (!other.isAsymRole) continue;
           const otherEntity = this.gameState.entities[otherId];
           if (otherEntity && distanceBetween(entity, otherEntity) <= TROPIEZO_RADIUS) {
-            otherEntity.stunnedUntil = now + card.durationMs;
+            this.stun(otherId, otherEntity, card.durationMs, now);
           }
         }
         break;
       case 'adrenalina':
         entity.noDrainUntil = now + card.durationMs;
+        break;
+      case 'regalo_envenenado':
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const otherEntity = this.gameState.entities[otherId];
+          if (otherEntity && distanceBetween(entity, otherEntity) <= REGALO_RADIUS) this.adjustCuratorHp(REGALO_HP);
+        }
         break;
       case 'golpe_doble':
         entity.doubleSelfDamage = true;
@@ -1023,7 +1065,7 @@ class Room {
     if (allResolved) this.endGame('all_resolved');
   }
 
-  endGame(reason) {
+  endGame(reason, curatorLost = false) {
     if (this.gameState.gameOver) return;
     this.gameState.gameOver = true;
     // OJO: antes esto dejaba this.phase === 'action' para siempre (el tick
@@ -1048,7 +1090,7 @@ class Room {
     }
 
     const majorityThreshold = Math.ceil(this.gameState.patientsInitialCount / 2);
-    const curatorWon = eliminatedCount >= majorityThreshold;
+    const curatorWon = curatorLost ? false : eliminatedCount >= majorityThreshold;
 
     this.broadcast(MessageType.GAME_OVER, { curatorWon, patientResults, reason });
   }

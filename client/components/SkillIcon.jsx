@@ -23,6 +23,7 @@ const ICONS = {
   rimac_sin_filtrar: <><path d="M3 20 Q8 14 13 20 T23 20 T31 20" stroke="#6b8f3a" strokeWidth="3" fill="none" /><circle cx="9" cy="10" r="3" fill="#6b8f3a" /><circle cx="20" cy="8" r="2" fill="#6b8f3a" /><circle cx="24" cy="14" r="2.5" fill="#6b8f3a" /><path d="M13 27 L16 23 L19 27" stroke={P} strokeWidth="2" fill="none" /></>,
   red_mist: <><path d="M5 27 L22 6 L27 11 L10 28 Z" fill={R} /><path d="M22 6 L27 11 L30 6 L26 2 Z" fill="#2a2d3d" /><circle cx="9" cy="12" r="4" fill={R} opacity=".4" /><circle cx="14" cy="7" r="3" fill={R} opacity=".3" /></>,
   tajo_carmesi: <><path d="M5 27 L24 5" stroke={R} strokeWidth="5" strokeLinecap="round" /><path d="M8 8 L24 24" stroke={O} strokeWidth="2" strokeLinecap="round" opacity=".7" /></>,
+  regalo_envenenado: <><rect x="6" y="13" width="20" height="14" rx="2" fill={P} /><rect x="14" y="13" width="4" height="14" fill={Y} /><path d="M16 13 C10 4 4 10 16 13 C28 10 22 4 16 13 Z" fill={Y} /></>,
   golpe_doble: <><path d="M16 3 L19 12 H28 L21 18 L24 27 L16 21 L8 27 L11 18 L4 12 H13 Z" fill={O} /></>,
   pulso_hierbas: <><path d="M16 28 C5 20 6 8 16 4 C26 8 27 20 16 28 Z" fill={G} /><path d="M16 26 V10" stroke="#1f6b41" strokeWidth="2" /></>,
   somnifero_valeriana: <><path d="M10 6 H22 L20 12 L26 26 H6 L12 12 Z" fill="none" stroke={P} strokeWidth="2" /><path d="M13 18 H19 L16 14 Z" fill={P} opacity=".6" /><text x="22" y="9" fontSize="9" fill={P} fontWeight="700">z</text></>,

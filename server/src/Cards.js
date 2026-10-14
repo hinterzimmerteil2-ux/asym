@@ -153,6 +153,15 @@ const CARDS = {
     durationMs: 1800,
     cooldownMs: 24000,
   },
+  regalo_envenenado: {
+    id: 'regalo_envenenado',
+    keywords: ['curacion', 'sabotaje'],
+    displayName: 'Regalo Envenenado',
+    description: 'El Curador a menos de 8 gana 250 HP. Si llega a 1500, pierde.',
+    rarity: 'rare',
+    weight: 9,
+    cooldownMs: 30000,
+  },
   golpe_doble: {
     id: 'golpe_doble',
     keywords: ['daño'],

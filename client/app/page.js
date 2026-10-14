@@ -58,6 +58,7 @@ export default function LobbyPage() {
   const [entities, setEntities] = useState({});
   const [selfDamageObjects, setSelfDamageObjects] = useState({});
   const [zones, setZones] = useState([]);
+  const [curatorHp, setCuratorHp] = useState(null);
   const [collisionObjects, setCollisionObjects] = useState([]);
   const [patients, setPatients] = useState({});
   const [timeRemainingMs, setTimeRemainingMs] = useState(null);
@@ -142,6 +143,7 @@ export default function LobbyPage() {
             setEntities(payload.entities || {});
             setSelfDamageObjects(payload.selfDamageObjects || {});
             setZones(payload.zones || []);
+            setCuratorHp(payload.curator || null);
             setPatients(payload.patients || {});
             setTimeRemainingMs(payload.timeRemainingMs ?? null);
             if (payload.flojera && myPlayerIdRef.current) {
@@ -575,6 +577,17 @@ export default function LobbyPage() {
           </div>
         )}
 
+        {phase === 'action' && curatorHp && (
+          <div style={styles.curatorHpBar}>
+            <div style={styles.hpBarLabel}>
+              Salud del Curador: {Math.round(curatorHp.hp)}/{curatorHp.max} · pierde en 0 o en {curatorHp.max}
+            </div>
+            <div style={styles.hpBarTrack}>
+              <div style={styles.curatorHpFill(curatorHp.hp / curatorHp.max)} />
+            </div>
+          </div>
+        )}
+
         {phase === 'action' && flojera && (
           <div style={styles.flojeraBarContainer}>
             <div style={styles.flojeraBarLabel}>
@@ -761,7 +774,7 @@ export default function LobbyPage() {
                     : '¡Los Pacientes ganaron!'}
               </h2>
               <p style={styles.gameOverReason}>
-                {gameOverInfo.reason === 'timeout' ? 'Se acabó el tiempo' : 'Todos los Pacientes fueron resueltos'}
+                {gameOverInfo.reason === 'timeout' ? 'Se acabó el tiempo' : gameOverInfo.reason === 'curator_depleted' ? 'La salud del Curador llegó a 0' : gameOverInfo.reason === 'curator_overhealed' ? 'El Curador se curó hasta el máximo' : 'Todos los Pacientes fueron resueltos'}
               </p>
               <ul style={styles.gameOverList}>
                 {Object.entries(gameOverInfo.patientResults).map(([playerId, result]) => {
@@ -1257,6 +1270,24 @@ const styles = {
     backdropFilter: 'blur(4px)',
   },
   hpBarLabel: { fontSize: 12, color: '#8a8da3', marginBottom: 6, textAlign: 'center' },
+  curatorHpBar: {
+    position: 'absolute',
+    top: 64,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: 320,
+    padding: '8px 14px',
+    borderRadius: 8,
+    background: 'rgba(27, 29, 41, 0.85)',
+    border: '1px solid #2a2d3d',
+    backdropFilter: 'blur(4px)',
+  },
+  curatorHpFill: (ratio) => ({
+    height: '100%',
+    width: `${Math.max(0, Math.min(1, ratio)) * 100}%`,
+    background: ratio < 0.2 || ratio > 0.85 ? '#e0555f' : '#f2a154',
+    transition: 'width 0.2s linear',
+  }),
   flojeraBarContainer: {
     position: 'absolute',
     bottom: 86,
