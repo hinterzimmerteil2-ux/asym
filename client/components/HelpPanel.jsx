@@ -1,5 +1,4 @@
 import SkillIcon from './SkillIcon';
-import { KEYWORDS } from '../lib/keywords';
 
 const CONTROLS = [
   ['W A S D', 'Moverte'],
@@ -75,16 +74,6 @@ export default function HelpPanel({ characters, cards, onClose }) {
             ))}
           </div>
         ))}
-
-        <h3 style={styles.section}>Palabras clave</h3>
-        <div style={styles.block}>
-          {Object.values(KEYWORDS).map((k) => (
-            <div key={k.label} style={styles.item}>
-              <span style={{ ...styles.chip, borderColor: k.color, color: k.color }}>{k.label}</span>
-              <span style={styles.itemText}>{k.description}</span>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

@@ -694,7 +694,7 @@ export default function LobbyPage() {
                         {card.deck && <span style={styles.draftDeck}>Mazo {card.deck}{card.corrupt ? ' · corrupto' : ''}</span>}
                         <span style={styles.draftDescription}>{card.description}</span>
                         <span style={styles.keywordRow}>
-                          {(card.keywords || []).map((k) => <KeywordChip key={k} id={k} />)}
+                          {(card.keywords || []).slice(0, 2).map((k) => <KeywordChip key={k} id={k} />)}
                         </span>
                       </button>
                     ))}
