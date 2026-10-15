@@ -136,9 +136,48 @@ class Room {
     this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
   }
 
+  botCurator(botId, player, now) {
+    const entity = this.gameState.entities[botId];
+    if (!entity) return;
+    let target = null;
+    let targetDist = Infinity;
+    for (const [patientId, patient] of Object.entries(this.gameState.patients)) {
+      if (patient.status !== 'alive') continue;
+      const other = this.gameState.entities[patientId];
+      if (!other) continue;
+      const d = distanceBetween(entity, other);
+      if (d < targetDist) { targetDist = d; target = { id: patientId, entity: other }; }
+    }
+    if (!target) {
+      entity.input.moveX = 0;
+      entity.input.moveZ = 0;
+      return;
+    }
+    if (targetDist > INTERACTION_RADIUS - 0.5) {
+      entity.input.moveX = (target.entity.x - entity.x) / targetDist;
+      entity.input.moveZ = (target.entity.z - entity.z) / targetDist;
+    } else {
+      entity.input.moveX = 0;
+      entity.input.moveZ = 0;
+    }
+    if (now > (player.nextBotAct || 0) && targetDist <= INTERACTION_RADIUS) {
+      this.applyCure(botId, target.id);
+      player.nextBotAct = now + 550;
+    }
+    if (now > (player.nextBotCard || 0)) {
+      player.nextBotCard = now + 1200 + Math.random() * 1500;
+      const skillIndex = targetDist <= 2.5 && Math.random() < 0.4 ? 'melee' : Math.floor(Math.random() * 4);
+      this.applyCuratorPulse(botId, skillIndex);
+    }
+  }
+
   botThink(now) {
     for (const [botId, player] of this.players) {
-      if (!player.isBot || player.isAsymRole) continue;
+      if (!player.isBot) continue;
+      if (player.isAsymRole) {
+        this.botCurator(botId, player, now);
+        continue;
+      }
       const entity = this.gameState.entities[botId];
       const patient = this.gameState.patients[botId];
       if (!entity || !patient || patient.status !== 'alive') {

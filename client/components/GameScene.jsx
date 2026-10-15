@@ -207,6 +207,27 @@ const EFFECT_STYLES = {
   card_golpe_doble: { color: '#f2a154', mode: 'rise', duration: 800, radius: 0.9 },
 };
 
+const SIMPLE_PROPS = {
+  boot: [['boxGeometry', [0.3, 0.5, 0.6], [0, 0, 0], '#8f6a3a'], ['boxGeometry', [0.34, 0.12, 0.7], [0, -0.3, 0.05], '#2a2d3d']],
+  pill: [['capsuleGeometry', [0.12, 0.35, 4, 8], [0, 0, 0], '#dcdde8'], ['sphereGeometry', [0.1, 8, 6], [0, 0.2, 0], '#e0555f']],
+  lungs: [['sphereGeometry', [0.22, 10, 8], [-0.2, 0, 0], '#54a8f2'], ['sphereGeometry', [0.22, 10, 8], [0.2, 0, 0], '#54a8f2']],
+  syringe: [['cylinderGeometry', [0.1, 0.1, 0.6, 8], [0, 0, 0], '#e0555f'], ['cylinderGeometry', [0.02, 0.02, 0.4, 6], [0, -0.5, 0], '#dcdde8']],
+  smokepot: [['sphereGeometry', [0.3, 10, 8], [0, 0, 0], '#f2a154'], ['cylinderGeometry', [0.08, 0.08, 0.2, 8], [0, 0.32, 0], '#6c6f84']],
+  cone: [['coneGeometry', [0.25, 0.5, 8], [0, 0, 0], '#f2d154']],
+  heart: [['sphereGeometry', [0.2, 10, 8], [-0.14, 0.05, 0], '#e0555f'], ['sphereGeometry', [0.2, 10, 8], [0.14, 0.05, 0], '#e0555f'], ['coneGeometry', [0.3, 0.4, 8], [0, -0.2, 0], '#e0555f']],
+  chicharron: [['boxGeometry', [0.5, 0.3, 0.25], [0, 0, 0], '#c98a3a']],
+  slop: [['cylinderGeometry', [0.3, 0.22, 0.25, 10], [0, 0, 0], '#8f8f4a']],
+  chili: [['coneGeometry', [0.12, 0.6, 8], [0, 0, 0], '#e0555f'], ['cylinderGeometry', [0.04, 0.04, 0.12, 6], [0, 0.34, 0], '#5fd58c']],
+  banana: [['capsuleGeometry', [0.1, 0.5, 4, 8], [0, 0, 0], '#f2d154']],
+  rotten: [['capsuleGeometry', [0.1, 0.5, 4, 8], [0, 0, 0], '#7a6a2a']],
+  blade: [['boxGeometry', [0.1, 0.9, 0.04], [0, 0.1, 0], '#e0555f'], ['boxGeometry', [0.3, 0.06, 0.06], [0, -0.35, 0], '#2a2d3d']],
+  gift: [['boxGeometry', [0.5, 0.4, 0.5], [0, 0, 0], '#b07cf2'], ['boxGeometry', [0.08, 0.42, 0.52], [0, 0, 0], '#f2d154']],
+  star: [['octahedronGeometry', [0.3, 0], [0, 0, 0], '#f2a154']],
+  paper: [['boxGeometry', [0.4, 0.55, 0.03], [0, 0, 0], '#f1f1f6']],
+  laugh: [['sphereGeometry', [0.28, 10, 8], [0, 0, 0], '#f2d154']],
+  can: [['cylinderGeometry', [0.2, 0.2, 0.4, 10], [0, 0, 0], '#c3c5d6']],
+};
+
 const FX = {
   skill_pulso_hierbas: { shape: 'leaf', color: '#5fd58c', count: 18, speed: 3.5, up: 3, gravity: 1, prop: 'herbs' },
   skill_somnifero_valeriana: { shape: 'shard', color: '#d9c8f5', liquid: '#b07cf2', count: 16, speed: 4, up: 4, gravity: 12, prop: 'bottle' },
@@ -221,30 +242,30 @@ const FX = {
   skill_pull: { shape: 'leaf', color: '#8f6a3a', count: 14, speed: 3, up: 0.5, gravity: 0, inward: true },
   skill_boost: { shape: 'spark', color: '#f2a154', count: 12, speed: 1, up: 4, gravity: -3 },
   skill_purge: { shape: 'drop', color: '#54a8f2', count: 14, speed: 3.5, up: 2, gravity: 9 },
-  skill_melee_stun: { shape: 'spark', color: '#f2d154', count: 12, speed: 4, up: 2, gravity: 6 },
-  card_sprint_panico: { shape: 'smoke', color: '#cfd2e0', count: 6, speed: 1.2, up: 0.8, gravity: 0 },
-  card_segundo_aliento: { shape: 'smoke', color: '#54a8f2', count: 6, speed: 1, up: 1.5, gravity: 0 },
-  card_rodar: { shape: 'smoke', color: '#cfd2e0', count: 8, speed: 2, up: 0.5, gravity: 0 },
-  card_canon_humano: { shape: 'smoke', color: '#cfd2e0', count: 10, speed: 2.5, up: 0.8, gravity: 0 },
-  card_jeringa_rota: { shape: 'shard', color: '#e0555f', count: 12, speed: 3, up: 4, gravity: 12, prop: 'bottle' },
-  card_humo_yodo: { shape: 'smoke', color: '#f2a154', count: 12, speed: 2.5, up: 1, gravity: 0 },
-  card_tropiezo: { shape: 'spark', color: '#f2d154', count: 10, speed: 3, up: 3, gravity: 8 },
-  card_adrenalina: { shape: 'spark', color: '#e0555f', count: 10, speed: 1.5, up: 4, gravity: -2 },
-  card_chicharron: { shape: 'crumb', color: '#c98a3a', count: 12, speed: 2, up: 3, gravity: 9 },
-  card_goyslop: { shape: 'crumb', color: '#8f8f4a', count: 16, speed: 2.5, up: 3, gravity: 9 },
-  card_aji_picante: { shape: 'crumb', color: '#e0555f', count: 12, speed: 2, up: 3, gravity: 9 },
+  skill_melee_stun: { shape: 'spark', color: '#f2d154', count: 12, speed: 4, up: 2, gravity: 6, prop: 'hammer' },
+  card_sprint_panico: { shape: 'smoke', color: '#cfd2e0', count: 6, speed: 1.2, up: 0.8, gravity: 0, prop: 'boot' },
+  card_segundo_aliento: { shape: 'smoke', color: '#54a8f2', count: 6, speed: 1, up: 1.5, gravity: 0, prop: 'lungs' },
+  card_rodar: { shape: 'smoke', color: '#cfd2e0', count: 8, speed: 2, up: 0.5, gravity: 0, prop: 'boot' },
+  card_canon_humano: { shape: 'smoke', color: '#cfd2e0', count: 10, speed: 2.5, up: 0.8, gravity: 0, prop: 'can' },
+  card_jeringa_rota: { shape: 'shard', color: '#e0555f', count: 12, speed: 3, up: 4, gravity: 12, prop: 'syringe' },
+  card_humo_yodo: { shape: 'smoke', color: '#f2a154', count: 12, speed: 2.5, up: 1, gravity: 0, prop: 'smokepot' },
+  card_tropiezo: { shape: 'spark', color: '#f2d154', count: 10, speed: 3, up: 3, gravity: 8, prop: 'cone' },
+  card_adrenalina: { shape: 'spark', color: '#e0555f', count: 10, speed: 1.5, up: 4, gravity: -2, prop: 'heart' },
+  card_chicharron: { shape: 'crumb', color: '#c98a3a', count: 12, speed: 2, up: 3, gravity: 9, prop: 'chicharron' },
+  card_goyslop: { shape: 'crumb', color: '#8f8f4a', count: 16, speed: 2.5, up: 3, gravity: 9, prop: 'slop' },
+  card_aji_picante: { shape: 'crumb', color: '#e0555f', count: 12, speed: 2, up: 3, gravity: 9, prop: 'chili' },
   card_sopa_hirviendo: { shape: 'drop', color: '#f2a154', count: 14, speed: 3, up: 3.5, gravity: 9, prop: 'pot' },
-  card_cascara_platano: { shape: 'leaf', color: '#f2d154', count: 6, speed: 2, up: 3, gravity: 8 },
-  card_platano_podrido: { shape: 'leaf', color: '#7a6a2a', count: 8, speed: 2, up: 3, gravity: 8 },
+  card_cascara_platano: { shape: 'leaf', color: '#f2d154', count: 6, speed: 2, up: 3, gravity: 8, prop: 'banana' },
+  card_platano_podrido: { shape: 'leaf', color: '#7a6a2a', count: 8, speed: 2, up: 3, gravity: 8, prop: 'rotten' },
   card_agua_rimac: { shape: 'shard', color: '#9fe6d0', liquid: '#6b8f3a', count: 16, speed: 4, up: 4, gravity: 12, prop: 'bottle' },
   card_rimac_sin_filtrar: { shape: 'shard', color: '#9fe6d0', liquid: '#5f7f20', count: 22, speed: 5, up: 5, gravity: 12, prop: 'bottle' },
-  card_red_mist: { shape: 'drop', color: '#e0555f', count: 20, speed: 5, up: 3, gravity: 9 },
-  card_tajo_carmesi: { shape: 'drop', color: '#e0555f', count: 10, speed: 4, up: 2, gravity: 9 },
-  card_regalo_envenenado: { shape: 'leaf', color: '#b07cf2', count: 14, speed: 3, up: 3, gravity: 3 },
-  card_golpe_doble: { shape: 'spark', color: '#f2a154', count: 8, speed: 2, up: 3, gravity: 3 },
-  card_pastilla_vencida: { shape: 'crumb', color: '#f1f1f6', count: 10, speed: 2.5, up: 3, gravity: 9 },
-  card_receta_falsa: { shape: 'leaf', color: '#f1f1f6', count: 12, speed: 3, up: 3, gravity: 2 },
-  card_risa_enlatada: { shape: 'spark', color: '#f2d154', count: 12, speed: 3, up: 3, gravity: 2 },
+  card_red_mist: { shape: 'drop', color: '#e0555f', count: 20, speed: 5, up: 3, gravity: 9, prop: 'blade' },
+  card_tajo_carmesi: { shape: 'drop', color: '#e0555f', count: 10, speed: 4, up: 2, gravity: 9, prop: 'blade' },
+  card_regalo_envenenado: { shape: 'leaf', color: '#b07cf2', count: 14, speed: 3, up: 3, gravity: 3, prop: 'gift' },
+  card_golpe_doble: { shape: 'spark', color: '#f2a154', count: 8, speed: 2, up: 3, gravity: 3, prop: 'star' },
+  card_pastilla_vencida: { shape: 'crumb', color: '#f1f1f6', count: 10, speed: 2.5, up: 3, gravity: 9, prop: 'pill' },
+  card_receta_falsa: { shape: 'leaf', color: '#f1f1f6', count: 12, speed: 3, up: 3, gravity: 2, prop: 'paper' },
+  card_risa_enlatada: { shape: 'spark', color: '#f2d154', count: 12, speed: 3, up: 3, gravity: 2, prop: 'laugh' },
   card_martillazo: { shape: 'spark', color: '#c3c5d6', count: 12, speed: 4, up: 2, gravity: 8, prop: 'hammer' },
   card_bolsa_cemento: { shape: 'smoke', color: '#9a9cac', count: 14, speed: 3, up: 1, gravity: 0, prop: 'bag' },
 };
@@ -254,7 +275,26 @@ function rand(seed, i) {
   return x - Math.floor(x);
 }
 
+function SimpleProp({ parts }) {
+  return (
+    <group>
+      {parts.map(([geometry, args, position, color], i) => (
+        <mesh key={i} position={position}>
+          {geometry === 'boxGeometry' && <boxGeometry args={args} />}
+          {geometry === 'sphereGeometry' && <sphereGeometry args={args} />}
+          {geometry === 'cylinderGeometry' && <cylinderGeometry args={args} />}
+          {geometry === 'coneGeometry' && <coneGeometry args={args} />}
+          {geometry === 'capsuleGeometry' && <capsuleGeometry args={args} />}
+          {geometry === 'octahedronGeometry' && <octahedronGeometry args={args} />}
+          <meshBasicMaterial color={color} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function PropMesh({ kind, color }) {
+  if (SIMPLE_PROPS[kind]) return <SimpleProp parts={SIMPLE_PROPS[kind]} />;
   if (kind === 'bottle') {
     return (
       <group>
@@ -335,8 +375,8 @@ function PropMesh({ kind, color }) {
 function Particles({ effect, fx }) {
   const refs = useRef([]);
   const propRef = useRef();
-  const duration = fx.prop ? 1100 : 900;
-  const impact = fx.prop === 'roots' ? 0.25 : fx.prop ? 0.28 : 0;
+  const duration = fx.prop ? 1300 : 900;
+  const impact = fx.prop === 'roots' ? 0.25 : fx.prop ? 0.4 : 0;
   const particles = Array.from({ length: fx.count }, (_, i) => {
     const angle = rand(effect.startedAt, i) * Math.PI * 2;
     const spread = 0.4 + rand(effect.startedAt, i + 50) * 0.8;
@@ -354,15 +394,17 @@ function Particles({ effect, fx }) {
   useFrame(() => {
     const t = (Date.now() - effect.startedAt) / duration;
     if (propRef.current) {
-      const fall = Math.min(1, t / impact);
+      const fall = Math.max(0, Math.min(1, (t - 0.18) / (impact - 0.18)));
       propRef.current.visible = t < impact;
       if (fx.prop === 'roots') {
         propRef.current.visible = t < 0.7;
         propRef.current.position.y = 0;
         propRef.current.scale.y = Math.min(1, t / 0.25);
       } else {
-        propRef.current.position.y = 0.4 + (1 - fall * fall) * 3.2;
+        propRef.current.position.y = 0.5 + (1 - fall * fall) * 2.1;
+        propRef.current.rotation.y = t * 9;
         propRef.current.rotation.z = fall * 2;
+        propRef.current.scale.setScalar(1.7 - fall * 0.5);
       }
     }
     const local = t < impact ? -1 : (t - impact) / (1 - impact);
