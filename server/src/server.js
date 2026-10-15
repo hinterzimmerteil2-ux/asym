@@ -4,6 +4,7 @@ const { MessageType, encode, decode } = require('./protocol');
 const { RoomManager } = require('./RoomManager');
 const GameMap = require('./GameMap');
 const Characters = require('./Characters');
+const Cards = require('./Cards');
 const { registerAuthRoutes } = require('./auth/routes');
 const { initSchema } = require('./auth/db');
 const { verifyToken } = require('./auth/jwt');
@@ -129,6 +130,7 @@ wss.on('connection', (ws) => {
           chatHistory: room.chatHistory,
           hostId: room.hostId,
           characters: Characters.listCharacters(),
+          cards: Cards.listCards(),
           mapId: room.mapId,
           maps: GameMap.listMaps(),
         }));

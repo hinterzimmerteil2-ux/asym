@@ -13,6 +13,7 @@ import {
 } from '../lib/session';
 import GameScene from '../components/GameScene';
 import SkillIcon from '../components/SkillIcon';
+import HelpPanel from '../components/HelpPanel';
 import { KEYWORDS } from '../lib/keywords';
 
 function KeywordChip({ id }) {
@@ -71,6 +72,8 @@ export default function LobbyPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [hostId, setHostId] = useState(null);
   const [characters, setCharacters] = useState([]);
+  const [cardCatalog, setCardCatalog] = useState([]);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [maps, setMaps] = useState([]);
   const [mapId, setMapId] = useState('default');
   const [editingName, setEditingName] = useState(false);
@@ -132,6 +135,7 @@ export default function LobbyPage() {
             setChatMessages(payload.chatHistory || []);
             setHostId(payload.hostId ?? null);
             setCharacters(payload.characters || []);
+            setCardCatalog(payload.cards || []);
             setMaps(payload.maps || []);
             setMapId(payload.mapId || 'default');
             break;
@@ -429,6 +433,19 @@ export default function LobbyPage() {
     connRef.current?.send('use_card_action', { slot });
   }, [isAsymRole, phase]);
 
+  useEffect(() => {
+    function onKeyDown(e) {
+      const tag = e.target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.code === 'KeyH') setHelpOpen((open) => !open);
+      else if (e.code === 'Escape') setHelpOpen(false);
+      else if (e.code === 'Digit1') handleUseCard(0);
+      else if (e.code === 'Digit2') handleUseCard(1);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [handleUseCard]);
+
   const handleChooseCard = useCallback((slot, cardId) => {
     if (isAsymRole || phase !== 'action') return;
     connRef.current?.send('choose_card_action', { slot, cardId });
@@ -673,15 +690,10 @@ export default function LobbyPage() {
                   style={styles.cardButton(onCooldown)}
                   title={slot.chosen.description}
                 >
-                  <SkillIcon id={slot.chosen.id} />
-                  <span style={styles.cardButtonName}>{slot.chosen.displayName}</span>
-                  <span style={styles.keywordRow}>
-                    {(slot.chosen.keywords || []).map((k) => <KeywordChip key={k} id={k} />)}
-                  </span>
+                  <SkillIcon id={slot.chosen.id} size={34} />
+                  <span style={styles.skillKey}>{i + 1}</span>
                   {onCooldown && (
-                    <span style={styles.cardButtonCooldown}>
-                      {Math.ceil((cooldownUntil - cardCooldownNow) / 1000)}s
-                    </span>
+                    <span style={styles.skillCooldownOverlay}>{Math.ceil((cooldownUntil - cardCooldownNow) / 1000)}</span>
                   )}
                 </button>
               );
@@ -745,13 +757,8 @@ export default function LobbyPage() {
           </form>
         </div>
 
-        <p style={styles.controlsHint}>
-          {phase === 'action'
-            ? isAsymRole
-              ? `WASD para moverte · Click en un Paciente para curarlo con tu ${players.find((p) => p.id === myPlayerId)?.character?.weaponName || 'arma'} · Q/E/R/F para tus habilidades · G para Golpe Aturdidor · Shift para ir más lento sin gastar Flojera`
-              : 'WASD para correr (x1.4, gasta Flojera) · Shift para ir a paso normal sin gastar · Espacio para saltar · Click en un objeto rojo para auto-dañarte'
-            : 'WASD para moverte · Espacio para saltar · Arrastrá para rotar cámara'}
-        </p>
+        <button type="button" onClick={() => setHelpOpen(true)} style={styles.helpButton} title="Ayuda (H)" aria-label="Ayuda">?</button>
+        {helpOpen && <HelpPanel characters={characters} cards={cardCatalog} onClose={() => setHelpOpen(false)} />}
 
         {errorMsg && (
           <p style={styles.errorOverlay}>
@@ -1229,17 +1236,6 @@ const styles = {
     background: 'rgba(27, 29, 41, 0.9)',
     backdropFilter: 'blur(4px)',
   },
-  controlsHint: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
-    fontSize: 12,
-    color: '#8a8da3',
-    background: 'rgba(27, 29, 41, 0.7)',
-    padding: '6px 12px',
-    borderRadius: 6,
-    margin: 0,
-  },
   errorOverlay: {
     position: 'absolute',
     top: 70,
@@ -1326,19 +1322,36 @@ const styles = {
     gap: 8,
   },
   cardButton: (onCooldown) => ({
+    position: 'relative',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 2,
-    padding: '10px 14px',
-    borderRadius: 8,
+    width: 64,
+    height: 72,
+    padding: 0,
+    borderRadius: 10,
     border: '1px solid #2a2d3d',
     background: onCooldown ? 'rgba(27, 29, 41, 0.6)' : 'rgba(95, 213, 140, 0.15)',
     color: onCooldown ? '#8a8da3' : '#5fd58c',
     cursor: onCooldown ? 'default' : 'pointer',
-    fontWeight: 600,
-    fontSize: 13,
+    overflow: 'hidden',
   }),
+  helpButton: {
+    position: 'absolute',
+    top: 16,
+    right: 248,
+    width: 32,
+    height: 32,
+    borderRadius: '50%',
+    border: '1px solid #2a2d3d',
+    background: 'rgba(27, 29, 41, 0.85)',
+    color: '#e8e9f0',
+    fontSize: 16,
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
   cardButtonName: { fontSize: 13, fontWeight: 600 },
   draftSlot: {
     display: 'flex',
@@ -1362,8 +1375,10 @@ const styles = {
     color: '#e8e9f0',
     cursor: 'pointer',
     textAlign: 'left',
+    width: '100%',
+    boxSizing: 'border-box',
   }),
-  draftHeader: { display: 'flex', alignItems: 'center', gap: 6 },
+  draftHeader: { display: 'flex', alignItems: 'center', gap: 8 },
   draftDeck: { fontSize: 9, color: '#8a8da3', textTransform: 'uppercase', letterSpacing: 0.4 },
   draftDescription: { fontSize: 10, color: '#8a8da3', fontWeight: 400 },
   cardButtonCooldown: { fontSize: 11, fontVariantNumeric: 'tabular-nums' },

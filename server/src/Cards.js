@@ -297,4 +297,17 @@ function dealSlots() {
   return slots;
 }
 
-module.exports = { CARDS, SLOT_COUNT, OPTIONS_PER_SLOT, DRAFT_DURATION_MS, getCard, dealSlots };
+function listCards() {
+  return Object.values(CARDS).map((card) => ({
+    id: card.id,
+    displayName: card.displayName,
+    description: card.description,
+    deck: card.deck || null,
+    corrupt: Boolean(card.corrupt),
+    corruptOf: card.corruptOf || null,
+    rarity: card.rarity,
+    keywords: card.keywords,
+  }));
+}
+
+module.exports = { listCards, CARDS, SLOT_COUNT, OPTIONS_PER_SLOT, DRAFT_DURATION_MS, getCard, dealSlots };
