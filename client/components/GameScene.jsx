@@ -208,6 +208,14 @@ const EFFECT_STYLES = {
 };
 
 const FX = {
+  skill_pulso_hierbas: { shape: 'leaf', color: '#5fd58c', count: 18, speed: 3.5, up: 3, gravity: 1, prop: 'herbs' },
+  skill_somnifero_valeriana: { shape: 'shard', color: '#d9c8f5', liquid: '#b07cf2', count: 16, speed: 4, up: 4, gravity: 12, prop: 'bottle' },
+  skill_raiz_atrayente: { shape: 'leaf', color: '#8f6a3a', count: 16, speed: 3, up: 0.5, gravity: 0, inward: true, prop: 'roots' },
+  skill_tonico_reforzado: { shape: 'spark', color: '#f2a154', liquid: '#f2a154', count: 14, speed: 1.5, up: 4, gravity: -3, prop: 'bottle' },
+  skill_ronda_suero: { shape: 'drop', color: '#54a8f2', liquid: '#54a8f2', count: 18, speed: 3.5, up: 3, gravity: 9, prop: 'drip' },
+  skill_anestesia: { shape: 'spark', color: '#b07cf2', count: 14, speed: 2.5, up: 3, gravity: -2, prop: 'mask' },
+  skill_camilla_magnetica: { shape: 'spark', color: '#e0555f', count: 16, speed: 3, up: 0.5, gravity: 0, inward: true, prop: 'magnet' },
+  skill_desinfectante: { shape: 'drop', color: '#54a8f2', liquid: '#dcdde8', count: 20, speed: 4, up: 2, gravity: 9, prop: 'bottle' },
   skill_pulse: { shape: 'leaf', color: '#5fd58c', count: 14, speed: 3, up: 2.5, gravity: -1 },
   skill_stun: { shape: 'spark', color: '#b07cf2', count: 12, speed: 2.5, up: 3, gravity: -2 },
   skill_pull: { shape: 'leaf', color: '#8f6a3a', count: 14, speed: 3, up: 0.5, gravity: 0, inward: true },
@@ -256,6 +264,55 @@ function PropMesh({ kind, color }) {
       </group>
     );
   }
+  if (kind === 'herbs') {
+    return (
+      <group>
+        {[-0.15, 0, 0.15].map((x) => (
+          <mesh key={x} position={[x, 0, 0]} rotation={[0, 0, x * 3]}><cylinderGeometry args={[0.03, 0.03, 0.7, 6]} /><meshBasicMaterial color="#5fd58c" /></mesh>
+        ))}
+        <mesh position={[0, -0.1, 0]}><cylinderGeometry args={[0.2, 0.2, 0.08, 8]} /><meshBasicMaterial color="#8f6a3a" /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'roots') {
+    return (
+      <group>
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <mesh key={i} position={[Math.cos(i * 1.05) * 0.5, 0.4, Math.sin(i * 1.05) * 0.5]} rotation={[Math.sin(i) * 0.4, 0, Math.cos(i) * 0.4]}>
+            <coneGeometry args={[0.1, 1.2, 6]} /><meshBasicMaterial color="#8f6a3a" />
+          </mesh>
+        ))}
+      </group>
+    );
+  }
+  if (kind === 'drip') {
+    return (
+      <group>
+        <mesh><boxGeometry args={[0.4, 0.55, 0.12]} /><meshBasicMaterial color="#dcdde8" /></mesh>
+        <mesh position={[0, -0.45, 0]}><cylinderGeometry args={[0.02, 0.02, 0.4, 6]} /><meshBasicMaterial color="#dcdde8" /></mesh>
+        <mesh position={[0, -0.7, 0]}><sphereGeometry args={[0.08, 8, 6]} /><meshBasicMaterial color={color} /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'mask') {
+    return (
+      <group>
+        <mesh><sphereGeometry args={[0.3, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshBasicMaterial color="#b07cf2" /></mesh>
+        <mesh position={[0, 0.2, 0]}><cylinderGeometry args={[0.05, 0.05, 0.3, 6]} /><meshBasicMaterial color="#dcdde8" /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'magnet') {
+    return (
+      <group>
+        <mesh position={[0, 0.2, 0]}><boxGeometry args={[0.6, 0.18, 0.2]} /><meshBasicMaterial color="#e0555f" /></mesh>
+        <mesh position={[-0.25, -0.1, 0]}><boxGeometry args={[0.18, 0.5, 0.2]} /><meshBasicMaterial color="#e0555f" /></mesh>
+        <mesh position={[0.25, -0.1, 0]}><boxGeometry args={[0.18, 0.5, 0.2]} /><meshBasicMaterial color="#e0555f" /></mesh>
+        <mesh position={[-0.25, -0.38, 0]}><boxGeometry args={[0.18, 0.12, 0.2]} /><meshBasicMaterial color="#dcdde8" /></mesh>
+        <mesh position={[0.25, -0.38, 0]}><boxGeometry args={[0.18, 0.12, 0.2]} /><meshBasicMaterial color="#dcdde8" /></mesh>
+      </group>
+    );
+  }
   if (kind === 'bag') {
     return <mesh><boxGeometry args={[0.7, 0.9, 0.4]} /><meshBasicMaterial color="#8a8da3" /></mesh>;
   }
@@ -279,7 +336,7 @@ function Particles({ effect, fx }) {
   const refs = useRef([]);
   const propRef = useRef();
   const duration = fx.prop ? 1100 : 900;
-  const impact = fx.prop ? 0.28 : 0;
+  const impact = fx.prop === 'roots' ? 0.25 : fx.prop ? 0.28 : 0;
   const particles = Array.from({ length: fx.count }, (_, i) => {
     const angle = rand(effect.startedAt, i) * Math.PI * 2;
     const spread = 0.4 + rand(effect.startedAt, i + 50) * 0.8;
@@ -299,8 +356,14 @@ function Particles({ effect, fx }) {
     if (propRef.current) {
       const fall = Math.min(1, t / impact);
       propRef.current.visible = t < impact;
-      propRef.current.position.y = 0.4 + (1 - fall * fall) * 3.2;
-      propRef.current.rotation.z = fall * 2;
+      if (fx.prop === 'roots') {
+        propRef.current.visible = t < 0.7;
+        propRef.current.position.y = 0;
+        propRef.current.scale.y = Math.min(1, t / 0.25);
+      } else {
+        propRef.current.position.y = 0.4 + (1 - fall * fall) * 3.2;
+        propRef.current.rotation.z = fall * 2;
+      }
     }
     const local = t < impact ? -1 : (t - impact) / (1 - impact);
     particles.forEach((p, i) => {
@@ -339,7 +402,7 @@ function Particles({ effect, fx }) {
 }
 
 function SkillEffect({ effect }) {
-  const style = EFFECT_STYLES[effect.kind] || { color: '#ffffff', mode: 'ring', duration: 800 };
+  const style = EFFECT_STYLES[effect.kind] || EFFECT_STYLES[effect.baseKind] || { color: '#ffffff', mode: 'ring', duration: 800 };
   const radius = effect.radius || style.radius || 3;
   const groupRef = useRef();
   const materialRef = useRef();
@@ -348,7 +411,7 @@ function SkillEffect({ effect }) {
     if (!groupRef.current || !materialRef.current) return;
     const t = Math.min(1, (Date.now() - effect.startedAt) / style.duration);
     const fade = 1 - t;
-    materialRef.current.opacity = Math.max(0, fade * 0.7);
+    materialRef.current.opacity = Math.max(0, fade * (FX[effect.kind] || FX[effect.baseKind] ? 0.3 : 0.7));
     if (style.mode === 'ring') {
       const s = Math.max(0.05, t * radius);
       groupRef.current.scale.set(s, s, s);
@@ -368,7 +431,7 @@ function SkillEffect({ effect }) {
   });
 
   const flat = style.mode === 'ring' || style.mode === 'contract';
-  const fx = FX[effect.kind];
+  const fx = FX[effect.kind] || FX[effect.baseKind];
   return (
     <>
     {fx && <Particles effect={effect} fx={fx} />}

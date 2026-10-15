@@ -173,7 +173,8 @@ export default function LobbyPage() {
             if (caster) {
               const effect = {
                 id: `fx${++effectCounterRef.current}`,
-                kind: `skill_${payload.skillType}`,
+                kind: `skill_${payload.skillId || payload.skillType}`,
+                baseKind: `skill_${payload.skillType}`,
                 x: caster.x,
                 z: caster.z,
                 radius: payload.radius || undefined,

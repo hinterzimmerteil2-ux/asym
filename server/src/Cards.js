@@ -203,9 +203,9 @@ const CARDS = {
   canon_humano: {
     id: 'canon_humano',
     deck: 'Circo',
-    keywords: ['impulso', 'daño'],
+    keywords: ['impulso', 'sabotaje', 'flojera'],
     displayName: 'Cañón Humano',
-    description: 'Dash largo hacia donde te mueves, pero pierdes 20 de HP (mínimo 20).',
+    description: 'Dash largo que empuja al Curador que esté en el camino, pero gasta 45 de Flojera.',
     rarity: 'uncommon',
     weight: 20,
     cooldownMs: 18000,

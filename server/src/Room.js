@@ -72,6 +72,10 @@ const TRAP_ARM_MS = 800;
 const TRAP_LIFETIME_MS = 30000;
 const RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC = 18;
 
+const CANON_DISTANCE = 9;
+const CANON_PUSH = 6;
+const CANON_HIT_WIDTH = 1.5;
+const CANON_FLOJERA_COST = 45;
 const FLOJERA_MAX = 100;
 const FLOJERA_DRAIN_PER_SEC = 20;
 const FLOJERA_REGEN_PER_SEC = 12;
@@ -693,6 +697,7 @@ class Room {
     this.broadcast(MessageType.CURATOR_PULSE_RESULT, {
       playerId,
       skillIndex: index,
+      skillId: skill.id,
       skillName: skill.name,
       skillType: skill.type,
       radius: skill.radius || 0,
@@ -1010,11 +1015,27 @@ class Room {
         const length = Math.sqrt(entity.input.moveX ** 2 + entity.input.moveZ ** 2);
         if (length > 0) {
           const area = this.getCurrentArea();
-          entity.x = Math.max(-area.halfSize, Math.min(area.halfSize, entity.x + (entity.input.moveX / length) * 9));
-          entity.z = Math.max(-area.halfSize, Math.min(area.halfSize, entity.z + (entity.input.moveZ / length) * 9));
+          const dirX = entity.input.moveX / length;
+          const dirZ = entity.input.moveZ / length;
+          const startX = entity.x;
+          const startZ = entity.z;
+          const clamp = (v) => Math.max(-area.halfSize, Math.min(area.halfSize, v));
+          entity.x = clamp(startX + dirX * CANON_DISTANCE);
+          entity.z = clamp(startZ + dirZ * CANON_DISTANCE);
+          for (const [otherId, other] of this.players) {
+            if (!other.isAsymRole) continue;
+            const otherEntity = this.gameState.entities[otherId];
+            if (!otherEntity) continue;
+            const along = (otherEntity.x - startX) * dirX + (otherEntity.z - startZ) * dirZ;
+            if (along < 0 || along > CANON_DISTANCE + 1) continue;
+            const sideways = Math.abs((otherEntity.x - startX) * dirZ - (otherEntity.z - startZ) * dirX);
+            if (sideways > CANON_HIT_WIDTH) continue;
+            otherEntity.x = clamp(otherEntity.x + dirX * CANON_PUSH);
+            otherEntity.z = clamp(otherEntity.z + dirZ * CANON_PUSH);
+          }
         }
-        this.damagePatient(playerId, 20, 20);
-        this.checkGameEndConditions();
+        entity.flojera = Math.max(0, entity.flojera - CANON_FLOJERA_COST);
+        if (entity.flojera === 0) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
         break;
       }
       case 'risa_enlatada':
