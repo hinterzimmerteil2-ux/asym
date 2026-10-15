@@ -33,6 +33,14 @@ const ICONS = {
   anestesia: <><path d="M6 14 Q16 4 26 14 Q26 24 16 26 Q6 24 6 14 Z" fill="none" stroke={P} strokeWidth="2" /><circle cx="16" cy="20" r="3" fill={P} /></>,
   camilla_magnetica: <><path d="M8 4 V16 a8 8 0 0 0 16 0 V4 H18 V16 a2 2 0 0 1 -4 0 V4 Z" fill={R} /><rect x="8" y="4" width="6" height="4" fill="#dcdde8" /><rect x="18" y="4" width="6" height="4" fill="#dcdde8" /></>,
   desinfectante: <><rect x="11" y="12" width="10" height="16" rx="2" fill={B} /><path d="M13 12 V7 H20 V10" stroke="#dcdde8" strokeWidth="2" fill="none" /><path d="M23 6 H28 M23 10 H28 M23 14 H27" stroke={B} strokeWidth="2" strokeLinecap="round" /></>,
+  aji_picante: <><path d="M8 24 C6 14 14 6 26 6 C26 18 18 26 8 24 Z" fill={R} /><path d="M26 6 L29 3" stroke={G} strokeWidth="3" strokeLinecap="round" /></>,
+  sopa_hirviendo: <><path d="M5 15 H27 a11 11 0 0 1 -22 0 Z" fill={O} /><path d="M11 11 Q9 8 11 5 M16 11 Q14 8 16 5 M21 11 Q19 8 21 5" stroke="#dcdde8" strokeWidth="2" fill="none" strokeLinecap="round" /></>,
+  pastilla_vencida: <><rect x="4" y="11" width="24" height="10" rx="5" fill="#dcdde8" transform="rotate(-35 16 16)" /><path d="M16 9 L16 23" stroke="#8a8da3" strokeWidth="2" transform="rotate(-35 16 16)" /><path d="M23 22 L27 26 M27 22 L23 26" stroke={R} strokeWidth="2" strokeLinecap="round" /></>,
+  receta_falsa: <><rect x="7" y="4" width="18" height="24" rx="2" fill="#dcdde8" /><path d="M11 10 H21 M11 15 H21 M11 20 H17" stroke="#8a8da3" strokeWidth="2" /><path d="M19 22 L27 30" stroke={R} strokeWidth="3" strokeLinecap="round" /></>,
+  canon_humano: <><rect x="3" y="15" width="18" height="9" rx="3" fill="#8a8da3" transform="rotate(-20 12 19)" /><circle cx="25" cy="10" r="4" fill={Y} /><path d="M20 14 L24 18" stroke={Y} strokeWidth="2" /></>,
+  risa_enlatada: <><circle cx="16" cy="16" r="12" fill={Y} /><circle cx="11" cy="13" r="1.8" fill="#2a2d3d" /><circle cx="21" cy="13" r="1.8" fill="#2a2d3d" /><path d="M9 18 Q16 27 23 18 Z" fill="#2a2d3d" /></>,
+  martillazo: <><rect x="4" y="5" width="16" height="9" rx="2" fill="#8a8da3" /><rect x="11" y="14" width="4" height="15" fill="#8f6a3a" /><path d="M23 10 L28 7 M24 15 L30 15 M23 20 L28 23" stroke={Y} strokeWidth="2" strokeLinecap="round" /></>,
+  bolsa_cemento: <><path d="M7 8 H25 L27 27 H5 Z" fill="#8a8da3" /><path d="M7 8 Q16 2 25 8" fill="#6c6f84" /><text x="9" y="22" fontSize="8" fill="#2a2d3d" fontWeight="700">CEM</text></>,
   golpe_aturdidor: <><circle cx="16" cy="16" r="8" fill={Y} /><path d="M16 2 V7 M16 25 V30 M2 16 H7 M25 16 H30 M6 6 L10 10 M22 22 L26 26 M26 6 L22 10 M10 22 L6 26" stroke={Y} strokeWidth="2" strokeLinecap="round" /></>,
 };
 

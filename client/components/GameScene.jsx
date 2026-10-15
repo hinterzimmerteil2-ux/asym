@@ -196,6 +196,14 @@ const EFFECT_STYLES = {
   card_red_mist: { color: '#e0555f', mode: 'ring', duration: 900, radius: 6 },
   card_tajo_carmesi: { color: '#e0555f', mode: 'burst', duration: 550, radius: 3.5 },
   card_regalo_envenenado: { color: '#b07cf2', mode: 'ring', duration: 900, radius: 8 },
+  card_aji_picante: { color: '#e0555f', mode: 'rise', duration: 800, radius: 0.9 },
+  card_sopa_hirviendo: { color: '#f2a154', mode: 'burst', duration: 700, radius: 5 },
+  card_pastilla_vencida: { color: '#dcdde8', mode: 'rise', duration: 800, radius: 0.9 },
+  card_receta_falsa: { color: '#dcdde8', mode: 'ring', duration: 900, radius: 8 },
+  card_canon_humano: { color: '#f2d154', mode: 'burst', duration: 500, radius: 2 },
+  card_risa_enlatada: { color: '#f2d154', mode: 'ring', duration: 900, radius: 8 },
+  card_martillazo: { color: '#8a8da3', mode: 'burst', duration: 500, radius: 3 },
+  card_bolsa_cemento: { color: '#8a8da3', mode: 'burst', duration: 900, radius: 6 },
   card_golpe_doble: { color: '#f2a154', mode: 'rise', duration: 800, radius: 0.9 },
 };
 

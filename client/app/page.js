@@ -691,51 +691,28 @@ export default function LobbyPage() {
 
         {phase === 'action' && isAsymRole && mySkills.length > 0 && (
           <div style={styles.skillBar}>
-            {mySkills.map((skill, i) => {
-              const until = skillCooldowns[i] || 0;
+            {[...mySkills.map((skill, i) => ({ id: skill.id, name: skill.name, description: skill.description, key: ['Q', 'E', 'R', 'F'][i], index: i, cooldownKey: i })),
+              { id: 'golpe_aturdidor', name: 'Golpe Aturdidor', description: 'Aturde 1.2s al Paciente más cercano a menos de 2.5.', key: 'G', index: 'melee', cooldownKey: 'melee' }].map((skill) => {
+              const until = skillCooldowns[skill.cooldownKey] || 0;
               const onCooldown = until > skillCooldownNow;
               return (
                 <button
                   key={skill.id}
                   type="button"
                   disabled={onCooldown}
-                  onClick={() => handlePulse(i)}
+                  onClick={() => handlePulse(skill.index)}
                   style={styles.skillButton(onCooldown)}
-                  title={skill.description}
+                  title={`${skill.name}: ${skill.description}`}
+                  aria-label={skill.name}
                 >
-                  <span style={styles.skillKey}>{['Q', 'E', 'R', 'F'][i]}</span>
-                  <SkillIcon id={skill.id} />
-                  <span style={styles.cardButtonName}>{skill.name}</span>
-                  <span style={styles.keywordRow}>
-                    {(skill.keywords || []).map((k) => <KeywordChip key={k} id={k} />)}
-                  </span>
+                  <SkillIcon id={skill.id} size={34} />
+                  <span style={styles.skillKey}>{skill.key}</span>
                   {onCooldown && (
-                    <span style={styles.cardButtonCooldown}>{Math.ceil((until - skillCooldownNow) / 1000)}s</span>
+                    <span style={styles.skillCooldownOverlay}>{Math.ceil((until - skillCooldownNow) / 1000)}</span>
                   )}
                 </button>
               );
             })}
-            {(() => {
-              const until = skillCooldowns.melee || 0;
-              const onCooldown = until > skillCooldownNow;
-              return (
-                <button
-                  type="button"
-                  disabled={onCooldown}
-                  onClick={() => handlePulse('melee')}
-                  style={styles.skillButton(onCooldown)}
-                  title="Aturde 1.2s al Paciente más cercano a menos de 2.5."
-                >
-                  <span style={styles.skillKey}>G</span>
-                  <SkillIcon id="golpe_aturdidor" />
-                  <span style={styles.cardButtonName}>Golpe Aturdidor</span>
-                  <span style={styles.keywordRow}><KeywordChip id="aturdir" /></span>
-                  {onCooldown && (
-                    <span style={styles.cardButtonCooldown}>{Math.ceil((until - skillCooldownNow) / 1000)}s</span>
-                  )}
-                </button>
-              );
-            })()}
           </div>
         )}
 
@@ -1399,20 +1376,35 @@ const styles = {
     gap: 8,
   },
   skillButton: (onCooldown) => ({
+    position: 'relative',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: 3,
-    width: 128,
-    padding: '8px 8px',
-    borderRadius: 8,
+    justifyContent: 'center',
+    gap: 2,
+    width: 64,
+    height: 72,
+    padding: 0,
+    borderRadius: 10,
     border: '1px solid #2a2d3d',
     background: onCooldown ? 'rgba(27, 29, 41, 0.6)' : 'rgba(95, 213, 140, 0.15)',
     color: onCooldown ? '#8a8da3' : '#5fd58c',
     cursor: onCooldown ? 'default' : 'pointer',
-    fontSize: 12,
+    overflow: 'hidden',
   }),
-  skillKey: { fontSize: 10, color: '#8a8da3', fontWeight: 700 },
+  skillKey: { fontSize: 14, fontWeight: 800, lineHeight: 1, color: '#e8e9f0' },
+  skillCooldownOverlay: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(15, 17, 26, 0.72)',
+    fontSize: 22,
+    fontWeight: 700,
+    fontVariantNumeric: 'tabular-nums',
+    color: '#e8e9f0',
+  },
   keywordRow: { display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' },
   pulseHud: {
     position: 'absolute',
