@@ -603,6 +603,13 @@ export default function LobbyPage() {
           )}
 
           {phase === 'lobby' && isHost && (
+            <div style={styles.botRow}>
+              <button type="button" style={styles.button(players.length >= 10)} disabled={players.length >= 10} onClick={() => connRef.current?.send('add_bot', {})}>+ Bot</button>
+              <button type="button" style={styles.button(!players.some((p) => p.isBot))} disabled={!players.some((p) => p.isBot)} onClick={() => connRef.current?.send('remove_bot', {})}>− Bot</button>
+            </div>
+          )}
+
+          {phase === 'lobby' && isHost && (
             <button
               style={styles.button(players.length < 2)}
               onClick={handleStart}
@@ -1338,6 +1345,7 @@ const styles = {
     cursor: onCooldown ? 'default' : 'pointer',
     overflow: 'hidden',
   }),
+  botRow: { display: 'flex', gap: 8 },
   helpButton: {
     position: 'absolute',
     top: 16,

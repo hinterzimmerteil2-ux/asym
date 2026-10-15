@@ -153,6 +153,20 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.ADD_BOT: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.addBot(playerId);
+        break;
+      }
+
+      case MessageType.REMOVE_BOT: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.removeBot(playerId);
+        break;
+      }
+
       case MessageType.SET_MAP: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;

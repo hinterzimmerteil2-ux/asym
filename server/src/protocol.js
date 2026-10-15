@@ -19,6 +19,8 @@ const MessageType = {
   SET_ASYM_ROLE: 'set_asym_role',       // client(host) -> server: { targetPlayerId } — asigna quién es el Curador
   SELECT_CHARACTER: 'select_character', // client(Curador) -> server: { characterId }
   CHARACTER_LIST: 'character_list',     // server -> client (al unirse): { characters[] }
+  ADD_BOT: 'add_bot',
+  REMOVE_BOT: 'remove_bot',
   SET_MAP: 'set_map',                   // client(host) -> server: { mapId } — elige el mapa para la próxima partida
 
   // --- Nombre de jugador ---

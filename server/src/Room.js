@@ -115,6 +115,65 @@ class Room {
     };
   }
 
+  addBot(requesterId) {
+    if (this.phase !== 'lobby' || requesterId !== this.hostId || this.isFull()) return;
+    this.botCounter = (this.botCounter || 0) + 1;
+    const botId = `bot-${this.botCounter}`;
+    this.addPlayer(botId, { readyState: 0, send() {} }, `Bot ${this.botCounter}`);
+    this.players.get(botId).isBot = true;
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
+  }
+
+  removeBot(requesterId) {
+    if (this.phase !== 'lobby' || requesterId !== this.hostId) return;
+    const botIds = [...this.players.entries()].filter(([, p]) => p.isBot).map(([id]) => id);
+    if (!botIds.length) return;
+    this.removePlayer(botIds[botIds.length - 1]);
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
+  }
+
+  botThink(now) {
+    for (const [botId, player] of this.players) {
+      if (!player.isBot || player.isAsymRole) continue;
+      const entity = this.gameState.entities[botId];
+      const patient = this.gameState.patients[botId];
+      if (!entity || !patient || patient.status !== 'alive') {
+        if (entity) { entity.input.moveX = 0; entity.input.moveZ = 0; }
+        continue;
+      }
+      entity.hand.forEach((slot, index) => {
+        if (!slot.chosen && now > (player.nextBotPick || 0)) {
+          const option = slot.options[Math.floor(Math.random() * slot.options.length)];
+          this.chooseCard(botId, index, option);
+          player.nextBotPick = now + 800;
+        }
+      });
+      let best = null;
+      let bestDist = Infinity;
+      for (const [objectId, pos] of Object.entries(this.gameState.selfDamageObjectPositions)) {
+        const d = distanceBetween(entity, pos);
+        if (d < bestDist) { bestDist = d; best = { objectId, pos }; }
+      }
+      if (!best) continue;
+      if (bestDist <= INTERACTION_RADIUS - 0.3) {
+        entity.input.moveX = 0;
+        entity.input.moveZ = 0;
+        if (now > (player.nextBotAct || 0)) {
+          this.applySelfDamage(botId, best.objectId);
+          player.nextBotAct = now + 700;
+        }
+      } else {
+        entity.input.moveX = (best.pos.x - entity.x) / bestDist;
+        entity.input.moveZ = (best.pos.z - entity.z) / bestDist;
+      }
+      if (now > (player.nextBotCard || 0)) {
+        player.nextBotCard = now + 3000 + Math.random() * 4000;
+        const slotIndex = Math.floor(Math.random() * entity.hand.length);
+        if (entity.hand[slotIndex]?.chosen) this.useCard(botId, slotIndex);
+      }
+    }
+  }
+
   isFull() {
     return this.players.size >= MAX_PLAYERS;
   }
@@ -181,6 +240,14 @@ class Room {
       nextPlayer.isAsymRole = true;
       if (!nextPlayer.characterId) nextPlayer.characterId = Characters.DEFAULT_CHARACTER_ID;
     }
+    const humansLeft = [...this.players.values()].some((p) => !p.isBot);
+    if (!humansLeft) {
+      for (const id of [...this.players.keys()]) {
+        this.players.delete(id);
+        delete this.gameState.entities[id];
+        delete this.gameState.patients[id];
+      }
+    }
     if (this.isEmpty()) this.stopTickLoop();
   }
 
@@ -191,6 +258,7 @@ class Room {
         id,
         name: p.name,
         isAsymRole: p.isAsymRole,
+        isBot: Boolean(p.isBot),
         characterId: p.isAsymRole ? (p.characterId || Characters.DEFAULT_CHARACTER_ID) : null,
         character: characterData
           ? { displayName: characterData.displayName, weaponName: characterData.weaponName, skills: Characters.publicSkills(characterData) }
@@ -416,6 +484,7 @@ class Room {
 
     this.stepPhysics(dt);
     if (this.phase === 'action' && !this.gameState.gameOver) {
+      this.botThink(now);
       this.autoPickExpiredDrafts(now);
       this.tickZones(now, dt);
       if (now - this.lastRelocateAt >= RELOCATE_INTERVAL_MS) this.relocateSelfDamageObjects(now);
