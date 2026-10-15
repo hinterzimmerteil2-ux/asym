@@ -905,6 +905,78 @@ class Room {
         });
         break;
       }
+      case 'aji_picante':
+        this.damagePatient(playerId, 20, 30);
+        entity.flojera = FLOJERA_MAX;
+        entity.flojeraLockedUntil = 0;
+        this.checkGameEndConditions();
+        break;
+      case 'sopa_hirviendo':
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const otherEntity = this.gameState.entities[otherId];
+          if (otherEntity && distanceBetween(entity, otherEntity) <= 5) {
+            otherEntity.slowedUntil = now + card.durationMs;
+            this.adjustCuratorHp(-card.curatorHpLoss);
+          }
+        }
+        this.checkGameEndConditions();
+        break;
+      case 'pastilla_vencida':
+        this.damagePatient(playerId, 30, 30);
+        entity.cureReductionUntil = now + card.durationMs;
+        this.checkGameEndConditions();
+        break;
+      case 'receta_falsa':
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const otherEntity = this.gameState.entities[otherId];
+          if (!otherEntity || distanceBetween(entity, otherEntity) > 8) continue;
+          for (const key of [0, 1, 2, 3, 'melee']) {
+            otherEntity.skillCooldowns[key] = Math.max(otherEntity.skillCooldowns[key] || 0, now) + 6000;
+          }
+        }
+        break;
+      case 'canon_humano': {
+        const length = Math.sqrt(entity.input.moveX ** 2 + entity.input.moveZ ** 2);
+        if (length > 0) {
+          const area = this.getCurrentArea();
+          entity.x = Math.max(-area.halfSize, Math.min(area.halfSize, entity.x + (entity.input.moveX / length) * 9));
+          entity.z = Math.max(-area.halfSize, Math.min(area.halfSize, entity.z + (entity.input.moveZ / length) * 9));
+        }
+        this.damagePatient(playerId, 20, 20);
+        this.checkGameEndConditions();
+        break;
+      }
+      case 'risa_enlatada':
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const otherEntity = this.gameState.entities[otherId];
+          if (otherEntity && distanceBetween(entity, otherEntity) <= 8) {
+            otherEntity.flojera = Math.max(0, otherEntity.flojera - 60);
+          }
+        }
+        break;
+      case 'martillazo':
+        this.damagePatient(playerId, 20, 20);
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const otherEntity = this.gameState.entities[otherId];
+          if (otherEntity && distanceBetween(entity, otherEntity) <= 3) {
+            this.stun(otherId, otherEntity, card.durationMs, now, 0);
+          }
+        }
+        this.checkGameEndConditions();
+        break;
+      case 'bolsa_cemento':
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const otherEntity = this.gameState.entities[otherId];
+          if (otherEntity && distanceBetween(entity, otherEntity) <= 6) {
+            otherEntity.slowedUntil = now + card.durationMs;
+          }
+        }
+        break;
       case 'tajo_carmesi':
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
