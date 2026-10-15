@@ -46,7 +46,7 @@ const INTERACTION_RADIUS = 2.5;
 // de perseguir a un Paciente aislado.
 const FAST_MULTIPLIER = 1.4;
 const SPRINT_CARD_MULTIPLIER = 1.5;
-const ROLL_DISTANCE = 4;
+const ROLL_DISTANCE = 7;
 const SEGUNDO_ALIENTO_AMOUNT = 60;
 const JERINGA_ROTA_CURE_FACTOR = 0.4;
 const HUMO_RADIUS = 7;
@@ -63,7 +63,6 @@ const CHICHARRON_DAMAGE = 25;
 const CHICHARRON_FLOOR = 40;
 const GOYSLOP_DAMAGE = 45;
 const GOYSLOP_FLOOR = 15;
-const GOYSLOP_MAX_HP_LOSS = 30;
 const MAX_HP_MINIMUM = 60;
 const RED_MIST_RADIUS = 6;
 const RED_MIST_HEAL = 35;
@@ -72,11 +71,11 @@ const TRAP_ARM_MS = 800;
 const TRAP_LIFETIME_MS = 30000;
 const RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC = 18;
 
-const CANON_DISTANCE = 9;
-const CANON_PUSH = 6;
-const CANON_HIT_WIDTH = 1.5;
-const CANON_FLOJERA_COST = 45;
+const ROLL_PUSH = 6;
+const ROLL_HIT_WIDTH = 1.5;
+const ROLL_FLOJERA_COST = 25;
 const FLOJERA_MAX = 100;
+const FLOJERA_MAX_MINIMUM = 40;
 const FLOJERA_DRAIN_PER_SEC = 20;
 const FLOJERA_REGEN_PER_SEC = 12;
 const FLOJERA_SLOW_MULTIPLIER = 1;
@@ -251,6 +250,7 @@ class Room {
       cureBoostUntil: 0,
       cureBoostFactor: 1,
       flojera: FLOJERA_MAX,
+      flojeraMax: FLOJERA_MAX,
       flojeraLockedUntil: 0,
       hand: [],
       draftEndsAt: 0,
@@ -489,6 +489,8 @@ class Room {
       entity.cureBoostUntil = 0;
       entity.cureBoostFactor = 1;
       entity.flojera = FLOJERA_MAX;
+      entity.flojeraMax = FLOJERA_MAX;
+      entity.sprintFactor = SPRINT_CARD_MULTIPLIER;
       entity.flojeraLockedUntil = 0;
       entity.cardCooldowns = {};
       entity.sprintUntil = 0;
@@ -537,7 +539,7 @@ class Room {
     for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
       flojeraByPlayerId[entityPlayerId] = {
         value: entity.flojera,
-        max: FLOJERA_MAX,
+        max: entity.flojeraMax,
         locked: entity.flojeraLockedUntil > now,
         sprinting: entity.sprintUntil > now,
         stunned: entity.stunnedUntil > now,
@@ -566,7 +568,8 @@ class Room {
     for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
       const { input } = entity;
       const inAction = this.phase === 'action';
-      const stunned = entity.stunnedUntil > now;
+      const resolved = this.gameState.patients[entityPlayerId] && this.gameState.patients[entityPlayerId].status !== 'alive';
+      const stunned = entity.stunnedUntil > now || Boolean(resolved);
       const isMoving = !stunned && (input.moveX !== 0 || input.moveZ !== 0);
       const sprinting = entity.sprintUntil > now;
       const locked = entity.flojeraLockedUntil > now;
@@ -574,7 +577,7 @@ class Room {
 
       let speedMultiplier = FAST_MULTIPLIER;
       if (sprinting) {
-        speedMultiplier = FAST_MULTIPLIER * SPRINT_CARD_MULTIPLIER;
+        speedMultiplier = FAST_MULTIPLIER * (entity.sprintFactor || SPRINT_CARD_MULTIPLIER);
       } else if (wantsSlow) {
         speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
       }
@@ -584,7 +587,7 @@ class Room {
       if (inAction) {
         if (sprinting || wantsSlow || !isMoving) {
           if (!sprinting) {
-            entity.flojera = Math.min(FLOJERA_MAX, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);
+            entity.flojera = Math.min(entity.flojeraMax, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);
           }
         } else if (entity.noDrainUntil <= now) {
           entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
@@ -883,6 +886,7 @@ class Room {
     const player = this.players.get(playerId);
     const entity = this.gameState.entities[playerId];
     if (!player || player.isAsymRole || !entity) return;
+    if (this.gameState.patients[playerId]?.status !== 'alive') return;
 
     const slot = entity.hand[slotIndex];
     if (!slot) {
@@ -909,6 +913,7 @@ class Room {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Solo los Pacientes pueden usar cartas' });
       return;
     }
+    if (this.gameState.patients[playerId]?.status !== 'alive') return;
 
     const entity = this.gameState.entities[playerId];
     if (!entity) return;
@@ -953,19 +958,39 @@ class Room {
   applyCardEffect(playerId, entity, card, now) {
     switch (card.id) {
       case 'sprint_panico':
+      case 'sprint_desbocado':
         entity.sprintUntil = now + card.durationMs;
+        entity.sprintFactor = card.id === 'sprint_desbocado' ? 2 : SPRINT_CARD_MULTIPLIER;
         break;
       case 'segundo_aliento':
-        entity.flojera = Math.min(FLOJERA_MAX, entity.flojera + SEGUNDO_ALIENTO_AMOUNT);
+        entity.flojera = Math.min(entity.flojeraMax, entity.flojera + SEGUNDO_ALIENTO_AMOUNT);
         entity.flojeraLockedUntil = 0;
         break;
       case 'rodar': {
         const length = Math.sqrt(entity.input.moveX ** 2 + entity.input.moveZ ** 2);
         if (length > 0) {
           const area = this.getCurrentArea();
-          entity.x = Math.max(-area.halfSize, Math.min(area.halfSize, entity.x + (entity.input.moveX / length) * ROLL_DISTANCE));
-          entity.z = Math.max(-area.halfSize, Math.min(area.halfSize, entity.z + (entity.input.moveZ / length) * ROLL_DISTANCE));
+          const dirX = entity.input.moveX / length;
+          const dirZ = entity.input.moveZ / length;
+          const startX = entity.x;
+          const startZ = entity.z;
+          const clamp = (v) => Math.max(-area.halfSize, Math.min(area.halfSize, v));
+          entity.x = clamp(startX + dirX * ROLL_DISTANCE);
+          entity.z = clamp(startZ + dirZ * ROLL_DISTANCE);
+          for (const [otherId, other] of this.players) {
+            if (!other.isAsymRole) continue;
+            const otherEntity = this.gameState.entities[otherId];
+            if (!otherEntity) continue;
+            const along = (otherEntity.x - startX) * dirX + (otherEntity.z - startZ) * dirZ;
+            if (along < 0 || along > ROLL_DISTANCE + 1) continue;
+            const sideways = Math.abs((otherEntity.x - startX) * dirZ - (otherEntity.z - startZ) * dirX);
+            if (sideways > ROLL_HIT_WIDTH) continue;
+            otherEntity.x = clamp(otherEntity.x + dirX * ROLL_PUSH);
+            otherEntity.z = clamp(otherEntity.z + dirZ * ROLL_PUSH);
+          }
         }
+        entity.flojera = Math.max(0, entity.flojera - ROLL_FLOJERA_COST);
+        if (entity.flojera === 0) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
         break;
       }
       case 'jeringa_rota':
@@ -984,16 +1009,10 @@ class Room {
         this.damagePatient(playerId, CHICHARRON_DAMAGE, CHICHARRON_FLOOR);
         this.checkGameEndConditions();
         break;
-      case 'goyslop': {
-        const patient = this.gameState.patients[playerId];
-        if (patient) {
-          patient.maxHp = Math.max(MAX_HP_MINIMUM, patient.maxHp - GOYSLOP_MAX_HP_LOSS);
-          patient.hp = Math.min(patient.hp, patient.maxHp - 1);
-        }
+      case 'goyslop':
         this.damagePatient(playerId, GOYSLOP_DAMAGE, GOYSLOP_FLOOR);
         this.checkGameEndConditions();
         break;
-      }
       case 'cascara_platano':
       case 'platano_podrido':
         this.addZone({
@@ -1030,28 +1049,6 @@ class Room {
         });
         break;
       }
-      case 'aji_picante':
-        this.damagePatient(playerId, 20, 30);
-        entity.flojera = FLOJERA_MAX;
-        entity.flojeraLockedUntil = 0;
-        this.checkGameEndConditions();
-        break;
-      case 'sopa_hirviendo':
-        for (const [otherId, other] of this.players) {
-          if (!other.isAsymRole) continue;
-          const otherEntity = this.gameState.entities[otherId];
-          if (otherEntity && distanceBetween(entity, otherEntity) <= 5) {
-            otherEntity.slowedUntil = now + card.durationMs;
-            this.adjustCuratorHp(-card.curatorHpLoss);
-          }
-        }
-        this.checkGameEndConditions();
-        break;
-      case 'pastilla_vencida':
-        this.damagePatient(playerId, 30, 30);
-        entity.cureReductionUntil = now + card.durationMs;
-        this.checkGameEndConditions();
-        break;
       case 'receta_falsa':
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
@@ -1062,33 +1059,6 @@ class Room {
           }
         }
         break;
-      case 'canon_humano': {
-        const length = Math.sqrt(entity.input.moveX ** 2 + entity.input.moveZ ** 2);
-        if (length > 0) {
-          const area = this.getCurrentArea();
-          const dirX = entity.input.moveX / length;
-          const dirZ = entity.input.moveZ / length;
-          const startX = entity.x;
-          const startZ = entity.z;
-          const clamp = (v) => Math.max(-area.halfSize, Math.min(area.halfSize, v));
-          entity.x = clamp(startX + dirX * CANON_DISTANCE);
-          entity.z = clamp(startZ + dirZ * CANON_DISTANCE);
-          for (const [otherId, other] of this.players) {
-            if (!other.isAsymRole) continue;
-            const otherEntity = this.gameState.entities[otherId];
-            if (!otherEntity) continue;
-            const along = (otherEntity.x - startX) * dirX + (otherEntity.z - startZ) * dirZ;
-            if (along < 0 || along > CANON_DISTANCE + 1) continue;
-            const sideways = Math.abs((otherEntity.x - startX) * dirZ - (otherEntity.z - startZ) * dirX);
-            if (sideways > CANON_HIT_WIDTH) continue;
-            otherEntity.x = clamp(otherEntity.x + dirX * CANON_PUSH);
-            otherEntity.z = clamp(otherEntity.z + dirZ * CANON_PUSH);
-          }
-        }
-        entity.flojera = Math.max(0, entity.flojera - CANON_FLOJERA_COST);
-        if (entity.flojera === 0) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
-        break;
-      }
       case 'risa_enlatada':
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
@@ -1098,33 +1068,13 @@ class Room {
           }
         }
         break;
-      case 'martillazo':
-        this.damagePatient(playerId, 20, 20);
-        for (const [otherId, other] of this.players) {
-          if (!other.isAsymRole) continue;
-          const otherEntity = this.gameState.entities[otherId];
-          if (otherEntity && distanceBetween(entity, otherEntity) <= 3) {
-            this.stun(otherId, otherEntity, card.durationMs, now, 0);
-          }
-        }
-        this.checkGameEndConditions();
-        break;
-      case 'bolsa_cemento':
-        for (const [otherId, other] of this.players) {
-          if (!other.isAsymRole) continue;
-          const otherEntity = this.gameState.entities[otherId];
-          if (otherEntity && distanceBetween(entity, otherEntity) <= 6) {
-            otherEntity.slowedUntil = now + card.durationMs;
-          }
-        }
-        break;
       case 'grito_animo': {
         const allies = this.alliesNear(playerId, entity, 8);
         const targets = allies.length ? allies : [playerId];
         for (const id of targets) {
           const target = this.gameState.entities[id];
           target.noDrainUntil = now + (allies.length ? 3000 : 5000);
-          target.flojera = Math.min(FLOJERA_MAX, target.flojera + (allies.length ? 30 : 40));
+          target.flojera = Math.min(target.flojeraMax, target.flojera + (allies.length ? 30 : 40));
           target.flojeraLockedUntil = 0;
         }
         break;
@@ -1139,6 +1089,36 @@ class Room {
         this.checkGameEndConditions();
         break;
       }
+      case 'humo_toxico':
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const otherEntity = this.gameState.entities[otherId];
+          if (otherEntity && distanceBetween(entity, otherEntity) <= 9) {
+            otherEntity.slowedUntil = now + card.durationMs;
+            this.adjustCuratorHp(-card.curatorHpLoss);
+          }
+        }
+        break;
+      case 'sobredosis':
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const otherEntity = this.gameState.entities[otherId];
+          if (!otherEntity || distanceBetween(entity, otherEntity) > 8) continue;
+          for (const key of [0, 1, 2, 3, 'melee']) {
+            otherEntity.skillCooldowns[key] = Math.max(otherEntity.skillCooldowns[key] || 0, now) + 10000;
+          }
+        }
+        break;
+      case 'risa_macabra':
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const otherEntity = this.gameState.entities[otherId];
+          if (otherEntity && distanceBetween(entity, otherEntity) <= 8) {
+            otherEntity.flojera = 0;
+            this.stun(otherId, otherEntity, card.durationMs, now, 0);
+          }
+        }
+        break;
       case 'tajo_carmesi':
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
@@ -1168,9 +1148,6 @@ class Room {
           }
         }
         break;
-      case 'adrenalina':
-        entity.noDrainUntil = now + card.durationMs;
-        break;
       case 'regalo_envenenado':
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
@@ -1183,6 +1160,20 @@ class Room {
         break;
       default:
         break;
+    }
+    this.applyMaxCosts(playerId, entity, card);
+  }
+
+  applyMaxCosts(playerId, entity, card) {
+    const patient = this.gameState.patients[playerId];
+    if (patient && (card.maxHpSet || card.maxHpDelta)) {
+      const target = card.maxHpSet || patient.maxHp + card.maxHpDelta;
+      patient.maxHp = Math.max(MAX_HP_MINIMUM, target);
+      patient.hp = Math.min(patient.hp, patient.maxHp - 1);
+    }
+    if (card.flojeraMaxDelta) {
+      entity.flojeraMax = Math.max(FLOJERA_MAX_MINIMUM, entity.flojeraMax + card.flojeraMaxDelta);
+      entity.flojera = Math.min(entity.flojera, entity.flojeraMax);
     }
   }
 

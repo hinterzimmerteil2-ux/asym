@@ -636,6 +636,14 @@ export default function LobbyPage() {
           )}
         </div>
 
+        {phase === 'action' && !isAsymRole && myPlayerId && patients[myPlayerId] && patients[myPlayerId].status !== 'alive' && (
+          <div style={styles.resolvedBanner(patients[myPlayerId].status === 'self_won')}>
+            {patients[myPlayerId].status === 'self_won'
+              ? '¡Ganaste! Lograste escapar'
+              : 'Perdiste: te curaron del todo'}
+          </div>
+        )}
+
         {phase === 'action' && !isAsymRole && myPlayerId && patients[myPlayerId] && (
           <div style={styles.hpBarContainer}>
             <div style={styles.hpBarLabel}>
@@ -1297,6 +1305,20 @@ const styles = {
     border: '1px solid #2a2d3d',
     backdropFilter: 'blur(4px)',
   },
+  resolvedBanner: (won) => ({
+    position: 'absolute',
+    top: 110,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    padding: '10px 22px',
+    borderRadius: 10,
+    fontSize: 18,
+    fontWeight: 700,
+    textAlign: 'center',
+    color: won ? '#5fd58c' : '#e0555f',
+    background: 'rgba(18, 19, 26, 0.92)',
+    border: `1px solid ${won ? '#5fd58c' : '#e0555f'}`,
+  }),
   hpBarLabel: { fontSize: 12, color: '#8a8da3', marginBottom: 6, textAlign: 'center' },
   curatorHpBar: {
     position: 'absolute',

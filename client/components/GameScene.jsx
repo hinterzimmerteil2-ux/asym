@@ -266,6 +266,10 @@ const EFFECT_STYLES = {
   card_bolsa_cemento: { color: '#8a8da3', mode: 'burst', duration: 900, radius: 6 },
   card_grito_animo: { color: '#54d1f2', mode: 'ring', duration: 900, radius: 8 },
   card_racion_compartida: { color: '#f2a154', mode: 'ring', duration: 900, radius: 8 },
+  card_sprint_desbocado: { color: '#e0555f', mode: 'rise', duration: 800, radius: 1 },
+  card_humo_toxico: { color: '#6b8f3a', mode: 'burst', duration: 1000, radius: 9 },
+  card_sobredosis: { color: '#b07cf2', mode: 'ring', duration: 900, radius: 8 },
+  card_risa_macabra: { color: '#b07cf2', mode: 'ring', duration: 900, radius: 8 },
   card_golpe_doble: { color: '#f2a154', mode: 'rise', duration: 800, radius: 0.9 },
 };
 
@@ -328,6 +332,10 @@ const FX = {
   card_regalo_envenenado: { shape: 'leaf', color: '#b07cf2', count: 14, speed: 3, up: 3, gravity: 3, prop: 'gift' },
   card_grito_animo: { shape: 'spark', color: '#54d1f2', count: 14, speed: 3, up: 3, gravity: 2, prop: 'horn' },
   card_racion_compartida: { shape: 'crumb', color: '#f2a154', count: 14, speed: 3, up: 3, gravity: 9, prop: 'bowl' },
+  card_sprint_desbocado: { shape: 'smoke', color: '#e0555f', count: 10, speed: 2, up: 0.8, gravity: 0, prop: 'boot' },
+  card_humo_toxico: { shape: 'smoke', color: '#6b8f3a', count: 16, speed: 3, up: 1, gravity: 0, prop: 'smokepot' },
+  card_sobredosis: { shape: 'crumb', color: '#b07cf2', count: 12, speed: 3, up: 3, gravity: 9, prop: 'pill' },
+  card_risa_macabra: { shape: 'spark', color: '#b07cf2', count: 14, speed: 3, up: 3, gravity: 2, prop: 'laugh' },
   card_golpe_doble: { shape: 'spark', color: '#f2a154', count: 8, speed: 2, up: 3, gravity: 3, prop: 'star' },
   card_pastilla_vencida: { shape: 'crumb', color: '#f1f1f6', count: 10, speed: 2.5, up: 3, gravity: 9, prop: 'pill' },
   card_receta_falsa: { shape: 'leaf', color: '#f1f1f6', count: 12, speed: 3, up: 3, gravity: 2, prop: 'paper' },
