@@ -161,14 +161,74 @@ function CollisionObjectMesh({ type, radius }) {
 
 const ZONE_COLORS = { rimac: '#6b8f3a', puddle: '#5fd58c', trap: '#f2d154' };
 
+function BananaMesh({ color, spotted }) {
+  return (
+    <group scale={[2.4, 2.4, 2.4]}>
+      {[-0.22, 0, 0.22].map((x, i) => (
+        <mesh key={x} position={[x, 0.1 + (i === 1 ? 0.05 : 0), 0]} rotation={[Math.PI / 2, 0, (i - 1) * 0.5 + 1.57]}>
+          <capsuleGeometry args={[0.07, 0.28, 4, 8]} />
+          <meshStandardMaterial color={color} />
+        </mesh>
+      ))}
+      {spotted && [-0.15, 0.1, 0.25].map((x) => (
+        <mesh key={x} position={[x, 0.2, 0.05]}><sphereGeometry args={[0.03, 6, 4]} /><meshBasicMaterial color="#2a2d3d" /></mesh>
+      ))}
+    </group>
+  );
+}
+
+function PuddleRipples({ radius, color }) {
+  const refs = useRef([]);
+  useFrame(() => {
+    const t = (Date.now() % 1800) / 1800;
+    refs.current.forEach((mesh, i) => {
+      if (!mesh) return;
+      const phase = (t + i / 3) % 1;
+      mesh.scale.setScalar(Math.max(0.05, phase * radius));
+      mesh.material.opacity = (1 - phase) * 0.6;
+    });
+  });
+  return (
+    <group position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      {[0, 1, 2].map((i) => (
+        <mesh key={i} ref={(el) => { refs.current[i] = el; }}>
+          <ringGeometry args={[0.92, 1, 40]} />
+          <meshBasicMaterial color={color} transparent depthWrite={false} side={2} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function BrokenBottle({ color }) {
+  return (
+    <group scale={[1.6, 1.6, 1.6]}>
+      <mesh position={[0, 0.12, 0]} rotation={[0, 0, 1.2]}><cylinderGeometry args={[0.16, 0.16, 0.45, 10, 1, true]} /><meshBasicMaterial color="#9fe6d0" transparent opacity={0.7} side={2} /></mesh>
+      <mesh position={[0.45, 0.1, 0.1]} rotation={[0, 0, 1.4]}><cylinderGeometry args={[0.07, 0.1, 0.3, 8]} /><meshBasicMaterial color="#9fe6d0" transparent opacity={0.8} /></mesh>
+      <mesh position={[-0.1, 0.03, 0.4]}><tetrahedronGeometry args={[0.1, 0]} /><meshBasicMaterial color={color} /></mesh>
+    </group>
+  );
+}
+
 function ZoneDisc({ zone }) {
   const color = ZONE_COLORS[zone.kind] || '#ffffff';
-  const opacity = zone.kind === 'trap' ? (zone.armed ? 0.55 : 0.25) : 0.35;
+  const isTrap = zone.kind === 'trap';
+  const bananaColor = zone.cardId === 'platano_podrido' ? '#7a6a2a' : '#f2d154';
   return (
-    <mesh position={[zone.x, 0.04, zone.z]} rotation={[-Math.PI / 2, 0, 0]}>
-      <circleGeometry args={[zone.radius, 32]} />
-      <meshBasicMaterial color={color} transparent opacity={opacity} />
-    </mesh>
+    <group position={[zone.x, 0, zone.z]}>
+      <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        {isTrap ? <ringGeometry args={[zone.radius - 0.08, zone.radius, 32]} /> : <circleGeometry args={[zone.radius, 32]} />}
+        <meshBasicMaterial color={color} transparent opacity={isTrap ? (zone.armed ? 0.5 : 0.2) : 0.3} />
+      </mesh>
+      {isTrap && <BananaMesh color={bananaColor} spotted={zone.cardId === 'platano_podrido'} />}
+      {zone.kind === 'rimac' && (
+        <>
+          <PuddleRipples radius={zone.radius} color={zone.cardId === 'rimac_sin_filtrar' ? '#5f7f20' : '#8fb050'} />
+          <BrokenBottle color={color} />
+        </>
+      )}
+      {zone.kind === 'puddle' && <PuddleRipples radius={zone.radius} color="#5fd58c" />}
+    </group>
   );
 }
 
@@ -204,6 +264,8 @@ const EFFECT_STYLES = {
   card_risa_enlatada: { color: '#f2d154', mode: 'ring', duration: 900, radius: 8 },
   card_martillazo: { color: '#8a8da3', mode: 'burst', duration: 500, radius: 3 },
   card_bolsa_cemento: { color: '#8a8da3', mode: 'burst', duration: 900, radius: 6 },
+  card_grito_animo: { color: '#54d1f2', mode: 'ring', duration: 900, radius: 8 },
+  card_racion_compartida: { color: '#f2a154', mode: 'ring', duration: 900, radius: 8 },
   card_golpe_doble: { color: '#f2a154', mode: 'rise', duration: 800, radius: 0.9 },
 };
 
@@ -225,6 +287,8 @@ const SIMPLE_PROPS = {
   star: [['octahedronGeometry', [0.3, 0], [0, 0, 0], '#f2a154']],
   paper: [['boxGeometry', [0.4, 0.55, 0.03], [0, 0, 0], '#f1f1f6']],
   laugh: [['sphereGeometry', [0.28, 10, 8], [0, 0, 0], '#f2d154']],
+  horn: [['coneGeometry', [0.3, 0.6, 10], [0, 0, 0], '#f2d154'], ['sphereGeometry', [0.1, 8, 6], [0, 0.35, 0], '#54d1f2']],
+  bowl: [['cylinderGeometry', [0.35, 0.2, 0.25, 12], [0, 0, 0], '#dcdde8'], ['sphereGeometry', [0.12, 8, 6], [0, 0.18, 0], '#c98a3a']],
   can: [['cylinderGeometry', [0.2, 0.2, 0.4, 10], [0, 0, 0], '#c3c5d6']],
 };
 
@@ -262,6 +326,8 @@ const FX = {
   card_red_mist: { shape: 'drop', color: '#e0555f', count: 20, speed: 5, up: 3, gravity: 9, prop: 'blade' },
   card_tajo_carmesi: { shape: 'drop', color: '#e0555f', count: 10, speed: 4, up: 2, gravity: 9, prop: 'blade' },
   card_regalo_envenenado: { shape: 'leaf', color: '#b07cf2', count: 14, speed: 3, up: 3, gravity: 3, prop: 'gift' },
+  card_grito_animo: { shape: 'spark', color: '#54d1f2', count: 14, speed: 3, up: 3, gravity: 2, prop: 'horn' },
+  card_racion_compartida: { shape: 'crumb', color: '#f2a154', count: 14, speed: 3, up: 3, gravity: 9, prop: 'bowl' },
   card_golpe_doble: { shape: 'spark', color: '#f2a154', count: 8, speed: 2, up: 3, gravity: 3, prop: 'star' },
   card_pastilla_vencida: { shape: 'crumb', color: '#f1f1f6', count: 10, speed: 2.5, up: 3, gravity: 9, prop: 'pill' },
   card_receta_falsa: { shape: 'leaf', color: '#f1f1f6', count: 12, speed: 3, up: 3, gravity: 2, prop: 'paper' },

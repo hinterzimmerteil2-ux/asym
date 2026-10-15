@@ -353,6 +353,13 @@ export default function LobbyPage() {
     connRef.current?.send('join_room', { roomId: trimmedRoomId, token: sessionToken });
   }
 
+  function handleBotCount(target) {
+    const current = players.filter((pl) => pl.isBot).length;
+    const room = Math.min(target, current + (10 - players.length));
+    for (let i = current; i < room; i++) connRef.current?.send('add_bot', {});
+    for (let i = current; i > target; i--) connRef.current?.send('remove_bot', {});
+  }
+
   function handleStart() {
     connRef.current?.send('start_game', {});
   }
@@ -604,10 +611,17 @@ export default function LobbyPage() {
           )}
 
           {phase === 'lobby' && isHost && (
-            <div style={styles.botRow}>
-              <button type="button" style={styles.button(players.length >= 10)} disabled={players.length >= 10} onClick={() => connRef.current?.send('add_bot', {})}>+ Bot</button>
-              <button type="button" style={styles.button(!players.some((p) => p.isBot))} disabled={!players.some((p) => p.isBot)} onClick={() => connRef.current?.send('remove_bot', {})}>− Bot</button>
-            </div>
+            <label style={styles.botRow}>
+              <span>Bots: {players.filter((pl) => pl.isBot).length}</span>
+              <input
+                type="range"
+                min={0}
+                max={9}
+                value={players.filter((pl) => pl.isBot).length}
+                onChange={(e) => handleBotCount(Number(e.target.value))}
+                style={{ flex: 1 }}
+              />
+            </label>
           )}
 
           {phase === 'lobby' && isHost && (
@@ -1070,7 +1084,7 @@ const styles = {
     width: 110,
   },
   phaseLabel: { fontSize: 13, color: '#8a8da3', margin: 0 },
-  playerList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 },
+  playerList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '38vh', overflowY: 'auto' },
   playerItem: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -1346,7 +1360,7 @@ const styles = {
     cursor: onCooldown ? 'default' : 'pointer',
     overflow: 'hidden',
   }),
-  botRow: { display: 'flex', gap: 8 },
+  botRow: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#c3c5d6' },
   helpButton: {
     position: 'absolute',
     top: 16,

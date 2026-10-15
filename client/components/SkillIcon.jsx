@@ -41,6 +41,8 @@ const ICONS = {
   risa_enlatada: <><circle cx="16" cy="16" r="12" fill={Y} /><circle cx="11" cy="13" r="1.8" fill="#2a2d3d" /><circle cx="21" cy="13" r="1.8" fill="#2a2d3d" /><path d="M9 18 Q16 27 23 18 Z" fill="#2a2d3d" /></>,
   martillazo: <><rect x="4" y="5" width="16" height="9" rx="2" fill="#8a8da3" /><rect x="11" y="14" width="4" height="15" fill="#8f6a3a" /><path d="M23 10 L28 7 M24 15 L30 15 M23 20 L28 23" stroke={Y} strokeWidth="2" strokeLinecap="round" /></>,
   bolsa_cemento: <><path d="M7 8 H25 L27 27 H5 Z" fill="#8a8da3" /><path d="M7 8 Q16 2 25 8" fill="#6c6f84" /><text x="9" y="22" fontSize="8" fill="#2a2d3d" fontWeight="700">CEM</text></>,
+  grito_animo: <><path d="M5 20 L20 8 V26 Z" fill={Y} /><circle cx="25" cy="17" r="3" fill={B} /><path d="M26 8 L29 5 M28 13 L31 12" stroke={B} strokeWidth="2" strokeLinecap="round" /></>,
+  racion_compartida: <><path d="M4 16 H28 a12 12 0 0 1 -24 0 Z" fill={O} /><circle cx="16" cy="13" r="4" fill="#c98a3a" /></>,
   golpe_aturdidor: <><circle cx="16" cy="16" r="8" fill={Y} /><path d="M16 2 V7 M16 25 V30 M2 16 H7 M25 16 H30 M6 6 L10 10 M22 22 L26 26 M26 6 L22 10 M10 22 L6 26" stroke={Y} strokeWidth="2" strokeLinecap="round" /></>,
 };
 

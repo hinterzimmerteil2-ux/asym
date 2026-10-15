@@ -1,3 +1,5 @@
+const RARITY_WEIGHTS = { common: 50, uncommon: 25, rare: 10 };
+
 const CARDS = {
   sprint_panico: {
     id: 'sprint_panico',
@@ -5,7 +7,6 @@ const CARDS = {
     displayName: 'Sprint de Pánico',
     description: 'Velocidad x1.5 por 4s sin gastar Flojera.',
     rarity: 'common',
-    weight: 50,
     durationMs: 4000,
     cooldownMs: 18000,
   },
@@ -15,7 +16,6 @@ const CARDS = {
     displayName: 'Segundo Aliento',
     description: 'Recupera 60 de Flojera al instante.',
     rarity: 'common',
-    weight: 45,
     cooldownMs: 25000,
   },
   rodar: {
@@ -24,7 +24,6 @@ const CARDS = {
     displayName: 'Rodar',
     description: 'Dash corto en la dirección en que te mueves.',
     rarity: 'uncommon',
-    weight: 25,
     cooldownMs: 12000,
   },
   jeringa_rota: {
@@ -33,7 +32,6 @@ const CARDS = {
     displayName: 'Jeringa Rota',
     description: 'Por 6s recibes 60% menos curación.',
     rarity: 'uncommon',
-    weight: 22,
     durationMs: 6000,
     cooldownMs: 24000,
   },
@@ -43,7 +41,6 @@ const CARDS = {
     displayName: 'Humo de Yodo',
     description: 'El Curador cercano (radio 7) va 50% más lento por 4s.',
     rarity: 'rare',
-    weight: 10,
     durationMs: 4000,
     cooldownMs: 30000,
   },
@@ -54,7 +51,6 @@ const CARDS = {
     description: 'Aturde 1.5s al Curador a menos de 3 de ti y le quita 25 HP.',
     curatorHpLoss: 25,
     rarity: 'rare',
-    weight: 9,
     durationMs: 1500,
     cooldownMs: 28000,
   },
@@ -64,7 +60,6 @@ const CARDS = {
     displayName: 'Adrenalina',
     description: 'Correr no gasta Flojera por 6s.',
     rarity: 'uncommon',
-    weight: 22,
     durationMs: 6000,
     cooldownMs: 22000,
   },
@@ -75,7 +70,6 @@ const CARDS = {
     displayName: 'Chicharrón',
     description: 'Comes: pierdes 25 de HP, hasta un mínimo de 40.',
     rarity: 'common',
-    weight: 34,
     cooldownMs: 14000,
   },
   goyslop: {
@@ -86,7 +80,6 @@ const CARDS = {
     displayName: 'Goyslop',
     description: 'Pierdes 45 de HP, hasta un mínimo de 15, pero tu HP máximo baja 30.',
     rarity: 'rare',
-    weight: 7,
     cooldownMs: 20000,
   },
   cascara_platano: {
@@ -96,7 +89,6 @@ const CARDS = {
     displayName: 'Cáscara de Plátano',
     description: 'Dejas una trampa: aturde 2s al primer Curador que la pise.',
     rarity: 'uncommon',
-    weight: 20,
     cooldownMs: 22000,
   },
   platano_podrido: {
@@ -108,7 +100,6 @@ const CARDS = {
     description: 'Trampa que aturde 3.5s y quita 35 HP al Curador, pero también te aturde a ti si la pisas.',
     curatorHpLoss: 35,
     rarity: 'rare',
-    weight: 7,
     cooldownMs: 22000,
   },
   agua_rimac: {
@@ -118,7 +109,6 @@ const CARDS = {
     displayName: 'Agua del Río Rímac',
     description: 'Zona 5s que daña a quien esté dentro. Si sales antes, recibes menos. Al Curador le quita Flojera.',
     rarity: 'uncommon',
-    weight: 20,
     cooldownMs: 26000,
   },
   rimac_sin_filtrar: {
@@ -129,7 +119,6 @@ const CARDS = {
     displayName: 'Rímac sin Filtrar',
     description: 'Zona grande y más dañina 6s, pero deja un charco que CURA a quien lo pise.',
     rarity: 'rare',
-    weight: 7,
     cooldownMs: 30000,
   },
   red_mist: {
@@ -142,7 +131,6 @@ const CARDS = {
     description: 'Aturde 3s al Curador a menos de 6 y le quita 40 HP, pero TE CURA 35 de HP.',
     curatorHpLoss: 40,
     rarity: 'rare',
-    weight: 12,
     durationMs: 3000,
     cooldownMs: 30000,
   },
@@ -153,7 +141,6 @@ const CARDS = {
     displayName: 'Tajo Carmesí',
     description: 'Aturde 1.8s al Curador a menos de 3.5. Sin efectos secundarios.',
     rarity: 'uncommon',
-    weight: 22,
     durationMs: 1800,
     cooldownMs: 24000,
   },
@@ -164,7 +151,6 @@ const CARDS = {
     displayName: 'Ají Picante',
     description: 'Pierdes 20 de HP, hasta un mínimo de 30, y recuperas toda la Flojera.',
     rarity: 'common',
-    weight: 30,
     cooldownMs: 20000,
   },
   sopa_hirviendo: {
@@ -175,7 +161,6 @@ const CARDS = {
     description: 'El Curador a menos de 5 va 50% más lento por 3s y pierde 15 HP.',
     curatorHpLoss: 15,
     rarity: 'uncommon',
-    weight: 20,
     durationMs: 3000,
     cooldownMs: 24000,
   },
@@ -186,7 +171,6 @@ const CARDS = {
     displayName: 'Pastilla Vencida',
     description: 'Pierdes 30 de HP, hasta un mínimo de 30, y por 5s recibes 60% menos curación.',
     rarity: 'common',
-    weight: 28,
     durationMs: 5000,
     cooldownMs: 22000,
   },
@@ -197,7 +181,6 @@ const CARDS = {
     displayName: 'Receta Falsa',
     description: 'Todas las habilidades del Curador a menos de 8 se recargan 6s más lento.',
     rarity: 'rare',
-    weight: 11,
     cooldownMs: 30000,
   },
   canon_humano: {
@@ -207,7 +190,6 @@ const CARDS = {
     displayName: 'Cañón Humano',
     description: 'Dash largo que empuja al Curador que esté en el camino, pero gasta 45 de Flojera.',
     rarity: 'uncommon',
-    weight: 20,
     cooldownMs: 18000,
   },
   risa_enlatada: {
@@ -217,7 +199,6 @@ const CARDS = {
     displayName: 'Risa Enlatada',
     description: 'El Curador a menos de 8 pierde 60 de Flojera.',
     rarity: 'uncommon',
-    weight: 18,
     cooldownMs: 24000,
   },
   martillazo: {
@@ -227,7 +208,6 @@ const CARDS = {
     displayName: 'Martillazo',
     description: 'Te golpeas el pie (−20 HP, mínimo 20) y aturdes 2s al Curador a menos de 3.',
     rarity: 'uncommon',
-    weight: 18,
     durationMs: 2000,
     cooldownMs: 24000,
   },
@@ -238,9 +218,24 @@ const CARDS = {
     displayName: 'Bolsa de Cemento',
     description: 'El Curador a menos de 6 va 50% más lento por 6s.',
     rarity: 'rare',
-    weight: 10,
     durationMs: 6000,
     cooldownMs: 30000,
+  },
+  grito_animo: {
+    id: 'grito_animo',
+    keywords: ['aliado', 'veloz', 'flojera'],
+    displayName: 'Grito de Ánimo',
+    description: 'Los demás Pacientes a menos de 8 corren 3s sin gastar Flojera y recuperan 30. Si no hay ninguno, te lo aplicas a ti.',
+    rarity: 'uncommon',
+    cooldownMs: 26000,
+  },
+  racion_compartida: {
+    id: 'racion_compartida',
+    keywords: ['aliado', 'daño', 'comida'],
+    displayName: 'Ración Compartida',
+    description: 'Los demás Pacientes a menos de 8 pierden 15 de HP (mínimo 20). Si no hay ninguno, tu próximo auto-daño hace el doble.',
+    rarity: 'uncommon',
+    cooldownMs: 26000,
   },
   regalo_envenenado: {
     id: 'regalo_envenenado',
@@ -248,7 +243,6 @@ const CARDS = {
     displayName: 'Regalo Envenenado',
     description: 'El Curador a menos de 8 gana 40 HP. Si llega a 1500, pierde.',
     rarity: 'rare',
-    weight: 9,
     cooldownMs: 30000,
   },
   golpe_doble: {
@@ -257,7 +251,6 @@ const CARDS = {
     displayName: 'Golpe Doble',
     description: 'Tu próximo auto-daño hace el doble.',
     rarity: 'rare',
-    weight: 10,
     cooldownMs: 30000,
   },
 };
@@ -265,6 +258,8 @@ const CARDS = {
 const SLOT_COUNT = 2;
 const OPTIONS_PER_SLOT = 3;
 const DRAFT_DURATION_MS = 12000;
+
+for (const card of Object.values(CARDS)) card.weight = RARITY_WEIGHTS[card.rarity] || RARITY_WEIGHTS.common;
 
 function getCard(cardId) {
   return CARDS[cardId] || null;

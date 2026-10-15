@@ -552,7 +552,7 @@ class Room {
       patients: this.gameState.patients,
       selfDamageObjects: this.gameState.selfDamageObjectPositions,
       curator: this.gameState.curator,
-      zones: this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt })),
+      zones: this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt })),
     });
   }
 
@@ -940,6 +940,16 @@ class Room {
     });
   }
 
+  alliesNear(playerId, entity, radius) {
+    const result = [];
+    for (const [otherId, patient] of Object.entries(this.gameState.patients)) {
+      if (otherId === playerId || patient.status !== 'alive') continue;
+      const other = this.gameState.entities[otherId];
+      if (other && distanceBetween(entity, other) <= radius) result.push(otherId);
+    }
+    return result;
+  }
+
   applyCardEffect(playerId, entity, card, now) {
     switch (card.id) {
       case 'sprint_panico':
@@ -994,18 +1004,20 @@ class Room {
           ownerId: playerId,
           armedAt: now + TRAP_ARM_MS,
           until: now + TRAP_LIFETIME_MS,
+          cardId: card.id,
           hitsOwner: card.id === 'platano_podrido',
           stunMs: card.id === 'platano_podrido' ? 3500 : 2000,
           hpLoss: card.curatorHpLoss || 0,
         });
         break;
       case 'agua_rimac':
-        this.addZone({ kind: 'rimac', x: entity.x, z: entity.z, radius: 4, perSecond: 4, ownerId: playerId, until: now + 5000 });
+        this.addZone({ kind: 'rimac', cardId: card.id, x: entity.x, z: entity.z, radius: 4, perSecond: 4, ownerId: playerId, until: now + 5000 });
         break;
       case 'rimac_sin_filtrar': {
         const { x, z } = entity;
         this.addZone({
           kind: 'rimac',
+          cardId: card.id,
           x,
           z,
           radius: 6,
@@ -1013,7 +1025,7 @@ class Room {
           ownerId: playerId,
           until: now + 6000,
           onExpire: () => {
-            this.addZone({ kind: 'puddle', x, z, radius: 6, perSecond: 7, ownerId: playerId, until: Date.now() + 8000 });
+            this.addZone({ kind: 'puddle', cardId: card.id, x, z, radius: 6, perSecond: 7, ownerId: playerId, until: Date.now() + 8000 });
           },
         });
         break;
@@ -1106,6 +1118,27 @@ class Room {
           }
         }
         break;
+      case 'grito_animo': {
+        const allies = this.alliesNear(playerId, entity, 8);
+        const targets = allies.length ? allies : [playerId];
+        for (const id of targets) {
+          const target = this.gameState.entities[id];
+          target.noDrainUntil = now + (allies.length ? 3000 : 5000);
+          target.flojera = Math.min(FLOJERA_MAX, target.flojera + (allies.length ? 30 : 40));
+          target.flojeraLockedUntil = 0;
+        }
+        break;
+      }
+      case 'racion_compartida': {
+        const allies = this.alliesNear(playerId, entity, 8);
+        if (allies.length) {
+          for (const id of allies) this.damagePatient(id, 15, 20);
+        } else {
+          entity.doubleSelfDamage = true;
+        }
+        this.checkGameEndConditions();
+        break;
+      }
       case 'tajo_carmesi':
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
