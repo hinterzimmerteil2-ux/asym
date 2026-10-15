@@ -207,6 +207,137 @@ const EFFECT_STYLES = {
   card_golpe_doble: { color: '#f2a154', mode: 'rise', duration: 800, radius: 0.9 },
 };
 
+const FX = {
+  skill_pulse: { shape: 'leaf', color: '#5fd58c', count: 14, speed: 3, up: 2.5, gravity: -1 },
+  skill_stun: { shape: 'spark', color: '#b07cf2', count: 12, speed: 2.5, up: 3, gravity: -2 },
+  skill_pull: { shape: 'leaf', color: '#8f6a3a', count: 14, speed: 3, up: 0.5, gravity: 0, inward: true },
+  skill_boost: { shape: 'spark', color: '#f2a154', count: 12, speed: 1, up: 4, gravity: -3 },
+  skill_purge: { shape: 'drop', color: '#54a8f2', count: 14, speed: 3.5, up: 2, gravity: 9 },
+  skill_melee_stun: { shape: 'spark', color: '#f2d154', count: 12, speed: 4, up: 2, gravity: 6 },
+  card_sprint_panico: { shape: 'smoke', color: '#cfd2e0', count: 6, speed: 1.2, up: 0.8, gravity: 0 },
+  card_segundo_aliento: { shape: 'smoke', color: '#54a8f2', count: 6, speed: 1, up: 1.5, gravity: 0 },
+  card_rodar: { shape: 'smoke', color: '#cfd2e0', count: 8, speed: 2, up: 0.5, gravity: 0 },
+  card_canon_humano: { shape: 'smoke', color: '#cfd2e0', count: 10, speed: 2.5, up: 0.8, gravity: 0 },
+  card_jeringa_rota: { shape: 'shard', color: '#e0555f', count: 12, speed: 3, up: 4, gravity: 12, prop: 'bottle' },
+  card_humo_yodo: { shape: 'smoke', color: '#f2a154', count: 12, speed: 2.5, up: 1, gravity: 0 },
+  card_tropiezo: { shape: 'spark', color: '#f2d154', count: 10, speed: 3, up: 3, gravity: 8 },
+  card_adrenalina: { shape: 'spark', color: '#e0555f', count: 10, speed: 1.5, up: 4, gravity: -2 },
+  card_chicharron: { shape: 'crumb', color: '#c98a3a', count: 12, speed: 2, up: 3, gravity: 9 },
+  card_goyslop: { shape: 'crumb', color: '#8f8f4a', count: 16, speed: 2.5, up: 3, gravity: 9 },
+  card_aji_picante: { shape: 'crumb', color: '#e0555f', count: 12, speed: 2, up: 3, gravity: 9 },
+  card_sopa_hirviendo: { shape: 'drop', color: '#f2a154', count: 14, speed: 3, up: 3.5, gravity: 9, prop: 'pot' },
+  card_cascara_platano: { shape: 'leaf', color: '#f2d154', count: 6, speed: 2, up: 3, gravity: 8 },
+  card_platano_podrido: { shape: 'leaf', color: '#7a6a2a', count: 8, speed: 2, up: 3, gravity: 8 },
+  card_agua_rimac: { shape: 'shard', color: '#9fe6d0', liquid: '#6b8f3a', count: 16, speed: 4, up: 4, gravity: 12, prop: 'bottle' },
+  card_rimac_sin_filtrar: { shape: 'shard', color: '#9fe6d0', liquid: '#5f7f20', count: 22, speed: 5, up: 5, gravity: 12, prop: 'bottle' },
+  card_red_mist: { shape: 'drop', color: '#e0555f', count: 20, speed: 5, up: 3, gravity: 9 },
+  card_tajo_carmesi: { shape: 'drop', color: '#e0555f', count: 10, speed: 4, up: 2, gravity: 9 },
+  card_regalo_envenenado: { shape: 'leaf', color: '#b07cf2', count: 14, speed: 3, up: 3, gravity: 3 },
+  card_golpe_doble: { shape: 'spark', color: '#f2a154', count: 8, speed: 2, up: 3, gravity: 3 },
+  card_pastilla_vencida: { shape: 'crumb', color: '#f1f1f6', count: 10, speed: 2.5, up: 3, gravity: 9 },
+  card_receta_falsa: { shape: 'leaf', color: '#f1f1f6', count: 12, speed: 3, up: 3, gravity: 2 },
+  card_risa_enlatada: { shape: 'spark', color: '#f2d154', count: 12, speed: 3, up: 3, gravity: 2 },
+  card_martillazo: { shape: 'spark', color: '#c3c5d6', count: 12, speed: 4, up: 2, gravity: 8, prop: 'hammer' },
+  card_bolsa_cemento: { shape: 'smoke', color: '#9a9cac', count: 14, speed: 3, up: 1, gravity: 0, prop: 'bag' },
+};
+
+function rand(seed, i) {
+  const x = Math.sin(seed * 0.001 + i * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function PropMesh({ kind, color }) {
+  if (kind === 'bottle') {
+    return (
+      <group>
+        <mesh><cylinderGeometry args={[0.18, 0.18, 0.5, 10]} /><meshBasicMaterial color="#9fe6d0" transparent opacity={0.8} /></mesh>
+        <mesh position={[0, 0.34, 0]}><cylinderGeometry args={[0.07, 0.1, 0.2, 10]} /><meshBasicMaterial color="#9fe6d0" transparent opacity={0.8} /></mesh>
+        <mesh position={[0, -0.05, 0]}><cylinderGeometry args={[0.17, 0.17, 0.3, 10]} /><meshBasicMaterial color={color} /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'bag') {
+    return <mesh><boxGeometry args={[0.7, 0.9, 0.4]} /><meshBasicMaterial color="#8a8da3" /></mesh>;
+  }
+  if (kind === 'hammer') {
+    return (
+      <group>
+        <mesh position={[0, 0.3, 0]}><boxGeometry args={[0.7, 0.3, 0.3]} /><meshBasicMaterial color="#8a8da3" /></mesh>
+        <mesh position={[0, -0.2, 0]}><boxGeometry args={[0.1, 0.8, 0.1]} /><meshBasicMaterial color="#8f6a3a" /></mesh>
+      </group>
+    );
+  }
+  return (
+    <group>
+      <mesh><cylinderGeometry args={[0.35, 0.28, 0.35, 12]} /><meshBasicMaterial color="#6c6f84" /></mesh>
+      <mesh position={[0, 0.2, 0]}><cylinderGeometry args={[0.3, 0.3, 0.05, 12]} /><meshBasicMaterial color={color} /></mesh>
+    </group>
+  );
+}
+
+function Particles({ effect, fx }) {
+  const refs = useRef([]);
+  const propRef = useRef();
+  const duration = fx.prop ? 1100 : 900;
+  const impact = fx.prop ? 0.28 : 0;
+  const particles = Array.from({ length: fx.count }, (_, i) => {
+    const angle = rand(effect.startedAt, i) * Math.PI * 2;
+    const spread = 0.4 + rand(effect.startedAt, i + 50) * 0.8;
+    return {
+      angle,
+      vx: Math.cos(angle) * fx.speed * spread,
+      vz: Math.sin(angle) * fx.speed * spread,
+      vy: fx.up * (0.5 + rand(effect.startedAt, i + 100) * 0.7),
+      spin: (rand(effect.startedAt, i + 150) - 0.5) * 14,
+      size: 0.08 + rand(effect.startedAt, i + 200) * 0.09,
+      tint: i % 3 === 0 && fx.liquid ? fx.liquid : fx.color,
+    };
+  });
+
+  useFrame(() => {
+    const t = (Date.now() - effect.startedAt) / duration;
+    if (propRef.current) {
+      const fall = Math.min(1, t / impact);
+      propRef.current.visible = t < impact;
+      propRef.current.position.y = 0.4 + (1 - fall * fall) * 3.2;
+      propRef.current.rotation.z = fall * 2;
+    }
+    const local = t < impact ? -1 : (t - impact) / (1 - impact);
+    particles.forEach((p, i) => {
+      const mesh = refs.current[i];
+      if (!mesh) return;
+      if (local < 0 || local > 1) {
+        mesh.visible = false;
+        return;
+      }
+      mesh.visible = true;
+      const s = local * 0.9;
+      const rise = fx.gravity < 0 ? p.vy * s * 0.8 : p.vy * s - 0.5 * fx.gravity * s * s;
+      const y = 0.3 + rise;
+      mesh.position.set(p.vx * (fx.inward ? 3 * (1 - local) : s), Math.max(0.05, y), p.vz * (fx.inward ? 3 * (1 - local) : s));
+      mesh.rotation.set(p.spin * local, p.spin * local, 0);
+      const grow = fx.shape === 'smoke' ? 1 + local * 5 : 1 - local * 0.4;
+      mesh.scale.setScalar(grow);
+      mesh.material.opacity = fx.shape === 'smoke' ? 0.55 * (1 - local) : 1 - local * local;
+    });
+  });
+
+  return (
+    <group position={[effect.x, 0, effect.z]}>
+      {fx.prop && <group ref={propRef}><PropMesh kind={fx.prop} color={fx.liquid || fx.color} /></group>}
+      {particles.map((p, i) => (
+        <mesh key={i} ref={(el) => { refs.current[i] = el; }} visible={false}>
+          {fx.shape === 'shard' && <tetrahedronGeometry args={[p.size * 1.4, 0]} />}
+          {fx.shape === 'spark' && <octahedronGeometry args={[p.size, 0]} />}
+          {fx.shape === 'leaf' && <boxGeometry args={[p.size * 2, p.size * 0.3, p.size * 1.2]} />}
+          {(fx.shape === 'drop' || fx.shape === 'crumb' || fx.shape === 'smoke') && <sphereGeometry args={[fx.shape === 'smoke' ? p.size * 2.4 : p.size, 8, 6]} />}
+          <meshBasicMaterial color={p.tint} transparent depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function SkillEffect({ effect }) {
   const style = EFFECT_STYLES[effect.kind] || { color: '#ffffff', mode: 'ring', duration: 800 };
   const radius = effect.radius || style.radius || 3;
@@ -237,7 +368,10 @@ function SkillEffect({ effect }) {
   });
 
   const flat = style.mode === 'ring' || style.mode === 'contract';
+  const fx = FX[effect.kind];
   return (
+    <>
+    {fx && <Particles effect={effect} fx={fx} />}
     <group position={[effect.x, 0, effect.z]}>
       <group ref={groupRef}>
         {flat && (
@@ -260,6 +394,7 @@ function SkillEffect({ effect }) {
         )}
       </group>
     </group>
+    </>
   );
 }
 
