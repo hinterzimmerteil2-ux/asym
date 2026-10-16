@@ -85,7 +85,8 @@ const ACETIL_REGEN_DELAY_MS = 1000;
 const ACETIL_FATIGUE_MS = 4000;
 const ACETIL_FATIGUE_FACTOR = 0.7;
 const CURATOR_SPAWN_DELAY_MS = 15000;
-const ENDLAG_MIN_MS = 500;
+const ENDLAG_MIN_MS = 0;
+const CURATOR_FLOJERA_BONUS = 8;
 const ENDLAG_MAX_MS = 1800;
 const FLOJERA_MAX = 100;
 const FLOJERA_MAX_MINIMUM = 40;
@@ -516,8 +517,8 @@ class Room {
       entity.noDrainUntil = 0;
       entity.cureBoostUntil = 0;
       entity.cureBoostFactor = 1;
-      entity.flojera = FLOJERA_MAX;
-      entity.flojeraMax = FLOJERA_MAX;
+      entity.flojeraMax = FLOJERA_MAX + (player.isAsymRole ? CURATOR_FLOJERA_BONUS : 0);
+      entity.flojera = entity.flojeraMax;
       entity.sprintFactor = SPRINT_CARD_MULTIPLIER;
       entity.flojeraLockedUntil = 0;
       entity.cardCooldowns = {};
@@ -687,8 +688,12 @@ class Room {
 
       if (inAction && entity.acetilUntil > now) {
         if (isMoving) {
+          const before = entity.flojera;
           entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
-          if (entity.flojera <= 0) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
+          if (entity.flojera <= 0) {
+            entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
+            if (before > 0) this.endlag(entityPlayerId, entity, now);
+          }
         }
       } else if (inAction) {
         if (sprinting || wantsSlow || !isMoving) {
@@ -696,9 +701,11 @@ class Room {
             entity.flojera = Math.min(entity.flojeraMax, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);
           }
         } else if (entity.noDrainUntil <= now) {
+          const before = entity.flojera;
           entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
           if (entity.flojera <= 0) {
             entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
+            if (before > 0) this.endlag(entityPlayerId, entity, now);
           }
         }
       }
@@ -1123,6 +1130,7 @@ class Room {
   endlag(playerId, entity, now) {
     const missing = 1 - Math.max(0, Math.min(1, entity.flojera / entity.flojeraMax));
     const ms = ENDLAG_MIN_MS + (ENDLAG_MAX_MS - ENDLAG_MIN_MS) * missing;
+    if (ms <= 0) return;
     this.stun(playerId, entity, ms, now, 0);
     entity.endlagUntil = now + ms;
   }
