@@ -13,7 +13,7 @@ const CHARACTERS = {
         keywords: ['curacion', 'area'],
         radius: 6,
         cureAmount: 8,
-        cooldownMs: 10000,
+        cooldownMs: 30000,
       },
       {
         id: 'somnifero_valeriana',
@@ -23,7 +23,7 @@ const CHARACTERS = {
         keywords: ['aturdir', 'area'],
         radius: 5,
         durationMs: 1500,
-        cooldownMs: 16000,
+        cooldownMs: 45000,
       },
       {
         id: 'raiz_atrayente',
@@ -33,7 +33,7 @@ const CHARACTERS = {
         keywords: ['atraer', 'area'],
         radius: 9,
         strength: 4,
-        cooldownMs: 14000,
+        cooldownMs: 35000,
       },
       {
         id: 'tonico_reforzado',
@@ -44,7 +44,7 @@ const CHARACTERS = {
         factor: 2,
         selfHeal: 20,
         durationMs: 5000,
-        cooldownMs: 18000,
+        cooldownMs: 40000,
       },
     ],
   },
@@ -62,7 +62,7 @@ const CHARACTERS = {
         keywords: ['curacion', 'area'],
         radius: 4,
         cureAmount: 15,
-        cooldownMs: 14000,
+        cooldownMs: 30000,
       },
       {
         id: 'anestesia',
@@ -72,7 +72,7 @@ const CHARACTERS = {
         keywords: ['aturdir', 'area'],
         radius: 4,
         durationMs: 2200,
-        cooldownMs: 20000,
+        cooldownMs: 55000,
       },
       {
         id: 'camilla_magnetica',
@@ -82,17 +82,18 @@ const CHARACTERS = {
         keywords: ['atraer', 'area'],
         radius: 11,
         strength: 6,
-        cooldownMs: 16000,
+        cooldownMs: 40000,
       },
       {
         id: 'desinfectante',
         type: 'purge',
         name: 'Desinfectante',
-        description: 'Anula las cartas activas y drena 40 de Flojera.',
-        keywords: ['purga', 'flojera', 'area'],
+        description: 'Anula las cartas activas, drena 40 de Flojera y da Pereza 8s.',
+        keywords: ['purga', 'flojera', 'pereza'],
         radius: 7,
         flojeraDrain: 40,
-        cooldownMs: 15000,
+        perezaMs: 8000,
+        cooldownMs: 45000,
       },
     ],
   },
@@ -106,7 +107,7 @@ const GENERIC_MELEE = {
   keywords: ['aturdir'],
   radius: 2.5,
   durationMs: 1200,
-  cooldownMs: 8000,
+  cooldownMs: 20000,
 };
 
 const DEFAULT_CHARACTER_ID = 'vorhees_jason';

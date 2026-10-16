@@ -74,6 +74,7 @@ const RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC = 18;
 const ROLL_PUSH = 6;
 const ROLL_HIT_WIDTH = 1.5;
 const ROLL_FLOJERA_COST = 25;
+const PEREZA_FACTOR = 2;
 const FLOJERA_MAX = 100;
 const FLOJERA_MAX_MINIMUM = 40;
 const FLOJERA_DRAIN_PER_SEC = 20;
@@ -257,6 +258,7 @@ class Room {
       cardCooldowns: {},
       sprintUntil: 0,
       cureReductionUntil: 0,
+      perezaUntil: 0,
       slowedUntil: 0,
       doubleSelfDamage: false,
     };
@@ -495,6 +497,7 @@ class Room {
       entity.cardCooldowns = {};
       entity.sprintUntil = 0;
       entity.cureReductionUntil = 0;
+      entity.perezaUntil = 0;
       entity.slowedUntil = 0;
       entity.doubleSelfDamage = false;
       entity.hand = player.isAsymRole ? [] : Cards.dealSlots();
@@ -543,6 +546,8 @@ class Room {
         locked: entity.flojeraLockedUntil > now,
         sprinting: entity.sprintUntil > now,
         stunned: entity.stunnedUntil > now,
+        exacerbacion: entity.cureReductionUntil > now,
+        pereza: entity.perezaUntil > now,
       };
     }
 
@@ -673,7 +678,7 @@ class Room {
       });
       return;
     }
-    curadorEntity.skillCooldowns[index] = now + skill.cooldownMs;
+    curadorEntity.skillCooldowns[index] = now + skill.cooldownMs * (curadorEntity.perezaUntil > now ? PEREZA_FACTOR : 1);
 
     const affectedPlayerIds = [];
     let healedAny = false;
@@ -728,6 +733,7 @@ class Room {
           targetEntity.noDrainUntil = 0;
           targetEntity.slowedUntil = 0;
           targetEntity.doubleSelfDamage = false;
+          if (skill.perezaMs) targetEntity.perezaUntil = now + skill.perezaMs;
           targetEntity.flojera = Math.max(0, targetEntity.flojera - skill.flojeraDrain);
         }
         affectedPlayerIds.push(targetPlayerId);
@@ -936,7 +942,7 @@ class Room {
       return;
     }
 
-    entity.cardCooldowns[slotIndex] = now + card.cooldownMs;
+    entity.cardCooldowns[slotIndex] = now + card.cooldownMs * (entity.perezaUntil > now ? PEREZA_FACTOR : 1);
     this.applyCardEffect(playerId, entity, card, now);
 
     this.broadcast(MessageType.CARD_RESULT, {
@@ -1058,6 +1064,7 @@ class Room {
           if (!otherEntity || distanceBetween(entity, otherEntity) > 8) continue;
           for (const key of [0, 1, 2, 3, 'melee']) {
             otherEntity.skillCooldowns[key] = Math.max(otherEntity.skillCooldowns[key] || 0, now) + 6000;
+            otherEntity.perezaUntil = now + 8000;
           }
         }
         break;
@@ -1108,6 +1115,7 @@ class Room {
           if (!otherEntity || distanceBetween(entity, otherEntity) > 8) continue;
           for (const key of [0, 1, 2, 3, 'melee']) {
             otherEntity.skillCooldowns[key] = Math.max(otherEntity.skillCooldowns[key] || 0, now) + 10000;
+            otherEntity.perezaUntil = now + 12000;
           }
         }
         break;
