@@ -660,7 +660,12 @@ class Room {
       if (entity.allyBoostUntil > now) speedMultiplier *= 1 + ACETIL_ALLY_STEP * (entity.allyBoostLevel || 1);
       if (stunned) speedMultiplier = 0;
 
-      if (inAction) {
+      if (inAction && entity.acetilUntil > now) {
+        if (isMoving) {
+          entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
+          if (entity.flojera <= 0) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
+        }
+      } else if (inAction) {
         if (sprinting || wantsSlow || !isMoving) {
           if (!sprinting && entity.regenBlockedUntil <= now) {
             entity.flojera = Math.min(entity.flojeraMax, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);

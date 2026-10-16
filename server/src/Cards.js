@@ -5,7 +5,7 @@ const CARDS = {
     id: 'acetilcolina',
     keywords: ['veloz', 'flojera', 'aliado'],
     displayName: 'Acetilcolina',
-    description: 'Velocidad masiva por 5s, sin gastar ni regenerar Flojera. Los Pacientes que te pasen por encima ganan un poco de velocidad. Al terminar, 1s sin regenerar y luego vas lento un rato.',
+    description: 'Velocidad masiva por 5s. Correr gasta Flojera y no se regenera; si llegas a 0 el boost sigue hasta que acabe. Los Pacientes que te pasen por encima ganan un poco de velocidad. Al terminar, 1s sin regenerar y luego vas lento un rato.',
     rarity: 'rare',
     durationMs: 5000,
     cooldownMs: 30000,
