@@ -14,6 +14,7 @@ import {
 import GameScene from '../components/GameScene';
 import SkillIcon from '../components/SkillIcon';
 import HelpPanel from '../components/HelpPanel';
+import StatusColumn from '../components/StatusColumn';
 import { KEYWORDS } from '../lib/keywords';
 
 function KeywordChip({ id }) {
@@ -158,6 +159,11 @@ export default function LobbyPage() {
             setTimeRemainingMs(payload.timeRemainingMs ?? null);
             if (payload.flojera && myPlayerIdRef.current) {
               setFlojera(payload.flojera[myPlayerIdRef.current] || null);
+              const mine = payload.flojera[myPlayerIdRef.current];
+              if (mine?.cooldowns && mine.statuses?.some((s) => s.id === 'pereza')) {
+                setCardCooldowns(mine.cooldowns.cards || {});
+                setSkillCooldowns(mine.cooldowns.skills || {});
+              }
             }
             break;
           case 'cure_result':
@@ -668,14 +674,14 @@ export default function LobbyPage() {
           </div>
         )}
 
+        {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} />}
+
         {phase === 'action' && flojera && (
           <div style={styles.flojeraBarContainer}>
             <div style={styles.flojeraBarLabel}>
               Flojera: {Math.round(flojera.value)}/{flojera.max}
               {flojera.locked && ' (¡exhausto, no puedes correr!)'}
               {flojera.sprinting && ' (¡sprint!)'}
-              {flojera.exacerbacion && ' · Exacerbación'}
-              {flojera.pereza && ' · Pereza'}
               {flojera.stunned && ' (¡aturdido!)'}
             </div>
             <div style={styles.flojeraBarTrack}>

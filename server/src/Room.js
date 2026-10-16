@@ -48,7 +48,6 @@ const FAST_MULTIPLIER = 1.4;
 const SPRINT_CARD_MULTIPLIER = 1.5;
 const ROLL_DISTANCE = 7;
 const SEGUNDO_ALIENTO_AMOUNT = 60;
-const JERINGA_ROTA_CURE_FACTOR = 0.4;
 const HUMO_RADIUS = 7;
 const HUMO_SLOW_MULTIPLIER = 0.5;
 const GOLPE_DOBLE_FACTOR = 2;
@@ -74,7 +73,17 @@ const RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC = 18;
 const ROLL_PUSH = 6;
 const ROLL_HIT_WIDTH = 1.5;
 const ROLL_FLOJERA_COST = 25;
-const PEREZA_FACTOR = 2;
+const PEREZA_SPEED_PER_LEVEL = 0.5;
+const ENDLAG_MS = 1200;
+const EXACERBACION_MAX_LEVEL = 3;
+const EXACERBACION_MS = 8000;
+const EXACERBACION_STEP = 0.2;
+const ACETIL_FACTOR = 2.2;
+const ACETIL_ALLY_RADIUS = 1.5;
+const ACETIL_ALLY_FACTOR = 1.25;
+const ACETIL_REGEN_DELAY_MS = 1000;
+const ACETIL_FATIGUE_MS = 4000;
+const ACETIL_FATIGUE_FACTOR = 0.7;
 const FLOJERA_MAX = 100;
 const FLOJERA_MAX_MINIMUM = 40;
 const FLOJERA_DRAIN_PER_SEC = 20;
@@ -257,8 +266,15 @@ class Room {
       draftEndsAt: 0,
       cardCooldowns: {},
       sprintUntil: 0,
-      cureReductionUntil: 0,
+      exacerbacionLevel: 0,
+      exacerbacionUntil: 0,
       perezaUntil: 0,
+      perezaLevel: 0,
+      acetilUntil: 0,
+      regenBlockedUntil: 0,
+      fatigueUntil: 0,
+      allyBoostUntil: 0,
+      endlagUntil: 0,
       slowedUntil: 0,
       doubleSelfDamage: false,
     };
@@ -496,8 +512,15 @@ class Room {
       entity.flojeraLockedUntil = 0;
       entity.cardCooldowns = {};
       entity.sprintUntil = 0;
-      entity.cureReductionUntil = 0;
+      entity.exacerbacionLevel = 0;
+      entity.exacerbacionUntil = 0;
       entity.perezaUntil = 0;
+      entity.perezaLevel = 0;
+      entity.acetilUntil = 0;
+      entity.regenBlockedUntil = 0;
+      entity.fatigueUntil = 0;
+      entity.allyBoostUntil = 0;
+      entity.endlagUntil = 0;
       entity.slowedUntil = 0;
       entity.doubleSelfDamage = false;
       entity.hand = player.isAsymRole ? [] : Cards.dealSlots();
@@ -531,6 +554,7 @@ class Room {
     }
 
     this.stepPhysics(dt);
+    this.tickPereza(now, dt);
     if (this.phase === 'action' && !this.gameState.gameOver) {
       this.botThink(now);
       this.autoPickExpiredDrafts(now);
@@ -546,8 +570,8 @@ class Room {
         locked: entity.flojeraLockedUntil > now,
         sprinting: entity.sprintUntil > now,
         stunned: entity.stunnedUntil > now,
-        exacerbacion: entity.cureReductionUntil > now,
-        pereza: entity.perezaUntil > now,
+        statuses: this.buildStatuses(entity, now),
+        cooldowns: { cards: entity.cardCooldowns, skills: entity.skillCooldowns },
       };
     }
 
@@ -561,6 +585,29 @@ class Room {
       curator: this.gameState.curator,
       zones: this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt })),
     });
+  }
+
+  tickPereza(now, dt) {
+    for (const entity of Object.values(this.gameState.entities)) {
+      if (entity.perezaUntil <= now) continue;
+      const extra = dt * 1000 * PEREZA_SPEED_PER_LEVEL * (entity.perezaLevel || 1);
+      for (const key of Object.keys(entity.cardCooldowns)) if (entity.cardCooldowns[key] > now) entity.cardCooldowns[key] -= extra;
+      for (const key of Object.keys(entity.skillCooldowns)) if (entity.skillCooldowns[key] > now) entity.skillCooldowns[key] -= extra;
+    }
+  }
+
+  buildStatuses(entity, now) {
+    const list = [];
+    const add = (id, level, until) => { if (until > now) list.push({ id, level, ms: until - now }); };
+    if (entity.exacerbacionLevel) add('exacerbacion', entity.exacerbacionLevel, entity.exacerbacionUntil);
+    add('pereza', entity.perezaLevel || 1, entity.perezaUntil);
+    add('acetilcolina', 1, entity.acetilUntil);
+    if (entity.acetilUntil <= now) add('fatiga', 1, entity.fatigueUntil);
+    add('impulso', 1, entity.allyBoostUntil);
+    add('endlag', 1, entity.endlagUntil);
+    if (entity.endlagUntil <= now) add('aturdido', 1, entity.stunnedUntil);
+    add('ralentizado', 1, entity.slowedUntil);
+    return list;
   }
 
   stepPhysics(dt) {
@@ -587,11 +634,20 @@ class Room {
         speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
       }
       if (entity.slowedUntil > now) speedMultiplier *= HUMO_SLOW_MULTIPLIER;
+      if (entity.acetilUntil <= now && entity.fatigueUntil > now) speedMultiplier *= ACETIL_FATIGUE_FACTOR;
+      if (entity.allyBoostUntil > now) speedMultiplier *= ACETIL_ALLY_FACTOR;
+      if (entity.acetilUntil > now) {
+        for (const [otherId, patient] of Object.entries(this.gameState.patients)) {
+          const other = this.gameState.entities[otherId];
+          if (otherId === entityPlayerId || patient.status !== 'alive' || !other) continue;
+          if (distanceBetween(entity, other) <= ACETIL_ALLY_RADIUS) other.allyBoostUntil = now + 2000;
+        }
+      }
       if (stunned) speedMultiplier = 0;
 
       if (inAction) {
         if (sprinting || wantsSlow || !isMoving) {
-          if (!sprinting) {
+          if (!sprinting && entity.regenBlockedUntil <= now) {
             entity.flojera = Math.min(entity.flojeraMax, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);
           }
         } else if (entity.noDrainUntil <= now) {
@@ -678,7 +734,7 @@ class Room {
       });
       return;
     }
-    curadorEntity.skillCooldowns[index] = now + skill.cooldownMs * (curadorEntity.perezaUntil > now ? PEREZA_FACTOR : 1);
+    curadorEntity.skillCooldowns[index] = now + skill.cooldownMs;
 
     const affectedPlayerIds = [];
     let healedAny = false;
@@ -729,16 +785,17 @@ class Room {
           }
         } else if (skill.type === 'purge') {
           targetEntity.sprintUntil = 0;
-          targetEntity.cureReductionUntil = 0;
+          targetEntity.exacerbacionLevel = 0;
           targetEntity.noDrainUntil = 0;
           targetEntity.slowedUntil = 0;
           targetEntity.doubleSelfDamage = false;
-          if (skill.perezaMs) targetEntity.perezaUntil = now + skill.perezaMs;
           targetEntity.flojera = Math.max(0, targetEntity.flojera - skill.flojeraDrain);
         }
         affectedPlayerIds.push(targetPlayerId);
       }
     }
+
+    if (skill.type !== 'boost' && affectedPlayerIds.length === 0) this.endlag(playerId, curadorEntity, now);
 
     if (skill.type === 'pulse' && skill.selfHeal) this.adjustCuratorHp(skill.selfHeal * affectedPlayerIds.length);
 
@@ -867,7 +924,8 @@ class Room {
   }
 
   scaleCure(targetEntity, amount, now) {
-    return targetEntity.cureReductionUntil > now ? amount * JERINGA_ROTA_CURE_FACTOR : amount;
+    if (targetEntity.exacerbacionUntil <= now || !targetEntity.exacerbacionLevel) return amount;
+    return amount * Math.max(0.4, 1 - EXACERBACION_STEP * targetEntity.exacerbacionLevel);
   }
 
   autoPickExpiredDrafts(now) {
@@ -942,7 +1000,7 @@ class Room {
       return;
     }
 
-    entity.cardCooldowns[slotIndex] = now + card.cooldownMs * (entity.perezaUntil > now ? PEREZA_FACTOR : 1);
+    entity.cardCooldowns[slotIndex] = now + card.cooldownMs;
     this.applyCardEffect(playerId, entity, card, now);
 
     this.broadcast(MessageType.CARD_RESULT, {
@@ -963,17 +1021,29 @@ class Room {
     return result;
   }
 
+  curatorInRange(entity, radius) {
+    for (const [otherId, other] of this.players) {
+      if (!other.isAsymRole) continue;
+      const otherEntity = this.gameState.entities[otherId];
+      if (otherEntity && distanceBetween(entity, otherEntity) <= radius) return true;
+    }
+    return false;
+  }
+
+  gainExacerbacion(entity, now) {
+    const active = entity.exacerbacionUntil > now;
+    entity.exacerbacionLevel = Math.min(EXACERBACION_MAX_LEVEL, (active ? entity.exacerbacionLevel : 0) + 1);
+    entity.exacerbacionUntil = now + EXACERBACION_MS;
+  }
+
+  endlag(playerId, entity, now) {
+    this.stun(playerId, entity, ENDLAG_MS, now, 0);
+    entity.endlagUntil = now + ENDLAG_MS;
+  }
+
   applyCardEffect(playerId, entity, card, now) {
+    const hit = card.hitRadius ? this.curatorInRange(entity, card.hitRadius) : null;
     switch (card.id) {
-      case 'sprint_panico':
-      case 'sprint_desbocado':
-        entity.sprintUntil = now + card.durationMs;
-        entity.sprintFactor = card.id === 'sprint_desbocado' ? 2 : SPRINT_CARD_MULTIPLIER;
-        break;
-      case 'segundo_aliento':
-        entity.flojera = Math.min(entity.flojeraMax, entity.flojera + SEGUNDO_ALIENTO_AMOUNT);
-        entity.flojeraLockedUntil = 0;
-        break;
       case 'rodar': {
         const length = Math.sqrt(entity.input.moveX ** 2 + entity.input.moveZ ** 2);
         if (length > 0) {
@@ -1001,9 +1071,6 @@ class Room {
         if (entity.flojera === 0) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
         break;
       }
-      case 'jeringa_rota':
-        entity.cureReductionUntil = now + card.durationMs;
-        break;
       case 'humo_yodo':
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
@@ -1077,14 +1144,20 @@ class Room {
           }
         }
         break;
+      case 'acetilcolina':
+        entity.sprintUntil = now + card.durationMs;
+        entity.sprintFactor = ACETIL_FACTOR;
+        entity.acetilUntil = now + card.durationMs;
+        entity.regenBlockedUntil = entity.acetilUntil + ACETIL_REGEN_DELAY_MS;
+        entity.fatigueUntil = entity.acetilUntil + ACETIL_FATIGUE_MS;
+        break;
       case 'grito_animo': {
         const allies = this.alliesNear(playerId, entity, 8);
         const targets = allies.length ? allies : [playerId];
         for (const id of targets) {
           const target = this.gameState.entities[id];
-          target.noDrainUntil = now + (allies.length ? 3000 : 5000);
-          target.flojera = Math.min(target.flojeraMax, target.flojera + (allies.length ? 30 : 40));
-          target.flojeraLockedUntil = 0;
+          target.perezaUntil = now + 6000;
+          target.perezaLevel = allies.length ? 1 : 2;
         }
         break;
       }
@@ -1165,11 +1238,15 @@ class Room {
           if (otherEntity && distanceBetween(entity, otherEntity) <= REGALO_RADIUS) this.adjustCuratorHp(REGALO_HP);
         }
         break;
-      case 'golpe_doble':
-        entity.doubleSelfDamage = true;
-        break;
       default:
         break;
+    }
+    if (hit === true) {
+      this.gainExacerbacion(entity, now);
+      if (card.id === 'receta_falsa') entity.doubleSelfDamage = true;
+      if (card.id === 'tajo_carmesi') entity.flojera = Math.min(entity.flojeraMax, entity.flojera + 25);
+    } else if (hit === false) {
+      this.endlag(playerId, entity, now);
     }
     if (card.maxMode === 'use') this.applyMaxCosts(playerId, entity, card, true);
   }
