@@ -1392,7 +1392,7 @@ class Room {
     }
     if (Date.now() < (this.gameState.curatorReleaseAt || 0)) return;
     const baseEntity = this.gameState.entities[curadorId];
-    if (!baseEntity || baseEntity.baseCooldownUntil > Date.now()) return;
+    if (!baseEntity || baseEntity.baseCooldownUntil > Date.now() || baseEntity.stunnedUntil > Date.now()) return;
 
     const patient = this.gameState.patients[targetPlayerId];
     if (!patient || patient.status !== 'alive') {
