@@ -75,6 +75,7 @@ export default function LobbyPage() {
   const [characters, setCharacters] = useState([]);
   const [cardCatalog, setCardCatalog] = useState([]);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [hitboxes, setHitboxes] = useState({ on: false, opacity: 0.7 });
   const [maps, setMaps] = useState([]);
   const [mapId, setMapId] = useState('default');
   const [editingName, setEditingName] = useState(false);
@@ -452,6 +453,7 @@ export default function LobbyPage() {
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (e.code === 'KeyH') setHelpOpen((open) => !open);
+      else if (e.code === 'KeyB') setHitboxes((prev) => ({ ...prev, on: !prev.on }));
       else if (e.code === 'Escape') setHelpOpen(false);
       else if (e.code === 'Digit1') handleUseCard(0);
       else if (e.code === 'Digit2') handleUseCard(1);
@@ -459,6 +461,18 @@ export default function LobbyPage() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [handleUseCard]);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('asym_hitboxes') || 'null');
+      if (stored && typeof stored.opacity === 'number') setHitboxes({ on: Boolean(stored.on), opacity: stored.opacity });
+    } catch {}
+  }, []);
+
+  function updateHitboxes(next) {
+    setHitboxes(next);
+    try { localStorage.setItem('asym_hitboxes', JSON.stringify(next)); } catch {}
+  }
 
   const handleChooseCard = useCallback((slot, cardId) => {
     if (isAsymRole || phase !== 'action') return;
@@ -492,6 +506,7 @@ export default function LobbyPage() {
             sendInput={handleSendInput}
             sendAction={handleSendAction}
             onPulse={handlePulse}
+            hitboxes={hitboxes}
           />
         </div>
 
@@ -796,6 +811,28 @@ export default function LobbyPage() {
         </div>
 
         <button type="button" onClick={() => setHelpOpen(true)} style={styles.helpButton} title="Ayuda (H)" aria-label="Ayuda">?</button>
+        <button
+          type="button"
+          onClick={() => updateHitboxes({ ...hitboxes, on: !hitboxes.on })}
+          style={styles.hitboxButton(hitboxes.on)}
+          title="Hitboxes (B)"
+          aria-label="Hitboxes"
+        >
+          ◎
+        </button>
+        {hitboxes.on && (
+          <label style={styles.hitboxSlider}>
+            <span>Visibilidad</span>
+            <input
+              type="range"
+              min={0.15}
+              max={1}
+              step={0.05}
+              value={hitboxes.opacity}
+              onChange={(e) => updateHitboxes({ ...hitboxes, opacity: Number(e.target.value) })}
+            />
+          </label>
+        )}
         {helpOpen && <HelpPanel characters={characters} cards={cardCatalog} onClose={() => setHelpOpen(false)} />}
 
         {errorMsg && (
@@ -1391,6 +1428,33 @@ const styles = {
     overflow: 'hidden',
   }),
   botRow: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#c3c5d6' },
+  hitboxButton: (on) => ({
+    position: 'absolute',
+    top: 16,
+    right: 288,
+    width: 32,
+    height: 32,
+    borderRadius: '50%',
+    border: `1px solid ${on ? '#54d1f2' : '#2a2d3d'}`,
+    background: 'rgba(27, 29, 41, 0.85)',
+    color: on ? '#54d1f2' : '#e8e9f0',
+    fontSize: 16,
+    cursor: 'pointer',
+  }),
+  hitboxSlider: {
+    position: 'absolute',
+    top: 56,
+    right: 248,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    padding: '6px 10px',
+    borderRadius: 8,
+    background: 'rgba(27, 29, 41, 0.9)',
+    border: '1px solid #2a2d3d',
+    fontSize: 11,
+    color: '#c3c5d6',
+  },
   helpButton: {
     position: 'absolute',
     top: 16,

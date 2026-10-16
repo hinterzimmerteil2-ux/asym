@@ -731,6 +731,37 @@ function useKeyboardInput(sendInput, yawRef, onPulse) {
   }, [sendInput, yawRef]);
 }
 
+function HitRing({ x, z, radius, color, opacity, width = 0.07 }) {
+  return (
+    <mesh position={[x, 0.08, z]} rotation={[-Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[Math.max(0.01, radius - width), radius, 48]} />
+      <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} side={2} />
+    </mesh>
+  );
+}
+
+function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, opacity }) {
+  return (
+    <>
+      {Object.entries(entities || {}).map(([id, entity]) => (
+        <group key={id}>
+          <HitRing x={entity.x} z={entity.z} radius={0.4} color="#54d1f2" opacity={opacity} width={0.1} />
+          {id === myPlayerId && <HitRing x={entity.x} z={entity.z} radius={2.5} color="#5fd58c" opacity={opacity * 0.6} />}
+        </group>
+      ))}
+      {(collisionObjects || []).map((obj) => (
+        <HitRing key={obj.id} x={obj.x} z={obj.z} radius={obj.radius + 0.4} color="#f2a154" opacity={opacity} />
+      ))}
+      {Object.entries(selfDamageObjects || {}).map(([id, pos]) => (
+        <HitRing key={id} x={pos.x} z={pos.z} radius={2.5} color="#e0555f" opacity={opacity} />
+      ))}
+      {(zones || []).map((zone) => (
+        <HitRing key={zone.id} x={zone.x} z={zone.z} radius={zone.radius} color="#ffffff" opacity={opacity} />
+      ))}
+    </>
+  );
+}
+
 export default function GameScene({
   entities,
   players,
@@ -744,6 +775,7 @@ export default function GameScene({
   sendInput,
   sendAction,
   onPulse,
+  hitboxes,
 }) {
   const yawRef = useRef(Math.PI);
   useKeyboardInput(sendInput, yawRef, onPulse);
@@ -764,6 +796,17 @@ export default function GameScene({
       {phase === 'action' && (effects || []).map((effect) => <SkillEffect key={effect.id} effect={effect} />)}
 
       {phase === 'action' && (zones || []).map((zone) => <ZoneDisc key={zone.id} zone={zone} />)}
+
+      {hitboxes?.on && (
+        <Hitboxes
+          entities={entities}
+          myPlayerId={myPlayerId}
+          collisionObjects={phase === 'action' ? collisionObjects : []}
+          selfDamageObjects={phase === 'action' ? selfDamageObjects : {}}
+          zones={phase === 'action' ? zones : []}
+          opacity={hitboxes.opacity}
+        />
+      )}
 
       {phase === 'action' &&
         (collisionObjects || []).map((obj) => <CollisionObject key={obj.id} obj={obj} />)}

@@ -1,4 +1,5 @@
 import SkillIcon from './SkillIcon';
+import { STATUSES, INVERSE_NOTE } from '../lib/statuses';
 
 const CONTROLS = [
   ['W A S D', 'Moverte'],
@@ -9,6 +10,7 @@ const CONTROLS = [
   ['G', 'Golpe Aturdidor (Curador)'],
   ['1 2', 'Usar carta (Paciente)'],
   ['H', 'Abrir o cerrar esta ayuda'],
+  ['B', 'Mostrar u ocultar hitboxes'],
 ];
 
 export default function HelpPanel({ characters, cards, onClose }) {
@@ -58,6 +60,19 @@ export default function HelpPanel({ characters, cards, onClose }) {
             <span style={styles.itemName}>Golpe Aturdidor</span>
             <span style={styles.itemText}>Aturde 1.2s al Paciente más cercano. Su versión corrupta es IS THAT THE RED MIST?</span>
           </div>
+        </div>
+
+        <h3 style={styles.section}>Estados</h3>
+        <p style={styles.note}>{INVERSE_NOTE}</p>
+        <div style={styles.block}>
+          {Object.values(STATUSES).map((status) => (
+            <div key={status.label} style={styles.item}>
+              <SkillIcon id={status.icon} size={24} />
+              <span />
+              <span style={{ ...styles.itemName, color: status.color }}>{status.label}</span>
+              <span style={styles.itemText}>{status.favorable ? 'Te favorece. ' : 'Te perjudica. '}{status.description}</span>
+            </div>
+          ))}
         </div>
 
         <h3 style={styles.section}>Cartas de los Pacientes</h3>
@@ -117,6 +132,7 @@ const styles = {
     background: '#1b1d29',
   },
   text: { fontSize: 13, color: '#c3c5d6' },
+  note: { margin: '0 0 8px', fontSize: 12, color: '#f2a154' },
   block: { marginBottom: 10 },
   blockTitle: { fontSize: 12, fontWeight: 700, color: '#5fd58c', marginBottom: 4 },
   item: {
