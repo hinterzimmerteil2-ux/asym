@@ -237,6 +237,13 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.CANCEL_ENDLAG: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room || room.phase !== 'action') return;
+        room.cancelEndlag(playerId);
+        break;
+      }
+
       case MessageType.CURE_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room || room.phase !== 'action') return;

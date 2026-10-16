@@ -4,6 +4,7 @@ const CHARACTERS = {
     displayName: 'Vorhees Jason',
     weaponName: 'Vara de hierbas medicinales',
     unlockedByDefault: true,
+    baseCooldownMs: 1000,
     skills: [
       {
         id: 'pulso_hierbas',
@@ -53,6 +54,7 @@ const CHARACTERS = {
     displayName: 'Enfermera Buenaventura',
     weaponName: 'Jeringa de suero milagroso',
     unlockedByDefault: true,
+    baseCooldownMs: 800,
     skills: [
       {
         id: 'ronda_suero',

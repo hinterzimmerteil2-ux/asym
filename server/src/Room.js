@@ -73,7 +73,6 @@ const ROLL_PUSH = 6;
 const ROLL_HIT_WIDTH = 1.5;
 const ROLL_FLOJERA_COST = 25;
 const PEREZA_SPEED_PER_LEVEL = 0.5;
-const ENDLAG_MS = 1200;
 const EXACERBACION_MAX_LEVEL = 3;
 const EXACERBACION_MS = 8000;
 const EXACERBACION_STEP = 0.2;
@@ -85,6 +84,10 @@ const SLOW_BY_LEVEL = [1, 0.5, 0.35, 0.25];
 const ACETIL_REGEN_DELAY_MS = 1000;
 const ACETIL_FATIGUE_MS = 4000;
 const ACETIL_FATIGUE_FACTOR = 0.7;
+const CURATOR_SPAWN_DELAY_MS = 15000;
+const ENDLAG_MIN_MS = 500;
+const ENDLAG_MAX_MS = 1800;
+const ENDLAG_CANCEL_COST = 30;
 const FLOJERA_MAX = 100;
 const FLOJERA_MAX_MINIMUM = 40;
 const FLOJERA_DRAIN_PER_SEC = 20;
@@ -281,6 +284,7 @@ class Room {
       allyBoostLevel: 0,
       slowedLevel: 1,
       endlagUntil: 0,
+      baseCooldownUntil: 0,
       slowedUntil: 0,
       doubleSelfDamage: false,
     };
@@ -479,6 +483,7 @@ class Room {
 
   initGameState() {
     this.gameState.patients = {};
+    this.gameState.curatorReleaseAt = Date.now() + CURATOR_SPAWN_DELAY_MS;
     this.gameState.gameOver = false;
     this.gameState.frozen = false;
 
@@ -570,29 +575,49 @@ class Room {
       if (now - this.lastRelocateAt >= RELOCATE_INTERVAL_MS) this.relocateSelfDamageObjects(now);
     }
 
-    const flojeraByPlayerId = {};
+    const publicEntities = {};
     for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
-      flojeraByPlayerId[entityPlayerId] = {
-        value: entity.flojera,
-        max: entity.flojeraMax,
-        locked: entity.flojeraLockedUntil > now,
-        sprinting: entity.sprintUntil > now,
-        stunned: entity.stunnedUntil > now,
-        statuses: this.buildStatuses(entity, now),
-        cooldowns: { cards: entity.cardCooldowns, skills: entity.skillCooldowns },
-      };
+      publicEntities[entityPlayerId] = { x: entity.x, y: entity.y, z: entity.z };
     }
+    const zones = this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt }));
 
-    this.broadcast(MessageType.STATE_SNAPSHOT, {
-      flojera: flojeraByPlayerId,
-      tick: this.tickCount,
-      entities: this.gameState.entities,
-      timeRemainingMs: this.gameState.timeRemainingMs,
-      patients: this.gameState.patients,
-      selfDamageObjects: this.gameState.selfDamageObjectPositions,
-      curator: this.gameState.curator,
-      zones: this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt })),
-    });
+    for (const [playerId, player] of this.players) {
+      if (player.isBot || player.ws.readyState !== 1) continue;
+      const own = this.gameState.entities[playerId];
+      const flojera = {};
+      for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
+        flojera[entityPlayerId] = { stunned: entity.stunnedUntil > now };
+      }
+      if (own) {
+        flojera[playerId] = {
+          value: own.flojera,
+          max: own.flojeraMax,
+          locked: own.flojeraLockedUntil > now,
+          sprinting: own.sprintUntil > now,
+          stunned: own.stunnedUntil > now,
+          statuses: this.buildStatuses(own, now),
+          cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
+        };
+      }
+      this.sendTo(playerId, MessageType.STATE_SNAPSHOT, {
+        flojera,
+        tick: this.tickCount,
+        entities: publicEntities,
+        timeRemainingMs: this.gameState.timeRemainingMs,
+        patients: this.visiblePatients(playerId),
+        selfDamageObjects: this.gameState.selfDamageObjectPositions,
+        curator: player.isAsymRole ? this.gameState.curator : null,
+        spawnMs: player.isAsymRole ? Math.max(0, (this.gameState.curatorReleaseAt || 0) - now) : 0,
+        zones,
+      });
+    }
+  }
+
+  visiblePatients(playerId) {
+    const player = this.players.get(playerId);
+    if (player && player.isAsymRole) return this.gameState.patients;
+    const own = this.gameState.patients[playerId];
+    return own ? { [playerId]: own } : {};
   }
 
   tickPereza(now, dt) {
@@ -639,7 +664,8 @@ class Room {
       const { input } = entity;
       const inAction = this.phase === 'action';
       const resolved = this.gameState.patients[entityPlayerId] && this.gameState.patients[entityPlayerId].status !== 'alive';
-      const stunned = entity.stunnedUntil > now || Boolean(resolved);
+      const heldAtSpawn = this.players.get(entityPlayerId)?.isAsymRole && inAction && now < (this.gameState.curatorReleaseAt || 0);
+      const stunned = entity.stunnedUntil > now || Boolean(resolved) || Boolean(heldAtSpawn);
       const isMoving = !stunned && (input.moveX !== 0 || input.moveZ !== 0);
       const sprinting = entity.sprintUntil > now;
       const locked = entity.flojeraLockedUntil > now;
@@ -734,6 +760,7 @@ class Room {
     if (!curadorEntity) return;
 
     const now = Date.now();
+    if (now < (this.gameState.curatorReleaseAt || 0)) return;
     if (curadorEntity.stunnedUntil > now) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Estás aturdido' });
       return;
@@ -820,7 +847,7 @@ class Room {
 
     if (skill.type === 'pulse' && skill.selfHeal) this.adjustCuratorHp(skill.selfHeal * affectedPlayerIds.length);
 
-    this.broadcast(MessageType.CURATOR_PULSE_RESULT, {
+    const pulseResult = {
       playerId,
       skillIndex: index,
       skillId: skill.id,
@@ -830,8 +857,16 @@ class Room {
       cooldownUntil: curadorEntity.skillCooldowns[index],
       healedPlayerIds: healedAny ? affectedPlayerIds : [],
       affectedPlayerIds,
-      patients: this.gameState.patients,
-    });
+    };
+    const onlyFor = (ids, viewerId) => (this.players.get(viewerId)?.isAsymRole ? ids : ids.filter((id) => id === viewerId));
+    for (const targetId of this.players.keys()) {
+      this.sendTo(targetId, MessageType.CURATOR_PULSE_RESULT, {
+        ...pulseResult,
+        healedPlayerIds: onlyFor(pulseResult.healedPlayerIds, targetId),
+        affectedPlayerIds: onlyFor(pulseResult.affectedPlayerIds, targetId),
+        patients: this.visiblePatients(targetId),
+      });
+    }
     if (healedAny) this.checkGameEndConditions();
   }
 
@@ -921,9 +956,7 @@ class Room {
         for (const [playerId, player] of this.players) {
           const entity = this.gameState.entities[playerId];
           if (!entity || distanceBetween(entity, zone) > TRAP_RADIUS) continue;
-          const isOwner = playerId === zone.ownerId;
-          if (isOwner && !zone.hitsOwner) continue;
-          if (!player.isAsymRole && !isOwner) continue;
+          if (!player.isAsymRole) continue;
           this.stun(playerId, entity, zone.stunMs, now, zone.hpLoss || 0);
           triggered = true;
         }
@@ -1082,6 +1115,15 @@ class Room {
     return false;
   }
 
+  cancelEndlag(playerId) {
+    const entity = this.gameState.entities[playerId];
+    const now = Date.now();
+    if (!entity || entity.endlagUntil <= now || entity.flojera < ENDLAG_CANCEL_COST) return;
+    entity.flojera -= ENDLAG_CANCEL_COST;
+    entity.endlagUntil = 0;
+    entity.stunnedUntil = now;
+  }
+
   gainExacerbacion(entity, now) {
     const active = entity.exacerbacionUntil > now;
     entity.exacerbacionLevel = Math.min(EXACERBACION_MAX_LEVEL, (active ? entity.exacerbacionLevel : 0) + 1);
@@ -1089,8 +1131,10 @@ class Room {
   }
 
   endlag(playerId, entity, now) {
-    this.stun(playerId, entity, ENDLAG_MS, now, 0);
-    entity.endlagUntil = now + ENDLAG_MS;
+    const missing = 1 - Math.max(0, Math.min(1, entity.flojera / entity.flojeraMax));
+    const ms = ENDLAG_MIN_MS + (ENDLAG_MAX_MS - ENDLAG_MIN_MS) * missing;
+    this.stun(playerId, entity, ms, now, 0);
+    entity.endlagUntil = now + ms;
   }
 
   applyCardEffect(playerId, entity, card, now) {
@@ -1152,7 +1196,6 @@ class Room {
           armedAt: now + TRAP_ARM_MS,
           until: now + TRAP_LIFETIME_MS,
           cardId: card.id,
-          hitsOwner: card.id === 'platano_podrido',
           stunMs: card.id === 'platano_podrido' ? 3500 : 2000,
           hpLoss: card.curatorHpLoss || 0,
         });
@@ -1342,6 +1385,9 @@ class Room {
       this.sendTo(curadorId, MessageType.ERROR, { message: 'Solo el Curador puede curar' });
       return;
     }
+    if (Date.now() < (this.gameState.curatorReleaseAt || 0)) return;
+    const baseEntity = this.gameState.entities[curadorId];
+    if (!baseEntity || baseEntity.baseCooldownUntil > Date.now()) return;
 
     const patient = this.gameState.patients[targetPlayerId];
     if (!patient || patient.status !== 'alive') {
@@ -1360,6 +1406,7 @@ class Room {
       return;
     }
 
+    curadorEntity.baseCooldownUntil = Date.now() + (Characters.getCharacter(curador.characterId).baseCooldownMs || 900);
     const boost = curadorEntity.cureBoostUntil > Date.now() ? curadorEntity.cureBoostFactor : 1;
     patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, CURE_AMOUNT * boost, Date.now()));
     if (patient.hp >= patient.maxHp) {

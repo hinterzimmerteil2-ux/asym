@@ -75,6 +75,7 @@ export default function LobbyPage() {
   const [characters, setCharacters] = useState([]);
   const [cardCatalog, setCardCatalog] = useState([]);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [spawnMs, setSpawnMs] = useState(0);
   const [hitboxes, setHitboxes] = useState({ on: false, opacity: 0.7 });
   const [maps, setMaps] = useState([]);
   const [mapId, setMapId] = useState('default');
@@ -154,6 +155,7 @@ export default function LobbyPage() {
             setSelfDamageObjects(payload.selfDamageObjects || {});
             setZones(payload.zones || []);
             setCuratorHp(payload.curator || null);
+            setSpawnMs(payload.spawnMs || 0);
             entitiesRef.current = payload.entities || {};
             setStunnedIds(Object.entries(payload.flojera || {}).filter(([, v]) => v.stunned).map(([id]) => id));
             setPatients(payload.patients || {});
@@ -455,6 +457,7 @@ export default function LobbyPage() {
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (e.code === 'KeyH') setHelpOpen((open) => !open);
+      else if (e.code === 'KeyC') connRef.current?.send('cancel_endlag', {});
       else if (e.code === 'KeyB') setHitboxes((prev) => ({ ...prev, on: !prev.on }));
       else if (e.code === 'Escape') setHelpOpen(false);
       else if (e.code === 'Digit1') handleUseCard(0);
@@ -689,6 +692,10 @@ export default function LobbyPage() {
               <div style={styles.curatorHpFill(curatorHp.hp / curatorHp.max)} />
             </div>
           </div>
+        )}
+
+        {phase === 'action' && isAsymRole && spawnMs > 0 && (
+          <div style={styles.resolvedBanner(false)}>Entras en {Math.ceil(spawnMs / 1000)}s</div>
         )}
 
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} />}

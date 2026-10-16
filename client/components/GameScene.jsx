@@ -894,18 +894,18 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
     <>
       {Object.entries(entities || {}).map(([id, entity]) => (
         <group key={id}>
-          <SquareFrame x={entity.x} z={entity.z} half={0.4} color="#54d1f2" opacity={opacity} width={0.1} />
-          {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} half={2.5} color="#5fd58c" opacity={opacity * 0.6} />}
+          <SquareFrame x={entity.x} z={entity.z} half={0.4} color="#e0555f" opacity={opacity} width={0.1} />
+          {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} half={2.5} color="#e0555f" opacity={opacity * 0.6} />}
         </group>
       ))}
       {(collisionObjects || []).map((obj) => (
-        <SquareFrame key={obj.id} x={obj.x} z={obj.z} half={obj.radius + 0.4} color="#f2a154" opacity={opacity} />
+        <SquareFrame key={obj.id} x={obj.x} z={obj.z} half={obj.radius + 0.4} color="#e0555f" opacity={opacity} />
       ))}
       {Object.entries(selfDamageObjects || {}).map(([id, pos]) => (
         <SquareFrame key={id} x={pos.x} z={pos.z} half={2.5} color="#e0555f" opacity={opacity} />
       ))}
       {(zones || []).map((zone) => (
-        <SquareFrame key={zone.id} x={zone.x} z={zone.z} half={zone.radius} color="#ffffff" opacity={opacity} />
+        <SquareFrame key={zone.id} x={zone.x} z={zone.z} half={zone.radius} color="#e0555f" opacity={opacity} />
       ))}
     </>
   );
