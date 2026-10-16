@@ -180,6 +180,7 @@ export default function LobbyPage() {
             if (caster) {
               const effect = {
                 id: `fx${++effectCounterRef.current}`,
+                casterId: payload.playerId,
                 kind: `skill_${payload.skillId || payload.skillType}`,
                 baseKind: `skill_${payload.skillType}`,
                 x: caster.x,
@@ -213,6 +214,7 @@ export default function LobbyPage() {
             if (caster) {
               const effect = {
                 id: `fx${++effectCounterRef.current}`,
+                casterId: payload.playerId,
                 kind: `card_${payload.cardId}`,
                 x: caster.x,
                 z: caster.z,

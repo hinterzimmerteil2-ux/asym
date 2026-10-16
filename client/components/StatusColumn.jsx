@@ -13,16 +13,16 @@ export default function StatusColumn({ statuses }) {
         return (
           <div
             key={status.id}
-            style={styles.item(info.color)}
+            style={styles.item(info.color, info.dynamic)}
             onMouseEnter={() => setHovered(status.id)}
             onMouseLeave={() => setHovered(null)}
           >
             <SkillIcon id={info.icon} size={26} />
-            {status.level > 1 && <span style={styles.level}>{status.level}</span>}
+            {info.dynamic && <span style={styles.level}>{status.level}</span>}
             {hovered === status.id && (
               <div style={styles.tooltip}>
                 <div style={{ ...styles.tooltipTitle, color: info.color }}>
-                  {info.label} · nivel {status.level} · {Math.ceil(status.ms / 1000)}s
+                  {info.label} · {info.dynamic ? `nivel ${status.level}` : 'estático'} · {Math.ceil(status.ms / 1000)}s
                 </div>
                 <div style={styles.tooltipText}>{info.description}</div>
               </div>
@@ -36,7 +36,7 @@ export default function StatusColumn({ statuses }) {
 
 const styles = {
   column: { position: 'absolute', top: 150, left: 16, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 5 },
-  item: (color) => ({
+  item: (color, dynamic) => ({
     position: 'relative',
     width: 40,
     height: 40,
@@ -44,7 +44,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
-    border: `1px solid ${color}`,
+    border: `1px ${dynamic ? 'solid' : 'dashed'} ${color}`,
     background: 'rgba(18, 19, 26, 0.9)',
     cursor: 'help',
   }),

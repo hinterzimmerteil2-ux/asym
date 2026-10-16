@@ -70,7 +70,7 @@ export default function HelpPanel({ characters, cards, onClose }) {
               <SkillIcon id={status.icon} size={24} />
               <span />
               <span style={{ ...styles.itemName, color: status.color }}>{status.label}</span>
-              <span style={styles.itemText}>{status.favorable ? 'Te favorece. ' : 'Te perjudica. '}{status.description}</span>
+              <span style={styles.itemText}>{status.favorable ? 'Te favorece. ' : 'Te perjudica. '}{status.dynamic ? 'Dinámico (con nivel). ' : 'Estático. '}{status.description}</span>
             </div>
           ))}
         </div>

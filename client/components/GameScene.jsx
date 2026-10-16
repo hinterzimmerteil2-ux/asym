@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { BoxGeometry, Vector3 } from 'three';
 
@@ -17,7 +17,95 @@ const COLOR_METAL = '#8a8674';
 const COLOR_WALL_TINT = '#3d4a42';
 const COLOR_EMERGENCY_LIGHT = '#5468ff';
 
-function PlayerCapsule({ entityState, color, isMe, stunned }) {
+const FACING = new Map();
+const HAND_ANIMS = new Map();
+const ANIM_DURATION = { swing: 650, consume: 950, throw: 750, cast: 850 };
+const IMPACT_MS = { swing: 260, consume: 560, throw: 340, cast: 380 };
+const ANIM_BY_KIND = {
+  skill_melee_stun: 'swing',
+  card_tajo_carmesi: 'swing',
+  card_red_mist: 'swing',
+  card_tropiezo: 'swing',
+  card_chicharron: 'consume',
+  card_goyslop: 'consume',
+  card_racion_compartida: 'consume',
+  card_acetilcolina: 'consume',
+  skill_tonico_reforzado: 'consume',
+  card_agua_rimac: 'throw',
+  card_rimac_sin_filtrar: 'throw',
+  card_humo_yodo: 'throw',
+  card_humo_toxico: 'throw',
+  card_cascara_platano: 'throw',
+  card_platano_podrido: 'throw',
+  card_regalo_envenenado: 'throw',
+  card_receta_falsa: 'throw',
+  card_sobredosis: 'throw',
+  skill_somnifero_valeriana: 'throw',
+  skill_ronda_suero: 'throw',
+  skill_desinfectante: 'throw',
+  skill_pulso_hierbas: 'cast',
+  skill_anestesia: 'cast',
+  skill_camilla_magnetica: 'cast',
+  card_grito_animo: 'cast',
+  card_risa_enlatada: 'cast',
+  card_risa_macabra: 'cast',
+};
+
+function easeOut(t) {
+  return 1 - (1 - t) * (1 - t);
+}
+
+function HeldItem({ held }) {
+  const groupRef = useRef();
+  useFrame(() => {
+    const group = groupRef.current;
+    if (!group || !held) return;
+    const t = Math.min(1, (Date.now() - held.startedAt) / ANIM_DURATION[held.anim]);
+    group.visible = t < 1;
+    const e = easeOut(t);
+    if (held.anim === 'swing') {
+      group.position.set(0.55, 1.45, 0.1);
+      group.rotation.set(-Math.PI + 2.9 * e, 0, 0);
+      group.children[0].position.set(0, -0.9, 0);
+      group.scale.setScalar(1.2);
+    } else if (held.anim === 'consume') {
+      const toMouth = Math.min(1, t / 0.45);
+      const bites = t < 0.55 ? 1 : Math.max(0.15, 1 - (t - 0.55) * 2.2);
+      group.position.set(0.5 - 0.5 * easeOut(toMouth), 1.0 + 0.8 * easeOut(toMouth), 0.35);
+      group.rotation.set(0, 0, -0.6 * easeOut(toMouth));
+      group.children[0].position.set(0, 0, 0);
+      group.scale.setScalar(1.3 * bites);
+    } else if (held.anim === 'throw') {
+      const wind = Math.min(1, t / 0.3);
+      const fly = t < 0.3 ? 0 : (t - 0.3) / 0.7;
+      group.position.set(0.5, 1.2 + 0.6 * wind - 1.0 * fly + Math.sin(fly * Math.PI) * 0.8, 0.2 - 0.3 * wind + fly * 3);
+      group.rotation.set(fly * 9, 0, 0);
+      group.children[0].position.set(0, 0, 0);
+      group.scale.setScalar(1.2);
+    } else {
+      const lift = Math.min(1, t / 0.5);
+      group.position.set(0.5 - 0.5 * easeOut(lift), 1.0 + 1.4 * easeOut(lift), 0.3);
+      group.rotation.set(0, t * 10, 0);
+      group.children[0].position.set(0, 0, 0);
+      group.scale.setScalar(1.3 + 0.3 * Math.sin(t * 12));
+    }
+  });
+  if (!held) return null;
+  return (
+    <group ref={groupRef}>
+      <group>
+        <PropMesh kind={held.prop} color={held.color} />
+      </group>
+    </group>
+  );
+}
+
+function PlayerCapsule({ playerId, entityState, color, isMe, stunned }) {
+  const bodyRef = useRef();
+  const lastPos = useRef([entityState.x, entityState.z]);
+  const yaw = useRef(0);
+  const [held, setHeld] = useState(null);
+  const heldId = useRef(null);
   const groupRef = useRef();
   const targetPos = useRef([entityState.x, entityState.y, entityState.z]);
 
@@ -27,6 +115,27 @@ function PlayerCapsule({ entityState, color, isMe, stunned }) {
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
+    const mx = entityState.x - lastPos.current[0];
+    const mz = entityState.z - lastPos.current[1];
+    if (Math.abs(mx) + Math.abs(mz) > 0.01) {
+      const target = Math.atan2(mx, mz);
+      let diff = target - yaw.current;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      yaw.current += diff * Math.min(1, delta * 14);
+      lastPos.current = [entityState.x, entityState.z];
+    }
+    FACING.set(playerId, yaw.current);
+    if (bodyRef.current) bodyRef.current.rotation.y = yaw.current;
+    const anim = HAND_ANIMS.get(playerId);
+    if (anim && anim.id !== heldId.current) {
+      heldId.current = anim.id;
+      setHeld(anim);
+    } else if (!anim && heldId.current) {
+      heldId.current = null;
+      setHeld(null);
+    } else if (anim && Date.now() - anim.startedAt > ANIM_DURATION[anim.anim]) {
+      HAND_ANIMS.delete(playerId);
+    }
     const t = Math.min(1, delta * 12);
     groupRef.current.position.x += (targetPos.current[0] - groupRef.current.position.x) * t;
     groupRef.current.position.y += (targetPos.current[1] - groupRef.current.position.y) * t;
@@ -35,10 +144,21 @@ function PlayerCapsule({ entityState, color, isMe, stunned }) {
 
   return (
     <group ref={groupRef} position={targetPos.current}>
-      <mesh castShadow position={[0, 0.9, 0]}>
-        <capsuleGeometry args={[0.4, 1.1, 4, 12]} />
-        <meshStandardMaterial color={color} roughness={0.4} metalness={0.1} />
-      </mesh>
+      <group ref={bodyRef}>
+        <mesh castShadow position={[0, 0.9, 0]}>
+          <capsuleGeometry args={[0.4, 1.1, 4, 12]} />
+          <meshStandardMaterial color={color} roughness={0.4} metalness={0.1} />
+        </mesh>
+        <mesh position={[0, 1.45, 0.36]}>
+          <boxGeometry args={[0.3, 0.12, 0.1]} />
+          <meshStandardMaterial color="#12131a" />
+        </mesh>
+        <mesh position={[0.5, 1.0, 0.3]}>
+          <sphereGeometry args={[0.13, 10, 8]} />
+          <meshStandardMaterial color={color} roughness={0.4} />
+        </mesh>
+        <HeldItem held={held} />
+      </group>
       {stunned && <StunHalo />}
       {isMe && (
         <mesh position={[0, 2.1, 0]}>
@@ -181,20 +301,24 @@ function PuddleRipples({ radius, color }) {
   const refs = useRef([]);
   useFrame(() => {
     const t = (Date.now() % 1800) / 1800;
-    refs.current.forEach((mesh, i) => {
-      if (!mesh) return;
+    refs.current.forEach((group, i) => {
+      if (!group) return;
       const phase = (t + i / 3) % 1;
-      mesh.scale.setScalar(Math.max(0.05, phase * radius));
-      mesh.material.opacity = (1 - phase) * 0.6;
+      group.scale.setScalar(Math.max(0.05, phase));
+      group.children.forEach((child) => { child.material.opacity = (1 - phase) * 0.6; });
     });
   });
   return (
-    <group position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+    <group>
       {[0, 1, 2].map((i) => (
-        <mesh key={i} ref={(el) => { refs.current[i] = el; }}>
-          <ringGeometry args={[0.92, 1, 40]} />
-          <meshBasicMaterial color={color} transparent depthWrite={false} side={2} />
-        </mesh>
+        <group key={i} ref={(el) => { refs.current[i] = el; }}>
+          {[[0, -1, 2, 0.06], [0, 1, 2, 0.06], [-1, 0, 0.06, 2], [1, 0, 0.06, 2]].map(([ex, ez, w, d], k) => (
+            <mesh key={k} position={[ex * radius, 0.06, ez * radius]} rotation={[-Math.PI / 2, 0, 0]} scale={[radius, radius, 1]}>
+              <planeGeometry args={[w, d]} />
+              <meshBasicMaterial color={color} transparent depthWrite={false} side={2} />
+            </mesh>
+          ))}
+        </group>
       ))}
     </group>
   );
@@ -216,10 +340,14 @@ function ZoneDisc({ zone }) {
   const bananaColor = zone.cardId === 'platano_podrido' ? '#7a6a2a' : '#f2d154';
   return (
     <group position={[zone.x, 0, zone.z]}>
-      <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        {isTrap ? <ringGeometry args={[zone.radius - 0.08, zone.radius, 32]} /> : <circleGeometry args={[zone.radius, 32]} />}
-        <meshBasicMaterial color={color} transparent opacity={isTrap ? (zone.armed ? 0.5 : 0.2) : 0.3} />
-      </mesh>
+      {isTrap ? (
+        <SquareFrame x={0} z={0} half={zone.radius} color={color} opacity={zone.armed ? 0.6 : 0.25} y={0.05} width={0.12} />
+      ) : (
+        <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[zone.radius * 2, zone.radius * 2]} />
+          <meshBasicMaterial color={color} transparent opacity={0.3} />
+        </mesh>
+      )}
       {isTrap && <BananaMesh color={bananaColor} spotted={zone.cardId === 'platano_podrido'} />}
       {zone.kind === 'rimac' && (
         <>
@@ -442,8 +570,18 @@ function PropMesh({ kind, color }) {
 function Particles({ effect, fx }) {
   const refs = useRef([]);
   const propRef = useRef();
+  const anim = fx.prop && fx.prop !== 'roots' ? ANIM_BY_KIND[effect.kind] || 'cast' : null;
   const duration = fx.prop ? 1300 : 900;
-  const impact = fx.prop === 'roots' ? 0.25 : fx.prop ? 0.4 : 0;
+  const impact = fx.prop === 'roots' ? 0.25 : anim ? IMPACT_MS[anim] / duration : fx.prop ? 0.4 : 0;
+  const yawAtCast = FACING.get(effect.casterId) || 0;
+  const originX = anim === 'throw' ? Math.sin(yawAtCast) * 3 : 0;
+  const originZ = anim === 'throw' ? Math.cos(yawAtCast) * 3 : 0;
+
+  useEffect(() => {
+    if (anim && effect.casterId) {
+      HAND_ANIMS.set(effect.casterId, { id: effect.id, anim, prop: fx.prop, color: fx.liquid || fx.color, startedAt: effect.startedAt });
+    }
+  }, []);
   const particles = Array.from({ length: fx.count }, (_, i) => {
     const angle = rand(effect.startedAt, i) * Math.PI * 2;
     const spread = 0.4 + rand(effect.startedAt, i + 50) * 0.8;
@@ -460,7 +598,7 @@ function Particles({ effect, fx }) {
 
   useFrame(() => {
     const t = (Date.now() - effect.startedAt) / duration;
-    if (propRef.current) {
+    if (propRef.current && !anim) {
       const fall = Math.max(0, Math.min(1, (t - 0.18) / (impact - 0.18)));
       propRef.current.visible = t < impact;
       if (fx.prop === 'roots') {
@@ -495,8 +633,8 @@ function Particles({ effect, fx }) {
   });
 
   return (
-    <group position={[effect.x, 0, effect.z]}>
-      {fx.prop && <group ref={propRef}><PropMesh kind={fx.prop} color={fx.liquid || fx.color} /></group>}
+    <group position={[effect.x + originX, 0, effect.z + originZ]}>
+      {fx.prop && !anim && <group ref={propRef}><PropMesh kind={fx.prop} color={fx.liquid || fx.color} /></group>}
       {particles.map((p, i) => (
         <mesh key={i} ref={(el) => { refs.current[i] = el; }} visible={false}>
           {fx.shape === 'shard' && <tetrahedronGeometry args={[p.size * 1.4, 0]} />}
@@ -731,12 +869,23 @@ function useKeyboardInput(sendInput, yawRef, onPulse) {
   }, [sendInput, yawRef]);
 }
 
-function HitRing({ x, z, radius, color, opacity, width = 0.07 }) {
+function SquareFrame({ x, z, half, color, opacity, width = 0.08, y = 0.08 }) {
+  const side = half * 2;
+  const edges = [
+    [0, -half, side, width],
+    [0, half, side, width],
+    [-half, 0, width, side],
+    [half, 0, width, side],
+  ];
   return (
-    <mesh position={[x, 0.08, z]} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[Math.max(0.01, radius - width), radius, 48]} />
-      <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} side={2} />
-    </mesh>
+    <group position={[x, y, z]}>
+      {edges.map(([ex, ez, w, d], i) => (
+        <mesh key={i} position={[ex, 0, ez]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[w, d]} />
+          <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} side={2} />
+        </mesh>
+      ))}
+    </group>
   );
 }
 
@@ -745,18 +894,18 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
     <>
       {Object.entries(entities || {}).map(([id, entity]) => (
         <group key={id}>
-          <HitRing x={entity.x} z={entity.z} radius={0.4} color="#54d1f2" opacity={opacity} width={0.1} />
-          {id === myPlayerId && <HitRing x={entity.x} z={entity.z} radius={2.5} color="#5fd58c" opacity={opacity * 0.6} />}
+          <SquareFrame x={entity.x} z={entity.z} half={0.4} color="#54d1f2" opacity={opacity} width={0.1} />
+          {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} half={2.5} color="#5fd58c" opacity={opacity * 0.6} />}
         </group>
       ))}
       {(collisionObjects || []).map((obj) => (
-        <HitRing key={obj.id} x={obj.x} z={obj.z} radius={obj.radius + 0.4} color="#f2a154" opacity={opacity} />
+        <SquareFrame key={obj.id} x={obj.x} z={obj.z} half={obj.radius + 0.4} color="#f2a154" opacity={opacity} />
       ))}
       {Object.entries(selfDamageObjects || {}).map(([id, pos]) => (
-        <HitRing key={id} x={pos.x} z={pos.z} radius={2.5} color="#e0555f" opacity={opacity} />
+        <SquareFrame key={id} x={pos.x} z={pos.z} half={2.5} color="#e0555f" opacity={opacity} />
       ))}
       {(zones || []).map((zone) => (
-        <HitRing key={zone.id} x={zone.x} z={zone.z} radius={zone.radius} color="#ffffff" opacity={opacity} />
+        <SquareFrame key={zone.id} x={zone.x} z={zone.z} half={zone.radius} color="#ffffff" opacity={opacity} />
       ))}
     </>
   );
@@ -841,6 +990,7 @@ export default function GameScene({
             }}
           >
             <PlayerCapsule
+              playerId={playerId}
               entityState={entityState}
               color={color}
               isMe={playerId === myPlayerId}

@@ -49,7 +49,6 @@ const SPRINT_CARD_MULTIPLIER = 1.5;
 const ROLL_DISTANCE = 7;
 const SEGUNDO_ALIENTO_AMOUNT = 60;
 const HUMO_RADIUS = 7;
-const HUMO_SLOW_MULTIPLIER = 0.5;
 const GOLPE_DOBLE_FACTOR = 2;
 const TROPIEZO_RADIUS = 3;
 const RELOCATE_INTERVAL_MS = 25000;
@@ -80,7 +79,9 @@ const EXACERBACION_MS = 8000;
 const EXACERBACION_STEP = 0.2;
 const ACETIL_FACTOR = 2.2;
 const ACETIL_ALLY_RADIUS = 1.5;
-const ACETIL_ALLY_FACTOR = 1.25;
+const ACETIL_ALLY_STEP = 0.25;
+const ALLY_BOOST_MAX_LEVEL = 3;
+const SLOW_BY_LEVEL = [1, 0.5, 0.35, 0.25];
 const ACETIL_REGEN_DELAY_MS = 1000;
 const ACETIL_FATIGUE_MS = 4000;
 const ACETIL_FATIGUE_FACTOR = 0.7;
@@ -96,11 +97,12 @@ function clampUnit(value) {
   return Math.max(-1, Math.min(1, n));
 }
 
+function euclid(a, b) {
+  return Math.hypot(a.x - b.x, a.z - b.z);
+}
+
 function distanceBetween(a, b) {
-  const dx = a.x - b.x;
-  const dy = (a.y || 0) - (b.y || 0);
-  const dz = a.z - b.z;
-  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  return Math.max(Math.abs(a.x - b.x), Math.abs(a.z - b.z), Math.abs((a.y || 0) - (b.y || 0)));
 }
 
 class Room {
@@ -163,8 +165,9 @@ class Room {
       return;
     }
     if (targetDist > INTERACTION_RADIUS - 0.5) {
-      entity.input.moveX = (target.entity.x - entity.x) / targetDist;
-      entity.input.moveZ = (target.entity.z - entity.z) / targetDist;
+      const reach = euclid(entity, target.entity) || 1;
+      entity.input.moveX = (target.entity.x - entity.x) / reach;
+      entity.input.moveZ = (target.entity.z - entity.z) / reach;
     } else {
       entity.input.moveX = 0;
       entity.input.moveZ = 0;
@@ -215,8 +218,9 @@ class Room {
           player.nextBotAct = now + 700;
         }
       } else {
-        entity.input.moveX = (best.pos.x - entity.x) / bestDist;
-        entity.input.moveZ = (best.pos.z - entity.z) / bestDist;
+        const reach = euclid(entity, best.pos) || 1;
+        entity.input.moveX = (best.pos.x - entity.x) / reach;
+        entity.input.moveZ = (best.pos.z - entity.z) / reach;
       }
       if (now > (player.nextBotCard || 0)) {
         player.nextBotCard = now + 3000 + Math.random() * 4000;
@@ -274,6 +278,8 @@ class Room {
       regenBlockedUntil: 0,
       fatigueUntil: 0,
       allyBoostUntil: 0,
+      allyBoostLevel: 0,
+      slowedLevel: 1,
       endlagUntil: 0,
       slowedUntil: 0,
       doubleSelfDamage: false,
@@ -520,6 +526,8 @@ class Room {
       entity.regenBlockedUntil = 0;
       entity.fatigueUntil = 0;
       entity.allyBoostUntil = 0;
+      entity.allyBoostLevel = 0;
+      entity.slowedLevel = 1;
       entity.endlagUntil = 0;
       entity.slowedUntil = 0;
       entity.doubleSelfDamage = false;
@@ -603,10 +611,11 @@ class Room {
     add('pereza', entity.perezaLevel || 1, entity.perezaUntil);
     add('acetilcolina', 1, entity.acetilUntil);
     if (entity.acetilUntil <= now) add('fatiga', 1, entity.fatigueUntil);
-    add('impulso', 1, entity.allyBoostUntil);
+    add('impulso', entity.allyBoostLevel || 1, entity.allyBoostUntil);
+    if (entity.acetilUntil > now || entity.regenBlockedUntil > now) add('ayuno', 1, Math.max(entity.acetilUntil, entity.regenBlockedUntil));
     add('endlag', 1, entity.endlagUntil);
     if (entity.endlagUntil <= now) add('aturdido', 1, entity.stunnedUntil);
-    add('ralentizado', 1, entity.slowedUntil);
+    add('ralentizado', entity.slowedLevel || 1, entity.slowedUntil);
     return list;
   }
 
@@ -617,6 +626,15 @@ class Room {
       this.phase === 'action' ? GameMap.resolveCollisionObjects(this.mapId, GameMap.MATCH_AREA) : [];
 
     const now = Date.now();
+    const allyCounts = {};
+    for (const [sourceId, source] of Object.entries(this.gameState.entities)) {
+      if (source.acetilUntil <= now) continue;
+      for (const [otherId, patient] of Object.entries(this.gameState.patients)) {
+        const other = this.gameState.entities[otherId];
+        if (otherId === sourceId || patient.status !== 'alive' || !other) continue;
+        if (distanceBetween(source, other) <= ACETIL_ALLY_RADIUS) allyCounts[otherId] = (allyCounts[otherId] || 0) + 1;
+      }
+    }
     for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
       const { input } = entity;
       const inAction = this.phase === 'action';
@@ -633,16 +651,13 @@ class Room {
       } else if (wantsSlow) {
         speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
       }
-      if (entity.slowedUntil > now) speedMultiplier *= HUMO_SLOW_MULTIPLIER;
+      if (entity.slowedUntil > now) speedMultiplier *= SLOW_BY_LEVEL[Math.min(3, entity.slowedLevel || 1)];
       if (entity.acetilUntil <= now && entity.fatigueUntil > now) speedMultiplier *= ACETIL_FATIGUE_FACTOR;
-      if (entity.allyBoostUntil > now) speedMultiplier *= ACETIL_ALLY_FACTOR;
-      if (entity.acetilUntil > now) {
-        for (const [otherId, patient] of Object.entries(this.gameState.patients)) {
-          const other = this.gameState.entities[otherId];
-          if (otherId === entityPlayerId || patient.status !== 'alive' || !other) continue;
-          if (distanceBetween(entity, other) <= ACETIL_ALLY_RADIUS) other.allyBoostUntil = now + 2000;
-        }
+      if (allyCounts[entityPlayerId]) {
+        entity.allyBoostUntil = now + 2000;
+        entity.allyBoostLevel = Math.min(ALLY_BOOST_MAX_LEVEL, allyCounts[entityPlayerId]);
       }
+      if (entity.allyBoostUntil > now) speedMultiplier *= 1 + ACETIL_ALLY_STEP * (entity.allyBoostLevel || 1);
       if (stunned) speedMultiplier = 0;
 
       if (inAction) {
@@ -778,10 +793,11 @@ class Room {
         } else if (skill.type === 'stun') {
           targetEntity.stunnedUntil = now + skill.durationMs;
         } else if (skill.type === 'pull') {
-          const travel = Math.min(skill.strength, Math.max(0, dist - 1));
-          if (dist > 0) {
-            targetEntity.x += ((curadorEntity.x - targetEntity.x) / dist) * travel;
-            targetEntity.z += ((curadorEntity.z - targetEntity.z) / dist) * travel;
+          const flat = euclid(curadorEntity, targetEntity);
+          const travel = Math.min(skill.strength, Math.max(0, flat - 1));
+          if (flat > 0) {
+            targetEntity.x += ((curadorEntity.x - targetEntity.x) / flat) * travel;
+            targetEntity.z += ((curadorEntity.z - targetEntity.z) / flat) * travel;
           }
         } else if (skill.type === 'purge') {
           targetEntity.sprintUntil = 0;
@@ -892,6 +908,7 @@ class Room {
             if (!entity || distanceBetween(entity, zone) > zone.radius) continue;
             entity.flojera = Math.max(0, entity.flojera - RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC * dt);
             entity.slowedUntil = Math.max(entity.slowedUntil, now + 300);
+            entity.slowedLevel = Math.max(entity.slowedUntil > now + 300 ? entity.slowedLevel : 0, 1);
           }
         }
       } else if (zone.kind === 'trap' && now >= zone.armedAt) {
@@ -1077,6 +1094,7 @@ class Room {
           const otherEntity = this.gameState.entities[otherId];
           if (otherEntity && distanceBetween(entity, otherEntity) <= HUMO_RADIUS) {
             otherEntity.slowedUntil = now + card.durationMs;
+            otherEntity.slowedLevel = 1;
           }
         }
         break;
@@ -1177,6 +1195,7 @@ class Room {
           const otherEntity = this.gameState.entities[otherId];
           if (otherEntity && distanceBetween(entity, otherEntity) <= 9) {
             otherEntity.slowedUntil = now + card.durationMs;
+            otherEntity.slowedLevel = 2;
             this.adjustCuratorHp(-card.curatorHpLoss);
           }
         }
