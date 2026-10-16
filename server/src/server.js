@@ -190,6 +190,7 @@ wss.on('connection', (ws) => {
           phase: 'action',
           state: room.gameState,
           collisionObjects: GameMap.resolveCollisionObjects(room.mapId, GameMap.MATCH_AREA),
+          platforms: GameMap.resolvePlatforms(room.mapId, GameMap.MATCH_AREA),
         });
         break;
       }

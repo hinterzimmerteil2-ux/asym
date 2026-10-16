@@ -51,13 +51,22 @@ const DEFAULT_MAP_LAYOUT = {
     { id: 'col_5', type: 'shelf', xFrac: 0.5, zFrac: -0.1, radiusFrac: 0.05 },
     { id: 'col_6', type: 'cart', xFrac: -0.133, zFrac: 0.3, radiusFrac: 0.03 },
     { id: 'col_7', type: 'cart', xFrac: 0.133, zFrac: -0.3, radiusFrac: 0.03 },
-    { id: 'col_8', type: 'cart', xFrac: -0.533, zFrac: 0.267, radiusFrac: 0.03 },
+    { id: 'col_8', type: 'cart', xFrac: -0.533, zFrac: 0.5, radiusFrac: 0.03 },
     { id: 'col_9', type: 'pillar', xFrac: 0.4, zFrac: 0.4, radiusFrac: 0.033 },
     { id: 'col_10', type: 'pillar', xFrac: -0.4, zFrac: 0.4, radiusFrac: 0.033 },
     { id: 'col_11', type: 'pillar', xFrac: 0.4, zFrac: -0.4, radiusFrac: 0.033 },
     { id: 'col_12', type: 'pillar', xFrac: -0.4, zFrac: -0.4, radiusFrac: 0.033 },
     { id: 'col_13', type: 'gurney', xFrac: 0.067, zFrac: 0.567, radiusFrac: 0.04 },
     { id: 'col_14', type: 'shelf', xFrac: -0.1, zFrac: -0.6, radiusFrac: 0.05 },
+  ],
+
+  platforms: [
+    { id: 'plat_1', xFrac: -0.75, zFrac: 0.25, hxFrac: 0.15, hzFrac: 0.2, h: 2.4 },
+    { id: 'ramp_1', xFrac: -0.48, zFrac: 0.25, hxFrac: 0.12, hzFrac: 0.1, h: 2.4, ramp: '-x' },
+    { id: 'plat_2', xFrac: 0.75, zFrac: 0.25, hxFrac: 0.15, hzFrac: 0.2, h: 2.4 },
+    { id: 'ramp_2', xFrac: 0.48, zFrac: 0.25, hxFrac: 0.12, hzFrac: 0.1, h: 2.4, ramp: '+x' },
+    { id: 'plat_3', xFrac: 0, zFrac: -0.75, hxFrac: 0.2, hzFrac: 0.12, h: 1.6 },
+    { id: 'ramp_3', xFrac: 0.3, zFrac: -0.75, hxFrac: 0.1, hzFrac: 0.08, h: 1.6, ramp: '-x' },
   ],
 };
 
@@ -157,6 +166,19 @@ function getPatientSpawnPositions(count, area) {
   return positions;
 }
 
+function resolvePlatforms(mapId, area) {
+  const layout = MAPS[mapId] || MAPS[DEFAULT_MAP_ID];
+  return (layout.platforms || []).map((p) => ({
+    id: p.id,
+    x: p.xFrac * area.halfSize,
+    z: p.zFrac * area.halfSize,
+    hx: p.hxFrac * area.halfSize,
+    hz: p.hzFrac * area.halfSize,
+    h: p.h,
+    ramp: p.ramp || null,
+  }));
+}
+
 function getCuratorSpawn() {
   return { x: 0, z: 0 };
 }
@@ -168,6 +190,7 @@ module.exports = {
   DEFAULT_MAP_ID,
   resolveSelfDamagePositions,
   resolveCollisionObjects,
+  resolvePlatforms,
   getPatientSpawnPositions,
   getCuratorSpawn,
   registerMap,

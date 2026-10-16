@@ -66,6 +66,7 @@ export default function LobbyPage() {
   const entitiesRef = useRef({});
   const effectCounterRef = useRef(0);
   const [collisionObjects, setCollisionObjects] = useState([]);
+  const [platforms, setPlatforms] = useState([]);
   const [patients, setPatients] = useState({});
   const [timeRemainingMs, setTimeRemainingMs] = useState(null);
   const [lastActionFeedback, setLastActionFeedback] = useState(null);
@@ -236,6 +237,7 @@ export default function LobbyPage() {
           case 'game_started':
             setPhase(payload.phase);
             setCollisionObjects(payload.collisionObjects || []);
+            setPlatforms(payload.platforms || []);
             break;
           case 'room_full':
             setJoinLoading(false);
@@ -507,6 +509,7 @@ export default function LobbyPage() {
             effects={effects}
             stunnedIds={stunnedIds}
             collisionObjects={collisionObjects}
+            platforms={platforms}
             sendInput={handleSendInput}
             sendAction={handleSendAction}
             onPulse={handlePulse}

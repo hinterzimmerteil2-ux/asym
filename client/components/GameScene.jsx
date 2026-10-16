@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { BoxGeometry, Vector3 } from 'three';
+import { BoxGeometry, EdgesGeometry, Vector3 } from 'three';
 
 const LOBBY_HALF_SIZE = 15;
 const MATCH_HALF_SIZE = 30;
@@ -347,7 +347,7 @@ function ZoneDisc({ zone }) {
   return (
     <group position={[zone.x, 0, zone.z]}>
       {isTrap ? (
-        <SquareFrame x={0} z={0} half={zone.radius} color={color} opacity={zone.armed ? 0.6 : 0.25} y={0.05} width={0.12} />
+        <SquareFrame x={0} z={0} half={zone.radius} color={color} opacity={zone.armed ? 0.6 : 0.25} />
       ) : (
         <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[zone.radius * 2, zone.radius * 2]} />
@@ -875,23 +875,32 @@ function useKeyboardInput(sendInput, yawRef, onPulse) {
   }, [sendInput, yawRef]);
 }
 
-function SquareFrame({ x, z, half, color, opacity, width = 0.08, y = 0.08 }) {
-  const side = half * 2;
-  const edges = [
-    [0, -half, side, width],
-    [0, half, side, width],
-    [-half, 0, width, side],
-    [half, 0, width, side],
-  ];
+function SquareFrame({ x, z, half, color, opacity, y = 0 }) {
+  const geometry = useMemo(() => new EdgesGeometry(new BoxGeometry(half * 2, half * 2, half * 2)), [half]);
   return (
-    <group position={[x, y, z]}>
-      {edges.map(([ex, ez, w, d], i) => (
-        <mesh key={i} position={[ex, 0, ez]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[w, d]} />
-          <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} side={2} />
-        </mesh>
-      ))}
-    </group>
+    <lineSegments position={[x, y, z]} geometry={geometry}>
+      <lineBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+    </lineSegments>
+  );
+}
+
+function Platform({ p }) {
+  const color = p.ramp ? '#5b6270' : '#464c59';
+  if (!p.ramp) {
+    return (
+      <mesh position={[p.x, p.h / 2, p.z]} castShadow receiveShadow>
+        <boxGeometry args={[p.hx * 2, p.h, p.hz * 2]} />
+        <meshStandardMaterial color={color} roughness={0.8} />
+      </mesh>
+    );
+  }
+  const len = p.hx * 2;
+  const angle = Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1);
+  return (
+    <mesh position={[p.x, p.h / 2, p.z]} rotation={[0, 0, angle]} castShadow receiveShadow>
+      <boxGeometry args={[Math.hypot(len, p.h), 0.2, p.hz * 2]} />
+      <meshStandardMaterial color={color} roughness={0.8} />
+    </mesh>
   );
 }
 
@@ -900,12 +909,12 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
     <>
       {Object.entries(entities || {}).map(([id, entity]) => (
         <group key={id}>
-          <SquareFrame x={entity.x} z={entity.z} half={0.4} color="#e0555f" opacity={opacity} width={0.1} />
-          {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} half={2.5} color="#e0555f" opacity={opacity * 0.6} />}
+          <SquareFrame x={entity.x} z={entity.z} y={entity.y + 0.9} half={0.9} color="#e0555f" opacity={opacity} />
+          {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} y={entity.y} half={2.5} color="#e0555f" opacity={opacity * 0.6} />}
         </group>
       ))}
       {(collisionObjects || []).map((obj) => (
-        <SquareFrame key={obj.id} x={obj.x} z={obj.z} half={obj.radius + 0.4} color="#e0555f" opacity={opacity} />
+        <SquareFrame key={obj.id} x={obj.x} z={obj.z} y={obj.radius + 0.4} half={obj.radius + 0.4} color="#e0555f" opacity={opacity} />
       ))}
       {Object.entries(selfDamageObjects || {}).map(([id, pos]) => (
         <SquareFrame key={id} x={pos.x} z={pos.z} half={2.5} color="#e0555f" opacity={opacity} />
@@ -927,6 +936,7 @@ export default function GameScene({
   effects,
   stunnedIds,
   collisionObjects,
+  platforms,
   sendInput,
   sendAction,
   onPulse,
@@ -962,6 +972,8 @@ export default function GameScene({
           opacity={hitboxes.opacity}
         />
       )}
+
+      {phase === 'action' && (platforms || []).map((p) => <Platform key={p.id} p={p} />)}
 
       {phase === 'action' &&
         (collisionObjects || []).map((obj) => <CollisionObject key={obj.id} obj={obj} />)}

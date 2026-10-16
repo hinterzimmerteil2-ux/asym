@@ -24,7 +24,11 @@ const CHAT_RATE_LIMIT_MS = 500;
 
 // --- Constantes de movimiento ---
 const MOVE_SPEED = 5;
-const JUMP_VELOCITY = 6;
+const JUMP_VELOCITY = 4.5;
+const STEP_UP = 0.5;
+const STEP_DOWN = 0.7;
+const FALL_ENDLAG_MIN = 1.2;
+const FALL_ENDLAG_MS = 1800;
 const GRAVITY = -18;
 const GROUND_Y = 0;
 const PLAYER_COLLISION_RADIUS = 0.4;
@@ -102,6 +106,30 @@ function clampUnit(value) {
 
 function euclid(a, b) {
   return Math.hypot(a.x - b.x, a.z - b.z);
+}
+
+function platformTop(p, x, z) {
+  if (Math.abs(x - p.x) > p.hx || Math.abs(z - p.z) > p.hz) return null;
+  if (!p.ramp) return p.h;
+  const t = p.ramp === '-x' ? (p.x + p.hx - x) / (2 * p.hx) : (x - (p.x - p.hx)) / (2 * p.hx);
+  return Math.max(0, Math.min(1, t)) * p.h;
+}
+
+function groundAt(platforms, x, z, y) {
+  let g = GROUND_Y;
+  for (const p of platforms) {
+    const top = platformTop(p, x, z);
+    if (top !== null && top <= y + STEP_UP && top > g) g = top;
+  }
+  return g;
+}
+
+function blockedAt(platforms, x, z, y) {
+  for (const p of platforms) {
+    const top = platformTop(p, x, z);
+    if (top !== null && top > y + STEP_UP) return true;
+  }
+  return false;
 }
 
 function distanceBetween(a, b) {
@@ -649,6 +677,8 @@ class Room {
     const area = this.getCurrentArea();
     const collisionObjects =
       this.phase === 'action' ? GameMap.resolveCollisionObjects(this.mapId, GameMap.MATCH_AREA) : [];
+    const platforms =
+      this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.MATCH_AREA) : [];
 
     const now = Date.now();
     const allyCounts = {};
@@ -710,8 +740,18 @@ class Room {
         }
       }
 
-      entity.x += input.moveX * MOVE_SPEED * speedMultiplier * dt;
-      entity.z += input.moveZ * MOVE_SPEED * speedMultiplier * dt;
+      const prevX = entity.x;
+      const prevZ = entity.z;
+      const nextX = entity.x + input.moveX * MOVE_SPEED * speedMultiplier * dt;
+      const nextZ = entity.z + input.moveZ * MOVE_SPEED * speedMultiplier * dt;
+      if (!blockedAt(platforms, nextX, nextZ, entity.y) || blockedAt(platforms, prevX, prevZ, entity.y)) {
+        entity.x = nextX;
+        entity.z = nextZ;
+      } else if (!blockedAt(platforms, nextX, prevZ, entity.y)) {
+        entity.x = nextX;
+      } else if (!blockedAt(platforms, prevX, nextZ, entity.y)) {
+        entity.z = nextZ;
+      }
 
       for (const obj of collisionObjects) {
         const dx = entity.x - obj.x;
@@ -733,13 +773,32 @@ class Room {
       if (input.jump && entity.onGround && !stunned) {
         entity.velocityY = JUMP_VELOCITY;
         entity.onGround = false;
+        entity.peakY = entity.y;
       }
-      entity.velocityY += GRAVITY * dt;
-      entity.y += entity.velocityY * dt;
-      if (entity.y <= GROUND_Y) {
-        entity.y = GROUND_Y;
+      let ground = groundAt(platforms, entity.x, entity.z, entity.y);
+      if (entity.onGround && entity.y > ground && entity.y - ground <= STEP_DOWN) entity.y = ground;
+      if (entity.onGround && entity.y - ground > STEP_DOWN) {
+        entity.onGround = false;
+        entity.peakY = entity.y;
+      }
+      if (entity.onGround) {
         entity.velocityY = 0;
-        entity.onGround = true;
+        entity.y = Math.max(entity.y, ground);
+      } else {
+        entity.velocityY += GRAVITY * dt;
+        entity.y += entity.velocityY * dt;
+        entity.peakY = Math.max(entity.peakY || entity.y, entity.y);
+        ground = groundAt(platforms, entity.x, entity.z, entity.y - entity.velocityY * dt);
+        if (entity.y <= ground) {
+          const fall = (entity.peakY || ground) - ground;
+          entity.y = ground;
+          entity.velocityY = 0;
+          entity.onGround = true;
+          const fallingPlayer = this.players.get(entityPlayerId);
+          if (fallingPlayer && !fallingPlayer.isAsymRole && fall > FALL_ENDLAG_MIN && inAction) {
+            this.endlag(entityPlayerId, entity, now, FALL_ENDLAG_MS);
+          }
+        }
       }
     }
   }
@@ -1131,12 +1190,13 @@ class Room {
     entity.exacerbacionUntil = now + EXACERBACION_MS;
   }
 
-  endlag(playerId, entity, now) {
+  endlag(playerId, entity, now, fixedMs) {
     const missing = 1 - Math.max(0, Math.min(1, entity.flojera / entity.flojeraMax));
-    const ms = ENDLAG_MIN_MS + (ENDLAG_MAX_MS - ENDLAG_MIN_MS) * missing;
+    const ms = fixedMs || ENDLAG_MIN_MS + (ENDLAG_MAX_MS - ENDLAG_MIN_MS) * missing;
     if (ms <= 0) return;
-    this.stun(playerId, entity, ms, now, 0);
-    entity.endlagUntil = now + ms;
+    const start = Math.max(now, entity.endlagUntil || 0);
+    this.stun(playerId, entity, start + ms - now, now, 0);
+    entity.endlagUntil = start + ms;
   }
 
   applyCardEffect(playerId, entity, card, now) {
