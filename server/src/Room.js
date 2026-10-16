@@ -87,7 +87,6 @@ const ACETIL_FATIGUE_FACTOR = 0.7;
 const CURATOR_SPAWN_DELAY_MS = 15000;
 const ENDLAG_MIN_MS = 500;
 const ENDLAG_MAX_MS = 1800;
-const ENDLAG_CANCEL_COST = 30;
 const FLOJERA_MAX = 100;
 const FLOJERA_MAX_MINIMUM = 40;
 const FLOJERA_DRAIN_PER_SEC = 20;
@@ -1113,15 +1112,6 @@ class Room {
       if (otherEntity && distanceBetween(entity, otherEntity) <= radius) return true;
     }
     return false;
-  }
-
-  cancelEndlag(playerId) {
-    const entity = this.gameState.entities[playerId];
-    const now = Date.now();
-    if (!entity || entity.endlagUntil <= now || entity.flojera < ENDLAG_CANCEL_COST) return;
-    entity.flojera -= ENDLAG_CANCEL_COST;
-    entity.endlagUntil = 0;
-    entity.stunnedUntil = now;
   }
 
   gainExacerbacion(entity, now) {

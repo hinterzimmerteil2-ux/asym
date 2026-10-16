@@ -457,7 +457,6 @@ export default function LobbyPage() {
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (e.code === 'KeyH') setHelpOpen((open) => !open);
-      else if (e.code === 'KeyC') connRef.current?.send('cancel_endlag', {});
       else if (e.code === 'KeyB') setHitboxes((prev) => ({ ...prev, on: !prev.on }));
       else if (e.code === 'Escape') setHelpOpen(false);
       else if (e.code === 'Digit1') handleUseCard(0);

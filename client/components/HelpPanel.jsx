@@ -10,7 +10,6 @@ const CONTROLS = [
   ['G', 'Golpe Aturdidor (Curador)'],
   ['1 2', 'Usar carta (Paciente)'],
   ['H', 'Abrir o cerrar esta ayuda'],
-  ['C', 'Cancelar el endlag (cuesta 30 de Flojera)'],
   ['B', 'Mostrar u ocultar hitboxes'],
 ];
 
