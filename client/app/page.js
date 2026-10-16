@@ -202,7 +202,7 @@ export default function LobbyPage() {
             break;
           }
           case 'card_offer':
-            setHand(payload.slots.map((slot) => ({ options: slot.options, chosen: null })));
+            setHand(payload.slots.map((slot) => ({ options: slot.options, chosen: slot.chosen || null })));
             setDraftEndsAt(payload.draftEndsAt);
             setCardCooldowns({});
             break;
@@ -710,6 +710,13 @@ export default function LobbyPage() {
         {phase === 'action' && !isAsymRole && hand.length > 0 && (
           <div style={styles.handContainer}>
             {hand.map((slot, i) => {
+              if (!slot.chosen && slot.options.length === 0) {
+                return (
+                  <div key={i} style={styles.draftSlot}>
+                    <span style={styles.draftTitle}>Slot {i + 1} · elige primero el anterior</span>
+                  </div>
+                );
+              }
               if (!slot.chosen) {
                 const secondsLeft = Math.max(0, Math.ceil((draftEndsAt - Math.max(draftNow, Date.now())) / 1000));
                 return (

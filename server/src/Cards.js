@@ -1,3 +1,5 @@
+const Synergy = require('./synergy');
+
 const RARITY_WEIGHTS = { common: 50, uncommon: 25, rare: 10 };
 
 const CARDS = {
@@ -222,32 +224,35 @@ function getCard(cardId) {
   return CARDS[cardId] || null;
 }
 
-function pickWeighted(pool) {
-  const total = pool.reduce((sum, card) => sum + card.weight, 0);
-  let roll = Math.random() * total;
-  for (const card of pool) {
-    roll -= card.weight;
-    if (roll <= 0) return card;
-  }
-  return pool[pool.length - 1];
-}
-
-function dealSlot() {
-  const pool = Object.values(CARDS);
+function dealSlot(chosenIds = []) {
+  const chosenCards = chosenIds.map((id) => CARDS[id]).filter(Boolean);
+  const pool = Object.values(CARDS).filter((card) => !chosenIds.includes(card.id));
   const options = [];
   while (options.length < OPTIONS_PER_SLOT && pool.length > 0) {
-    const card = pickWeighted(pool);
-    options.push(card.id);
-    pool.splice(pool.indexOf(card), 1);
+    const weighted = pool.map((card) => ({ card, weight: card.weight * Synergy.synergyMultiplier(card, chosenCards) }));
+    const total = weighted.reduce((sum, entry) => sum + entry.weight, 0);
+    let roll = Math.random() * total;
+    let picked = weighted[weighted.length - 1];
+    for (const entry of weighted) {
+      roll -= entry.weight;
+      if (roll <= 0) {
+        picked = entry;
+        break;
+      }
+    }
+    options.push(picked.card.id);
+    pool.splice(pool.indexOf(picked.card), 1);
   }
   return { options, chosen: null };
 }
 
 function dealSlots() {
-  const slots = [];
-  for (let i = 0; i < SLOT_COUNT; i++) slots.push(dealSlot());
+  const slots = [dealSlot([])];
+  for (let i = 1; i < SLOT_COUNT; i++) slots.push({ options: [], chosen: null });
   return slots;
 }
+
+Synergy.load(Object.values(CARDS));
 
 function listCards() {
   return Object.values(CARDS).map((card) => ({
@@ -258,13 +263,13 @@ function listCards() {
     corrupt: Boolean(card.corrupt),
     corruptOf: card.corruptOf || null,
     maxMode: card.maxMode || 'pick',
-    hitRadius: card.hitRadius || null,
     maxHpSet: card.maxHpSet || null,
     maxHpDelta: card.maxHpDelta || null,
     flojeraMaxDelta: card.flojeraMaxDelta || null,
+    hitRadius: card.hitRadius || null,
     rarity: card.rarity,
     keywords: card.keywords,
   }));
 }
 
-module.exports = { listCards, CARDS, SLOT_COUNT, OPTIONS_PER_SLOT, DRAFT_DURATION_MS, getCard, dealSlots };
+module.exports = { listCards, CARDS, SLOT_COUNT, OPTIONS_PER_SLOT, DRAFT_DURATION_MS, getCard, dealSlot, dealSlots };

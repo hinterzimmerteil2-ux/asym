@@ -197,7 +197,7 @@ class Room {
         continue;
       }
       entity.hand.forEach((slot, index) => {
-        if (!slot.chosen && now > (player.nextBotPick || 0)) {
+        if (!slot.chosen && slot.options.length && now > (player.nextBotPick || 0)) {
           const option = slot.options[Math.floor(Math.random() * slot.options.length)];
           this.chooseCard(botId, index, option);
           player.nextBotPick = now + 800;
@@ -950,12 +950,42 @@ class Room {
     return amount * Math.max(0.4, 1 - EXACERBACION_STEP * targetEntity.exacerbacionLevel);
   }
 
+  advanceDraft(playerId, entity) {
+    const next = entity.hand.findIndex((slot) => !slot.chosen);
+    if (next === -1) {
+      entity.draftEndsAt = 0;
+      return;
+    }
+    if (entity.hand[next].options.length === 0) {
+      const chosenIds = entity.hand.filter((slot) => slot.chosen).map((slot) => slot.chosen);
+      entity.hand[next] = Cards.dealSlot(chosenIds);
+      entity.draftEndsAt = Date.now() + Cards.DRAFT_DURATION_MS;
+      this.sendCardOffer(playerId, entity);
+    }
+  }
+
+  sendCardOffer(playerId, entity) {
+    this.sendTo(playerId, MessageType.CARD_OFFER, {
+      slots: entity.hand.map((slot) => ({
+        options: slot.options.map((id) => Cards.getCard(id)),
+        chosen: slot.chosen ? Cards.getCard(slot.chosen) : null,
+      })),
+      draftEndsAt: entity.draftEndsAt,
+    });
+  }
+
   autoPickExpiredDrafts(now) {
     for (const [playerId, entity] of Object.entries(this.gameState.entities)) {
       if (!entity.hand.length || entity.draftEndsAt === 0 || now < entity.draftEndsAt) continue;
-      entity.hand.forEach((slot, index) => {
-        if (!slot.chosen) this.finalizeChoice(playerId, index, slot.options[0]);
-      });
+      for (let guard = 0; guard < entity.hand.length; guard++) {
+        const index = entity.hand.findIndex((slot) => !slot.chosen);
+        if (index === -1) break;
+        if (entity.hand[index].options.length === 0) {
+          const chosenIds = entity.hand.filter((slot) => slot.chosen).map((slot) => slot.chosen);
+          entity.hand[index] = Cards.dealSlot(chosenIds);
+        }
+        this.finalizeChoice(playerId, index, entity.hand[index].options[0]);
+      }
       entity.draftEndsAt = 0;
     }
   }
@@ -990,7 +1020,7 @@ class Room {
       return;
     }
     this.finalizeChoice(playerId, slotIndex, cardId);
-    if (entity.hand.every((s) => s.chosen)) entity.draftEndsAt = 0;
+    this.advanceDraft(playerId, entity);
   }
 
   useCard(playerId, slotIndex) {
@@ -1468,10 +1498,7 @@ class Room {
         if (player.isAsymRole) continue;
         const entity = this.gameState.entities[playerId];
         if (!entity) continue;
-        this.sendTo(playerId, MessageType.CARD_OFFER, {
-          slots: entity.hand.map((slot) => ({ options: slot.options.map((id) => Cards.getCard(id)) })),
-          draftEndsAt: entity.draftEndsAt,
-        });
+        this.sendCardOffer(playerId, entity);
       }
     }
     this.broadcast(MessageType.PHASE_CHANGE, { newPhase, reason });
