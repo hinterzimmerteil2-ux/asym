@@ -875,8 +875,9 @@ function useKeyboardInput(sendInput, yawRef, onPulse) {
   }, [sendInput, yawRef]);
 }
 
-function SquareFrame({ x, z, half, color, opacity, y = 0 }) {
-  const geometry = useMemo(() => new EdgesGeometry(new BoxGeometry(half * 2, half * 2, half * 2)), [half]);
+function SquareFrame({ x, z, half, color, opacity, y = 0, hy }) {
+  const halfY = hy ?? half;
+  const geometry = useMemo(() => new EdgesGeometry(new BoxGeometry(half * 2, halfY * 2, half * 2)), [half, halfY]);
   return (
     <lineSegments position={[x, y, z]} geometry={geometry}>
       <lineBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
@@ -909,12 +910,12 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
     <>
       {Object.entries(entities || {}).map(([id, entity]) => (
         <group key={id}>
-          <SquareFrame x={entity.x} z={entity.z} y={entity.y + 0.9} half={0.9} color="#e0555f" opacity={opacity} />
+          <SquareFrame x={entity.x} z={entity.z} y={entity.y + 0.9} half={0.4} hy={0.9} color="#e0555f" opacity={opacity} />
           {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} y={entity.y} half={2.5} color="#e0555f" opacity={opacity * 0.6} />}
         </group>
       ))}
       {(collisionObjects || []).map((obj) => (
-        <SquareFrame key={obj.id} x={obj.x} z={obj.z} y={obj.radius + 0.4} half={obj.radius + 0.4} color="#e0555f" opacity={opacity} />
+        <SquareFrame key={obj.id} x={obj.x} z={obj.z} y={(obj.height || 1.2) / 2} half={obj.radius} hy={(obj.height || 1.2) / 2} color="#e0555f" opacity={opacity} />
       ))}
       {Object.entries(selfDamageObjects || {}).map(([id, pos]) => (
         <SquareFrame key={id} x={pos.x} z={pos.z} half={2.5} color="#e0555f" opacity={opacity} />

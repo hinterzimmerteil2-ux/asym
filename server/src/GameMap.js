@@ -136,6 +136,8 @@ function resolveSelfDamagePositions(mapId, area) {
   }));
 }
 
+const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3 };
+
 function resolveCollisionObjects(mapId, area) {
   const layout = MAPS[mapId] || MAPS[DEFAULT_MAP_ID];
   return layout.collisionObjects.map((obj) => ({
@@ -144,6 +146,7 @@ function resolveCollisionObjects(mapId, area) {
     x: obj.xFrac * area.halfSize,
     z: obj.zFrac * area.halfSize,
     radius: obj.radiusFrac * area.halfSize,
+    height: OBJECT_HEIGHTS[obj.type] || 1.2,
   }));
 }
 

@@ -115,25 +115,46 @@ function platformTop(p, x, z) {
   return Math.max(0, Math.min(1, t)) * p.h;
 }
 
+const PLAYER_HALF = 0.4;
+const PLAYER_HEIGHT = 1.8;
+const FOOTPRINT = [[0, 0], [PLAYER_HALF, PLAYER_HALF], [PLAYER_HALF, -PLAYER_HALF], [-PLAYER_HALF, PLAYER_HALF], [-PLAYER_HALF, -PLAYER_HALF]];
+
 function groundAt(platforms, x, z, y) {
   let g = GROUND_Y;
   for (const p of platforms) {
-    const top = platformTop(p, x, z);
-    if (top !== null && top <= y + STEP_UP && top > g) g = top;
+    for (const [ox, oz] of FOOTPRINT) {
+      const top = platformTop(p, x + ox, z + oz);
+      if (top !== null && top <= y + STEP_UP && top > g) g = top;
+    }
   }
   return g;
 }
 
 function blockedAt(platforms, x, z, y) {
   for (const p of platforms) {
-    const top = platformTop(p, x, z);
-    if (top !== null && top > y + STEP_UP) return true;
+    for (const [ox, oz] of FOOTPRINT) {
+      const top = platformTop(p, x + ox, z + oz);
+      if (top !== null && top > y + STEP_UP) return true;
+    }
   }
   return false;
 }
 
+function extentOf(o) {
+  return o.input ? { half: PLAYER_HALF, height: PLAYER_HEIGHT } : { half: 0, height: 0 };
+}
+
 function distanceBetween(a, b) {
-  return Math.max(Math.abs(a.x - b.x), Math.abs(a.z - b.z), Math.abs((a.y || 0) - (b.y || 0)));
+  const ea = extentOf(a);
+  const eb = extentOf(b);
+  const reach = ea.half + eb.half;
+  const ay = a.y || 0;
+  const by = b.y || 0;
+  return Math.max(
+    Math.max(0, Math.abs(a.x - b.x) - reach),
+    Math.max(0, Math.abs(a.z - b.z) - reach),
+    Math.max(0, ay - (by + eb.height), by - (ay + ea.height))
+  );
 }
 
 class Room {
@@ -754,17 +775,15 @@ class Room {
       }
 
       for (const obj of collisionObjects) {
+        if (entity.y >= obj.height) continue;
+        const reach = obj.radius + PLAYER_HALF;
         const dx = entity.x - obj.x;
         const dz = entity.z - obj.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        const minDist = obj.radius + PLAYER_COLLISION_RADIUS;
-        if (dist < minDist && dist > 0) {
-          const pushRatio = minDist / dist;
-          entity.x = obj.x + dx * pushRatio;
-          entity.z = obj.z + dz * pushRatio;
-        } else if (dist === 0) {
-          entity.x = obj.x + minDist;
-        }
+        const overX = reach - Math.abs(dx);
+        const overZ = reach - Math.abs(dz);
+        if (overX <= 0 || overZ <= 0) continue;
+        if (overX < overZ) entity.x = obj.x + (dx < 0 ? -reach : reach);
+        else entity.z = obj.z + (dz < 0 ? -reach : reach);
       }
 
       entity.x = Math.max(-area.halfSize, Math.min(area.halfSize, entity.x));
