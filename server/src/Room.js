@@ -768,7 +768,7 @@ class Room {
     const now = Date.now();
     if (now < (this.gameState.curatorReleaseAt || 0)) return;
     if (curadorEntity.stunnedUntil > now) {
-      this.sendTo(playerId, MessageType.ERROR, { message: 'Estás aturdido' });
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Estás en Diligencia' });
       return;
     }
 
@@ -1074,6 +1074,10 @@ class Room {
 
     const entity = this.gameState.entities[playerId];
     if (!entity) return;
+    if (entity.stunnedUntil > Date.now()) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Estás en Diligencia' });
+      return;
+    }
 
     const slot = entity.hand[slotIndex];
     if (!slot || !slot.chosen) {

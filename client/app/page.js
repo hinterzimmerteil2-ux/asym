@@ -705,7 +705,7 @@ export default function LobbyPage() {
               Flojera: {Math.round(flojera.value)}/{flojera.max}
               {flojera.locked && ' (¡exhausto, no puedes correr!)'}
               {flojera.sprinting && ' (¡sprint!)'}
-              {flojera.stunned && ' (¡aturdido!)'}
+              {flojera.stunned && ' (¡en Diligencia!)'}
             </div>
             <div style={styles.flojeraBarTrack}>
               <div style={styles.flojeraBarFill(flojera.value, flojera.max, flojera.locked)} />

@@ -125,7 +125,13 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned }) {
       lastPos.current = [entityState.x, entityState.z];
     }
     FACING.set(playerId, yaw.current);
-    if (bodyRef.current) bodyRef.current.rotation.y = yaw.current;
+    if (bodyRef.current) {
+      bodyRef.current.rotation.y = yaw.current;
+      const rt = Math.min(1, delta * 8);
+      const wob = stunned ? Math.sin(Date.now() / 90) * 0.06 : 0;
+      bodyRef.current.rotation.z += ((stunned ? 1.45 : 0) + wob - bodyRef.current.rotation.z) * rt;
+      bodyRef.current.position.y += ((stunned ? 0.45 : 0) - bodyRef.current.position.y) * rt;
+    }
     const anim = HAND_ANIMS.get(playerId);
     if (anim && anim.id !== heldId.current) {
       heldId.current = anim.id;
