@@ -1162,7 +1162,10 @@ class Room {
           }
         }
         entity.flojera = Math.max(0, entity.flojera - ROLL_FLOJERA_COST);
-        if (entity.flojera === 0) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
+        if (entity.flojera === 0) {
+          entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
+          this.endlag(playerId, entity, now);
+        }
         break;
       }
       case 'humo_yodo':
