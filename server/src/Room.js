@@ -878,6 +878,8 @@ class Room {
     const entity = this.gameState.entities[playerId];
     const slot = entity.hand[slotIndex];
     slot.chosen = cardId;
+    const chosenCard = Cards.getCard(cardId);
+    if (chosenCard && chosenCard.maxMode !== 'use') this.applyMaxCosts(playerId, entity, chosenCard, false);
     this.sendTo(playerId, MessageType.CARD_CHOSEN, { slot: slotIndex, card: Cards.getCard(cardId) });
   }
 
@@ -1161,15 +1163,24 @@ class Room {
       default:
         break;
     }
-    this.applyMaxCosts(playerId, entity, card);
+    if (card.maxMode === 'use') this.applyMaxCosts(playerId, entity, card, true);
   }
 
-  applyMaxCosts(playerId, entity, card) {
+  applyMaxCosts(playerId, entity, card, perUse) {
     const patient = this.gameState.patients[playerId];
-    if (patient && (card.maxHpSet || card.maxHpDelta)) {
+    if (patient && patient.status === 'alive' && (card.maxHpSet || card.maxHpDelta)) {
       const target = card.maxHpSet || patient.maxHp + card.maxHpDelta;
-      patient.maxHp = Math.max(MAX_HP_MINIMUM, target);
-      patient.hp = Math.min(patient.hp, patient.maxHp - 1);
+      if (perUse) {
+        patient.maxHp = Math.max(1, target);
+        if (patient.hp >= patient.maxHp) {
+          patient.hp = patient.maxHp;
+          patient.status = 'eliminated';
+          this.onPatientFullyCured();
+        }
+      } else {
+        patient.maxHp = Math.max(MAX_HP_MINIMUM, target);
+        patient.hp = Math.min(patient.hp, patient.maxHp - 1);
+      }
     }
     if (card.flojeraMaxDelta) {
       entity.flojeraMax = Math.max(FLOJERA_MAX_MINIMUM, entity.flojeraMax + card.flojeraMaxDelta);
