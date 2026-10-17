@@ -720,6 +720,7 @@ export default function LobbyPage() {
           <div style={styles.flojeraBarContainer}>
             <div style={styles.flojeraBarLabel}>
               Flojera: {Math.round(flojera.value)}/{flojera.max}
+              {' · '}{{ run: 'Corriendo', walk: 'Caminando', acetil: 'Acetilcolina: corriendo', acetil_walk: 'Acetilcolina: caminando (sin Flojera)' }[flojera.mode] || ''}
               {flojera.locked && ' (¡exhausto, no puedes correr!)'}
               {flojera.sprinting && ' (¡sprint!)'}
               {flojera.stunned && ' (¡en Diligencia!)'}

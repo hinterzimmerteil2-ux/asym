@@ -678,6 +678,7 @@ class Room {
           value: own.flojera,
           max: own.flojeraMax,
           locked: own.flojeraLockedUntil > now,
+          mode: own.acetilUntil > now ? (own.flojera <= 0 ? 'acetil_walk' : 'acetil') : (own.input.slow || own.flojeraLockedUntil > now ? 'walk' : 'run'),
           sprinting: own.sprintUntil > now,
           stunned: own.stunnedUntil > now,
           statuses: this.buildStatuses(own, now),
@@ -780,7 +781,8 @@ class Room {
 
       let speedMultiplier = FAST_MULTIPLIER;
       if (sprinting) {
-        speedMultiplier = FAST_MULTIPLIER * (entity.sprintFactor || SPRINT_CARD_MULTIPLIER);
+        const base = entity.flojera <= 0 ? FLOJERA_SLOW_MULTIPLIER : FAST_MULTIPLIER;
+        speedMultiplier = base * (entity.sprintFactor || SPRINT_CARD_MULTIPLIER);
       } else if (wantsSlow) {
         speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
       }
@@ -793,6 +795,10 @@ class Room {
       }
       if (entity.allyBoostUntil > now) speedMultiplier *= 1 + ACETIL_ALLY_STEP * (entity.allyBoostLevel || 1);
       if (stunned) speedMultiplier = 0;
+      if (!isMoving) entity.curMult = Math.min(entity.curMult || 1, FLOJERA_SLOW_MULTIPLIER);
+      const prevMult = entity.curMult ?? speedMultiplier;
+      entity.curMult = speedMultiplier > prevMult ? prevMult + (speedMultiplier - prevMult) * Math.min(1, dt * 6) : speedMultiplier;
+      speedMultiplier = entity.curMult;
 
       if (inAction && entity.acetilUntil > now) {
         if (isMoving) {
