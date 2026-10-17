@@ -16,6 +16,7 @@ import SkillIcon from '../components/SkillIcon';
 import HelpPanel from '../components/HelpPanel';
 import StatusColumn from '../components/StatusColumn';
 import RhythmBar from '../components/RhythmBar';
+import TouchControls from '../components/TouchControls';
 import { KEYWORDS } from '../lib/keywords';
 
 function KeywordChip({ id }) {
@@ -713,6 +714,7 @@ export default function LobbyPage() {
 
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
+        {phase === 'action' && <TouchControls isAsymRole={isAsymRole} />}
 
         {phase === 'action' && flojera && (
           <div style={styles.flojeraBarContainer}>

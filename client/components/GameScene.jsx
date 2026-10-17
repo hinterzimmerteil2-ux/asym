@@ -386,7 +386,7 @@ const EFFECT_STYLES = {
   card_agua_rimac: { color: '#6b8f3a', mode: 'ring', duration: 800, radius: 4 },
   card_rimac_sin_filtrar: { color: '#6b8f3a', mode: 'ring', duration: 900, radius: 6 },
   card_red_mist: { color: '#e0555f', mode: 'ring', duration: 900, radius: 6 },
-  card_tajo_carmesi: { color: '#e0555f', mode: 'burst', duration: 550, radius: 3.5 },
+  card_tajo_carmesi: { color: '#b57cff', mode: 'burst', duration: 550, radius: 3.5 },
   card_regalo_envenenado: { color: '#b07cf2', mode: 'ring', duration: 900, radius: 8 },
   card_aji_picante: { color: '#e0555f', mode: 'rise', duration: 800, radius: 0.9 },
   card_sopa_hirviendo: { color: '#f2a154', mode: 'burst', duration: 700, radius: 5 },
@@ -416,6 +416,7 @@ const SIMPLE_PROPS = {
   chili: [['coneGeometry', [0.12, 0.6, 8], [0, 0, 0], '#e0555f'], ['cylinderGeometry', [0.04, 0.04, 0.12, 6], [0, 0.34, 0], '#5fd58c']],
   banana: [['capsuleGeometry', [0.1, 0.5, 4, 8], [0, 0, 0], '#f2d154']],
   rotten: [['capsuleGeometry', [0.1, 0.5, 4, 8], [0, 0, 0], '#7a6a2a']],
+  energy_blade: [['boxGeometry', [0.16, 0.75, 0.05], [0, 0.3, 0], '#b57cff'], ['boxGeometry', [0.08, 0.5, 0.06], [0, 0.45, 0.03], '#ecdcff'], ['boxGeometry', [0.26, 0.12, 0.14], [0, -0.1, 0], '#1c1a26'], ['boxGeometry', [0.07, 0.34, 0.07], [0, -0.32, 0], '#2a2d3d']],
   blade: [['boxGeometry', [0.1, 0.9, 0.04], [0, 0.1, 0], '#e0555f'], ['boxGeometry', [0.3, 0.06, 0.06], [0, -0.35, 0], '#2a2d3d']],
   gift: [['boxGeometry', [0.5, 0.4, 0.5], [0, 0, 0], '#b07cf2'], ['boxGeometry', [0.08, 0.42, 0.52], [0, 0, 0], '#f2d154']],
   star: [['octahedronGeometry', [0.3, 0], [0, 0, 0], '#f2a154']],
@@ -457,7 +458,7 @@ const FX = {
   card_agua_rimac: { shape: 'shard', color: '#9fe6d0', liquid: '#6b8f3a', count: 16, speed: 4, up: 4, gravity: 12, prop: 'bottle' },
   card_rimac_sin_filtrar: { shape: 'shard', color: '#9fe6d0', liquid: '#5f7f20', count: 22, speed: 5, up: 5, gravity: 12, prop: 'bottle' },
   card_red_mist: { shape: 'drop', color: '#e0555f', count: 20, speed: 5, up: 3, gravity: 9, prop: 'blade' },
-  card_tajo_carmesi: { shape: 'drop', color: '#e0555f', count: 10, speed: 4, up: 2, gravity: 9, prop: 'blade' },
+  card_tajo_carmesi: { shape: 'drop', color: '#b57cff', count: 10, speed: 4, up: 2, gravity: 9, prop: 'energy_blade' },
   card_regalo_envenenado: { shape: 'leaf', color: '#b07cf2', count: 14, speed: 3, up: 3, gravity: 3, prop: 'gift' },
   card_grito_animo: { shape: 'spark', color: '#54d1f2', count: 14, speed: 3, up: 3, gravity: 2, prop: 'horn' },
   card_racion_compartida: { shape: 'crumb', color: '#f2a154', count: 14, speed: 3, up: 3, gravity: 9, prop: 'bowl' },
@@ -759,6 +760,7 @@ function FollowCamera({ myEntity, yawRef }) {
 
   useEffect(() => {
     const canvas = gl.domElement;
+    canvas.style.touchAction = 'none';
 
     function onPointerDown(e) {
       dragging.current = true;
