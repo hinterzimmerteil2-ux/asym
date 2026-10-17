@@ -16,7 +16,7 @@ const CARDS = {
     id: 'rodar',
     keywords: ['impulso', 'sabotaje', 'flojera'],
     displayName: 'Rodar',
-    description: 'Dash que empuja al Curador (ragdoll) y arrastra a tus aliados; sube plataformas de hasta 1.8 de alto. Gasta 25 de Flojera.',
+    description: 'Dash que, si golpea al Curador, lo lanza lejos (ragdoll) y te deja donde estaba él (dropkick); arrastra a tus aliados; sube plataformas de hasta 1.8 de alto. Gasta 25 de Flojera.',
     rarity: 'uncommon',
     cooldownMs: 24000,
   },

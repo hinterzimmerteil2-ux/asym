@@ -77,7 +77,9 @@ const RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC = 18;
 const ROLL_DASH_MS = 280;
 const ROLL_PUSH_SPEED = 16;
 const ROLL_PUSH_MS = 450;
-const ROLL_RAGDOLL_MS = 700;
+const ROLL_KNOCKBACK_SPEED = 28;
+const ROLL_KNOCKBACK_MS = 650;
+const ROLL_RAGDOLL_MS = 1200;
 const CHANNEL_MS = 8300;
 const CHANNEL_BEAT_MS = 1000;
 const CHANNEL_BEATS = 8;
@@ -844,11 +846,22 @@ class Room {
           const along = relX * dx + relZ * dz;
           const sideways = Math.abs(relX * dz - relZ * dx);
           if (along < -0.6 || along > 1.8 || sideways > ROLL_HIT_WIDTH || Math.abs(target.y - entity.y) > 1.8) continue;
-          const force = isAlly ? 0.6 : 1;
-          target.kbX = dx * ROLL_PUSH_SPEED * force;
-          target.kbZ = dz * ROLL_PUSH_SPEED * force;
-          target.kbUntil = now + ROLL_PUSH_MS;
-          if (!isAlly) this.ragdoll(otherId, target, ROLL_RAGDOLL_MS, now);
+          if (isAlly) {
+            target.kbX = dx * ROLL_PUSH_SPEED * 0.6;
+            target.kbZ = dz * ROLL_PUSH_SPEED * 0.6;
+            target.kbUntil = now + ROLL_PUSH_MS;
+            continue;
+          }
+          target.kbX = dx * ROLL_KNOCKBACK_SPEED;
+          target.kbZ = dz * ROLL_KNOCKBACK_SPEED;
+          target.kbUntil = now + ROLL_KNOCKBACK_MS;
+          this.ragdoll(otherId, target, ROLL_RAGDOLL_MS, now);
+          entity.x = target.x;
+          entity.z = target.z;
+          entity.dashUntil = now - 1;
+          velX = 0;
+          velZ = 0;
+          break;
         }
       }
       const nextX = entity.x + velX * dt;
