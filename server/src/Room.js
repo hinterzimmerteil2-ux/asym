@@ -1316,7 +1316,7 @@ class Room {
     const start = Math.max(now, entity.endlagUntil || 0);
     entity.endlagUntil = start + ms;
     entity.slowedUntil = Math.max(entity.slowedUntil || 0, entity.endlagUntil);
-    entity.slowedLevel = Math.max(entity.slowedLevel || 1, 2);
+    entity.slowedLevel = Math.max(entity.slowedLevel || 1, 1 + Math.min(2, Math.floor(missing * 3)));
   }
 
   applyCardEffect(playerId, entity, card, now) {

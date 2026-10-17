@@ -807,7 +807,6 @@ export default function LobbyPage() {
           </div>
         )}
 
-        {lastActionFeedback && <p style={styles.actionFeedback}>{lastActionFeedback}</p>}
 
         <div style={styles.chatOverlay}>
           <div style={styles.chatHistory}>
