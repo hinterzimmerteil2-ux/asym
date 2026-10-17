@@ -744,6 +744,11 @@ class Room {
       const resolved = this.gameState.patients[entityPlayerId] && this.gameState.patients[entityPlayerId].status !== 'alive';
       const heldAtSpawn = this.players.get(entityPlayerId)?.isAsymRole && inAction && now < (this.gameState.curatorReleaseAt || 0);
       if (entity.channel && entity.channel.endsAt <= now) entity.channel = null;
+      if (entity.acetilUntil > now) entity.acetilOn = true;
+      else if (entity.acetilOn) {
+        entity.acetilOn = false;
+        if (entity.flojera <= 0) this.endlag(entityPlayerId, entity, now);
+      }
       const stunned = entity.stunnedUntil > now || entity.ragdollUntil > now || Boolean(resolved) || Boolean(heldAtSpawn);
       const isMoving = !stunned && (input.moveX !== 0 || input.moveZ !== 0);
       const sprinting = entity.sprintUntil > now;
@@ -768,12 +773,8 @@ class Room {
 
       if (inAction && entity.acetilUntil > now) {
         if (isMoving) {
-          const before = entity.flojera;
           entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
-          if (entity.flojera <= 0) {
-            entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
-            if (before > 0) this.endlag(entityPlayerId, entity, now);
-          }
+          if (entity.flojera <= 0) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
         }
       } else if (inAction) {
         if (sprinting || wantsSlow || !isMoving) {
