@@ -1314,8 +1314,9 @@ class Room {
     const ms = fixedMs || ENDLAG_MIN_MS + (ENDLAG_MAX_MS - ENDLAG_MIN_MS) * missing;
     if (ms <= 0) return;
     const start = Math.max(now, entity.endlagUntil || 0);
-    this.stun(playerId, entity, start + ms - now, now, 0);
     entity.endlagUntil = start + ms;
+    entity.slowedUntil = Math.max(entity.slowedUntil || 0, entity.endlagUntil);
+    entity.slowedLevel = Math.max(entity.slowedLevel || 1, 2);
   }
 
   applyCardEffect(playerId, entity, card, now) {
@@ -1536,7 +1537,7 @@ class Room {
       this.onPatientFullyCured();
     }
 
-    this.broadcast(MessageType.CURE_RESULT, {
+    this.sendTo(curadorId, MessageType.CURE_RESULT, {
       targetPlayerId,
       newHp: patient.hp,
       status: patient.status,
@@ -1585,7 +1586,7 @@ class Room {
     const newPos = otherPositions[Math.floor(Math.random() * otherPositions.length)];
     this.gameState.selfDamageObjectPositions[objectId] = { x: newPos.x, y: GROUND_Y, z: newPos.z };
 
-    this.broadcast(MessageType.SELF_DAMAGE_RESULT, {
+    this.sendTo(playerId, MessageType.SELF_DAMAGE_RESULT, {
       playerId,
       newHp: patient.hp,
       status: patient.status,
