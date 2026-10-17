@@ -338,6 +338,7 @@ class Room {
       perezaUntil: 0,
       ragdollUntil: 0,
       marcaUntil: 0,
+      disguiseUntil: 0,
       dashUntil: 0,
       dashVX: 0,
       dashVZ: 0,
@@ -600,6 +601,7 @@ class Room {
       entity.perezaUntil = 0;
       entity.ragdollUntil = 0;
       entity.marcaUntil = 0;
+      entity.disguiseUntil = 0;
       entity.dashUntil = 0;
       entity.kbUntil = 0;
       entity.channel = null;
@@ -718,6 +720,7 @@ class Room {
     if (entity.acetilUntil > now || entity.regenBlockedUntil > now) add('ayuno', 1, Math.max(entity.acetilUntil, entity.regenBlockedUntil));
     add('endlag', 1, entity.endlagUntil);
     add('ragdoll', 1, entity.ragdollUntil);
+    add('disfraz', 1, entity.disguiseUntil);
     if (entity.endlagUntil <= now) add('aturdido', 1, entity.stunnedUntil);
     add('ralentizado', entity.slowedLevel || 1, entity.slowedUntil);
     return list;
@@ -1404,20 +1407,16 @@ class Room {
           if (!other.isAsymRole) continue;
           const otherEntity = this.gameState.entities[otherId];
           if (otherEntity && distanceBetween(entity, otherEntity) <= 3.5) {
-            this.stun(otherId, otherEntity, card.durationMs, now, 0);
+            const heavy = Math.random() < 0.1;
+            const damage = heavy ? 60 : 20;
+            this.stun(otherId, otherEntity, heavy ? 2500 : card.durationMs, now, 0);
+            this.adjustCuratorHp(-damage);
+            this.healPatient(playerId, damage * 0.25);
           }
         }
         break;
       case 'red_mist':
-        for (const [otherId, other] of this.players) {
-          if (!other.isAsymRole) continue;
-          const otherEntity = this.gameState.entities[otherId];
-          if (otherEntity && distanceBetween(entity, otherEntity) <= RED_MIST_RADIUS) {
-            this.stun(otherId, otherEntity, card.durationMs, now, card.curatorHpLoss || 0);
-          }
-        }
-        this.healPatient(playerId, RED_MIST_HEAL);
-        this.checkGameEndConditions();
+        entity.disguiseUntil = now + card.durationMs;
         break;
       case 'tropiezo':
         this.endlag(playerId, entity, now, 1200);
@@ -1441,7 +1440,6 @@ class Room {
     if (hit === true) {
       this.gainExacerbacion(entity, now);
       if (card.id === 'receta_falsa') entity.doubleSelfDamage = true;
-      if (card.id === 'tajo_carmesi') entity.flojera = Math.min(entity.flojeraMax, entity.flojera + 25);
     } else if (hit === false) {
       this.endlag(playerId, entity, now);
     }
@@ -1507,6 +1505,13 @@ class Room {
     }
 
     curadorEntity.baseCooldownUntil = Date.now() + (Characters.getCharacter(curador.characterId).baseCooldownMs || 900);
+    if (targetEntity.disguiseUntil > Date.now()) {
+      targetEntity.disguiseUntil = 0;
+      this.adjustCuratorHp(-50);
+      this.ragdoll(curadorId, curadorEntity, 2000, Date.now());
+      this.sendTo(curadorId, MessageType.CURE_RESULT, { targetPlayerId, newHp: patient.hp, status: patient.status });
+      return;
+    }
     const boost = curadorEntity.cureBoostUntil > Date.now() ? curadorEntity.cureBoostFactor : 1;
     patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, CURE_AMOUNT * boost, Date.now()));
     if (patient.hp >= patient.maxHp) {
