@@ -8,6 +8,7 @@ const CONTROLS = [
   ['Click', 'Curar (Curador) / auto-dañarte en objeto rojo (Paciente)'],
   ['Q E R F', 'Habilidades del Curador'],
   ['G', 'Golpe Aturdidor (Curador)'],
+  ['E', 'Acertar el ritmo de Grito de Ánimo'],
   ['1 2', 'Usar carta (Paciente)'],
   ['H', 'Abrir o cerrar esta ayuda'],
   ['B', 'Mostrar u ocultar hitboxes'],

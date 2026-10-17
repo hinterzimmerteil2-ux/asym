@@ -25,7 +25,7 @@ export default function RhythmBar({ channelRef }) {
   return (
     <div style={{ position: 'absolute', left: '50%', bottom: 150, transform: 'translateX(-50%)', width: 320, padding: 12, borderRadius: 10, background: 'rgba(10,12,18,0.85)', border: '1px solid #2a2f3d', color: '#e8eaf0', fontFamily: 'sans-serif', textAlign: 'center', pointerEvents: 'none' }}>
       <div style={{ fontSize: 13, marginBottom: 8 }}>
-        Grito de Ánimo — pulsa [{(ch.slot ?? 0) + 1}] al ritmo · {ch.hits}/{ch.beats} · {remaining}s
+        Grito de Ánimo — pulsa [E] al ritmo · {ch.hits}/{ch.beats} · {remaining}s
       </div>
       <div style={{ position: 'relative', height: 18, borderRadius: 9, background: '#1b1f2b' }}>
         <div style={{ position: 'absolute', left: `${(0.5 - zoneHalf) * 100}%`, width: `${zoneHalf * 200}%`, top: 0, bottom: 0, background: '#54d1f2', opacity: 0.55, borderRadius: 9 }} />

@@ -467,6 +467,10 @@ export default function LobbyPage() {
       if (e.code === 'KeyH') setHelpOpen((open) => !open);
       else if (e.code === 'KeyB') setHitboxes((prev) => ({ ...prev, on: !prev.on }));
       else if (e.code === 'Escape') setHelpOpen(false);
+      else if (e.code === 'KeyE') {
+        const ch = channelRef.current;
+        if (ch) handleUseCard(ch.slot ?? 0);
+      }
       else if (e.code === 'Digit1') handleUseCard(0);
       else if (e.code === 'Digit2') handleUseCard(1);
     }

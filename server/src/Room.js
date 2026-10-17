@@ -927,8 +927,10 @@ class Room {
     for (const id of targets) {
       const target = this.gameState.entities[id];
       if (!target) continue;
+      if (target.perezaUntil <= now) target.perezaStacks = 0;
+      target.perezaStacks = (target.perezaStacks || 0) + 1;
       target.perezaUntil = Math.min(now + 8000, Math.max(target.perezaUntil, now) + CHANNEL_HIT_PEREZA_MS);
-      target.perezaLevel = allies.length ? 1 : 2;
+      target.perezaLevel = Math.min(3, 1 + Math.floor(target.perezaStacks / 3) + (allies.length ? 0 : 1));
     }
   }
 
@@ -1113,7 +1115,11 @@ class Room {
           const entity = this.gameState.entities[playerId];
           if (!entity || distanceBetween(entity, zone) > zone.radius) continue;
           const before = patient.status;
-          if (zone.kind === 'rimac') this.damagePatient(playerId, zone.perSecond * dt);
+          if (zone.kind === 'rimac') {
+            zone.inside = zone.inside || {};
+            zone.inside[playerId] = (zone.inside[playerId] || 0) + dt;
+            this.damagePatient(playerId, (zone.perSecond + Math.floor(zone.inside[playerId] / 5)) * dt);
+          }
           else this.healPatient(playerId, zone.perSecond * dt);
           if (patient.status !== before) statusChanged = true;
         }
@@ -1132,6 +1138,8 @@ class Room {
             const entity = this.gameState.entities[playerId];
             if (!entity || distanceBetween(entity, zone) > zone.radius) continue;
             entity.flojera = Math.max(0, entity.flojera - RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC * dt);
+            const curator = this.gameState.curator;
+            this.adjustCuratorHp((curator.hp < curator.max / 2 ? -1 : 1) * zone.perSecond * dt);
             entity.slowedUntil = Math.max(entity.slowedUntil, now + 300);
             entity.slowedLevel = Math.max(entity.slowedUntil > now + 300 ? entity.slowedLevel : 0, 1);
           }
@@ -1388,16 +1396,6 @@ class Room {
         entity.channel = { cardId: card.id, slot: slotIndex, startedAt: now, endsAt: now + CHANNEL_MS, hits: 0, scored: {} };
         break;
       }
-      case 'racion_compartida': {
-        const allies = this.alliesNear(playerId, entity, 8);
-        if (allies.length) {
-          for (const id of allies) this.damagePatient(id, 15, 20);
-        } else {
-          entity.doubleSelfDamage = true;
-        }
-        this.checkGameEndConditions();
-        break;
-      }
       case 'sobredosis':
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
@@ -1443,13 +1441,6 @@ class Room {
             otherEntity.kbZ = ((otherEntity.z - entity.z) / away) * 8;
             otherEntity.kbUntil = now + 500;
           }
-        }
-        break;
-      case 'regalo_envenenado':
-        for (const [otherId, other] of this.players) {
-          if (!other.isAsymRole) continue;
-          const otherEntity = this.gameState.entities[otherId];
-          if (otherEntity && distanceBetween(entity, otherEntity) <= REGALO_RADIUS) this.adjustCuratorHp(REGALO_HP);
         }
         break;
       default:
