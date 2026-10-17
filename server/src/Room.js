@@ -337,6 +337,7 @@ class Room {
       exacerbacionUntil: 0,
       perezaUntil: 0,
       ragdollUntil: 0,
+      rag: null,
       marcaUntil: 0,
       dashUntil: 0,
       dashVX: 0,
@@ -654,7 +655,12 @@ class Room {
 
     const publicEntities = {};
     for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
-      publicEntities[entityPlayerId] = { x: entity.x, y: entity.y, z: entity.z };
+      publicEntities[entityPlayerId] = {
+        x: entity.x,
+        y: entity.y,
+        z: entity.z,
+        rag: entity.rag ? { x: entity.rag.rx, y: entity.rag.ry, z: entity.rag.rz, t: (now - entity.rag.startedAt) / 1000 } : null,
+      };
     }
     const zones = this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt }));
 
@@ -747,6 +753,18 @@ class Room {
       const resolved = this.gameState.patients[entityPlayerId] && this.gameState.patients[entityPlayerId].status !== 'alive';
       const heldAtSpawn = this.players.get(entityPlayerId)?.isAsymRole && inAction && now < (this.gameState.curatorReleaseAt || 0);
       if (entity.channel && entity.channel.endsAt <= now) entity.channel = null;
+      if (entity.rag) {
+        if (entity.ragdollUntil > now) {
+          const rg = entity.rag;
+          rg.vx += -rg.rx * 6 * dt;
+          rg.vz += (1.45 - rg.rz) * 5 * dt;
+          const damp = Math.exp(-1.1 * dt);
+          rg.vx *= damp; rg.vy *= damp; rg.vz *= damp;
+          rg.rx += rg.vx * dt; rg.ry += rg.vy * dt; rg.rz += rg.vz * dt;
+        } else {
+          entity.rag = null;
+        }
+      }
       if (entity.acetilUntil > now) entity.acetilOn = true;
       else if (entity.acetilOn) {
         entity.acetilOn = false;
@@ -917,6 +935,17 @@ class Room {
       entity.velocityY = 3.5;
       entity.onGround = false;
       entity.peakY = entity.y;
+    }
+    if ((entity.ragdollUntil || 0) <= now || !entity.rag) {
+      entity.rag = {
+        rx: 0,
+        ry: Math.atan2(entity.faceX || 0, entity.faceZ || 1),
+        rz: 0,
+        vx: (Math.random() - 0.5) * 16,
+        vy: (Math.random() - 0.5) * 12,
+        vz: (Math.random() - 0.5) * 16,
+        startedAt: now,
+      };
     }
     entity.ragdollUntil = Math.max(entity.ragdollUntil || 0, now + ms);
   }

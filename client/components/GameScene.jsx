@@ -131,21 +131,17 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
       const body = bodyRef.current;
       const rg = rag.current;
       const now = Date.now();
-      if (ragdoll) {
+      const sr = entityState.rag;
+      if (ragdoll && sr) {
         if (!rg.on) {
           rg.on = true;
-          rg.startedAt = now;
-          rg.rx = 0; rg.ry = yaw.current; rg.rz = 0;
-          rg.vx = (Math.random() - 0.5) * 16;
-          rg.vy = (Math.random() - 0.5) * 12;
-          rg.vz = (Math.random() - 0.5) * 16;
+          rg.rx = sr.x; rg.ry = sr.y; rg.rz = sr.z;
         }
-        const k = (now - rg.startedAt) / 1000;
-        rg.vx += (-rg.rx) * 6 * delta;
-        rg.vz += (1.45 - rg.rz) * 5 * delta;
-        const damp = Math.exp(-1.1 * delta);
-        rg.vx *= damp; rg.vy *= damp; rg.vz *= damp;
-        rg.rx += rg.vx * delta; rg.ry += rg.vy * delta; rg.rz += rg.vz * delta;
+        const follow = Math.min(1, delta * 20);
+        rg.rx += (sr.x - rg.rx) * follow;
+        rg.ry += (sr.y - rg.ry) * follow;
+        rg.rz += (sr.z - rg.rz) * follow;
+        const k = sr.t;
         body.rotation.set(rg.rx, rg.ry, rg.rz);
         const bounce = Math.abs(Math.sin(k * 7)) * 0.5 * Math.exp(-k * 1.4);
         body.position.y += (0.45 + bounce - body.position.y) * Math.min(1, delta * 14);
@@ -153,8 +149,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
           if (!limb) return;
           limb.visible = true;
           const amp = 0.6 + 0.9 * Math.exp(-k * 0.5);
-          limb.rotation.z = Math.sin(now / 90 + i * 1.7) * amp * (i % 2 ? 1 : -1);
-          limb.rotation.x = Math.cos(now / 110 + i * 2.3) * amp * 0.6;
+          limb.rotation.z = Math.sin(k * 11 + i * 1.7) * amp * (i % 2 ? 1 : -1);
+          limb.rotation.x = Math.cos(k * 9 + i * 2.3) * amp * 0.6;
         });
       } else {
         rg.on = false;
