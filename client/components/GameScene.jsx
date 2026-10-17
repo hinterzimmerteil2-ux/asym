@@ -107,6 +107,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
   const [held, setHeld] = useState(null);
   const heldId = useRef(null);
   const groupRef = useRef();
+  const rag = useRef({ on: false });
+  const limbRefs = useRef([]);
   const targetPos = useRef([entityState.x, entityState.y, entityState.z]);
 
   useEffect(() => {
@@ -126,11 +128,41 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
     }
     FACING.set(playerId, yaw.current);
     if (bodyRef.current) {
-      bodyRef.current.rotation.y = yaw.current + (ragdoll ? Date.now() / 260 : 0);
-      const rt = Math.min(1, delta * 8);
-      const wob = ragdoll ? Math.sin(Date.now() / 90) * 0.06 : 0;
-      bodyRef.current.rotation.z += ((ragdoll ? 1.45 : 0) + wob - bodyRef.current.rotation.z) * rt;
-      bodyRef.current.position.y += ((ragdoll ? 0.45 : 0) - bodyRef.current.position.y) * rt;
+      const body = bodyRef.current;
+      const rg = rag.current;
+      const now = Date.now();
+      if (ragdoll) {
+        if (!rg.on) {
+          rg.on = true;
+          rg.startedAt = now;
+          rg.rx = 0; rg.ry = yaw.current; rg.rz = 0;
+          rg.vx = (Math.random() - 0.5) * 16;
+          rg.vy = (Math.random() - 0.5) * 12;
+          rg.vz = (Math.random() - 0.5) * 16;
+        }
+        const k = (now - rg.startedAt) / 1000;
+        rg.vx += (-rg.rx) * 6 * delta;
+        rg.vz += (1.45 - rg.rz) * 5 * delta;
+        const damp = Math.exp(-1.1 * delta);
+        rg.vx *= damp; rg.vy *= damp; rg.vz *= damp;
+        rg.rx += rg.vx * delta; rg.ry += rg.vy * delta; rg.rz += rg.vz * delta;
+        body.rotation.set(rg.rx, rg.ry, rg.rz);
+        const bounce = Math.abs(Math.sin(k * 7)) * 0.5 * Math.exp(-k * 1.4);
+        body.position.y += (0.45 + bounce - body.position.y) * Math.min(1, delta * 14);
+        limbRefs.current.forEach((limb, i) => {
+          if (!limb) return;
+          limb.visible = true;
+          const amp = 0.6 + 0.9 * Math.exp(-k * 0.5);
+          limb.rotation.z = Math.sin(now / 90 + i * 1.7) * amp * (i % 2 ? 1 : -1);
+          limb.rotation.x = Math.cos(now / 110 + i * 2.3) * amp * 0.6;
+        });
+      } else {
+        rg.on = false;
+        const rt = Math.min(1, delta * 8);
+        body.rotation.set(0, yaw.current, 0);
+        body.position.y += (0 - body.position.y) * rt;
+        limbRefs.current.forEach((limb) => { if (limb) limb.visible = false; });
+      }
     }
     const anim = HAND_ANIMS.get(playerId);
     if (anim && anim.id !== heldId.current) {
@@ -163,6 +195,14 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
           <sphereGeometry args={[0.13, 10, 8]} />
           <meshStandardMaterial color={color} roughness={0.4} />
         </mesh>
+        {[[-0.55, 1.1], [0.55, 1.1], [-0.22, 0.2], [0.22, 0.2]].map(([lx, ly], i) => (
+          <group key={i} ref={(el) => { limbRefs.current[i] = el; if (el && !rag.current.on) el.visible = false; }} position={[lx, ly, 0]}>
+            <mesh position={[0, -0.25, 0]}>
+              <capsuleGeometry args={[0.09, 0.4, 4, 8]} />
+              <meshStandardMaterial color={color} roughness={0.5} />
+            </mesh>
+          </group>
+        ))}
         <HeldItem held={held} />
       </group>
       {stunned && <StunHalo />}
