@@ -73,7 +73,10 @@ const TRAP_ARM_MS = 800;
 const TRAP_LIFETIME_MS = 30000;
 const RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC = 18;
 
-const ROLL_PUSH = 10;
+const ROLL_DASH_MS = 280;
+const ROLL_PUSH_SPEED = 16;
+const ROLL_PUSH_MS = 450;
+const ROLL_RAGDOLL_MS = 700;
 const CHANNEL_MS = 8300;
 const CHANNEL_BEAT_MS = 1000;
 const CHANNEL_BEATS = 8;
@@ -333,6 +336,13 @@ class Room {
       exacerbacionUntil: 0,
       perezaUntil: 0,
       ragdollUntil: 0,
+      dashUntil: 0,
+      dashVX: 0,
+      dashVZ: 0,
+      dashExhausted: false,
+      kbUntil: 0,
+      kbX: 0,
+      kbZ: 0,
       channel: null,
       faceX: 0,
       faceZ: 1,
@@ -587,6 +597,8 @@ class Room {
       entity.exacerbacionUntil = 0;
       entity.perezaUntil = 0;
       entity.ragdollUntil = 0;
+      entity.dashUntil = 0;
+      entity.kbUntil = 0;
       entity.channel = null;
       entity.perezaLevel = 0;
       entity.acetilUntil = 0;
@@ -780,8 +792,42 @@ class Room {
 
       const prevX = entity.x;
       const prevZ = entity.z;
-      const nextX = entity.x + input.moveX * MOVE_SPEED * speedMultiplier * dt;
-      const nextZ = entity.z + input.moveZ * MOVE_SPEED * speedMultiplier * dt;
+      const dashing = entity.dashUntil > now;
+      if (!dashing && entity.dashUntil) {
+        entity.dashUntil = 0;
+        if (entity.dashExhausted) this.ragdoll(entityPlayerId, entity, ENDLAG_MAX_MS, now);
+        entity.dashExhausted = false;
+      }
+      let velX = dashing ? entity.dashVX : input.moveX * MOVE_SPEED * speedMultiplier;
+      let velZ = dashing ? entity.dashVZ : input.moveZ * MOVE_SPEED * speedMultiplier;
+      if (entity.kbUntil > now) {
+        velX += entity.kbX;
+        velZ += entity.kbZ;
+        const decay = Math.pow(0.05, dt);
+        entity.kbX *= decay;
+        entity.kbZ *= decay;
+      }
+      if (dashing) {
+        const speed = Math.hypot(entity.dashVX, entity.dashVZ) || 1;
+        const dx = entity.dashVX / speed;
+        const dz = entity.dashVZ / speed;
+        for (const [otherId, other] of this.players) {
+          if (!other.isAsymRole) continue;
+          const target = this.gameState.entities[otherId];
+          if (!target) continue;
+          const relX = target.x - entity.x;
+          const relZ = target.z - entity.z;
+          const along = relX * dx + relZ * dz;
+          const sideways = Math.abs(relX * dz - relZ * dx);
+          if (along < -0.6 || along > 1.8 || sideways > ROLL_HIT_WIDTH || Math.abs(target.y - entity.y) > 1.8) continue;
+          target.kbX = dx * ROLL_PUSH_SPEED;
+          target.kbZ = dz * ROLL_PUSH_SPEED;
+          target.kbUntil = now + ROLL_PUSH_MS;
+          this.ragdoll(otherId, target, ROLL_RAGDOLL_MS, now);
+        }
+      }
+      const nextX = entity.x + velX * dt;
+      const nextZ = entity.z + velZ * dt;
       if (!blockedAt(platforms, nextX, nextZ, entity.y) || blockedAt(platforms, prevX, prevZ, entity.y)) {
         entity.x = nextX;
         entity.z = nextZ;
@@ -832,7 +878,7 @@ class Room {
           entity.onGround = true;
           const fallingPlayer = this.players.get(entityPlayerId);
           if (fallingPlayer && !fallingPlayer.isAsymRole && fall > FALL_ENDLAG_MIN && inAction) {
-            this.endlag(entityPlayerId, entity, now, FALL_ENDLAG_MS);
+            this.endlagSlow(entity, now, FALL_ENDLAG_MS);
           }
         }
       }
@@ -851,6 +897,12 @@ class Room {
       entity.faceX = entity.input.moveX / len;
       entity.faceZ = entity.input.moveZ / len;
     }
+  }
+
+  endlagSlow(entity, now, ms) {
+    entity.slowedUntil = Math.max(entity.slowedUntil || 0, now + ms);
+    entity.slowedLevel = Math.max(entity.slowedLevel || 1, 1);
+    entity.endlagUntil = Math.max(entity.endlagUntil || 0, now + ms);
   }
 
   ragdoll(playerId, entity, ms, now) {
@@ -1271,32 +1323,14 @@ class Room {
     switch (card.id) {
       case 'rodar': {
         const inputLength = Math.hypot(entity.input.moveX, entity.input.moveZ);
-        {
-          const area = this.getCurrentArea();
-          const dirX = inputLength > 0 ? entity.input.moveX / inputLength : entity.faceX;
-          const dirZ = inputLength > 0 ? entity.input.moveZ / inputLength : entity.faceZ;
-          const startX = entity.x;
-          const startZ = entity.z;
-          const clamp = (v) => Math.max(-area.halfSize, Math.min(area.halfSize, v));
-          entity.x = clamp(startX + dirX * ROLL_DISTANCE);
-          entity.z = clamp(startZ + dirZ * ROLL_DISTANCE);
-          for (const [otherId, other] of this.players) {
-            if (!other.isAsymRole) continue;
-            const otherEntity = this.gameState.entities[otherId];
-            if (!otherEntity) continue;
-            const along = (otherEntity.x - startX) * dirX + (otherEntity.z - startZ) * dirZ;
-            if (along < 0 || along > ROLL_DISTANCE + 1) continue;
-            const sideways = Math.abs((otherEntity.x - startX) * dirZ - (otherEntity.z - startZ) * dirX);
-            if (sideways > ROLL_HIT_WIDTH) continue;
-            otherEntity.x = clamp(otherEntity.x + dirX * ROLL_PUSH);
-            otherEntity.z = clamp(otherEntity.z + dirZ * ROLL_PUSH);
-          }
-        }
+        const dirX = inputLength > 0 ? entity.input.moveX / inputLength : entity.faceX;
+        const dirZ = inputLength > 0 ? entity.input.moveZ / inputLength : entity.faceZ;
+        entity.dashUntil = now + ROLL_DASH_MS;
+        entity.dashVX = (dirX * ROLL_DISTANCE) / (ROLL_DASH_MS / 1000);
+        entity.dashVZ = (dirZ * ROLL_DISTANCE) / (ROLL_DASH_MS / 1000);
         entity.flojera = Math.max(0, entity.flojera - ROLL_FLOJERA_COST);
-        if (entity.flojera === 0) {
-          entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
-          this.ragdoll(playerId, entity, ENDLAG_MAX_MS, now);
-        }
+        entity.dashExhausted = entity.flojera === 0;
+        if (entity.dashExhausted) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
         break;
       }
       case 'chicharron':

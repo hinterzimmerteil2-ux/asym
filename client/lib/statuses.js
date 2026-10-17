@@ -7,7 +7,7 @@ export const STATUSES = {
   fatiga: { label: 'Fatiga', description: 'Vas más lento y la Flojera no se regenera durante 1s tras la Acetilcolina.', color: '#5fd58c', favorable: false, icon: 'fatiga', dynamic: false },
   impulso: { label: 'Impulso', description: 'Aliados con Acetilcolina te dan velocidad (+25% por nivel, uno por aliado cercano).', color: '#e0555f', favorable: true, icon: 'impulso', dynamic: true },
   ayuno: { label: 'Ayuno', description: 'Tu Flojera no se regenera.', color: '#5fd58c', favorable: false, icon: 'fatiga', dynamic: false },
-  endlag: { label: 'Endlag', description: 'Fallaste una habilidad: quedas inmóvil y en Diligencia. Dura menos si administras bien tu Flojera.', color: '#5fd58c', favorable: false, icon: 'endlag', dynamic: false },
+  endlag: { label: 'Endlag', description: 'Penalización por una acción mal hecha: según el caso te ralentiza (caídas) o te inmoviliza (fallar una habilidad, agotar la Flojera).', color: '#5fd58c', favorable: false, icon: 'endlag', dynamic: false },
   ragdoll: { label: 'Ragdoll', description: 'Caes al suelo: no puedes moverte ni saltar, pero sí usar habilidades.', color: '#5fd58c', favorable: false, icon: 'aturdido', dynamic: false },
   aturdido: { label: 'Diligencia', description: 'No puedes moverte, saltar ni usar ninguna habilidad.', color: '#5fd58c', favorable: false, icon: 'aturdido', dynamic: false },
   ralentizado: { label: 'Ralentizado', description: 'Tu velocidad baja según el nivel (50%, 65%, 75%).', color: '#5fd58c', favorable: false, icon: 'ralentizado', dynamic: true },
