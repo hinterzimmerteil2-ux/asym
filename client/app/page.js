@@ -81,7 +81,7 @@ export default function LobbyPage() {
   const [cardCatalog, setCardCatalog] = useState([]);
   const [helpOpen, setHelpOpen] = useState(false);
   const [spawnMs, setSpawnMs] = useState(0);
-  const [hitboxes, setHitboxes] = useState({ on: false, opacity: 0.7 });
+  const [hitboxes, setHitboxes] = useState({ on: false, opacity: 0.8 });
   const [maps, setMaps] = useState([]);
   const [mapId, setMapId] = useState('default');
   const [editingName, setEditingName] = useState(false);
@@ -477,7 +477,7 @@ export default function LobbyPage() {
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('asym_hitboxes') || 'null');
-      if (stored && typeof stored.opacity === 'number') setHitboxes({ on: Boolean(stored.on), opacity: stored.opacity });
+      if (stored) setHitboxes({ on: Boolean(stored.on), opacity: 0.8 });
     } catch {}
   }, []);
 
@@ -845,19 +845,6 @@ export default function LobbyPage() {
         >
           ◎
         </button>
-        {hitboxes.on && (
-          <label style={styles.hitboxSlider}>
-            <span>Visibilidad</span>
-            <input
-              type="range"
-              min={0.15}
-              max={1}
-              step={0.05}
-              value={hitboxes.opacity}
-              onChange={(e) => updateHitboxes({ ...hitboxes, opacity: Number(e.target.value) })}
-            />
-          </label>
-        )}
         {helpOpen && <HelpPanel characters={characters} cards={cardCatalog} onClose={() => setHelpOpen(false)} />}
 
         {errorMsg && (

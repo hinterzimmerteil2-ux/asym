@@ -126,7 +126,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
     }
     FACING.set(playerId, yaw.current);
     if (bodyRef.current) {
-      bodyRef.current.rotation.y = yaw.current;
+      bodyRef.current.rotation.y = yaw.current + (ragdoll ? Date.now() / 260 : 0);
       const rt = Math.min(1, delta * 8);
       const wob = ragdoll ? Math.sin(Date.now() / 90) * 0.06 : 0;
       bodyRef.current.rotation.z += ((ragdoll ? 1.45 : 0) + wob - bodyRef.current.rotation.z) * rt;
@@ -875,9 +875,10 @@ function useKeyboardInput(sendInput, yawRef, onPulse) {
   }, [sendInput, yawRef]);
 }
 
-function SquareFrame({ x, z, half, color, opacity, y = 0, hy }) {
+function SquareFrame({ x, z, half, color, opacity, y = 0, hy, hz }) {
   const halfY = hy ?? half;
-  const geometry = useMemo(() => new EdgesGeometry(new BoxGeometry(half * 2, halfY * 2, half * 2)), [half, halfY]);
+  const halfZ = hz ?? half;
+  const geometry = useMemo(() => new EdgesGeometry(new BoxGeometry(half * 2, halfY * 2, halfZ * 2)), [half, halfY, halfZ]);
   return (
     <lineSegments position={[x, y, z]} geometry={geometry}>
       <lineBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
@@ -905,20 +906,23 @@ function Platform({ p }) {
   );
 }
 
-function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, opacity }) {
+function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, opacity }) {
   return (
     <>
+      {(platforms || []).map((p) => (
+        <SquareFrame key={p.id} x={p.x} z={p.z} y={p.h / 2} half={p.hx} hy={p.h / 2} hz={p.hz} color="#e0555f" opacity={opacity} />
+      ))}
       {Object.entries(entities || {}).map(([id, entity]) => (
         <group key={id}>
           <SquareFrame x={entity.x} z={entity.z} y={entity.y + 0.9} half={0.4} hy={0.9} color="#e0555f" opacity={opacity} />
-          {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} y={entity.y} half={1.8} color="#e0555f" opacity={opacity * 0.6} />}
+          {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} y={entity.y} half={1.2} color="#e0555f" opacity={opacity * 0.6} />}
         </group>
       ))}
       {(collisionObjects || []).map((obj) => (
         <SquareFrame key={obj.id} x={obj.x} z={obj.z} y={(obj.height || 1.2) / 2} half={obj.radius} hy={(obj.height || 1.2) / 2} color="#e0555f" opacity={opacity} />
       ))}
       {Object.entries(selfDamageObjects || {}).map(([id, pos]) => (
-        <SquareFrame key={id} x={pos.x} z={pos.z} half={1.8} color="#e0555f" opacity={opacity} />
+        <SquareFrame key={id} x={pos.x} z={pos.z} half={1.2} color="#e0555f" opacity={opacity} />
       ))}
       {(zones || []).map((zone) => (
         <SquareFrame key={zone.id} x={zone.x} z={zone.z} half={zone.radius} color="#e0555f" opacity={opacity} />
@@ -971,6 +975,7 @@ export default function GameScene({
           collisionObjects={phase === 'action' ? collisionObjects : []}
           selfDamageObjects={phase === 'action' ? selfDamageObjects : {}}
           zones={phase === 'action' ? zones : []}
+          platforms={phase === 'action' ? platforms : []}
           opacity={hitboxes.opacity}
         />
       )}

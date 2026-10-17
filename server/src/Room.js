@@ -36,7 +36,7 @@ const PLAYER_COLLISION_RADIUS = 0.4;
 // Radio de interacción para M1/auto-daño — esto es lo que se había
 // perdido y se pidió reconstruir: validación de distancia puntual en el
 // instante del click, no una zona de colisión continua.
-const INTERACTION_RADIUS = 1.8;
+const INTERACTION_RADIUS = 1.2;
 
 // --- Habilidad especial del Curador: "Pulso de Curación" ---
 // Un dash de persecución no tenía sentido temático acá — este es un
@@ -907,6 +907,11 @@ class Room {
   }
 
   ragdoll(playerId, entity, ms, now) {
+    if ((entity.ragdollUntil || 0) <= now && entity.onGround) {
+      entity.velocityY = 3.5;
+      entity.onGround = false;
+      entity.peakY = entity.y;
+    }
     entity.ragdollUntil = Math.max(entity.ragdollUntil || 0, now + ms);
   }
 
@@ -1344,7 +1349,6 @@ class Room {
         this.checkGameEndConditions();
         break;
       case 'cascara_platano':
-      case 'platano_podrido':
         this.addZone({
           kind: 'trap',
           x: entity.x,
@@ -1354,30 +1358,13 @@ class Room {
           armedAt: now + TRAP_ARM_MS,
           until: now + TRAP_LIFETIME_MS,
           cardId: card.id,
-          stunMs: card.id === 'platano_podrido' ? 3500 : 2000,
+          stunMs: 2000,
           hpLoss: card.curatorHpLoss || 0,
         });
         break;
       case 'agua_rimac':
         this.addZone({ kind: 'rimac', cardId: card.id, x: entity.x, z: entity.z, radius: 4, perSecond: 4, ownerId: playerId, until: now + 5000 });
         break;
-      case 'rimac_sin_filtrar': {
-        const { x, z } = entity;
-        this.addZone({
-          kind: 'rimac',
-          cardId: card.id,
-          x,
-          z,
-          radius: 6,
-          perSecond: 8,
-          ownerId: playerId,
-          until: now + 6000,
-          onExpire: () => {
-            this.addZone({ kind: 'puddle', cardId: card.id, x, z, radius: 6, perSecond: 7, ownerId: playerId, until: Date.now() + 8000 });
-          },
-        });
-        break;
-      }
       case 'receta_falsa':
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
@@ -1427,8 +1414,7 @@ class Room {
           if (!other.isAsymRole) continue;
           const otherEntity = this.gameState.entities[otherId];
           if (otherEntity && distanceBetween(entity, otherEntity) <= 3.5) {
-            this.ragdoll(otherId, otherEntity, card.durationMs, now);
-            this.adjustCuratorHp(-(card.curatorHpLoss || 0));
+            this.stun(otherId, otherEntity, card.durationMs, now, 0);
           }
         }
         break;
@@ -1444,11 +1430,18 @@ class Room {
         this.checkGameEndConditions();
         break;
       case 'tropiezo':
+        this.endlag(playerId, entity, now, 1200);
+        entity.slowedLevel = 3;
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
           const otherEntity = this.gameState.entities[otherId];
           if (otherEntity && distanceBetween(entity, otherEntity) <= TROPIEZO_RADIUS) {
-            this.stun(otherId, otherEntity, card.durationMs, now, card.curatorHpLoss || 0);
+            this.ragdoll(otherId, otherEntity, card.durationMs, now);
+            this.adjustCuratorHp(-(card.curatorHpLoss || 0));
+            const away = euclid(otherEntity, entity) || 1;
+            otherEntity.kbX = ((otherEntity.x - entity.x) / away) * 8;
+            otherEntity.kbZ = ((otherEntity.z - entity.z) / away) * 8;
+            otherEntity.kbUntil = now + 500;
           }
         }
         break;
