@@ -100,7 +100,7 @@ function HeldItem({ held }) {
   );
 }
 
-function PlayerCapsule({ playerId, entityState, color, isMe, stunned }) {
+function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll }) {
   const bodyRef = useRef();
   const lastPos = useRef([entityState.x, entityState.z]);
   const yaw = useRef(0);
@@ -128,9 +128,9 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned }) {
     if (bodyRef.current) {
       bodyRef.current.rotation.y = yaw.current;
       const rt = Math.min(1, delta * 8);
-      const wob = stunned ? Math.sin(Date.now() / 90) * 0.06 : 0;
-      bodyRef.current.rotation.z += ((stunned ? 1.45 : 0) + wob - bodyRef.current.rotation.z) * rt;
-      bodyRef.current.position.y += ((stunned ? 0.45 : 0) - bodyRef.current.position.y) * rt;
+      const wob = ragdoll ? Math.sin(Date.now() / 90) * 0.06 : 0;
+      bodyRef.current.rotation.z += ((ragdoll ? 1.45 : 0) + wob - bodyRef.current.rotation.z) * rt;
+      bodyRef.current.position.y += ((ragdoll ? 0.45 : 0) - bodyRef.current.position.y) * rt;
     }
     const anim = HAND_ANIMS.get(playerId);
     if (anim && anim.id !== heldId.current) {
@@ -911,14 +911,14 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
       {Object.entries(entities || {}).map(([id, entity]) => (
         <group key={id}>
           <SquareFrame x={entity.x} z={entity.z} y={entity.y + 0.9} half={0.4} hy={0.9} color="#e0555f" opacity={opacity} />
-          {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} y={entity.y} half={2.5} color="#e0555f" opacity={opacity * 0.6} />}
+          {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} y={entity.y} half={1.8} color="#e0555f" opacity={opacity * 0.6} />}
         </group>
       ))}
       {(collisionObjects || []).map((obj) => (
         <SquareFrame key={obj.id} x={obj.x} z={obj.z} y={(obj.height || 1.2) / 2} half={obj.radius} hy={(obj.height || 1.2) / 2} color="#e0555f" opacity={opacity} />
       ))}
       {Object.entries(selfDamageObjects || {}).map(([id, pos]) => (
-        <SquareFrame key={id} x={pos.x} z={pos.z} half={2.5} color="#e0555f" opacity={opacity} />
+        <SquareFrame key={id} x={pos.x} z={pos.z} half={1.8} color="#e0555f" opacity={opacity} />
       ))}
       {(zones || []).map((zone) => (
         <SquareFrame key={zone.id} x={zone.x} z={zone.z} half={zone.radius} color="#e0555f" opacity={opacity} />
@@ -936,6 +936,7 @@ export default function GameScene({
   zones,
   effects,
   stunnedIds,
+  ragdollIds,
   collisionObjects,
   platforms,
   sendInput,
@@ -1014,6 +1015,7 @@ export default function GameScene({
               color={color}
               isMe={playerId === myPlayerId}
               stunned={(stunnedIds || []).includes(playerId)}
+              ragdoll={(ragdollIds || []).includes(playerId)}
             />
           </group>
         );

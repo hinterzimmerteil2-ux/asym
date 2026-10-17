@@ -15,6 +15,7 @@ import GameScene from '../components/GameScene';
 import SkillIcon from '../components/SkillIcon';
 import HelpPanel from '../components/HelpPanel';
 import StatusColumn from '../components/StatusColumn';
+import RhythmBar from '../components/RhythmBar';
 import { KEYWORDS } from '../lib/keywords';
 
 function KeywordChip({ id }) {
@@ -63,6 +64,9 @@ export default function LobbyPage() {
   const [curatorHp, setCuratorHp] = useState(null);
   const [effects, setEffects] = useState([]);
   const [stunnedIds, setStunnedIds] = useState([]);
+  const [ragdollIds, setRagdollIds] = useState([]);
+  const [channelNow, setChannelNow] = useState(0);
+  const channelRef = useRef(null);
   const entitiesRef = useRef({});
   const effectCounterRef = useRef(0);
   const [collisionObjects, setCollisionObjects] = useState([]);
@@ -159,6 +163,8 @@ export default function LobbyPage() {
             setSpawnMs(payload.spawnMs || 0);
             entitiesRef.current = payload.entities || {};
             setStunnedIds(Object.entries(payload.flojera || {}).filter(([, v]) => v.stunned).map(([id]) => id));
+            setRagdollIds(Object.entries(payload.flojera || {}).filter(([, v]) => v.ragdoll).map(([id]) => id));
+            channelRef.current = payload.flojera?.[myPlayerIdRef.current]?.channel ? { ...payload.flojera[myPlayerIdRef.current].channel, at: performance.now() } : null;
             setPatients(payload.patients || {});
             setTimeRemainingMs(payload.timeRemainingMs ?? null);
             if (payload.flojera && myPlayerIdRef.current) {
@@ -508,6 +514,7 @@ export default function LobbyPage() {
             zones={zones}
             effects={effects}
             stunnedIds={stunnedIds}
+            ragdollIds={ragdollIds}
             collisionObjects={collisionObjects}
             platforms={platforms}
             sendInput={handleSendInput}
@@ -701,6 +708,7 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} />}
+        {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
 
         {phase === 'action' && flojera && (
           <div style={styles.flojeraBarContainer}>
