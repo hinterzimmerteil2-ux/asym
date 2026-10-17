@@ -26,6 +26,7 @@ const CHAT_RATE_LIMIT_MS = 500;
 const MOVE_SPEED = 5;
 const JUMP_VELOCITY = 4.5;
 const STEP_UP = 0.5;
+const DASH_STEP_UP = 1.8;
 const STEP_DOWN = 0.7;
 const FALL_ENDLAG_MIN = 1.2;
 const FALL_ENDLAG_MS = 1800;
@@ -129,22 +130,22 @@ const PLAYER_HALF = 0.4;
 const PLAYER_HEIGHT = 1.8;
 const FOOTPRINT = [[0, 0], [PLAYER_HALF, PLAYER_HALF], [PLAYER_HALF, -PLAYER_HALF], [-PLAYER_HALF, PLAYER_HALF], [-PLAYER_HALF, -PLAYER_HALF]];
 
-function groundAt(platforms, x, z, y) {
+function groundAt(platforms, x, z, y, stepUp = STEP_UP) {
   let g = GROUND_Y;
   for (const p of platforms) {
     for (const [ox, oz] of FOOTPRINT) {
       const top = platformTop(p, x + ox, z + oz);
-      if (top !== null && top <= y + STEP_UP && top > g) g = top;
+      if (top !== null && top <= y + stepUp && top > g) g = top;
     }
   }
   return g;
 }
 
-function blockedAt(platforms, x, z, y) {
+function blockedAt(platforms, x, z, y, stepUp = STEP_UP) {
   for (const p of platforms) {
     for (const [ox, oz] of FOOTPRINT) {
       const top = platformTop(p, x + ox, z + oz);
-      if (top !== null && top > y + STEP_UP) return true;
+      if (top !== null && top > y + stepUp) return true;
     }
   }
   return false;
@@ -336,6 +337,7 @@ class Room {
       exacerbacionUntil: 0,
       perezaUntil: 0,
       ragdollUntil: 0,
+      marcaUntil: 0,
       dashUntil: 0,
       dashVX: 0,
       dashVZ: 0,
@@ -597,6 +599,7 @@ class Room {
       entity.exacerbacionUntil = 0;
       entity.perezaUntil = 0;
       entity.ragdollUntil = 0;
+      entity.marcaUntil = 0;
       entity.dashUntil = 0;
       entity.kbUntil = 0;
       entity.channel = null;
@@ -794,6 +797,7 @@ class Room {
       const prevX = entity.x;
       const prevZ = entity.z;
       const dashing = entity.dashUntil > now;
+      const stepUp = dashing ? DASH_STEP_UP : STEP_UP;
       if (!dashing && entity.dashUntil) {
         entity.dashUntil = 0;
         if (entity.dashExhausted) this.ragdoll(entityPlayerId, entity, ENDLAG_MAX_MS, now);
@@ -813,7 +817,8 @@ class Room {
         const dx = entity.dashVX / speed;
         const dz = entity.dashVZ / speed;
         for (const [otherId, other] of this.players) {
-          if (!other.isAsymRole) continue;
+          const isAlly = !other.isAsymRole;
+          if (isAlly && (otherId === entityPlayerId || this.gameState.patients[otherId]?.status !== 'alive')) continue;
           const target = this.gameState.entities[otherId];
           if (!target) continue;
           const relX = target.x - entity.x;
@@ -821,20 +826,21 @@ class Room {
           const along = relX * dx + relZ * dz;
           const sideways = Math.abs(relX * dz - relZ * dx);
           if (along < -0.6 || along > 1.8 || sideways > ROLL_HIT_WIDTH || Math.abs(target.y - entity.y) > 1.8) continue;
-          target.kbX = dx * ROLL_PUSH_SPEED;
-          target.kbZ = dz * ROLL_PUSH_SPEED;
+          const force = isAlly ? 0.6 : 1;
+          target.kbX = dx * ROLL_PUSH_SPEED * force;
+          target.kbZ = dz * ROLL_PUSH_SPEED * force;
           target.kbUntil = now + ROLL_PUSH_MS;
-          this.ragdoll(otherId, target, ROLL_RAGDOLL_MS, now);
+          if (!isAlly) this.ragdoll(otherId, target, ROLL_RAGDOLL_MS, now);
         }
       }
       const nextX = entity.x + velX * dt;
       const nextZ = entity.z + velZ * dt;
-      if (!blockedAt(platforms, nextX, nextZ, entity.y) || blockedAt(platforms, prevX, prevZ, entity.y)) {
+      if (!blockedAt(platforms, nextX, nextZ, entity.y, stepUp) || blockedAt(platforms, prevX, prevZ, entity.y, stepUp)) {
         entity.x = nextX;
         entity.z = nextZ;
-      } else if (!blockedAt(platforms, nextX, prevZ, entity.y)) {
+      } else if (!blockedAt(platforms, nextX, prevZ, entity.y, stepUp)) {
         entity.x = nextX;
-      } else if (!blockedAt(platforms, prevX, nextZ, entity.y)) {
+      } else if (!blockedAt(platforms, prevX, nextZ, entity.y, stepUp)) {
         entity.z = nextZ;
       }
 
@@ -858,7 +864,7 @@ class Room {
         entity.onGround = false;
         entity.peakY = entity.y;
       }
-      let ground = groundAt(platforms, entity.x, entity.z, entity.y);
+      let ground = groundAt(platforms, entity.x, entity.z, entity.y, stepUp);
       if (entity.onGround && entity.y > ground && entity.y - ground <= STEP_DOWN) entity.y = ground;
       if (entity.onGround && entity.y - ground > STEP_DOWN) {
         entity.onGround = false;
@@ -968,7 +974,7 @@ class Room {
       });
       return;
     }
-    curadorEntity.skillCooldowns[index] = now + skill.cooldownMs;
+    curadorEntity.skillCooldowns[index] = now + skill.cooldownMs + (curadorEntity.marcaUntil > now ? 6000 : 0);
 
     const affectedPlayerIds = [];
     let healedAny = false;
@@ -1378,10 +1384,7 @@ class Room {
           if (!other.isAsymRole) continue;
           const otherEntity = this.gameState.entities[otherId];
           if (!otherEntity || distanceBetween(entity, otherEntity) > 8) continue;
-          for (const key of [0, 1, 2, 3, 'melee']) {
-            otherEntity.skillCooldowns[key] = Math.max(otherEntity.skillCooldowns[key] || 0, now) + 6000;
-            otherEntity.perezaUntil = now + 8000;
-          }
+          otherEntity.marcaUntil = now + 10000;
         }
         break;
       case 'acetilcolina':
@@ -1396,17 +1399,6 @@ class Room {
         entity.channel = { cardId: card.id, slot: slotIndex, startedAt: now, endsAt: now + CHANNEL_MS, hits: 0, scored: {} };
         break;
       }
-      case 'sobredosis':
-        for (const [otherId, other] of this.players) {
-          if (!other.isAsymRole) continue;
-          const otherEntity = this.gameState.entities[otherId];
-          if (!otherEntity || distanceBetween(entity, otherEntity) > 8) continue;
-          for (const key of [0, 1, 2, 3, 'melee']) {
-            otherEntity.skillCooldowns[key] = Math.max(otherEntity.skillCooldowns[key] || 0, now) + 10000;
-            otherEntity.perezaUntil = now + 12000;
-          }
-        }
-        break;
       case 'tajo_carmesi':
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;

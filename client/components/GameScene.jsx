@@ -287,13 +287,13 @@ function CollisionObjectMesh({ type, radius }) {
 
 const ZONE_COLORS = { rimac: '#6b8f3a', puddle: '#5fd58c', trap: '#f2d154' };
 
-function BananaMesh({ color, spotted }) {
+function BananaMesh({ color, spotted, ghost }) {
   return (
     <group scale={[2.4, 2.4, 2.4]}>
       {[-0.22, 0, 0.22].map((x, i) => (
         <mesh key={x} position={[x, 0.1 + (i === 1 ? 0.05 : 0), 0]} rotation={[Math.PI / 2, 0, (i - 1) * 0.5 + 1.57]}>
           <capsuleGeometry args={[0.07, 0.28, 4, 8]} />
-          <meshStandardMaterial color={color} />
+          <meshStandardMaterial color={color} transparent={Boolean(ghost)} opacity={ghost ? 0.35 : 1} />
         </mesh>
       ))}
       {spotted && [-0.15, 0.1, 0.25].map((x) => (
@@ -340,7 +340,7 @@ function BrokenBottle({ color }) {
   );
 }
 
-function ZoneDisc({ zone }) {
+function ZoneDisc({ zone, ghost }) {
   const color = ZONE_COLORS[zone.kind] || '#ffffff';
   const isTrap = zone.kind === 'trap';
   const bananaColor = zone.cardId === 'platano_podrido' ? '#7a6a2a' : '#f2d154';
@@ -354,7 +354,7 @@ function ZoneDisc({ zone }) {
           <meshBasicMaterial color={color} transparent opacity={0.3} />
         </mesh>
       )}
-      {isTrap && <BananaMesh color={bananaColor} spotted={zone.cardId === 'platano_podrido'} />}
+      {isTrap && <BananaMesh color={bananaColor} spotted={false} ghost={ghost} />}
       {zone.kind === 'rimac' && (
         <>
           <PuddleRipples radius={zone.radius} color={zone.cardId === 'rimac_sin_filtrar' ? '#5f7f20' : '#8fb050'} />
@@ -966,7 +966,7 @@ export default function GameScene({
 
       {phase === 'action' && (effects || []).map((effect) => <SkillEffect key={effect.id} effect={effect} />)}
 
-      {phase === 'action' && (zones || []).map((zone) => <ZoneDisc key={zone.id} zone={zone} />)}
+      {phase === 'action' && (zones || []).map((zone) => <ZoneDisc key={zone.id} zone={zone} ghost={Boolean(playerById.get(myPlayerId)?.isAsymRole)} />)}
 
       {hitboxes?.on && (
         <Hitboxes
