@@ -1,3 +1,4 @@
+const Status = require('./Status');
 const { distanceBetween, euclid } = require('./Hitbox');
 const C = require('./Constants');
 
@@ -88,15 +89,12 @@ const handlers = {
   },
 
   tropiezo({ room, playerId, entity, card, now }) {
-    room.endlag(playerId, entity, now, 1200);
-    entity.slowedLevel = 3;
+    room.endlag(playerId, entity, now, 1200, 3);
     forEachCurator(room, entity, C.TROPIEZO_RADIUS, (id, target) => {
       room.ragdoll(id, target, card.durationMs, now);
       room.adjustCuratorHp(-(card.curatorHpLoss || 0));
       const away = euclid(target, entity) || 1;
-      target.kbX = ((target.x - entity.x) / away) * 8;
-      target.kbZ = ((target.z - entity.z) / away) * 8;
-      target.kbUntil = now + 500;
+      Status.push(target, (target.x - entity.x) / away, (target.z - entity.z) / away, 8, 500, now);
     });
   },
 };

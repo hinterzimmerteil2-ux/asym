@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { Room } = require('../src/Room');
+const Status = require('../src/Status');
 const { distanceBetween } = require('../src/Hitbox');
 
 function setup() {
@@ -42,7 +43,7 @@ test('Espada del UTTVM solo aturde, sin daño ni efectos', () => {
   give(e.a, 0, 'tajo_carmesi');
   const hp = room.gameState.curator.hp;
   room.useCard('a', 0);
-  assert.ok(e.c.stunnedUntil > Date.now());
+  assert.ok(Status.until(e.c, 'stun') > Date.now());
   assert.strictEqual(room.gameState.curator.hp, hp);
 });
 
@@ -51,10 +52,10 @@ test('Tropiezo derriba 3s, empuja y deja endlag al usuario', () => {
   e.a.x = 0; e.a.z = 0; e.c.x = 1.5; e.c.z = 0;
   give(e.a, 0, 'tropiezo');
   room.useCard('a', 0);
-  assert.strictEqual(e.c.ragdollUntil - Date.now(), 3000);
+  assert.strictEqual(Status.until(e.c, 'ragdoll') - Date.now(), 3000);
   assert.ok(e.c.kbX > 0);
-  assert.strictEqual(e.a.endlagUntil - Date.now(), 1200);
-  assert.strictEqual(e.c.stunnedUntil, 0);
+  assert.strictEqual(Status.until(e.a, 'slow') - Date.now(), 1200);
+  assert.strictEqual(Status.until(e.c, 'stun'), 0);
 });
 
 test('un golpe que falla da endlag solo proporcional a la Flojera', () => {
@@ -63,13 +64,13 @@ test('un golpe que falla da endlag solo proporcional a la Flojera', () => {
   give(e.a, 0, 'tajo_carmesi');
   e.a.flojera = e.a.flojeraMax;
   room.useCard('a', 0);
-  assert.strictEqual(e.a.endlagUntil, 0);
+  assert.strictEqual(Status.until(e.a, 'slow'), 0);
   give(e.a, 0, 'tajo_carmesi');
   e.a.flojera = 0;
   room.useCard('a', 0);
-  assert.ok(e.a.endlagUntil > Date.now());
-  assert.strictEqual(e.a.stunnedUntil, 0);
-  assert.ok(e.a.slowedUntil > Date.now());
+  assert.ok(Status.until(e.a, 'slow') > Date.now());
+  assert.strictEqual(Status.until(e.a, 'stun'), 0);
+  assert.ok(Status.until(e.a, 'slow') > Date.now());
 });
 
 test('Rodar hace dropkick al Curador y se detiene donde estaba', () => {
@@ -80,7 +81,7 @@ test('Rodar hace dropkick al Curador y se detiene donde estaba', () => {
   step(12);
   assert.ok(Math.abs(e.a.x - -2) < 0.8);
   assert.ok(e.c.x > 3);
-  assert.ok(e.c.rag || e.c.ragdollUntil > 0);
+  assert.ok(e.c.rag || Status.until(e.c, 'ragdoll') > 0);
 });
 
 test('Rodar sin moverte usa la orientación', () => {
@@ -100,18 +101,18 @@ test('Rodar agotando la Flojera deja ragdoll al terminar', () => {
   give(e.a, 0, 'rodar');
   room.useCard('a', 0);
   step(10, 0.05, false);
-  assert.ok(e.a.ragdollUntil > Date.now());
+  assert.ok(Status.until(e.a, 'ragdoll') > Date.now());
 });
 
 test('Diligencia bloquea cartas y la M1 del Curador', () => {
   const { room, e } = setup();
   give(e.a, 0, 'chicharron');
-  e.a.stunnedUntil = Date.now() + 5000;
+  Status.apply(e.a, 'stun', 5000, Date.now());
   const hp = room.gameState.patients.a.hp;
   room.useCard('a', 0);
   assert.strictEqual(room.gameState.patients.a.hp, hp);
   e.c.x = 0; e.c.z = 0; e.a.x = 1; e.a.z = 0;
-  e.c.stunnedUntil = Date.now() + 5000;
+  Status.apply(e.c, 'stun', 5000, Date.now());
   room.applyCure('c', 'a');
   assert.strictEqual(room.gameState.patients.a.hp, hp);
 });
@@ -157,7 +158,7 @@ test('Acetilcolina sin Flojera camina con buff y no genera endlag en uso', () =>
   const spent = run(0);
   assert.ok(buffed > normal * 1.5);
   assert.ok(spent < buffed && spent > normal);
-  assert.strictEqual(e.a.endlagUntil, 0);
+  assert.strictEqual(Status.until(e.a, 'slow'), 0);
 });
 
 test('caer de una plataforma da ralentización a los Pacientes', () => {
@@ -165,8 +166,8 @@ test('caer de una plataforma da ralentización a los Pacientes', () => {
   e.c.x = -25; e.c.z = -25;
   e.a.x = 22; e.a.y = 2.4; e.a.z = 7.5; e.a.onGround = true; e.a.input.moveX = 1;
   step(30);
-  assert.ok(e.a.slowedUntil > 0 || e.a.endlagUntil > 0);
-  assert.strictEqual(e.a.stunnedUntil, 0);
+  assert.ok(Status.until(e.a, 'slow') > 0 || Status.until(e.a, 'slow') > 0);
+  assert.strictEqual(Status.until(e.a, 'stun'), 0);
 });
 
 test('Rodar sube hasta la plataforma baja', () => {
@@ -192,4 +193,24 @@ test('el catálogo de cartas no tiene referencias rotas', () => {
   const { CARDS } = require('../src/Cards');
   const { handlers } = require('../src/CardEffects');
   for (const id of Object.keys(CARDS)) assert.ok(handlers[id], `falta el efecto de ${id}`);
+});
+
+test('Status: stun bloquea skills, ragdoll no, slow escala nivel y se encadena', () => {
+  const e = {};
+  const now = 1000;
+  Status.apply(e, 'ragdoll', 1000, now);
+  assert.ok(Status.blocksMove(e, now));
+  assert.ok(!Status.blocksSkills(e, now));
+  Status.apply(e, 'stun', 500, now);
+  assert.ok(Status.blocksSkills(e, now));
+  assert.ok(!Status.blocksSkills(e, now + 600));
+  Status.apply(e, 'slow', 1000, now, { level: 1, chain: true });
+  Status.apply(e, 'slow', 1000, now, { level: 3, chain: true });
+  assert.strictEqual(Status.level(e, 'slow', now), 3);
+  assert.strictEqual(Status.until(e, 'slow'), now + 2000);
+  assert.strictEqual(Status.speedFactor(e, now), 0.25);
+  Status.clear(e, 'slow');
+  assert.strictEqual(Status.speedFactor(e, now), 1);
+  Status.push(e, 1, 0, 8, 500, now);
+  assert.strictEqual(e.kbX, 8);
 });

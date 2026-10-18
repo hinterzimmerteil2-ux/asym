@@ -86,6 +86,7 @@ const {
   PLAYER_HEIGHT,
   FOOTPRINT
 } = require('./Constants');
+const Status = require('./Status');
 
 function clampUnit(value) {
   const n = typeof value === 'number' && !Number.isNaN(value) ? value : 0;
@@ -246,7 +247,6 @@ class Room {
       onGround: true,
       input: { moveX: 0, moveZ: 0, jump: false, slow: false },
       skillCooldowns: {},
-      stunnedUntil: 0,
       noDrainUntil: 0,
       cureBoostUntil: 0,
       cureBoostFactor: 1,
@@ -260,7 +260,6 @@ class Room {
       exacerbacionLevel: 0,
       exacerbacionUntil: 0,
       perezaUntil: 0,
-      ragdollUntil: 0,
       rag: null,
       marcaUntil: 0,
       dashUntil: 0,
@@ -268,6 +267,7 @@ class Room {
       dashVZ: 0,
       dashExhausted: false,
       kbUntil: 0,
+      fx: {},
       kbX: 0,
       kbZ: 0,
       channel: null,
@@ -279,10 +279,7 @@ class Room {
       fatigueUntil: 0,
       allyBoostUntil: 0,
       allyBoostLevel: 0,
-      slowedLevel: 1,
-      endlagUntil: 0,
       baseCooldownUntil: 0,
-      slowedUntil: 0,
       doubleSelfDamage: false,
     };
 
@@ -510,7 +507,6 @@ class Room {
       entity.velocityY = 0;
       entity.onGround = true;
       entity.skillCooldowns = {};
-      entity.stunnedUntil = 0;
       entity.noDrainUntil = 0;
       entity.cureBoostUntil = 0;
       entity.cureBoostFactor = 1;
@@ -523,7 +519,6 @@ class Room {
       entity.exacerbacionLevel = 0;
       entity.exacerbacionUntil = 0;
       entity.perezaUntil = 0;
-      entity.ragdollUntil = 0;
       entity.marcaUntil = 0;
       entity.dashUntil = 0;
       entity.kbUntil = 0;
@@ -534,9 +529,7 @@ class Room {
       entity.fatigueUntil = 0;
       entity.allyBoostUntil = 0;
       entity.allyBoostLevel = 0;
-      entity.slowedLevel = 1;
-      entity.endlagUntil = 0;
-      entity.slowedUntil = 0;
+      entity.fx = {};
       entity.doubleSelfDamage = false;
       entity.hand = player.isAsymRole ? [] : Cards.dealSlots();
       entity.draftEndsAt = player.isAsymRole ? 0 : Date.now() + Cards.DRAFT_DURATION_MS;
@@ -593,7 +586,7 @@ class Room {
       const own = this.gameState.entities[playerId];
       const flojera = {};
       for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
-        flojera[entityPlayerId] = { stunned: entity.stunnedUntil > now, ragdoll: entity.ragdollUntil > now };
+        flojera[entityPlayerId] = { stunned: Status.active(entity, 'stun', now), ragdoll: Status.active(entity, 'ragdoll', now) };
       }
       if (own) {
         flojera[playerId] = {
@@ -602,7 +595,7 @@ class Room {
           locked: own.flojeraLockedUntil > now,
           mode: own.acetilUntil > now ? (own.flojera <= 0 ? 'acetil_walk' : 'acetil') : (own.input.slow || own.flojeraLockedUntil > now ? 'walk' : 'run'),
           sprinting: own.sprintUntil > now,
-          stunned: own.stunnedUntil > now,
+          stunned: Status.active(own, 'stun', now),
           statuses: this.buildStatuses(own, now),
           channel: own.channel ? { elapsed: now - own.channel.startedAt, total: CHANNEL_MS, beatMs: CHANNEL_BEAT_MS, beats: CHANNEL_BEATS, hits: own.channel.hits, scored: Object.keys(own.channel.scored).map(Number), slot: own.channel.slot } : null,
           cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
@@ -647,10 +640,7 @@ class Room {
     if (entity.acetilUntil <= now) add('fatiga', 1, entity.fatigueUntil);
     add('impulso', entity.allyBoostLevel || 1, entity.allyBoostUntil);
     if (entity.acetilUntil > now || entity.regenBlockedUntil > now) add('ayuno', 1, Math.max(entity.acetilUntil, entity.regenBlockedUntil));
-    add('endlag', 1, entity.endlagUntil);
-    add('ragdoll', 1, entity.ragdollUntil);
-    if (entity.endlagUntil <= now) add('aturdido', 1, entity.stunnedUntil);
-    add('ralentizado', entity.slowedLevel || 1, entity.slowedUntil);
+    list.push(...Status.list(entity, now));
     return list;
   }
 
@@ -679,7 +669,7 @@ class Room {
       const heldAtSpawn = this.players.get(entityPlayerId)?.isAsymRole && inAction && now < (this.gameState.curatorReleaseAt || 0);
       if (entity.channel && entity.channel.endsAt <= now) entity.channel = null;
       if (entity.rag) {
-        if (entity.ragdollUntil > now) {
+        if (Status.active(entity, 'ragdoll', now)) {
           const rg = entity.rag;
           rg.vx += -rg.rx * 6 * dt;
           rg.vz += (1.45 - rg.rz) * 5 * dt;
@@ -695,7 +685,7 @@ class Room {
         entity.acetilOn = false;
         if (entity.flojera <= 0) this.endlag(entityPlayerId, entity, now);
       }
-      const stunned = entity.stunnedUntil > now || entity.ragdollUntil > now || Boolean(resolved) || Boolean(heldAtSpawn);
+      const stunned = Status.blocksMove(entity, now) || Boolean(resolved) || Boolean(heldAtSpawn);
       const isMoving = !stunned && (input.moveX !== 0 || input.moveZ !== 0);
       const sprinting = entity.sprintUntil > now;
       const locked = entity.flojeraLockedUntil > now;
@@ -708,7 +698,7 @@ class Room {
       } else if (wantsSlow) {
         speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
       }
-      if (entity.slowedUntil > now) speedMultiplier *= SLOW_BY_LEVEL[Math.min(3, entity.slowedLevel || 1)];
+      speedMultiplier *= Status.speedFactor(entity, now);
       if (entity.channel) speedMultiplier *= CHANNEL_SLOW;
       if (entity.acetilUntil <= now && entity.fatigueUntil > now) speedMultiplier *= ACETIL_FATIGUE_FACTOR;
       if (allyCounts[entityPlayerId]) {
@@ -775,14 +765,10 @@ class Room {
           const sideways = Math.abs(relX * dz - relZ * dx);
           if (along < -0.6 || along > 1.8 || sideways > ROLL_HIT_WIDTH || Math.abs(target.y - entity.y) > 1.8) continue;
           if (isAlly) {
-            target.kbX = dx * ROLL_PUSH_SPEED * 0.6;
-            target.kbZ = dz * ROLL_PUSH_SPEED * 0.6;
-            target.kbUntil = now + ROLL_PUSH_MS;
+            Status.push(target, dx, dz, ROLL_PUSH_SPEED * 0.6, ROLL_PUSH_MS, now);
             continue;
           }
-          target.kbX = dx * ROLL_KNOCKBACK_SPEED;
-          target.kbZ = dz * ROLL_KNOCKBACK_SPEED;
-          target.kbUntil = now + ROLL_KNOCKBACK_MS;
+          Status.push(target, dx, dz, ROLL_KNOCKBACK_SPEED, ROLL_KNOCKBACK_MS, now);
           this.ragdoll(otherId, target, ROLL_RAGDOLL_MS, now);
           entity.x = target.x;
           entity.z = target.z;
@@ -866,18 +852,17 @@ class Room {
   }
 
   endlagSlow(entity, now, ms) {
-    entity.slowedUntil = Math.max(entity.slowedUntil || 0, now + ms);
-    entity.slowedLevel = Math.max(entity.slowedLevel || 1, 1);
-    entity.endlagUntil = Math.max(entity.endlagUntil || 0, now + ms);
+    Status.apply(entity, 'slow', ms, now, { tag: 'endlag' });
   }
 
   ragdoll(playerId, entity, ms, now) {
-    if ((entity.ragdollUntil || 0) <= now && entity.onGround) {
+    const was = Status.active(entity, 'ragdoll', now);
+    if (!was && entity.onGround) {
       entity.velocityY = 3.5;
       entity.onGround = false;
       entity.peakY = entity.y;
     }
-    if ((entity.ragdollUntil || 0) <= now || !entity.rag) {
+    if (!was || !entity.rag) {
       entity.rag = {
         rx: 0,
         ry: Math.atan2(entity.faceX || 0, entity.faceZ || 1),
@@ -888,7 +873,7 @@ class Room {
         startedAt: now,
       };
     }
-    entity.ragdollUntil = Math.max(entity.ragdollUntil || 0, now + ms);
+    Status.apply(entity, 'ragdoll', ms, now);
   }
 
   channelBeat(playerId, entity, now) {
@@ -924,7 +909,7 @@ class Room {
 
     const now = Date.now();
     if (now < (this.gameState.curatorReleaseAt || 0)) return;
-    if (curadorEntity.stunnedUntil > now) {
+    if (Status.blocksSkills(curadorEntity, now)) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Estás en Diligencia' });
       return;
     }
@@ -967,7 +952,7 @@ class Room {
         }
       }
       if (nearestId) {
-        this.gameState.entities[nearestId].stunnedUntil = now + skill.durationMs;
+        Status.apply(this.gameState.entities[nearestId], 'stun', skill.durationMs, now);
         affectedPlayerIds.push(nearestId);
       }
     } else {
@@ -986,7 +971,7 @@ class Room {
           }
           healedAny = true;
         } else if (skill.type === 'stun') {
-          targetEntity.stunnedUntil = now + skill.durationMs;
+          Status.apply(targetEntity, 'stun', skill.durationMs, now);
         } else if (skill.type === 'pull') {
           const flat = euclid(curadorEntity, targetEntity);
           const travel = Math.min(skill.strength, Math.max(0, flat - 1));
@@ -998,7 +983,7 @@ class Room {
           targetEntity.sprintUntil = 0;
           targetEntity.exacerbacionLevel = 0;
           targetEntity.noDrainUntil = 0;
-          targetEntity.slowedUntil = 0;
+          Status.clear(targetEntity, 'slow');
           targetEntity.doubleSelfDamage = false;
           targetEntity.flojera = Math.max(0, targetEntity.flojera - skill.flojeraDrain);
         }
@@ -1034,7 +1019,7 @@ class Room {
   }
 
   stun(playerId, entity, ms, now, hpLoss = 0) {
-    entity.stunnedUntil = Math.max(entity.stunnedUntil, now + ms);
+    Status.apply(entity, 'stun', ms, now);
     const player = this.players.get(playerId);
     if (player && player.isAsymRole && hpLoss > 0) this.adjustCuratorHp(-hpLoss);
   }
@@ -1116,8 +1101,7 @@ class Room {
             entity.flojera = Math.max(0, entity.flojera - RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC * dt);
             const curator = this.gameState.curator;
             this.adjustCuratorHp((curator.hp < curator.max / 2 ? -1 : 1) * zone.perSecond * dt);
-            entity.slowedUntil = Math.max(entity.slowedUntil, now + 300);
-            entity.slowedLevel = Math.max(entity.slowedUntil > now + 300 ? entity.slowedLevel : 0, 1);
+            Status.apply(entity, 'slow', 300, now);
           }
         }
       } else if (zone.kind === 'trap' && now >= zone.armedAt) {
@@ -1238,7 +1222,7 @@ class Room {
 
     const entity = this.gameState.entities[playerId];
     if (!entity) return;
-    if (entity.stunnedUntil > Date.now()) {
+    if (Status.blocksSkills(entity, Date.now())) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Estás en Diligencia' });
       return;
     }
@@ -1299,14 +1283,11 @@ class Room {
     entity.exacerbacionUntil = now + EXACERBACION_MS;
   }
 
-  endlag(playerId, entity, now, fixedMs) {
+  endlag(playerId, entity, now, fixedMs, forcedLevel) {
     const missing = 1 - Math.max(0, Math.min(1, entity.flojera / entity.flojeraMax));
     const ms = fixedMs || ENDLAG_MIN_MS + (ENDLAG_MAX_MS - ENDLAG_MIN_MS) * missing;
     if (ms <= 0) return;
-    const start = Math.max(now, entity.endlagUntil || 0);
-    entity.endlagUntil = start + ms;
-    entity.slowedUntil = Math.max(entity.slowedUntil || 0, entity.endlagUntil);
-    entity.slowedLevel = Math.max(entity.slowedLevel || 1, 1 + Math.min(2, Math.floor(missing * 3)));
+    Status.apply(entity, 'slow', ms, now, { chain: true, tag: 'endlag', level: forcedLevel || 1 + Math.min(2, Math.floor(missing * 3)) });
   }
 
   applyCardEffect(playerId, entity, card, now) {
@@ -1360,7 +1341,7 @@ class Room {
     }
     if (Date.now() < (this.gameState.curatorReleaseAt || 0)) return;
     const baseEntity = this.gameState.entities[curadorId];
-    if (!baseEntity || baseEntity.baseCooldownUntil > Date.now() || baseEntity.stunnedUntil > Date.now()) return;
+    if (!baseEntity || baseEntity.baseCooldownUntil > Date.now() || Status.blocksSkills(baseEntity, Date.now())) return;
 
     const patient = this.gameState.patients[targetPlayerId];
     if (!patient || patient.status !== 'alive') {
