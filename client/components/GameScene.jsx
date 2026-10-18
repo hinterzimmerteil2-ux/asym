@@ -918,9 +918,15 @@ function SquareFrame({ x, z, half, color, opacity, y = 0, hy, hz }) {
   const halfZ = hz ?? half;
   const geometry = useMemo(() => new EdgesGeometry(new BoxGeometry(half * 2, halfY * 2, halfZ * 2)), [half, halfY, halfZ]);
   return (
-    <lineSegments position={[x, y, z]} geometry={geometry}>
-      <lineBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
-    </lineSegments>
+    <group position={[x, y, z]}>
+      <lineSegments geometry={geometry}>
+        <lineBasicMaterial color={color} transparent opacity={Math.min(1, opacity + 0.2)} depthWrite={false} />
+      </lineSegments>
+      <mesh>
+        <boxGeometry args={[half * 2, halfY * 2, halfZ * 2]} />
+        <meshBasicMaterial color={color} transparent opacity={0.14} depthWrite={false} />
+      </mesh>
+    </group>
   );
 }
 

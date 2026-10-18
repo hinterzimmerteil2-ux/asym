@@ -714,7 +714,7 @@ export default function LobbyPage() {
 
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
-        {phase === 'action' && <TouchControls isAsymRole={isAsymRole} />}
+        {phase === 'action' && <TouchControls isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
 
         {phase === 'action' && flojera && (
           <div style={styles.flojeraBarContainer}>
