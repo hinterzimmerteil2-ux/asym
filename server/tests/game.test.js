@@ -195,15 +195,15 @@ test('el catálogo de cartas no tiene referencias rotas', () => {
   for (const id of Object.keys(CARDS)) assert.ok(handlers[id], `falta el efecto de ${id}`);
 });
 
-test('Status: stun bloquea skills, ragdoll no, slow escala nivel y se encadena', () => {
+test('Status: stun y ragdoll bloquean skills, slow escala nivel y se encadena', () => {
   const e = {};
   const now = 1000;
   Status.apply(e, 'ragdoll', 1000, now);
   assert.ok(Status.blocksMove(e, now));
-  assert.ok(!Status.blocksSkills(e, now));
+  assert.ok(Status.blocksSkills(e, now));
+  assert.ok(!Status.blocksSkills(e, now + 1100));
   Status.apply(e, 'stun', 500, now);
   assert.ok(Status.blocksSkills(e, now));
-  assert.ok(!Status.blocksSkills(e, now + 600));
   Status.apply(e, 'slow', 1000, now, { level: 1, chain: true });
   Status.apply(e, 'slow', 1000, now, { level: 3, chain: true });
   assert.strictEqual(Status.level(e, 'slow', now), 3);

@@ -2,7 +2,7 @@ const { SLOW_BY_LEVEL } = require('./Constants');
 
 const KINDS = {
   stun: { blocksMove: true, blocksSkills: true, id: 'aturdido' },
-  ragdoll: { blocksMove: true, blocksSkills: false, id: 'ragdoll' },
+  ragdoll: { blocksMove: true, blocksSkills: true, id: 'ragdoll' },
   slow: { blocksMove: false, blocksSkills: false, id: 'ralentizado' },
 };
 
