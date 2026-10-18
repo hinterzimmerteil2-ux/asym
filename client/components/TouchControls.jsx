@@ -11,7 +11,7 @@ function Stick() {
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const active = useRef(new Set());
   const pointer = useRef(null);
-  const RADIUS = 56;
+  const RADIUS = 40;
 
   function apply(dx, dy) {
     const want = new Set();
@@ -49,14 +49,14 @@ function Stick() {
       onPointerMove={(e) => { if (pointer.current === e.pointerId && origin) move(e, origin); }}
       onPointerUp={end}
       onPointerCancel={end}
-      style={{ position: 'absolute', left: 0, bottom: 0, width: '45%', height: '55%', touchAction: 'none', pointerEvents: 'auto' }}
+      style={{ position: 'absolute', left: 0, bottom: 0, width: '40%', height: '45%', touchAction: 'none', pointerEvents: 'auto' }}
     >
       {origin ? (
         <div style={{ position: 'fixed', left: origin.x - RADIUS, top: origin.y - RADIUS, width: RADIUS * 2, height: RADIUS * 2, borderRadius: '50%', background: 'rgba(20,22,30,0.45)', border: '2px solid rgba(255,255,255,0.25)' }}>
-          <div style={{ position: 'absolute', left: RADIUS - 22 + knob.x * RADIUS * 0.7, top: RADIUS - 22 + knob.y * RADIUS * 0.7, width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.65)' }} />
+          <div style={{ position: 'absolute', left: RADIUS - 17 + knob.x * RADIUS * 0.7, top: RADIUS - 17 + knob.y * RADIUS * 0.7, width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.65)' }} />
         </div>
       ) : (
-        <div style={{ position: 'absolute', left: 36, bottom: 36, width: 96, height: 96, borderRadius: '50%', border: '2px dashed rgba(255,255,255,0.2)' }} />
+        <div style={{ position: 'absolute', left: 32, bottom: 32, width: 72, height: 72, borderRadius: '50%', border: '2px dashed rgba(255,255,255,0.2)' }} />
       )}
     </div>
   );

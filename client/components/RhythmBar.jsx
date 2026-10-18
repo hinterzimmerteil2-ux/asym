@@ -23,7 +23,7 @@ export default function RhythmBar({ channelRef }) {
   const beat = Math.min(ch.beats, Math.max(1, Math.round(elapsed / ch.beatMs)));
   const remaining = Math.max(0, Math.ceil((ch.total - elapsed) / 1000));
   return (
-    <div style={{ position: 'absolute', left: '50%', bottom: 150, transform: 'translateX(-50%)', width: 320, padding: 12, borderRadius: 10, background: 'rgba(10,12,18,0.85)', border: '1px solid #2a2f3d', color: '#e8eaf0', fontFamily: 'sans-serif', textAlign: 'center', pointerEvents: 'none' }}>
+    <div style={{ position: 'absolute', left: '50%', bottom: 150, transform: 'translateX(-50%)', width: 'min(320px, 60vw)', padding: 12, borderRadius: 10, background: 'rgba(10,12,18,0.85)', border: '1px solid #2a2f3d', color: '#e8eaf0', fontFamily: 'sans-serif', textAlign: 'center', pointerEvents: 'none' }}>
       <div style={{ fontSize: 13, marginBottom: 8 }}>
         Grito de Ánimo — pulsa [E] al ritmo · {ch.hits}/{ch.beats} · {remaining}s
       </div>

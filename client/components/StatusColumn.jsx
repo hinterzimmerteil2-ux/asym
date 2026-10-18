@@ -2,11 +2,11 @@ import { useState } from 'react';
 import SkillIcon from './SkillIcon';
 import { STATUSES } from '../lib/statuses';
 
-export default function StatusColumn({ statuses }) {
+export default function StatusColumn({ statuses, compact }) {
   const [hovered, setHovered] = useState(null);
   if (!statuses || statuses.length === 0) return null;
   return (
-    <div style={styles.column}>
+    <div style={compact ? { ...styles.column, top: 140, left: 8 } : styles.column}>
       {statuses.map((status) => {
         const info = STATUSES[status.id];
         if (!info) return null;

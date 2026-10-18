@@ -53,6 +53,20 @@ export default function LobbyPage() {
   const [myPlayerId, setMyPlayerId] = useState(null);
   const [isAsymRole, setIsAsymRole] = useState(false);
   const [phase, setPhase] = useState('lobby');
+  const [compact, setCompact] = useState(false);
+  const [touch, setTouch] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  useEffect(() => {
+    const mc = window.matchMedia('(pointer: coarse), (max-width: 760px)');
+    const mt = window.matchMedia('(pointer: coarse)');
+    const upd = () => { setCompact(mc.matches); setTouch(mt.matches); };
+    upd();
+    mc.addEventListener('change', upd);
+    mt.addEventListener('change', upd);
+    return () => { mc.removeEventListener('change', upd); mt.removeEventListener('change', upd); };
+  }, []);
+  useEffect(() => { setPanelOpen(null); setChatOpen(false); }, [phase]);
   const [errorMsg, setErrorMsg] = useState(null);
   const [guestLoading, setGuestLoading] = useState(false);
   const [joinLoading, setJoinLoading] = useState(false);
@@ -505,6 +519,9 @@ export default function LobbyPage() {
   }
 
   const isHost = hostId !== null && hostId === myPlayerId;
+  const sx = (base, extra) => (compact ? { ...base, ...extra } : base);
+  const playersOpen = panelOpen ?? phase === 'lobby';
+  const bar = { width: 'min(240px, 56vw)', padding: '4px 8px' };
 
   if (status === 'in_room') {
     return (
@@ -529,7 +546,7 @@ export default function LobbyPage() {
           />
         </div>
 
-        <div style={styles.topBar}>
+        <div style={sx(styles.topBar, { top: 8, left: 8, maxWidth: 'calc(100% - 190px)', flexWrap: 'wrap', padding: '4px 8px', gap: 6, zIndex: 30 })}>
           <span style={styles.dot('in_room')} />
           <span style={styles.statusText}>Sala: {roomId}</span>
           <span style={styles.roleTag(isAsymRole)}>
@@ -575,8 +592,8 @@ export default function LobbyPage() {
           )}
         </div>
 
-        <div style={styles.playersOverlay}>
-          <ul style={styles.playerList}>
+        <div style={{ ...sx(styles.playersOverlay, { top: 52, right: 8, width: 'min(300px, calc(100% - 16px))', maxHeight: 'calc(100% - 64px)', overflowY: 'auto', boxSizing: 'border-box', padding: 10, zIndex: 30 }), ...(compact && !playersOpen ? { display: 'none' } : {}) }}>
+          <ul style={sx(styles.playerList, { maxHeight: 130 })}>
             {players.map((p) => {
               const patientInfo = patients[p.id];
               const characterTag =
@@ -677,7 +694,7 @@ export default function LobbyPage() {
         </div>
 
         {phase === 'action' && !isAsymRole && myPlayerId && patients[myPlayerId] && patients[myPlayerId].status !== 'alive' && (
-          <div style={styles.resolvedBanner(patients[myPlayerId].status === 'self_won')}>
+          <div style={sx(styles.resolvedBanner(patients[myPlayerId].status === 'self_won'), { top: 150, fontSize: 15, maxWidth: '70%' })}>
             {patients[myPlayerId].status === 'self_won'
               ? '¡Ganaste! Lograste escapar'
               : 'Perdiste: te curaron del todo'}
@@ -685,8 +702,8 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && !isAsymRole && myPlayerId && patients[myPlayerId] && (
-          <div style={styles.hpBarContainer}>
-            <div style={styles.hpBarLabel}>
+          <div style={sx(styles.hpBarContainer, { ...bar, bottom: 'auto', top: 80 })}>
+            <div style={sx(styles.hpBarLabel, { fontSize: 10, marginBottom: 3 })}>
               Tu HP: {Math.round(patients[myPlayerId].hp)}/{patients[myPlayerId].maxHp || 120}
               {patients[myPlayerId].hp <= 20 && ' (¡cerca de ganar!)'}
               {patients[myPlayerId].hp >= (patients[myPlayerId].maxHp || 120) - 20 && ' (¡cerca de ser curado del todo!)'}
@@ -698,9 +715,9 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && curatorHp && (
-          <div style={styles.curatorHpBar}>
-            <div style={styles.hpBarLabel}>
-              Salud del Curador: {Math.round(curatorHp.hp)}/{curatorHp.max} · pierde en 0 o en {curatorHp.max}
+          <div style={sx(styles.curatorHpBar, { ...bar, top: 50 })}>
+            <div style={sx(styles.hpBarLabel, { fontSize: 10, marginBottom: 3 })}>
+              {compact ? 'Curador' : 'Salud del Curador'}: {Math.round(curatorHp.hp)}/{curatorHp.max}{!compact && ` · pierde en 0 o en ${curatorHp.max}`}
             </div>
             <div style={styles.hpBarTrack}>
               <div style={styles.curatorHpFill(curatorHp.hp / curatorHp.max)} />
@@ -709,16 +726,16 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && isAsymRole && spawnMs > 0 && (
-          <div style={styles.resolvedBanner(false)}>Entras en {Math.ceil(spawnMs / 1000)}s</div>
+          <div style={sx(styles.resolvedBanner(false), { top: 150, fontSize: 15 })}>Entras en {Math.ceil(spawnMs / 1000)}s</div>
         )}
 
-        {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} />}
+        {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
         {phase === 'action' && <TouchControls isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
 
         {phase === 'action' && flojera && (
-          <div style={styles.flojeraBarContainer}>
-            <div style={styles.flojeraBarLabel}>
+          <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: isAsymRole ? 80 : 110 })}>
+            <div style={sx(styles.flojeraBarLabel, { fontSize: 10, marginBottom: 3 })}>
               Flojera: {Math.round(flojera.value)}/{flojera.max}
               {flojera.locked && ' (¡exhausto, no puedes correr!)'}
               {flojera.sprinting && ' (¡sprint!)'}
@@ -731,11 +748,11 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && !isAsymRole && hand.length > 0 && (
-          <div style={styles.handContainer}>
+          <div style={sx(styles.handContainer, { top: 50, bottom: 'auto', right: 8, maxWidth: 'calc(100% - 16px)', maxHeight: 'calc(100% - 60px)', overflow: 'auto', zIndex: 30 })}>
             {hand.map((slot, i) => {
               if (!slot.chosen && slot.options.length === 0) {
                 return (
-                  <div key={i} style={styles.draftSlot}>
+                  <div key={i} style={sx(styles.draftSlot, { width: 130, padding: 6 })}>
                     <span style={styles.draftTitle}>Slot {i + 1} · elige primero el anterior</span>
                   </div>
                 );
@@ -743,7 +760,7 @@ export default function LobbyPage() {
               if (!slot.chosen) {
                 const secondsLeft = Math.max(0, Math.ceil((draftEndsAt - Math.max(draftNow, Date.now())) / 1000));
                 return (
-                  <div key={i} style={styles.draftSlot}>
+                  <div key={i} style={sx(styles.draftSlot, { width: 130, padding: 6 })}>
                     <span style={styles.draftTitle}>Slot {i + 1} · elige ({secondsLeft}s)</span>
                     {slot.options.map((card) => (
                       <button
@@ -754,8 +771,8 @@ export default function LobbyPage() {
                         title={card.description}
                       >
                         <span style={styles.draftHeader}><SkillIcon id={card.id} size={26} /><span style={styles.cardButtonName}>{card.displayName}</span></span>
-                        {card.deck && <span style={styles.draftDeck}>Mazo {card.deck}{card.corrupt ? ' · corrupto' : ''}</span>}
-                        <span style={styles.draftDescription}>{card.description}</span>
+                        {card.deck && !compact && <span style={styles.draftDeck}>Mazo {card.deck}{card.corrupt ? ' · corrupto' : ''}</span>}
+                        {!compact && <span style={styles.draftDescription}>{card.description}</span>}
                         <span style={styles.keywordRow}>
                           {(card.keywords || []).slice(0, 2).map((k) => <KeywordChip key={k} id={k} />)}
                         </span>
@@ -764,6 +781,7 @@ export default function LobbyPage() {
                   </div>
                 );
               }
+              if (touch) return null;
               const cooldownUntil = cardCooldowns[i] || 0;
               const onCooldown = cooldownUntil > cardCooldownNow;
               return (
@@ -786,7 +804,7 @@ export default function LobbyPage() {
           </div>
         )}
 
-        {phase === 'action' && isAsymRole && mySkills.length > 0 && (
+        {phase === 'action' && !touch && isAsymRole && mySkills.length > 0 && (
           <div style={styles.skillBar}>
             {[...mySkills.map((skill, i) => ({ id: skill.id, name: skill.name, description: skill.description, key: ['Q', 'E', 'R', 'F'][i], index: i, cooldownKey: i })),
               { id: 'golpe_aturdidor', name: 'Golpe Aturdidor', description: 'Aturde 1.2s al Paciente más cercano a menos de 2.5.', key: 'G', index: 'melee', cooldownKey: 'melee' }].map((skill) => {
@@ -814,8 +832,8 @@ export default function LobbyPage() {
         )}
 
 
-        <div style={styles.chatOverlay}>
-          <div style={styles.chatHistory}>
+        <div style={{ ...sx(styles.chatOverlay, { bottom: 'auto', top: 52, left: 8, width: 'min(320px, calc(100% - 16px))', zIndex: 30 }), ...(compact && !chatOpen ? { display: 'none' } : {}) }}>
+          <div style={sx(styles.chatHistory, { height: 110 })}>
             {chatMessages.length === 0 && <p style={styles.chatEmpty}>Todavía no hay mensajes.</p>}
             {chatMessages.map((m, i) => (
               <p key={i} style={styles.chatLine}>
@@ -841,20 +859,26 @@ export default function LobbyPage() {
           </form>
         </div>
 
-        <button type="button" onClick={() => setHelpOpen(true)} style={styles.helpButton} title="Ayuda (H)" aria-label="Ayuda">?</button>
+        <button type="button" onClick={() => setHelpOpen(true)} style={sx(styles.helpButton, { top: 8, right: 8, width: 36, height: 36, zIndex: 30 })} title="Ayuda (H)" aria-label="Ayuda">?</button>
         <button
           type="button"
           onClick={() => updateHitboxes({ ...hitboxes, on: !hitboxes.on })}
-          style={styles.hitboxButton(hitboxes.on)}
+          style={sx(styles.hitboxButton(hitboxes.on), { top: 8, right: 52, width: 36, height: 36, zIndex: 30 })}
           title="Hitboxes (B)"
           aria-label="Hitboxes"
         >
           ◎
         </button>
+        {compact && (
+          <>
+            <button type="button" onClick={() => { setPanelOpen(!playersOpen); setChatOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 96, width: 36, height: 36, zIndex: 30, borderColor: playersOpen ? '#54d1f2' : '#2a2d3d' })} aria-label="Jugadores">☰</button>
+            <button type="button" onClick={() => { setChatOpen(!chatOpen); setPanelOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 140, width: 36, height: 36, zIndex: 30, borderColor: chatOpen ? '#54d1f2' : '#2a2d3d' })} aria-label="Chat">💬</button>
+          </>
+        )}
         {helpOpen && <HelpPanel characters={characters} cards={cardCatalog} onClose={() => setHelpOpen(false)} />}
 
         {errorMsg && (
-          <p style={styles.errorOverlay}>
+          <p style={sx(styles.errorOverlay, { top: 48, left: 8, maxWidth: 'calc(100% - 16px)', zIndex: 35 })}>
             {errorMsg}
             <button
               type="button"
@@ -868,7 +892,7 @@ export default function LobbyPage() {
         )}
 
         {!isConnected && (
-          <p style={styles.reconnectingOverlay}>Reconectando con el servidor...</p>
+          <p style={sx(styles.reconnectingOverlay, { top: 48, zIndex: 35 })}>Reconectando con el servidor...</p>
         )}
 
         {gameOverInfo && (
@@ -1076,7 +1100,8 @@ const styles = {
     fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   card: {
-    width: 380,
+    width: 'min(380px, calc(100vw - 32px))',
+    boxSizing: 'border-box',
     padding: 28,
     borderRadius: 12,
     background: '#1b1d29',
@@ -1282,9 +1307,8 @@ const styles = {
     cursor: disabled ? 'default' : 'pointer',
   }),
   gameMain: {
-    position: 'relative',
-    width: '100vw',
-    height: '100vh',
+    position: 'fixed',
+    inset: 0,
     overflow: 'hidden',
     background: '#0a0b10',
     fontFamily: 'system-ui, -apple-system, sans-serif',
@@ -1590,13 +1614,14 @@ const styles = {
   gameOverOverlay: {
     position: 'absolute',
     inset: 0,
+    zIndex: 40,
     background: 'rgba(10, 11, 16, 0.85)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     backdropFilter: 'blur(2px)',
   },
-  gameOverCard: { width: 380, padding: 28, borderRadius: 12, background: '#1b1d29', border: '1px solid #2a2d3d' },
+  gameOverCard: { width: 'min(380px, calc(100% - 32px))', maxHeight: '90%', overflowY: 'auto', boxSizing: 'border-box', padding: 28, borderRadius: 12, background: '#1b1d29', border: '1px solid #2a2d3d' },
   gameOverTitle: (curatorWon) => ({
     fontSize: 18,
     fontWeight: 700,
