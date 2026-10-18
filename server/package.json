@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "train:synergy": "node src/synergy/train.js"
+    "train:synergy": "node src/synergy/train.js",
+    "test": "node --test --test-force-exit tests/game.test.js"
   },
   "engines": {
     "node": ">=18.0.0"

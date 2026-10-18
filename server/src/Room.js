@@ -2,172 +2,94 @@ const { MessageType, encode } = require('./protocol');
 const GameMap = require('./GameMap');
 const Characters = require('./Characters');
 const Cards = require('./Cards');
-
-const MAX_PLAYERS = 10;
-const TICK_RATE_MS = 1000 / 20;
-
-// --- Constantes de la mecánica Curador/Paciente ---
-const PATIENT_HP_START = 60;
-const PATIENT_HP_MAX = 120;
-const PATIENT_HP_MIN = 0;
-const CURE_AMOUNT = 15;
-const SELF_DAMAGE_AMOUNT = 15;
-
-const GAME_DURATION_MS = 4 * 60 * 1000;
-const TIME_BONUS_MAX_MS = 60 * 1000;
-const LMS_TIMER_RESET_MS = 90 * 1000;
-
-// --- Constantes de chat ---
-const CHAT_MAX_LENGTH = 300;
-const CHAT_HISTORY_LIMIT = 100;
-const CHAT_RATE_LIMIT_MS = 500;
-
-// --- Constantes de movimiento ---
-const MOVE_SPEED = 5;
-const JUMP_VELOCITY = 4.5;
-const STEP_UP = 0.5;
-const DASH_STEP_UP = 1.8;
-const STEP_DOWN = 0.7;
-const FALL_ENDLAG_MIN = 1.2;
-const FALL_ENDLAG_MS = 1800;
-const GRAVITY = -18;
-const GROUND_Y = 0;
-const PLAYER_COLLISION_RADIUS = 0.4;
-
-// Radio de interacción para M1/auto-daño — esto es lo que se había
-// perdido y se pidió reconstruir: validación de distancia puntual en el
-// instante del click, no una zona de colisión continua.
-const INTERACTION_RADIUS = 1.2;
-
-// --- Habilidad especial del Curador: "Pulso de Curación" ---
-// Un dash de persecución no tenía sentido temático acá — este es un
-// juego donde TODO está invertido respecto al slop genérico que parodia
-// (el "killer" cura, las "víctimas" se autodañan para escapar), así que
-// la habilidad especial del Curador tiene que reforzar esa premisa, no
-// romperla con una herramienta de caza. El Pulso cura a todos los
-// Pacientes vivos dentro de un radio a la vez (menos que un click
-// directo cada uno, para no volverlo estrictamente mejor que curar uno
-// por uno), premiando que el Curador juegue alrededor del grupo en vez
-// de perseguir a un Paciente aislado.
-const FAST_MULTIPLIER = 1.4;
-const SPRINT_CARD_MULTIPLIER = 1.5;
-const ROLL_DISTANCE = 7;
-const SEGUNDO_ALIENTO_AMOUNT = 60;
-const HUMO_RADIUS = 7;
-const GOLPE_DOBLE_FACTOR = 2;
-const TROPIEZO_RADIUS = 2.5;
-const RELOCATE_INTERVAL_MS = 25000;
-const CURATOR_HP_START = 800;
-const CURATOR_HP_MAX = 1500;
-const PUDDLE_CURATOR_PER_SEC = 3;
-const REGALO_RADIUS = 8;
-const REGALO_HP = 40;
-const CHICHARRON_DAMAGE = 25;
-const CHICHARRON_FLOOR = 40;
-const GOYSLOP_DAMAGE = 45;
-const GOYSLOP_FLOOR = 15;
-const MAX_HP_MINIMUM = 60;
-const RED_MIST_RADIUS = 6;
-const RED_MIST_HEAL = 35;
-const TRAP_RADIUS = 1.5;
-const TRAP_ARM_MS = 800;
-const TRAP_LIFETIME_MS = 30000;
-const RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC = 18;
-
-const ROLL_DASH_MS = 280;
-const ROLL_PUSH_SPEED = 16;
-const ROLL_PUSH_MS = 450;
-const ROLL_KNOCKBACK_SPEED = 28;
-const ROLL_KNOCKBACK_MS = 650;
-const ROLL_RAGDOLL_MS = 1200;
-const CHANNEL_MS = 8300;
-const CHANNEL_BEAT_MS = 1000;
-const CHANNEL_BEATS = 8;
-const CHANNEL_TOLERANCE_MS = 150;
-const CHANNEL_SLOW = 0.5;
-const CHANNEL_HIT_PEREZA_MS = 900;
-const INTERACTION_SCALE = 1;
-const ROLL_HIT_WIDTH = 1.5;
-const ROLL_FLOJERA_COST = 25;
-const PEREZA_SPEED_PER_LEVEL = 0.5;
-const EXACERBACION_MAX_LEVEL = 3;
-const EXACERBACION_MS = 8000;
-const EXACERBACION_STEP = 0.2;
-const ACETIL_FACTOR = 2.2;
-const ACETIL_ALLY_RADIUS = 1.5;
-const ACETIL_ALLY_STEP = 0.25;
-const ALLY_BOOST_MAX_LEVEL = 3;
-const SLOW_BY_LEVEL = [1, 0.5, 0.35, 0.25];
-const ACETIL_REGEN_DELAY_MS = 1000;
-const ACETIL_FATIGUE_MS = 4000;
-const ACETIL_FATIGUE_FACTOR = 0.7;
-const CURATOR_SPAWN_DELAY_MS = 15000;
-const ENDLAG_MIN_MS = 0;
-const CURATOR_FLOJERA_BONUS = 8;
-const ENDLAG_MAX_MS = 1800;
-const FLOJERA_MAX = 100;
-const FLOJERA_MAX_MINIMUM = 40;
-const FLOJERA_DRAIN_PER_SEC = 20;
-const FLOJERA_REGEN_PER_SEC = 12;
-const FLOJERA_SLOW_MULTIPLIER = 1;
-const FLOJERA_EXHAUST_LOCKOUT_MS = 3000;
+const CardEffects = require('./CardEffects');
+const Hitbox = require('./Hitbox');
+const { groundAt, blockedAt, distanceBetween, euclid } = Hitbox;
+const {
+  MAX_PLAYERS,
+  TICK_RATE_MS,
+  PATIENT_HP_START,
+  PATIENT_HP_MAX,
+  PATIENT_HP_MIN,
+  CURE_AMOUNT,
+  SELF_DAMAGE_AMOUNT,
+  GAME_DURATION_MS,
+  TIME_BONUS_MAX_MS,
+  LMS_TIMER_RESET_MS,
+  CHAT_MAX_LENGTH,
+  CHAT_HISTORY_LIMIT,
+  CHAT_RATE_LIMIT_MS,
+  MOVE_SPEED,
+  JUMP_VELOCITY,
+  STEP_UP,
+  DASH_STEP_UP,
+  STEP_DOWN,
+  FALL_ENDLAG_MIN,
+  FALL_ENDLAG_MS,
+  GRAVITY,
+  GROUND_Y,
+  PLAYER_COLLISION_RADIUS,
+  INTERACTION_RADIUS,
+  FAST_MULTIPLIER,
+  SPRINT_CARD_MULTIPLIER,
+  ROLL_DISTANCE,
+  TROPIEZO_RADIUS,
+  RELOCATE_INTERVAL_MS,
+  CURATOR_HP_START,
+  CURATOR_HP_MAX,
+  CHICHARRON_DAMAGE,
+  CHICHARRON_FLOOR,
+  GOYSLOP_DAMAGE,
+  GOYSLOP_FLOOR,
+  MAX_HP_MINIMUM,
+  TRAP_RADIUS,
+  TRAP_ARM_MS,
+  TRAP_LIFETIME_MS,
+  RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC,
+  ROLL_DASH_MS,
+  ROLL_PUSH_SPEED,
+  ROLL_PUSH_MS,
+  ROLL_KNOCKBACK_SPEED,
+  ROLL_KNOCKBACK_MS,
+  ROLL_RAGDOLL_MS,
+  CHANNEL_MS,
+  CHANNEL_BEAT_MS,
+  CHANNEL_BEATS,
+  CHANNEL_TOLERANCE_MS,
+  CHANNEL_SLOW,
+  CHANNEL_HIT_PEREZA_MS,
+  ROLL_HIT_WIDTH,
+  ROLL_FLOJERA_COST,
+  PEREZA_SPEED_PER_LEVEL,
+  EXACERBACION_MAX_LEVEL,
+  EXACERBACION_MS,
+  EXACERBACION_STEP,
+  ACETIL_FACTOR,
+  ACETIL_ALLY_RADIUS,
+  ACETIL_ALLY_STEP,
+  ALLY_BOOST_MAX_LEVEL,
+  SLOW_BY_LEVEL,
+  ACETIL_REGEN_DELAY_MS,
+  ACETIL_FATIGUE_MS,
+  ACETIL_FATIGUE_FACTOR,
+  CURATOR_SPAWN_DELAY_MS,
+  ENDLAG_MIN_MS,
+  CURATOR_FLOJERA_BONUS,
+  ENDLAG_MAX_MS,
+  FLOJERA_MAX,
+  FLOJERA_MAX_MINIMUM,
+  FLOJERA_DRAIN_PER_SEC,
+  FLOJERA_REGEN_PER_SEC,
+  FLOJERA_SLOW_MULTIPLIER,
+  FLOJERA_EXHAUST_LOCKOUT_MS,
+  PLAYER_HALF,
+  PLAYER_HEIGHT,
+  FOOTPRINT
+} = require('./Constants');
 
 function clampUnit(value) {
   const n = typeof value === 'number' && !Number.isNaN(value) ? value : 0;
   return Math.max(-1, Math.min(1, n));
-}
-
-function euclid(a, b) {
-  return Math.hypot(a.x - b.x, a.z - b.z);
-}
-
-function platformTop(p, x, z) {
-  if (Math.abs(x - p.x) > p.hx || Math.abs(z - p.z) > p.hz) return null;
-  if (!p.ramp) return p.h;
-  const t = p.ramp === '-x' ? (p.x + p.hx - x) / (2 * p.hx) : (x - (p.x - p.hx)) / (2 * p.hx);
-  return Math.max(0, Math.min(1, t)) * p.h;
-}
-
-const PLAYER_HALF = 0.4;
-const PLAYER_HEIGHT = 1.8;
-const FOOTPRINT = [[0, 0], [PLAYER_HALF, PLAYER_HALF], [PLAYER_HALF, -PLAYER_HALF], [-PLAYER_HALF, PLAYER_HALF], [-PLAYER_HALF, -PLAYER_HALF]];
-
-function groundAt(platforms, x, z, y, stepUp = STEP_UP) {
-  let g = GROUND_Y;
-  for (const p of platforms) {
-    for (const [ox, oz] of FOOTPRINT) {
-      const top = platformTop(p, x + ox, z + oz);
-      if (top !== null && top <= y + stepUp && top > g) g = top;
-    }
-  }
-  return g;
-}
-
-function blockedAt(platforms, x, z, y, stepUp = STEP_UP) {
-  for (const p of platforms) {
-    for (const [ox, oz] of FOOTPRINT) {
-      const top = platformTop(p, x + ox, z + oz);
-      if (top !== null && top > y + stepUp) return true;
-    }
-  }
-  return false;
-}
-
-function extentOf(o) {
-  return o.input ? { half: PLAYER_HALF, height: PLAYER_HEIGHT } : { half: 0, height: 0 };
-}
-
-function distanceBetween(a, b) {
-  const ea = extentOf(a);
-  const eb = extentOf(b);
-  const reach = ea.half + eb.half;
-  const ay = a.y || 0;
-  const by = b.y || 0;
-  return Math.max(
-    Math.max(0, Math.abs(a.x - b.x) - reach),
-    Math.max(0, Math.abs(a.z - b.z) - reach),
-    Math.max(0, ay - (by + eb.height), by - (ay + ea.height))
-  );
 }
 
 class Room {
@@ -1389,105 +1311,7 @@ class Room {
 
   applyCardEffect(playerId, entity, card, now) {
     const hit = card.hitRadius ? this.curatorInRange(entity, card.hitRadius) : null;
-    switch (card.id) {
-      case 'rodar': {
-        const inputLength = Math.hypot(entity.input.moveX, entity.input.moveZ);
-        const dirX = inputLength > 0 ? entity.input.moveX / inputLength : entity.faceX;
-        const dirZ = inputLength > 0 ? entity.input.moveZ / inputLength : entity.faceZ;
-        entity.dashUntil = now + ROLL_DASH_MS;
-        entity.dashVX = (dirX * ROLL_DISTANCE) / (ROLL_DASH_MS / 1000);
-        entity.dashVZ = (dirZ * ROLL_DISTANCE) / (ROLL_DASH_MS / 1000);
-        entity.flojera = Math.max(0, entity.flojera - ROLL_FLOJERA_COST);
-        entity.dashExhausted = entity.flojera === 0;
-        if (entity.dashExhausted) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
-        break;
-      }
-      case 'chicharron':
-        this.damagePatient(playerId, CHICHARRON_DAMAGE, CHICHARRON_FLOOR);
-        this.checkGameEndConditions();
-        break;
-      case 'goyslop':
-        this.damagePatient(playerId, GOYSLOP_DAMAGE, GOYSLOP_FLOOR);
-        this.checkGameEndConditions();
-        break;
-      case 'cascara_platano':
-        this.addZone({
-          kind: 'trap',
-          x: entity.x,
-          z: entity.z,
-          radius: TRAP_RADIUS,
-          ownerId: playerId,
-          armedAt: now + TRAP_ARM_MS,
-          until: now + TRAP_LIFETIME_MS,
-          cardId: card.id,
-          stunMs: 2000,
-          hpLoss: card.curatorHpLoss || 0,
-        });
-        break;
-      case 'agua_rimac':
-        this.addZone({ kind: 'rimac', cardId: card.id, x: entity.x, z: entity.z, radius: 4, perSecond: 4, ownerId: playerId, until: now + 5000 });
-        break;
-      case 'receta_falsa':
-        for (const [otherId, other] of this.players) {
-          if (!other.isAsymRole) continue;
-          const otherEntity = this.gameState.entities[otherId];
-          if (!otherEntity || distanceBetween(entity, otherEntity) > card.hitRadius) continue;
-          otherEntity.marcaUntil = now + 10000;
-        }
-        break;
-      case 'acetilcolina':
-        entity.sprintUntil = now + card.durationMs;
-        entity.sprintFactor = ACETIL_FACTOR;
-        entity.acetilUntil = now + card.durationMs;
-        entity.regenBlockedUntil = entity.acetilUntil + ACETIL_REGEN_DELAY_MS;
-        entity.fatigueUntil = entity.acetilUntil + ACETIL_FATIGUE_MS;
-        break;
-      case 'grito_animo': {
-        const slotIndex = entity.hand.findIndex((s) => s && s.chosen === card.id);
-        entity.channel = { cardId: card.id, slot: slotIndex, startedAt: now, endsAt: now + CHANNEL_MS, hits: 0, scored: {} };
-        break;
-      }
-      case 'tajo_carmesi':
-        for (const [otherId, other] of this.players) {
-          if (!other.isAsymRole) continue;
-          const otherEntity = this.gameState.entities[otherId];
-          if (otherEntity && distanceBetween(entity, otherEntity) <= card.hitRadius) {
-            this.stun(otherId, otherEntity, card.durationMs, now, 0);
-          }
-        }
-        break;
-      case 'red_mist':
-        for (const [otherId, other] of this.players) {
-          if (!other.isAsymRole) continue;
-          const otherEntity = this.gameState.entities[otherId];
-          if (!otherEntity || distanceBetween(entity, otherEntity) > card.hitRadius) continue;
-          const heavy = Math.random() < 0.1;
-          const damage = heavy ? 90 : 25;
-          this.stun(otherId, otherEntity, heavy ? 3000 : card.durationMs, now, 0);
-          this.adjustCuratorHp(-damage);
-          this.healPatient(playerId, damage * 0.25);
-        }
-        this.checkGameEndConditions();
-        break;
-      case 'tropiezo':
-        this.endlag(playerId, entity, now, 1200);
-        entity.slowedLevel = 3;
-        for (const [otherId, other] of this.players) {
-          if (!other.isAsymRole) continue;
-          const otherEntity = this.gameState.entities[otherId];
-          if (otherEntity && distanceBetween(entity, otherEntity) <= TROPIEZO_RADIUS) {
-            this.ragdoll(otherId, otherEntity, card.durationMs, now);
-            this.adjustCuratorHp(-(card.curatorHpLoss || 0));
-            const away = euclid(otherEntity, entity) || 1;
-            otherEntity.kbX = ((otherEntity.x - entity.x) / away) * 8;
-            otherEntity.kbZ = ((otherEntity.z - entity.z) / away) * 8;
-            otherEntity.kbUntil = now + 500;
-          }
-        }
-        break;
-      default:
-        break;
-    }
+    CardEffects.apply(this, playerId, entity, card, now);
     if (hit === true) {
       this.gainExacerbacion(entity, now);
       if (card.id === 'receta_falsa') entity.doubleSelfDamage = true;
