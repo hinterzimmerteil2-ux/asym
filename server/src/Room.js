@@ -55,7 +55,7 @@ const ROLL_DISTANCE = 7;
 const SEGUNDO_ALIENTO_AMOUNT = 60;
 const HUMO_RADIUS = 7;
 const GOLPE_DOBLE_FACTOR = 2;
-const TROPIEZO_RADIUS = 3;
+const TROPIEZO_RADIUS = 2.5;
 const RELOCATE_INTERVAL_MS = 25000;
 const CURATOR_HP_START = 800;
 const CURATOR_HP_MAX = 1500;
@@ -1431,7 +1431,7 @@ class Room {
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
           const otherEntity = this.gameState.entities[otherId];
-          if (!otherEntity || distanceBetween(entity, otherEntity) > 8) continue;
+          if (!otherEntity || distanceBetween(entity, otherEntity) > card.hitRadius) continue;
           otherEntity.marcaUntil = now + 10000;
         }
         break;
@@ -1451,7 +1451,7 @@ class Room {
         for (const [otherId, other] of this.players) {
           if (!other.isAsymRole) continue;
           const otherEntity = this.gameState.entities[otherId];
-          if (otherEntity && distanceBetween(entity, otherEntity) <= 3.5) {
+          if (otherEntity && distanceBetween(entity, otherEntity) <= card.hitRadius) {
             this.stun(otherId, otherEntity, card.durationMs, now, 0);
           }
         }

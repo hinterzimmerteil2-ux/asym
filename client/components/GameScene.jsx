@@ -413,7 +413,7 @@ const EFFECT_STYLES = {
   card_acetilcolina: { color: '#54d1f2', mode: 'ring', duration: 900, radius: 3 },
   card_rodar: { color: '#ffffff', mode: 'burst', duration: 400, radius: 1.5 },
   card_humo_yodo: { color: '#f2a154', mode: 'burst', duration: 1000, radius: 7 },
-  card_tropiezo: { color: '#f2d154', mode: 'burst', duration: 500, radius: 3 },
+  card_tropiezo: { color: '#f2d154', mode: 'burst', duration: 500, radius: 2.5 },
   card_adrenalina: { color: '#e0555f', mode: 'rise', duration: 900, radius: 1 },
   card_chicharron: { color: '#f2a154', mode: 'rise', duration: 800, radius: 0.9 },
   card_goyslop: { color: '#8f8f4a', mode: 'rise', duration: 1000, radius: 1.2 },
@@ -421,13 +421,13 @@ const EFFECT_STYLES = {
   card_platano_podrido: { color: '#7a6a2a', mode: 'burst', duration: 500, radius: 1.5 },
   card_agua_rimac: { color: '#6b8f3a', mode: 'ring', duration: 800, radius: 4 },
   card_rimac_sin_filtrar: { color: '#6b8f3a', mode: 'ring', duration: 900, radius: 6 },
-  card_red_mist: { color: '#e0555f', mode: 'ring', duration: 900, radius: 6 },
-  card_tajo_carmesi: { color: '#b57cff', mode: 'burst', duration: 550, radius: 3.5 },
+  card_red_mist: { color: '#e0555f', mode: 'ring', duration: 900, radius: 3.5 },
+  card_tajo_carmesi: { color: '#b57cff', mode: 'burst', duration: 550, radius: 2.5 },
   card_regalo_envenenado: { color: '#b07cf2', mode: 'ring', duration: 900, radius: 8 },
   card_aji_picante: { color: '#e0555f', mode: 'rise', duration: 800, radius: 0.9 },
   card_sopa_hirviendo: { color: '#f2a154', mode: 'burst', duration: 700, radius: 5 },
   card_pastilla_vencida: { color: '#dcdde8', mode: 'rise', duration: 800, radius: 0.9 },
-  card_receta_falsa: { color: '#dcdde8', mode: 'ring', duration: 900, radius: 8 },
+  card_receta_falsa: { color: '#dcdde8', mode: 'ring', duration: 900, radius: 5 },
   card_canon_humano: { color: '#f2d154', mode: 'burst', duration: 500, radius: 2 },
   card_risa_enlatada: { color: '#f2d154', mode: 'ring', duration: 900, radius: 8 },
   card_martillazo: { color: '#8a8da3', mode: 'burst', duration: 500, radius: 3 },
@@ -944,9 +944,12 @@ function Platform({ p }) {
   );
 }
 
-function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, opacity }) {
+function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, effects, opacity }) {
   return (
     <>
+      {(effects || []).filter((fx) => fx.radius && Date.now() - fx.startedAt < 700).map((fx) => (
+        <SquareFrame key={fx.id} x={fx.x} z={fx.z} y={entities?.[fx.casterId]?.y ?? 0} half={fx.radius} color="#e0555f" opacity={opacity} />
+      ))}
       {(platforms || []).map((p) => (
         <SquareFrame key={p.id} x={p.x} z={p.z} y={p.h / 2} half={p.hx} hy={p.h / 2} hz={p.hz} color="#e0555f" opacity={opacity} />
       ))}
@@ -1014,6 +1017,7 @@ export default function GameScene({
           selfDamageObjects={phase === 'action' ? selfDamageObjects : {}}
           zones={phase === 'action' ? zones : []}
           platforms={phase === 'action' ? platforms : []}
+          effects={phase === 'action' ? effects : []}
           opacity={hitboxes.opacity}
         />
       )}
