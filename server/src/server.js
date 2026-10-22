@@ -1,3 +1,4 @@
+const Constants = require('./Constants');
 const http = require('http');
 const { WebSocketServer } = require('ws');
 const { MessageType, encode, decode } = require('./protocol');
@@ -191,6 +192,7 @@ wss.on('connection', (ws) => {
           state: room.gameState,
           collisionObjects: GameMap.resolveCollisionObjects(room.mapId, GameMap.MATCH_AREA),
           platforms: GameMap.resolvePlatforms(room.mapId, GameMap.MATCH_AREA),
+          hitbox: { half: Constants.PLAYER_HALF, height: Constants.PLAYER_HEIGHT, interact: Constants.INTERACTION_RADIUS },
         });
         break;
       }

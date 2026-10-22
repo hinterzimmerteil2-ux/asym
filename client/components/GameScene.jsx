@@ -954,7 +954,7 @@ function Platform({ p }) {
   );
 }
 
-function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, effects, opacity }) {
+function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, effects, opacity, cfg }) {
   return (
     <>
       {(effects || []).filter((fx) => fx.radius && Date.now() - fx.startedAt < 700).map((fx) => (
@@ -965,15 +965,15 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
       ))}
       {Object.entries(entities || {}).map(([id, entity]) => (
         <group key={id}>
-          <SquareFrame x={entity.x} z={entity.z} y={entity.y + 0.9} half={0.4} hy={0.9} color="#e0555f" opacity={opacity} />
-          {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} y={entity.y} half={1.2} color="#e0555f" opacity={opacity * 0.6} />}
+          <SquareFrame x={entity.x} z={entity.z} y={entity.y + cfg.height / 2} half={cfg.half} hy={cfg.height / 2} color="#e0555f" opacity={opacity} />
+          {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} y={entity.y} half={cfg.interact} color="#e0555f" opacity={opacity * 0.6} />}
         </group>
       ))}
       {(collisionObjects || []).map((obj) => (
         <SquareFrame key={obj.id} x={obj.x} z={obj.z} y={(obj.height || 1.2) / 2} half={obj.radius} hy={(obj.height || 1.2) / 2} color="#e0555f" opacity={opacity} />
       ))}
       {Object.entries(selfDamageObjects || {}).map(([id, pos]) => (
-        <SquareFrame key={id} x={pos.x} z={pos.z} half={1.2} color="#e0555f" opacity={opacity} />
+        <SquareFrame key={id} x={pos.x} z={pos.z} half={cfg.interact} color="#e0555f" opacity={opacity} />
       ))}
       {(zones || []).map((zone) => (
         <SquareFrame key={zone.id} x={zone.x} z={zone.z} half={zone.radius} color="#e0555f" opacity={opacity} />
@@ -998,6 +998,8 @@ export default function GameScene({
   sendAction,
   onPulse,
   hitboxes,
+  hitboxCfg,
+  followId,
 }) {
   const yawRef = useRef(Math.PI);
   useKeyboardInput(sendInput, yawRef, onPulse);
@@ -1005,7 +1007,7 @@ export default function GameScene({
   const playerById = new Map(players.map((p) => [p.id, p]));
   const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const areaHalfSize = phase === 'action' ? MATCH_HALF_SIZE : LOBBY_HALF_SIZE;
-  const myEntity = entities[myPlayerId];
+  const myEntity = entities[followId || myPlayerId];
 
   return (
     <Canvas shadows={!coarse} dpr={[1, coarse ? 1.5 : 2]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
@@ -1030,6 +1032,7 @@ export default function GameScene({
           platforms={phase === 'action' ? platforms : []}
           effects={phase === 'action' ? effects : []}
           opacity={hitboxes.opacity}
+          cfg={hitboxCfg || { half: 0.4, height: 1.8, interact: 1.2 }}
         />
       )}
 

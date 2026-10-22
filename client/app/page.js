@@ -56,6 +56,9 @@ export default function LobbyPage() {
   const [compact, setCompact] = useState(false);
   const [touch, setTouch] = useState(false);
   const [portrait, setPortrait] = useState(false);
+  const [specIndex, setSpecIndex] = useState(0);
+  const [hitboxCfg, setHitboxCfg] = useState({ half: 0.4, height: 1.8, interact: 1.2 });
+  const specRef = useRef({ on: false });
   const [panelOpen, setPanelOpen] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   useEffect(() => {
@@ -69,7 +72,7 @@ export default function LobbyPage() {
     mp.addEventListener('change', upd);
     return () => { mc.removeEventListener('change', upd); mt.removeEventListener('change', upd); mp.removeEventListener('change', upd); };
   }, []);
-  useEffect(() => { setPanelOpen(null); setChatOpen(false); }, [phase]);
+  useEffect(() => { setPanelOpen(null); setChatOpen(false); setSpecIndex(0); }, [phase]);
   const [errorMsg, setErrorMsg] = useState(null);
   const [guestLoading, setGuestLoading] = useState(false);
   const [joinLoading, setJoinLoading] = useState(false);
@@ -262,6 +265,7 @@ export default function LobbyPage() {
             setPhase(payload.phase);
             setCollisionObjects(payload.collisionObjects || []);
             setPlatforms(payload.platforms || []);
+            if (payload.hitbox) setHitboxCfg(payload.hitbox);
             break;
           case 'room_full':
             setJoinLoading(false);
@@ -489,6 +493,8 @@ export default function LobbyPage() {
         const ch = channelRef.current;
         if (ch) handleUseCard(ch.slot ?? 0);
       }
+      else if (specRef.current.on && (e.code === 'ArrowRight' || e.code === 'BracketRight')) setSpecIndex((i) => i + 1);
+      else if (specRef.current.on && (e.code === 'ArrowLeft' || e.code === 'BracketLeft')) setSpecIndex((i) => i - 1);
       else if (e.code === 'Digit1') handleUseCard(0);
       else if (e.code === 'Digit2') handleUseCard(1);
     }
@@ -522,6 +528,11 @@ export default function LobbyPage() {
   }
 
   const isHost = hostId !== null && hostId === myPlayerId;
+  const myPatient = patients[myPlayerId];
+  const spectating = phase === 'action' && !isAsymRole && Boolean(myPatient) && myPatient.status !== 'alive';
+  const specTargets = Object.keys(entities).filter((id) => id !== myPlayerId);
+  const specId = spectating && specTargets.length ? specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] : null;
+  specRef.current.on = spectating;
   const sx = (base, extra) => (compact ? { ...base, ...extra } : base);
   const playersOpen = panelOpen ?? phase === 'lobby';
   const handleInteract = () => {
@@ -572,6 +583,8 @@ export default function LobbyPage() {
             sendAction={handleSendAction}
             onPulse={handlePulse}
             hitboxes={hitboxes}
+            hitboxCfg={hitboxCfg}
+            followId={specId}
           />
         </div>
 
@@ -760,7 +773,7 @@ export default function LobbyPage() {
 
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
-        {phase === 'action' && <TouchControls onInteract={handleInteract} isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
+        {phase === 'action' && !spectating && <TouchControls onInteract={handleInteract} isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
 
         {phase === 'action' && flojera && (
           <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: isAsymRole ? 80 : 110 })}>
@@ -904,6 +917,13 @@ export default function LobbyPage() {
             <button type="button" onClick={goFullscreen} style={sx(styles.helpButton, { top: 8, right: 184, width: 36, height: 36, zIndex: 30 })} aria-label="Pantalla completa">⛶</button>
             <button type="button" onClick={() => { setChatOpen(!chatOpen); setPanelOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 140, width: 36, height: 36, zIndex: 30, borderColor: chatOpen ? '#54d1f2' : '#2a2d3d' })} aria-label="Chat">💬</button>
           </>
+        )}
+        {spectating && (
+          <div style={{ position: 'absolute', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, background: 'rgba(27, 29, 41, 0.9)', border: '1px solid #2a2d3d', fontSize: 13 }}>
+            <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i - 1)} aria-label="Anterior">◀</button>
+            <span>{specId ? `Espectando: ${players.find((p) => p.id === specId)?.name || specId}` : 'Nadie a quien seguir'}</span>
+            <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i + 1)} aria-label="Siguiente">▶</button>
+          </div>
         )}
         {touch && portrait && phase === 'action' && (
           <p style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', margin: 0, padding: '10px 16px', borderRadius: 8, background: 'rgba(18,19,26,0.9)', border: '1px solid #2a2d3d', fontSize: 14, zIndex: 25, textAlign: 'center', pointerEvents: 'none' }}>Gira el teléfono para jugar mejor</p>
