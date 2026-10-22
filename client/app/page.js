@@ -213,8 +213,8 @@ export default function LobbyPage() {
                 casterId: payload.playerId,
                 kind: `skill_${payload.skillId || payload.skillType}`,
                 baseKind: `skill_${payload.skillType}`,
-                x: caster.x,
-                z: caster.z,
+                x: payload.center ? payload.center.x : caster.x,
+                z: payload.center ? payload.center.z : caster.z,
                 radius: payload.radius || undefined,
                 startedAt: Date.now(),
               };
@@ -246,8 +246,8 @@ export default function LobbyPage() {
                 id: `fx${++effectCounterRef.current}`,
                 casterId: payload.playerId,
                 kind: `card_${payload.cardId}`,
-                x: caster.x,
-                z: caster.z,
+                x: payload.center ? payload.center.x : caster.x,
+                z: payload.center ? payload.center.z : caster.z,
                 radius: payload.hitRadius || undefined,
                 boxes: payload.boxes || undefined,
                 startedAt: Date.now(),
@@ -851,7 +851,7 @@ export default function LobbyPage() {
         {phase === 'action' && !touch && isAsymRole && mySkills.length > 0 && (
           <div style={styles.skillBar}>
             {[...mySkills.map((skill, i) => ({ id: skill.id, name: skill.name, description: skill.description, key: ['Q', 'E', 'R', 'F'][i], index: i, cooldownKey: i })),
-              { id: 'golpe_aturdidor', name: 'Golpe Aturdidor', description: 'Aturde 1.2s al Paciente más cercano a menos de 2.5.', key: 'G', index: 'melee', cooldownKey: 'melee' }].map((skill) => {
+              { id: 'golpe_aturdidor', name: 'Golpe Aturdidor', description: 'Aturde 1.2s al Paciente frente a ti (cubo corto desde la mano).', key: 'G', index: 'melee', cooldownKey: 'melee' }].map((skill) => {
               const until = skillCooldowns[skill.cooldownKey] || 0;
               const onCooldown = until > skillCooldownNow;
               return (

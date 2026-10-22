@@ -1,12 +1,13 @@
 const Status = require('./Status');
-const { distanceBetween, euclid } = require('./Hitbox');
+const { distanceBetween, euclid, reachPoint } = require('./Hitbox');
 const C = require('./Constants');
 
-function forEachCurator(room, entity, radius, fn) {
+function forEachCurator(room, entity, radius, fn, reach = 0) {
+  const origin = reach ? reachPoint(entity, reach) : entity;
   for (const [otherId, other] of room.players) {
     if (!other.isAsymRole) continue;
     const target = room.gameState.entities[otherId];
-    if (target && distanceBetween(entity, target) <= radius) fn(otherId, target);
+    if (target && distanceBetween(origin, target) <= radius) fn(otherId, target);
   }
 }
 
@@ -52,12 +53,6 @@ const handlers = {
     room.addZone({ kind: 'rimac', cardId: card.id, x: entity.x, z: entity.z, radius: 4, perSecond: 4, ownerId: playerId, until: now + 5000 });
   },
 
-  receta_falsa({ room, entity, card, now }) {
-    forEachCurator(room, entity, card.hitRadius, (id, target) => {
-      target.marcaUntil = now + 10000;
-    });
-  },
-
   acetilcolina({ entity, card, now }) {
     entity.sprintUntil = now + card.durationMs;
     entity.sprintFactor = C.ACETIL_FACTOR;
@@ -74,7 +69,7 @@ const handlers = {
   tajo_carmesi({ room, entity, card, now }) {
     forEachCurator(room, entity, card.hitRadius, (id, target) => {
       room.stun(id, target, card.durationMs, now, 0);
-    });
+    }, card.reach);
   },
 
   red_mist({ room, playerId, entity, card, now }) {
@@ -84,7 +79,7 @@ const handlers = {
       room.stun(id, target, heavy ? 3000 : card.durationMs, now, 0);
       room.adjustCuratorHp(-damage);
       room.healPatient(playerId, damage * 0.25);
-    });
+    }, card.reach);
     room.checkGameEndConditions();
   },
 

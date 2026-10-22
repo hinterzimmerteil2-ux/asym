@@ -117,17 +117,6 @@ test('Diligencia bloquea cartas y la M1 del Curador', () => {
   assert.strictEqual(room.gameState.patients.a.hp, hp);
 });
 
-test('Receta Falsa marca al Curador y alarga sus cooldowns', () => {
-  const { room, e } = setup();
-  e.a.x = 0; e.a.z = 0; e.c.x = 2; e.c.z = 0;
-  give(e.a, 0, 'receta_falsa');
-  room.useCard('a', 0);
-  assert.ok(e.c.marcaUntil > Date.now());
-  room.applyCuratorPulse('c', 0);
-  const base = e.c.skillCooldowns[0] - Date.now();
-  assert.ok(base >= 30000 + 6000 - 100);
-});
-
 test('Grito de Ánimo: los aciertos acumulan Pereza y los fallos no', () => {
   const { room, e, clock } = setup();
   e.a.x = 0; e.a.z = 0; e.b.x = 2; e.b.z = 0;
@@ -213,4 +202,21 @@ test('Status: stun y ragdoll bloquean skills, slow escala nivel y se encadena', 
   assert.strictEqual(Status.speedFactor(e, now), 1);
   Status.push(e, 1, 0, 8, 500, now);
   assert.strictEqual(e.kbX, 8);
+});
+
+test('Espada del UTTVM golpea desde la mano: solo al frente y corto', () => {
+  const { room, e } = setup();
+  e.a.x = 0; e.a.z = 0; e.a.faceX = 0; e.a.faceZ = 1;
+  give(e.a, 0, 'tajo_carmesi');
+  e.c.x = 0; e.c.z = -1.6;
+  room.useCard('a', 0);
+  assert.strictEqual(Status.until(e.c, 'stun'), 0);
+  e.a.cardCooldowns = {};
+  e.c.z = 4;
+  room.useCard('a', 0);
+  assert.strictEqual(Status.until(e.c, 'stun'), 0);
+  e.a.cardCooldowns = {};
+  e.c.z = 1.6;
+  room.useCard('a', 0);
+  assert.ok(Status.until(e.c, 'stun') > Date.now());
 });

@@ -104,9 +104,10 @@ const GENERIC_MELEE = {
   id: 'golpe_aturdidor',
   type: 'melee_stun',
   name: 'Golpe Aturdidor',
-  description: 'Aturde 1.2s al Paciente más cercano a menos de 2.5.',
+  description: 'Aturde 1.2s al Paciente frente a ti (cubo corto desde la mano).',
   keywords: ['aturdir'],
-  radius: 2.5,
+  radius: 1,
+  reach: 1.1,
   durationMs: 1200,
   cooldownMs: 20000,
 };

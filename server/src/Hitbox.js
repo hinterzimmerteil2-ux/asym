@@ -50,4 +50,8 @@ function distanceBetween(a, b) {
   );
 }
 
-module.exports = { platformTop, groundAt, blockedAt, extentOf, distanceBetween, euclid, FOOTPRINT };
+function reachPoint(entity, reach) {
+  return { x: entity.x + (entity.faceX || 0) * reach, y: entity.y || 0, z: entity.z + (entity.faceZ || 0) * reach };
+}
+
+module.exports = { reachPoint, platformTop, groundAt, blockedAt, extentOf, distanceBetween, euclid, FOOTPRINT };

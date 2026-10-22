@@ -4,7 +4,7 @@ const Characters = require('./Characters');
 const Cards = require('./Cards');
 const CardEffects = require('./CardEffects');
 const Hitbox = require('./Hitbox');
-const { groundAt, blockedAt, distanceBetween, euclid } = Hitbox;
+const { groundAt, blockedAt, distanceBetween, euclid, reachPoint } = Hitbox;
 const {
   MAX_PLAYERS,
   TICK_RATE_MS,
@@ -261,7 +261,6 @@ class Room {
       exacerbacionUntil: 0,
       perezaUntil: 0,
       rag: null,
-      marcaUntil: 0,
       dashUntil: 0,
       dashVX: 0,
       dashVZ: 0,
@@ -280,7 +279,6 @@ class Room {
       allyBoostUntil: 0,
       allyBoostLevel: 0,
       baseCooldownUntil: 0,
-      doubleSelfDamage: false,
     };
 
     this.startTickLoop();
@@ -519,7 +517,6 @@ class Room {
       entity.exacerbacionLevel = 0;
       entity.exacerbacionUntil = 0;
       entity.perezaUntil = 0;
-      entity.marcaUntil = 0;
       entity.dashUntil = 0;
       entity.kbUntil = 0;
       entity.channel = null;
@@ -530,7 +527,6 @@ class Room {
       entity.allyBoostUntil = 0;
       entity.allyBoostLevel = 0;
       entity.fx = {};
-      entity.doubleSelfDamage = false;
       entity.hand = player.isAsymRole ? [] : Cards.dealSlots();
       entity.draftEndsAt = player.isAsymRole ? 0 : Date.now() + Cards.DRAFT_DURATION_MS;
     }
@@ -929,7 +925,7 @@ class Room {
       });
       return;
     }
-    curadorEntity.skillCooldowns[index] = now + skill.cooldownMs + (curadorEntity.marcaUntil > now ? 6000 : 0);
+    curadorEntity.skillCooldowns[index] = now + skill.cooldownMs;
 
     const affectedPlayerIds = [];
     let healedAny = false;
@@ -941,11 +937,12 @@ class Room {
     } else if (skill.type === 'melee_stun') {
       let nearestId = null;
       let nearestDist = skill.radius;
+      const origin = reachPoint(curadorEntity, skill.reach || 0);
       for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
         if (patient.status !== 'alive') continue;
         const targetEntity = this.gameState.entities[targetPlayerId];
         if (!targetEntity) continue;
-        const dist = distanceBetween(curadorEntity, targetEntity);
+        const dist = distanceBetween(origin, targetEntity);
         if (dist <= nearestDist) {
           nearestDist = dist;
           nearestId = targetPlayerId;
@@ -984,7 +981,6 @@ class Room {
           targetEntity.exacerbacionLevel = 0;
           targetEntity.noDrainUntil = 0;
           Status.clear(targetEntity, 'slow');
-          targetEntity.doubleSelfDamage = false;
           targetEntity.flojera = Math.max(0, targetEntity.flojera - skill.flojeraDrain);
         }
         affectedPlayerIds.push(targetPlayerId);
@@ -1002,6 +998,7 @@ class Room {
       skillName: skill.name,
       skillType: skill.type,
       radius: skill.radius || 0,
+      center: skill.reach ? (({ x, z }) => ({ x, z }))(reachPoint(curadorEntity, skill.reach)) : null,
       cooldownUntil: curadorEntity.skillCooldowns[index],
       healedPlayerIds: healedAny ? affectedPlayerIds : [],
       affectedPlayerIds,
@@ -1256,6 +1253,7 @@ class Room {
       cardId: card.id,
       cooldownUntil: entity.cardCooldowns[slotIndex],
       hitRadius: card.hitRadius || null,
+      center: card.reach ? (({ x, z }) => ({ x, z }))(reachPoint(entity, card.reach)) : null,
       boxes: CardEffects.areaOf(card, entity),
     });
   }
@@ -1270,11 +1268,12 @@ class Room {
     return result;
   }
 
-  curatorInRange(entity, radius) {
+  curatorInRange(entity, radius, reach = 0) {
+    const origin = reach ? reachPoint(entity, reach) : entity;
     for (const [otherId, other] of this.players) {
       if (!other.isAsymRole) continue;
       const otherEntity = this.gameState.entities[otherId];
-      if (otherEntity && distanceBetween(entity, otherEntity) <= radius) return true;
+      if (otherEntity && distanceBetween(origin, otherEntity) <= radius) return true;
     }
     return false;
   }
@@ -1293,11 +1292,10 @@ class Room {
   }
 
   applyCardEffect(playerId, entity, card, now) {
-    const hit = card.hitRadius ? this.curatorInRange(entity, card.hitRadius) : null;
+    const hit = card.hitRadius ? this.curatorInRange(entity, card.hitRadius, card.reach || 0) : null;
     CardEffects.apply(this, playerId, entity, card, now);
     if (hit === true) {
       this.gainExacerbacion(entity, now);
-      if (card.id === 'receta_falsa') entity.doubleSelfDamage = true;
     } else if (hit === false) {
       this.endlag(playerId, entity, now);
     }
@@ -1409,9 +1407,7 @@ class Room {
       return;
     }
 
-    const damageFactor = playerEntity.doubleSelfDamage ? GOLPE_DOBLE_FACTOR : 1;
-    playerEntity.doubleSelfDamage = false;
-    patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - SELF_DAMAGE_AMOUNT * damageFactor);
+    patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - SELF_DAMAGE_AMOUNT);
     if (patient.hp <= PATIENT_HP_MIN) patient.status = 'self_won';
 
     const allPositions = GameMap.resolveSelfDamagePositions(this.mapId, GameMap.MATCH_AREA);
