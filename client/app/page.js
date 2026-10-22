@@ -248,6 +248,8 @@ export default function LobbyPage() {
                 kind: `card_${payload.cardId}`,
                 x: caster.x,
                 z: caster.z,
+                radius: payload.hitRadius || undefined,
+                boxes: payload.boxes || undefined,
                 startedAt: Date.now(),
               };
               setEffects((prev) => [...prev.filter((e) => Date.now() - e.startedAt < 1500), effect]);

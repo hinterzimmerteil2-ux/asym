@@ -104,4 +104,16 @@ function apply(room, playerId, entity, card, now) {
   if (handler) handler({ room, playerId, entity, card, now });
 }
 
-module.exports = { apply, handlers };
+function areaOf(card, entity) {
+  if (card.id === 'rodar') {
+    const len = Math.hypot(entity.dashVX || 0, entity.dashVZ || 0) || 1;
+    const dx = (entity.dashVX || 0) / len;
+    const dz = (entity.dashVZ || 0) / len;
+    return [0, 1, 2, 3, 4].map((i) => ({ x: entity.x + (dx * C.ROLL_DISTANCE * i) / 4, z: entity.z + (dz * C.ROLL_DISTANCE * i) / 4, half: C.ROLL_HIT_WIDTH }));
+  }
+  if (card.id === 'acetilcolina') return [{ x: entity.x, z: entity.z, half: C.ACETIL_ALLY_RADIUS }];
+  if (card.id === 'grito_animo') return [{ x: entity.x, z: entity.z, half: 8 }];
+  return [];
+}
+
+module.exports = { apply, handlers, areaOf };

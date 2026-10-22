@@ -1255,6 +1255,8 @@ class Room {
       slot: slotIndex,
       cardId: card.id,
       cooldownUntil: entity.cardCooldowns[slotIndex],
+      hitRadius: card.hitRadius || null,
+      boxes: CardEffects.areaOf(card, entity),
     });
   }
 

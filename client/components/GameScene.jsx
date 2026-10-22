@@ -957,7 +957,10 @@ function Platform({ p }) {
 function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, effects, opacity, cfg }) {
   return (
     <>
-      {(effects || []).filter((fx) => fx.radius && Date.now() - fx.startedAt < 700).map((fx) => (
+      {(effects || []).filter((fx) => fx.boxes && Date.now() - fx.startedAt < 900).flatMap((fx) => fx.boxes.map((b, i) => (
+        <SquareFrame key={`${fx.id}_${i}`} x={b.x} z={b.z} y={entities?.[fx.casterId]?.y ?? 0} half={b.half} color="#e0555f" opacity={opacity} />
+      )))}
+      {(effects || []).filter((fx) => fx.radius && Date.now() - fx.startedAt < 900).map((fx) => (
         <SquareFrame key={fx.id} x={fx.x} z={fx.z} y={entities?.[fx.casterId]?.y ?? 0} half={fx.radius} color="#e0555f" opacity={opacity} />
       ))}
       {(platforms || []).map((p) => (
