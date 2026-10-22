@@ -920,9 +920,9 @@ export default function LobbyPage() {
         )}
         {spectating && (
           <div style={{ position: 'absolute', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, background: 'rgba(27, 29, 41, 0.9)', border: '1px solid #2a2d3d', fontSize: 13 }}>
-            <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i - 1)} aria-label="Anterior">◀</button>
+            <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i - 1)} aria-label="Anterior">{'<-'}</button>
             <span>{specId ? `Espectando: ${players.find((p) => p.id === specId)?.name || specId}` : 'Nadie a quien seguir'}</span>
-            <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i + 1)} aria-label="Siguiente">▶</button>
+            <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i + 1)} aria-label="Siguiente">{'->'}</button>
           </div>
         )}
         {touch && portrait && phase === 'action' && (
