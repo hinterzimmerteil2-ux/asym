@@ -15,10 +15,10 @@ function Stick() {
 
   function apply(dx, dy) {
     const want = new Set();
-    if (dy < -0.35) want.add('KeyW');
-    if (dy > 0.35) want.add('KeyS');
-    if (dx < -0.35) want.add('KeyA');
-    if (dx > 0.35) want.add('KeyD');
+    if (dy < -0.25) want.add('KeyW');
+    if (dy > 0.25) want.add('KeyS');
+    if (dx < -0.25) want.add('KeyA');
+    if (dx > 0.25) want.add('KeyD');
     for (const code of active.current) if (!want.has(code)) press(code, false);
     for (const code of want) if (!active.current.has(code)) press(code, true);
     active.current = want;
@@ -85,7 +85,7 @@ function Btn({ label, code, size = 52, style, until = 0 }) {
   );
 }
 
-export default function TouchControls({ isAsymRole, cardCooldowns = {}, skillCooldowns = {} }) {
+export default function TouchControls({ isAsymRole, cardCooldowns = {}, skillCooldowns = {}, onInteract }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
     setShow(window.matchMedia('(pointer: coarse)').matches);
@@ -102,6 +102,14 @@ export default function TouchControls({ isAsymRole, cardCooldowns = {}, skillCoo
             : [['1', 'Digit1', 0], ['2', 'Digit2', 1], ['E', 'KeyE', -1]].map(([label, code, slot]) => <Btn key={code} label={label} code={code} until={slot >= 0 ? cardCooldowns[slot] || 0 : 0} />)}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            type="button"
+            onContextMenu={(e) => e.preventDefault()}
+            onPointerDown={(e) => { e.preventDefault(); onInteract && onInteract(); }}
+            style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(84,104,255,0.75)', color: '#fff', border: '2px solid rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 700, touchAction: 'none', pointerEvents: 'auto', userSelect: 'none', WebkitUserSelect: 'none' }}
+          >
+            {isAsymRole ? 'Curar' : 'Usar'}
+          </button>
           <Btn label="Lento" code="ShiftLeft" size={56} style={{ fontSize: 12 }} />
           <Btn label="Salto" code="Space" size={64} style={{ fontSize: 13 }} />
         </div>

@@ -55,16 +55,19 @@ export default function LobbyPage() {
   const [phase, setPhase] = useState('lobby');
   const [compact, setCompact] = useState(false);
   const [touch, setTouch] = useState(false);
+  const [portrait, setPortrait] = useState(false);
   const [panelOpen, setPanelOpen] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   useEffect(() => {
     const mc = window.matchMedia('(pointer: coarse), (max-width: 760px)');
     const mt = window.matchMedia('(pointer: coarse)');
-    const upd = () => { setCompact(mc.matches); setTouch(mt.matches); };
+    const mp = window.matchMedia('(orientation: portrait)');
+    const upd = () => { setCompact(mc.matches); setTouch(mt.matches); setPortrait(mp.matches); };
     upd();
     mc.addEventListener('change', upd);
     mt.addEventListener('change', upd);
-    return () => { mc.removeEventListener('change', upd); mt.removeEventListener('change', upd); };
+    mp.addEventListener('change', upd);
+    return () => { mc.removeEventListener('change', upd); mt.removeEventListener('change', upd); mp.removeEventListener('change', upd); };
   }, []);
   useEffect(() => { setPanelOpen(null); setChatOpen(false); }, [phase]);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -521,6 +524,32 @@ export default function LobbyPage() {
   const isHost = hostId !== null && hostId === myPlayerId;
   const sx = (base, extra) => (compact ? { ...base, ...extra } : base);
   const playersOpen = panelOpen ?? phase === 'lobby';
+  const handleInteract = () => {
+    const me = entities[myPlayerId];
+    if (!me) return;
+    let best = null;
+    let bestDist = Infinity;
+    const consider = (id, pos) => {
+      const d = Math.hypot(pos.x - me.x, pos.z - me.z);
+      if (d < bestDist) { bestDist = d; best = id; }
+    };
+    if (isAsymRole) {
+      for (const [id, e] of Object.entries(entities)) {
+        const pl = players.find((p) => p.id === id);
+        if (id !== myPlayerId && pl && !pl.isAsymRole) consider(id, e);
+      }
+      if (best) handleSendAction('cure_action', { targetPlayerId: best });
+    } else {
+      for (const [id, pos] of Object.entries(selfDamageObjects || {})) consider(id, pos);
+      if (best) handleSendAction('self_damage_action', { objectId: best });
+    }
+  };
+  const goFullscreen = () => {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!req) return;
+    Promise.resolve(req.call(el)).then(() => window.screen.orientation?.lock?.('landscape')).catch(() => {});
+  };
   const bar = { width: 'min(240px, 56vw)', padding: '4px 8px' };
 
   if (status === 'in_room') {
@@ -546,7 +575,7 @@ export default function LobbyPage() {
           />
         </div>
 
-        <div style={sx(styles.topBar, { top: 8, left: 8, maxWidth: 'calc(100% - 190px)', flexWrap: 'wrap', padding: '4px 8px', gap: 6, zIndex: 30 })}>
+        <div style={sx(styles.topBar, { top: 8, left: 8, maxWidth: 'calc(100% - 232px)', flexWrap: 'wrap', padding: '4px 8px', gap: 6, zIndex: 30 })}>
           <span style={styles.dot('in_room')} />
           <span style={styles.statusText}>Sala: {roomId}</span>
           <span style={styles.roleTag(isAsymRole)}>
@@ -731,7 +760,7 @@ export default function LobbyPage() {
 
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
-        {phase === 'action' && <TouchControls isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
+        {phase === 'action' && <TouchControls onInteract={handleInteract} isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
 
         {phase === 'action' && flojera && (
           <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: isAsymRole ? 80 : 110 })}>
@@ -872,8 +901,12 @@ export default function LobbyPage() {
         {compact && (
           <>
             <button type="button" onClick={() => { setPanelOpen(!playersOpen); setChatOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 96, width: 36, height: 36, zIndex: 30, borderColor: playersOpen ? '#54d1f2' : '#2a2d3d' })} aria-label="Jugadores">☰</button>
+            <button type="button" onClick={goFullscreen} style={sx(styles.helpButton, { top: 8, right: 184, width: 36, height: 36, zIndex: 30 })} aria-label="Pantalla completa">⛶</button>
             <button type="button" onClick={() => { setChatOpen(!chatOpen); setPanelOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 140, width: 36, height: 36, zIndex: 30, borderColor: chatOpen ? '#54d1f2' : '#2a2d3d' })} aria-label="Chat">💬</button>
           </>
+        )}
+        {touch && portrait && phase === 'action' && (
+          <p style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', margin: 0, padding: '10px 16px', borderRadius: 8, background: 'rgba(18,19,26,0.9)', border: '1px solid #2a2d3d', fontSize: 14, zIndex: 25, textAlign: 'center', pointerEvents: 'none' }}>Gira el teléfono para jugar mejor</p>
         )}
         {helpOpen && <HelpPanel characters={characters} cards={cardCatalog} onClose={() => setHelpOpen(false)} />}
 
@@ -1314,7 +1347,7 @@ const styles = {
     fontFamily: 'system-ui, -apple-system, sans-serif',
     color: '#e8e8ef',
   },
-  sceneContainer: { position: 'absolute', inset: 0 },
+  sceneContainer: { position: 'absolute', inset: 0, userSelect: 'none', WebkitUserSelect: 'none' },
   topBar: {
     position: 'absolute',
     top: 16,

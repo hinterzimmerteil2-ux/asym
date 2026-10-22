@@ -790,7 +790,7 @@ function FollowCamera({ myEntity, yawRef }) {
   const yaw = useRef(Math.PI);
   const pitch = useRef(0.5);
   const distance = useRef(7);
-  const dragging = useRef(false);
+  const dragging = useRef(null);
   const lastPointer = useRef({ x: 0, y: 0 });
   const smoothedTarget = useRef(new Vector3(0, 1, 0));
 
@@ -798,18 +798,20 @@ function FollowCamera({ myEntity, yawRef }) {
     const canvas = gl.domElement;
     canvas.style.touchAction = 'none';
 
+    const sens = e => (e.pointerType === 'touch' ? 0.009 : 0.006);
     function onPointerDown(e) {
-      dragging.current = true;
+      if (dragging.current !== null) return;
+      dragging.current = e.pointerId;
       lastPointer.current = { x: e.clientX, y: e.clientY };
     }
-    function onPointerUp() { dragging.current = false; }
+    function onPointerUp(e) { if (dragging.current === e.pointerId) dragging.current = null; }
     function onPointerMove(e) {
-      if (!dragging.current) return;
+      if (dragging.current !== e.pointerId) return;
       const dx = e.clientX - lastPointer.current.x;
       const dy = e.clientY - lastPointer.current.y;
       lastPointer.current = { x: e.clientX, y: e.clientY };
-      yaw.current -= dx * 0.006;
-      pitch.current = Math.max(0.15, Math.min(1.4, pitch.current - dy * 0.006));
+      yaw.current -= dx * sens(e);
+      pitch.current = Math.max(0.15, Math.min(1.4, pitch.current - dy * sens(e)));
     }
     function onWheel(e) {
       e.preventDefault();
@@ -818,11 +820,13 @@ function FollowCamera({ myEntity, yawRef }) {
 
     canvas.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
     window.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('wheel', onWheel, { passive: false });
     return () => {
       canvas.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
       window.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('wheel', onWheel);
     };
@@ -999,13 +1003,14 @@ export default function GameScene({
   useKeyboardInput(sendInput, yawRef, onPulse);
 
   const playerById = new Map(players.map((p) => [p.id, p]));
+  const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const areaHalfSize = phase === 'action' ? MATCH_HALF_SIZE : LOBBY_HALF_SIZE;
   const myEntity = entities[myPlayerId];
 
   return (
-    <Canvas shadows camera={{ position: [0, 3, 7], fov: 60 }}>
+    <Canvas shadows={!coarse} dpr={[1, coarse ? 1.5 : 2]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
       <ambientLight intensity={phase === 'action' ? 0.5 : 0.4} />
-      <directionalLight position={[8, 12, 6]} intensity={1.1} castShadow shadow-mapSize={[1024, 1024]} />
+      <directionalLight position={[8, 12, 6]} intensity={1.1} castShadow={!coarse} shadow-mapSize={[1024, 1024]} />
 
       <FollowCamera myEntity={myEntity} yawRef={yawRef} />
 
