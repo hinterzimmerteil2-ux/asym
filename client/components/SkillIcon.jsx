@@ -55,7 +55,12 @@ const ICONS = {
   golpe_aturdidor: <><circle cx="16" cy="16" r="8" fill={Y} /><path d="M16 2 V7 M16 25 V30 M2 16 H7 M25 16 H30 M6 6 L10 10 M22 22 L26 26 M26 6 L22 10 M10 22 L6 26" stroke={Y} strokeWidth="2" strokeLinecap="round" /></>,
 };
 
+const IMAGES = new Set(['acetilcolina', 'tajo_carmesi', 'red_mist', 'agua_rimac', 'chicharron']);
+
 export default function SkillIcon({ id, size = 30 }) {
+  if (IMAGES.has(id)) {
+    return <img src={`/icons/${id}.png`} alt="" width={size} height={size} draggable={false} style={{ flexShrink: 0, borderRadius: 6, objectFit: 'cover' }} />;
+  }
   const shapes = ICONS[id];
   if (!shapes) return null;
   return (
