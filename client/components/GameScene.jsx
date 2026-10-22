@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { BoxGeometry, EdgesGeometry, Vector3 } from 'three';
+import { BoxGeometry, EdgesGeometry, Vector3, TextureLoader, DoubleSide, SRGBColorSpace } from 'three';
 
 const LOBBY_HALF_SIZE = 15;
 const MATCH_HALF_SIZE = 30;
@@ -475,22 +475,22 @@ const FX = {
   skill_boost: { shape: 'spark', color: '#f2a154', count: 12, speed: 1, up: 4, gravity: -3 },
   skill_purge: { shape: 'drop', color: '#54a8f2', count: 14, speed: 3.5, up: 2, gravity: 9 },
   skill_melee_stun: { shape: 'spark', color: '#f2d154', count: 12, speed: 4, up: 2, gravity: 6, prop: 'hammer' },
-  card_acetilcolina: { shape: 'spark', color: '#54d1f2', count: 16, speed: 3, up: 2, gravity: 0, prop: 'molecule' },
+  card_acetilcolina: { shape: 'spark', color: '#54d1f2', count: 16, speed: 3, up: 2, gravity: 0, prop: 'img_acetilcolina' },
   card_rodar: { shape: 'smoke', color: '#cfd2e0', count: 8, speed: 2, up: 0.5, gravity: 0, prop: 'boot' },
   card_canon_humano: { shape: 'smoke', color: '#cfd2e0', count: 10, speed: 2.5, up: 0.8, gravity: 0, prop: 'can' },
   card_humo_yodo: { shape: 'smoke', color: '#f2a154', count: 12, speed: 2.5, up: 1, gravity: 0, prop: 'smokepot' },
   card_tropiezo: { shape: 'spark', color: '#f2d154', count: 10, speed: 3, up: 3, gravity: 8, prop: 'cone' },
   card_adrenalina: { shape: 'spark', color: '#e0555f', count: 10, speed: 1.5, up: 4, gravity: -2, prop: 'heart' },
-  card_chicharron: { shape: 'crumb', color: '#c98a3a', count: 12, speed: 2, up: 3, gravity: 9, prop: 'chicharron' },
+  card_chicharron: { shape: 'crumb', color: '#c98a3a', count: 12, speed: 2, up: 3, gravity: 9, prop: 'img_chicharron' },
   card_goyslop: { shape: 'crumb', color: '#8f8f4a', count: 16, speed: 2.5, up: 3, gravity: 9, prop: 'slop' },
   card_aji_picante: { shape: 'crumb', color: '#e0555f', count: 12, speed: 2, up: 3, gravity: 9, prop: 'chili' },
   card_sopa_hirviendo: { shape: 'drop', color: '#f2a154', count: 14, speed: 3, up: 3.5, gravity: 9, prop: 'pot' },
   card_cascara_platano: { shape: 'leaf', color: '#f2d154', count: 6, speed: 2, up: 3, gravity: 8, prop: 'banana' },
   card_platano_podrido: { shape: 'leaf', color: '#7a6a2a', count: 8, speed: 2, up: 3, gravity: 8, prop: 'rotten' },
-  card_agua_rimac: { shape: 'shard', color: '#9fe6d0', liquid: '#6b8f3a', count: 16, speed: 4, up: 4, gravity: 12, prop: 'bottle' },
+  card_agua_rimac: { shape: 'shard', color: '#9fe6d0', liquid: '#6b8f3a', count: 16, speed: 4, up: 4, gravity: 12, prop: 'img_agua_rimac' },
   card_rimac_sin_filtrar: { shape: 'shard', color: '#9fe6d0', liquid: '#5f7f20', count: 22, speed: 5, up: 5, gravity: 12, prop: 'bottle' },
-  card_red_mist: { shape: 'drop', color: '#e0555f', count: 20, speed: 5, up: 3, gravity: 9, prop: 'blade' },
-  card_tajo_carmesi: { shape: 'drop', color: '#b57cff', count: 10, speed: 4, up: 2, gravity: 9, prop: 'energy_blade' },
+  card_red_mist: { shape: 'drop', color: '#e0555f', count: 20, speed: 5, up: 3, gravity: 9, prop: 'img_red_mist' },
+  card_tajo_carmesi: { shape: 'drop', color: '#b57cff', count: 10, speed: 4, up: 2, gravity: 9, prop: 'img_tajo_carmesi' },
   card_regalo_envenenado: { shape: 'leaf', color: '#b07cf2', count: 14, speed: 3, up: 3, gravity: 3, prop: 'gift' },
   card_grito_animo: { shape: 'spark', color: '#54d1f2', count: 14, speed: 3, up: 3, gravity: 2, prop: 'horn' },
   card_racion_compartida: { shape: 'crumb', color: '#f2a154', count: 14, speed: 3, up: 3, gravity: 9, prop: 'bowl' },
@@ -525,7 +525,40 @@ function SimpleProp({ parts }) {
   );
 }
 
+const PROP_IMG = {
+  img_tajo_carmesi: { src: '/props/tajo_carmesi.png', h: 1.1, aspect: 0.34 },
+  img_red_mist: { src: '/props/red_mist.png', h: 1.0, aspect: 1.08 },
+  img_acetilcolina: { src: '/props/acetilcolina.png', h: 0.4, aspect: 2.48 },
+  img_agua_rimac: { src: '/props/agua_rimac.png', h: 0.6, aspect: 1 },
+  img_chicharron: { src: '/props/chicharron.png', h: 0.5, aspect: 1 },
+};
+const texCache = new Map();
+function loadTex(src) {
+  if (!texCache.has(src)) {
+    const tex = new TextureLoader().load(src);
+    tex.colorSpace = SRGBColorSpace;
+    texCache.set(src, tex);
+  }
+  return texCache.get(src);
+}
+
+function ImageProp({ kind }) {
+  const cfg = PROP_IMG[kind];
+  const tex = loadTex(cfg.src);
+  return (
+    <group>
+      {[0, Math.PI / 2].map((ry) => (
+        <mesh key={ry} position={[0, cfg.h * 0.3, 0]} rotation={[0, ry, 0]}>
+          <planeGeometry args={[cfg.h * cfg.aspect, cfg.h]} />
+          <meshBasicMaterial map={tex} transparent alphaTest={0.05} side={DoubleSide} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function PropMesh({ kind, color }) {
+  if (PROP_IMG[kind]) return <ImageProp kind={kind} />;
   if (SIMPLE_PROPS[kind]) return <SimpleProp parts={SIMPLE_PROPS[kind]} />;
   if (kind === 'bottle') {
     return (
