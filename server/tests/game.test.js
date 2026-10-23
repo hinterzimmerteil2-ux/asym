@@ -102,6 +102,7 @@ test('Rodar agotando la Flojera deja ragdoll al terminar', () => {
   room.useCard('a', 0);
   step(10, 0.05, false);
   assert.ok(Status.until(e.a, 'ragdoll') > Date.now());
+  assert.strictEqual(Status.until(e.a, 'stun'), 0);
 });
 
 test('Diligencia bloquea cartas y la M1 del Curador', () => {

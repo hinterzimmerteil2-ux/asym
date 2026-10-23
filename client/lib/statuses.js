@@ -8,7 +8,7 @@ export const STATUSES = {
   impulso: { label: 'Impulso', description: 'Aliados con Acetilcolina te dan velocidad (+25% por nivel, uno por aliado cercano).', color: '#e0555f', favorable: true, icon: 'impulso', dynamic: true },
   ayuno: { label: 'Ayuno', description: 'Tu Flojera no se regenera.', color: '#5fd58c', favorable: false, icon: 'fatiga', dynamic: false },
   endlag: { label: 'Endlag', description: 'Penalización por una acción mal hecha.', color: '#5fd58c', favorable: false, icon: 'endlag', dynamic: false },
-  ragdoll: { label: 'Ragdoll', description: 'Caído.', color: '#5fd58c', favorable: false, icon: 'aturdido', dynamic: false },
+  ragdoll: { label: 'Ragdoll', description: 'Caído.', color: '#5fd58c', favorable: false, icon: 'ragdoll', dynamic: false },
   aturdido: { label: 'Diligencia', description: 'Aturdido.', color: '#5fd58c', favorable: false, icon: 'aturdido', dynamic: false },
   ralentizado: { label: 'Ralentizado', description: 'Velocidad reducida.', color: '#5fd58c', favorable: false, icon: 'ralentizado', dynamic: true },
 };

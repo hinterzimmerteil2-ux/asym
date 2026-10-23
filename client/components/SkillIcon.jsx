@@ -8,6 +8,7 @@ const P = '#b07cf2';
 const O = '#f2a154';
 
 const ICONS = {
+  ragdoll: <><g transform="rotate(-40 16 16)"><rect x="13" y="2" width="6" height="6" rx="1" fill="#f2d27a" /><rect x="11" y="9" width="10" height="10" fill="#54a8f2" /><rect x="4" y="9" width="6" height="4" fill="#f2d27a" transform="rotate(25 7 11)" /><rect x="22" y="9" width="6" height="4" fill="#f2d27a" transform="rotate(-30 25 11)" /><rect x="11" y="20" width="4" height="9" fill="#3a3d52" transform="rotate(15 13 20)" /><rect x="17" y="20" width="4" height="9" fill="#3a3d52" transform="rotate(-20 19 20)" /></g></>,
   sprint_panico: <><path d="M6 22 L14 6 L16 14 L26 12 L14 28 L13 20 Z" fill={Y} /></>,
   segundo_aliento: <><path d="M4 12 H18 a4 4 0 1 0 -4 -4 M4 18 H24 a4 4 0 1 1 -4 4 M4 24 H14" stroke={B} strokeWidth="2.5" fill="none" strokeLinecap="round" /></>,
   rodar: <><path d="M16 6 a10 10 0 1 1 -9 6" stroke={O} strokeWidth="3" fill="none" strokeLinecap="round" /><path d="M3 8 L8 13 L11 6 Z" fill={O} /></>,
