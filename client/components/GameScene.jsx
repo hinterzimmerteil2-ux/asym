@@ -162,6 +162,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
   const groupRef = useRef();
   const rag = useRef({ on: false });
   const limbRefs = useRef([]);
+  const rig = useRef({});
+  const walk = useRef({ phase: 0, amp: 0, px: entityState.x, pz: entityState.z });
   const targetPos = useRef([entityState.x, entityState.y, entityState.z]);
 
   useEffect(() => {
@@ -182,6 +184,15 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
     FACING.set(playerId, yaw.current);
     if (bodyRef.current) {
       const body = bodyRef.current;
+      const w = walk.current;
+      const speed = delta > 0 ? Math.hypot(entityState.x - w.px, entityState.z - w.pz) / delta : 0;
+      w.px = entityState.x;
+      w.pz = entityState.z;
+      w.amp += (Math.min(1, speed / 3) - w.amp) * Math.min(1, delta * 10);
+      w.phase += speed * delta * 1.8;
+      const swing = Math.sin(w.phase) * 0.9 * w.amp;
+      const r6 = rig.current;
+      if (r6.legL) { r6.legL.rotation.x = swing; r6.legR.rotation.x = -swing; r6.armL.rotation.x = -swing; r6.armR.rotation.x = swing; }
       const showRag = Boolean(ragdoll && entityState.rag && entityState.rag.p);
       body.visible = !showRag;
       body.rotation.set(0, yaw.current, 0);
@@ -207,24 +218,16 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
   return (
     <group ref={groupRef} position={targetPos.current}>
       <group ref={bodyRef}>
-        <mesh castShadow position={[0, 0.9, 0]}>
-          <capsuleGeometry args={[0.4, 1.1, 4, 12]} />
-          <meshStandardMaterial color={color} roughness={0.4} metalness={0.1} />
-        </mesh>
-        <mesh position={[0, 1.45, 0.36]}>
-          <boxGeometry args={[0.3, 0.12, 0.1]} />
-          <meshStandardMaterial color="#12131a" />
-        </mesh>
-        <mesh position={[0.5, 1.0, 0.3]}>
-          <sphereGeometry args={[0.13, 10, 8]} />
-          <meshStandardMaterial color={color} roughness={0.4} />
-        </mesh>
-        {[[-0.55, 1.1], [0.55, 1.1], [-0.22, 0.2], [0.22, 0.2]].map(([lx, ly], i) => (
-          <group key={i} ref={(el) => { limbRefs.current[i] = el; if (el && !rag.current.on) el.visible = false; }} position={[lx, ly, 0]}>
-            <mesh position={[0, -0.25, 0]}>
-              <capsuleGeometry args={[0.09, 0.4, 4, 8]} />
-              <meshStandardMaterial color={color} roughness={0.5} />
-            </mesh>
+        <mesh castShadow position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+        <group position={[0, 1.62, 0]}>
+          <mesh castShadow><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
+          <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+          <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+          <mesh position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+        </group>
+        {[['armL', -0.54, 1.44, SKIN], ['armR', 0.54, 1.44, SKIN], ['legL', -0.18, 0.72, '#3a3d52'], ['legR', 0.18, 0.72, '#3a3d52']].map(([key, px, py, col]) => (
+          <group key={key} ref={(el) => { rig.current[key] = el; }} position={[px, py, 0]}>
+            <mesh castShadow position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
           </group>
         ))}
         <HeldItem held={held} />
