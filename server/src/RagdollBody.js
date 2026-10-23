@@ -107,4 +107,13 @@ function serialize(body, entity) {
   return out;
 }
 
-module.exports = { create, step, serialize };
+function impulse(body, dx, dz, v) {
+  const H = 0.05 / SUBSTEPS;
+  for (let i = 0; i < body.x.length; i++) {
+    const w = UPPER.has(i) ? 1.3 : 0.7;
+    body.px[i] -= dx * v * w * H;
+    body.pz[i] -= dz * v * w * H;
+  }
+}
+
+module.exports = { create, step, serialize, impulse };

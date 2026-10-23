@@ -659,6 +659,27 @@ class Room {
         if (distanceBetween(source, other) <= ACETIL_ALLY_RADIUS) allyCounts[otherId] = (allyCounts[otherId] || 0) + 1;
       }
     }
+    const bodies = Object.entries(this.gameState.entities);
+    for (const [, entity] of bodies) {
+      entity.speedNow = entity.prevX === undefined ? 0 : Math.hypot(entity.x - entity.prevX, entity.z - entity.prevZ) / dt;
+      entity.prevX = entity.x;
+      entity.prevZ = entity.z;
+    }
+    for (const [rid, ragEntity] of bodies) {
+      if (!Status.active(ragEntity, 'ragdoll', now) || !ragEntity.rag) continue;
+      for (const [oid, other] of bodies) {
+        if (oid === rid || Status.blocksMove(other, now) || other.speedNow < 0.5) continue;
+        const patient = this.gameState.patients[oid];
+        if (patient && patient.status !== 'alive') continue;
+        if (distanceBetween(other, ragEntity) > 0.2) continue;
+        const dx = ragEntity.x - other.x;
+        const dz = ragEntity.z - other.z;
+        const len = Math.hypot(dx, dz) || 1;
+        const speed = Math.min(14, other.speedNow * 0.9 + 2);
+        Status.push(ragEntity, dx / len, dz / len, speed, 300, now);
+        RagdollBody.impulse(ragEntity.rag, dx / len, dz / len, speed * 0.5);
+      }
+    }
     for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
       const { input } = entity;
       const inAction = this.phase === 'action';

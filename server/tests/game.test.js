@@ -233,3 +233,17 @@ test('Ragdoll R6: cae al piso, conserva las articulaciones y es finito', () => {
   }
   assert.strictEqual(RagdollBody.serialize(body, ent).length, 30);
 });
+
+test('Un jugador en ragdoll es empujado al caminar contra él', () => {
+  const { room, e } = setup();
+  e.a.x = 0; e.a.z = 0;
+  e.b.x = 0.5; e.b.z = 0;
+  Status.apply(e.b, 'ragdoll', 3000, Date.now());
+  room.stepPhysics(0.05);
+  e.a.x = 0.2;
+  e.b.kbUntil = 0;
+  room.stepPhysics(0.05);
+  e.a.x = 0.35;
+  room.stepPhysics(0.05);
+  assert.ok(e.b.kbUntil > Date.now() && e.b.kbX > 0);
+});
