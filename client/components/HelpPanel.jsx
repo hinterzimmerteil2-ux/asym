@@ -1,5 +1,4 @@
 import SkillIcon from './SkillIcon';
-import { STATUSES, INVERSE_NOTE } from '../lib/statuses';
 
 const CONTROLS = [
   ['W A S D', 'Moverte'],
@@ -59,21 +58,8 @@ export default function HelpPanel({ characters, cards, onClose }) {
             <SkillIcon id="golpe_aturdidor" size={24} />
             <span style={styles.itemKey}>G</span>
             <span style={styles.itemName}>Golpe Aturdidor</span>
-            <span style={styles.itemText}>Aturde 1.2s al Paciente más cercano. Su versión corrupta es IS THAT THE RED MIST?</span>
+            <span style={styles.itemText}>Aturde 1.2s al Paciente frente a ti. Su versión corrupta es IS THAT THE RED MIST?</span>
           </div>
-        </div>
-
-        <h3 style={styles.section}>Estados</h3>
-        <p style={styles.note}>{INVERSE_NOTE}</p>
-        <div style={styles.block}>
-          {Object.values(STATUSES).map((status) => (
-            <div key={status.label} style={styles.item}>
-              <SkillIcon id={status.icon} size={24} />
-              <span />
-              <span style={{ ...styles.itemName, color: status.color }}>{status.label}</span>
-              <span style={styles.itemText}>{status.favorable ? 'Te favorece. ' : 'Te perjudica. '}{status.dynamic ? 'Dinámico (con nivel). ' : 'Estático. '}{status.description}</span>
-            </div>
-          ))}
         </div>
 
         <h3 style={styles.section}>Cartas de los Pacientes</h3>
