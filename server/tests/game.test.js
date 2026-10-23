@@ -220,3 +220,16 @@ test('Espada del UTTVM golpea desde la mano: solo al frente y corto', () => {
   room.useCard('a', 0);
   assert.ok(Status.until(e.c, 'stun') > Date.now());
 });
+
+test('Ragdoll R6: cae al piso, conserva las articulaciones y es finito', () => {
+  const RagdollBody = require('../src/RagdollBody');
+  const ent = { x: 0, y: 0, z: 0, faceX: 0, faceZ: 1 };
+  const body = RagdollBody.create(ent);
+  for (let i = 0; i < 80; i++) assert.ok(RagdollBody.step(body, ent, 0, 0.05));
+  assert.ok(Math.max(...body.y) < 0.9);
+  for (const [a, b, len] of body.links) {
+    const d = Math.hypot(body.x[a] - body.x[b], body.y[a] - body.y[b], body.z[a] - body.z[b]);
+    assert.ok(Math.abs(d - len) / len < 0.05);
+  }
+  assert.strictEqual(RagdollBody.serialize(body, ent).length, 30);
+});

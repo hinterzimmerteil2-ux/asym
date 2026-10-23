@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { BoxGeometry, EdgesGeometry, Vector3, TextureLoader, DoubleSide, SRGBColorSpace } from 'three';
+import { BoxGeometry, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace } from 'three';
 
 const LOBBY_HALF_SIZE = 15;
 const MATCH_HALF_SIZE = 30;
@@ -98,6 +98,61 @@ function HeldItem({ held }) {
   );
 }
 
+const R6_UP = new Vector3(0, 1, 0);
+const R6_DOWN = new Vector3(0, -1, 0);
+const SKIN = '#f2d27a';
+
+function RagdollR6({ entityState, color }) {
+  const torso = useRef();
+  const head = useRef();
+  const parts = useRef([]);
+  const cur = useRef(null);
+  const tmp = useMemo(() => ({ a: new Vector3(), b: new Vector3(), c: new Vector3(), r: new Vector3(), u: new Vector3(), f: new Vector3(), m: new Matrix4(), q: new Quaternion() }), []);
+
+  useFrame((_, delta) => {
+    const target = entityState.rag && entityState.rag.p;
+    if (!target || !torso.current) return;
+    if (!cur.current) cur.current = target.slice();
+    const k = Math.min(1, delta * 18);
+    for (let i = 0; i < target.length; i++) cur.current[i] += (target[i] - cur.current[i]) * k;
+    const P = (i, out) => out.set(cur.current[i * 3], cur.current[i * 3 + 1], cur.current[i * 3 + 2]);
+    const { a, b, c, r, u, f, m, q } = tmp;
+    P(0, a); P(1, b);
+    r.copy(b).sub(a).normalize();
+    P(2, a); P(3, c);
+    P(0, f); P(1, b);
+    u.copy(f).add(b).multiplyScalar(0.5).sub(a.add(c).multiplyScalar(0.5)).normalize();
+    f.crossVectors(r, u).normalize();
+    r.crossVectors(u, f).normalize();
+    m.makeBasis(r, u, f);
+    q.setFromRotationMatrix(m);
+    torso.current.quaternion.copy(q);
+    P(0, a); P(1, b); P(2, c); P(3, f);
+    torso.current.position.copy(a).add(b).add(c).add(f).multiplyScalar(0.25);
+    head.current.quaternion.copy(q);
+    P(5, head.current.position);
+    [[0, 6, -1], [1, 7, 1], [2, 8, 0], [3, 9, 0]].forEach(([from, to, side], i) => {
+      const mesh = parts.current[i];
+      if (!mesh) return;
+      P(from, a); P(to, b);
+      mesh.position.copy(a).add(b).multiplyScalar(0.5);
+      if (side) mesh.position.addScaledVector(r, side * 0.18);
+      c.copy(b).sub(a).normalize();
+      mesh.quaternion.setFromUnitVectors(R6_DOWN, c);
+    });
+  });
+
+  return (
+    <group>
+      <mesh ref={torso} castShadow><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+      <mesh ref={head} castShadow><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
+      {[SKIN, SKIN, '#3a3d52', '#3a3d52'].map((col, i) => (
+        <mesh key={i} ref={(el) => { parts.current[i] = el; }} castShadow><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
+      ))}
+    </group>
+  );
+}
+
 function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll }) {
   const bodyRef = useRef();
   const lastPos = useRef([entityState.x, entityState.z]);
@@ -127,36 +182,11 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
     FACING.set(playerId, yaw.current);
     if (bodyRef.current) {
       const body = bodyRef.current;
-      const rg = rag.current;
-      const now = Date.now();
-      const sr = entityState.rag;
-      if (ragdoll && sr) {
-        if (!rg.on) {
-          rg.on = true;
-          rg.rx = sr.x; rg.ry = sr.y; rg.rz = sr.z;
-        }
-        const follow = Math.min(1, delta * 20);
-        rg.rx += (sr.x - rg.rx) * follow;
-        rg.ry += (sr.y - rg.ry) * follow;
-        rg.rz += (sr.z - rg.rz) * follow;
-        const k = sr.t;
-        body.rotation.set(rg.rx, rg.ry, rg.rz);
-        const bounce = Math.abs(Math.sin(k * 7)) * 0.5 * Math.exp(-k * 1.4);
-        body.position.y += (0.45 + bounce - body.position.y) * Math.min(1, delta * 14);
-        limbRefs.current.forEach((limb, i) => {
-          if (!limb) return;
-          limb.visible = true;
-          const amp = 0.6 + 0.9 * Math.exp(-k * 0.5);
-          limb.rotation.z = Math.sin(k * 11 + i * 1.7) * amp * (i % 2 ? 1 : -1);
-          limb.rotation.x = Math.cos(k * 9 + i * 2.3) * amp * 0.6;
-        });
-      } else {
-        rg.on = false;
-        const rt = Math.min(1, delta * 8);
-        body.rotation.set(0, yaw.current, 0);
-        body.position.y += (0 - body.position.y) * rt;
-        limbRefs.current.forEach((limb) => { if (limb) limb.visible = false; });
-      }
+      const showRag = Boolean(ragdoll && entityState.rag && entityState.rag.p);
+      body.visible = !showRag;
+      body.rotation.set(0, yaw.current, 0);
+      body.position.y += (0 - body.position.y) * Math.min(1, delta * 8);
+      limbRefs.current.forEach((limb) => { if (limb) limb.visible = false; });
     }
     const anim = HAND_ANIMS.get(playerId);
     if (anim && anim.id !== heldId.current) {
@@ -199,6 +229,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
         ))}
         <HeldItem held={held} />
       </group>
+      {ragdoll && entityState.rag && entityState.rag.p && <RagdollR6 entityState={entityState} color={color} />}
       {stunned && <StunHalo />}
       {isMe && (
         <mesh position={[0, 2.1, 0]}>
