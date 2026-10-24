@@ -63,6 +63,28 @@ export default function LobbyPage() {
   const [panelOpen, setPanelOpen] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   useEffect(() => {
+    if (status !== 'in_room') return undefined;
+    const onBefore = (e) => { e.preventDefault(); e.returnValue = ''; };
+    const onKey = (e) => {
+      const tag = e.target && e.target.tagName;
+      if (e.ctrlKey && tag !== 'INPUT' && tag !== 'TEXTAREA') e.preventDefault();
+    };
+    const onFs = () => {
+      try {
+        if (document.fullscreenElement) navigator.keyboard?.lock?.(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyR', 'KeyF', 'KeyG', 'ControlLeft', 'ControlRight']);
+        else navigator.keyboard?.unlock?.();
+      } catch {}
+    };
+    window.addEventListener('beforeunload', onBefore);
+    window.addEventListener('keydown', onKey, true);
+    document.addEventListener('fullscreenchange', onFs);
+    return () => {
+      window.removeEventListener('beforeunload', onBefore);
+      window.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('fullscreenchange', onFs);
+    };
+  }, [status]);
+  useEffect(() => {
     const block = (e) => {
       const tag = e.target && e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
