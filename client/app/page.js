@@ -58,16 +58,20 @@ export default function LobbyPage() {
   const [portrait, setPortrait] = useState(false);
   const [specIndex, setSpecIndex] = useState(0);
   const [shiftLock, setShiftLock] = useState(false);
+  const [warn, setWarn] = useState(false);
   const [hitboxCfg, setHitboxCfg] = useState({ half: 0.4, height: 1.8, interact: 1.2 });
   const specRef = useRef({ on: false });
   const [panelOpen, setPanelOpen] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   useEffect(() => {
     if (status !== 'in_room') return undefined;
-    const onBefore = (e) => { e.preventDefault(); e.returnValue = ''; };
+    const muted = () => { try { return localStorage.getItem('asym_no_warn') === '1'; } catch { return false; } };
+    const onBefore = (e) => { if (muted()) return; e.preventDefault(); e.returnValue = ''; };
     const onKey = (e) => {
       const tag = e.target && e.target.tagName;
-      if (e.ctrlKey && tag !== 'INPUT' && tag !== 'TEXTAREA') e.preventDefault();
+      if (!e.ctrlKey || tag === 'INPUT' || tag === 'TEXTAREA') return;
+      e.preventDefault();
+      if ((e.code === 'KeyD' || e.code === 'KeyS') && !muted()) setWarn(true);
     };
     const onFs = () => {
       try {
@@ -978,6 +982,15 @@ export default function LobbyPage() {
         )}
         {helpOpen && <HelpPanel characters={characters} cards={cardCatalog} onClose={() => setHelpOpen(false)} />}
 
+        {warn && (
+          <div style={{ position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 60, width: 'min(420px, calc(100% - 24px))', boxSizing: 'border-box', padding: 12, borderRadius: 10, background: '#1b1d29', border: '1px solid #f2a154', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span>No se puede guardar el juego como marcador ni como archivo desde aquí.</span>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 12px' }} onClick={() => setWarn(false)}>Entendido</button>
+              <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 12px' }} onClick={() => { try { localStorage.setItem('asym_no_warn', '1'); } catch {} setWarn(false); }}>No volver a preguntar</button>
+            </div>
+          </div>
+        )}
         {errorMsg && (
           <p style={sx(styles.errorOverlay, { top: 48, left: 8, maxWidth: 'calc(100% - 16px)', zIndex: 35 })}>
             {errorMsg}

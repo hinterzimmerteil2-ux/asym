@@ -163,7 +163,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
   const rag = useRef({ on: false });
   const limbRefs = useRef([]);
   const rig = useRef({});
-  const walk = useRef({ phase: 0, amp: 0, px: entityState.x, pz: entityState.z });
+  const walk = useRef({ phase: 0, amp: 0, px: entityState.x, pz: entityState.z, py: entityState.y, air: 0, t: 0 });
   const targetPos = useRef([entityState.x, entityState.y, entityState.z]);
 
   useEffect(() => {
@@ -195,9 +195,52 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
       w.pz = entityState.z;
       w.amp += (Math.min(1, speed / 3) - w.amp) * Math.min(1, delta * 10);
       w.phase += speed * delta * 1.8;
-      const swing = Math.sin(w.phase) * 0.9 * w.amp;
+      const vy = delta > 0 ? (entityState.y - w.py) / delta : 0;
+      w.py = entityState.y;
+      w.air += ((Math.abs(vy) > 0.6 ? 1 : 0) - w.air) * Math.min(1, delta * 12);
+      w.t += delta;
+      const swing = Math.sin(w.phase) * (0.7 + 0.5 * Math.min(1, speed / 5)) * w.amp;
+      const idle = Math.sin(w.t * 1.8) * 0.06 * (1 - w.amp);
+      const flail = Math.sin(w.t * 18) * 0.35;
+      let lax = -swing + idle;
+      let rax = swing - idle;
+      let laz = -0.06 - 0.3 * Math.abs(swing);
+      let raz = 0.06 + 0.3 * Math.abs(swing);
+      lax = lax * (1 - w.air) + (-2.4 + flail) * w.air;
+      rax = rax * (1 - w.air) + (-2.4 - flail) * w.air;
+      laz -= 0.5 * w.air;
+      raz += 0.5 * w.air;
+      const ha = HAND_ANIMS.get(playerId);
+      if (ha && ANIM_DURATION[ha.anim]) {
+        const ht = Math.min(1, (Date.now() - ha.startedAt) / ANIM_DURATION[ha.anim]);
+        if (ha.anim === 'swing') {
+          rax = -Math.PI + 2.9 * easeOut(ht);
+          raz = 0.1;
+        } else if (ha.anim === 'consume') {
+          rax = -1.9 * easeOut(Math.min(1, ht / 0.45));
+          raz = 0.2;
+        } else if (ha.anim === 'throw') {
+          const wind = Math.min(1, ht / 0.3);
+          const fly = ht < 0.3 ? 0 : (ht - 0.3) / 0.7;
+          rax = 0.9 * wind - 2.8 * easeOut(fly);
+          raz = 0.15;
+        } else {
+          const up = easeOut(Math.min(1, ht / 0.5));
+          lax = -2.6 * up;
+          rax = -2.6 * up;
+          laz = -0.35 * up;
+          raz = 0.35 * up;
+        }
+      }
       const r6 = rig.current;
-      if (r6.legL) { r6.legL.rotation.x = swing; r6.legR.rotation.x = -swing; r6.armL.rotation.x = -swing; r6.armR.rotation.x = swing; }
+      if (r6.legL) {
+        r6.legL.rotation.x = swing * 1.1 + 0.5 * w.air;
+        r6.legR.rotation.x = -swing * 1.1 - 0.3 * w.air;
+        r6.armL.rotation.x = lax;
+        r6.armR.rotation.x = rax;
+        r6.armL.rotation.z = laz;
+        r6.armR.rotation.z = raz;
+      }
       const showRag = Boolean(ragdoll && entityState.rag && entityState.rag.p);
       body.visible = !showRag;
       body.rotation.set(0, yaw.current, 0);
