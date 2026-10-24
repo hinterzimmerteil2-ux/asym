@@ -3,7 +3,7 @@ import SkillIcon from './SkillIcon';
 const CONTROLS = [
   ['W A S D', 'Moverte'],
   ['Espacio', 'Saltar'],
-  ['C', 'Paso normal (mantener), sin gastar Flojera'],
+  ['Shift', 'Paso normal (mantener), sin gastar Flojera'],
   ['Click', 'Curar (Curador) / auto-dañarte en objeto rojo (Paciente)'],
   ['Q E R F', 'Habilidades del Curador'],
   ['G', 'Golpe Aturdidor (Curador)'],
@@ -11,7 +11,7 @@ const CONTROLS = [
   ['1 2', 'Usar carta (Paciente)'],
   ['H', 'Abrir o cerrar esta ayuda'],
   ['B', 'Mostrar u ocultar hitboxes'],
-  ['Shift', 'Shiftlock: el personaje mira hacia donde apunta la cámara'],
+  ['Ctrl', 'Shiftlock: el personaje mira hacia donde apunta la cámara'],
 ];
 
 export default function HelpPanel({ characters, cards, onClose }) {

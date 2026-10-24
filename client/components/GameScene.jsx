@@ -860,14 +860,18 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost }) {
   const lastPointer = useRef({ x: 0, y: 0 });
   const smoothedTarget = useRef(new Vector3(0, 1, 0));
   const shoulder = useRef(0);
+  const lostRef = useRef(onLockLost);
+  lostRef.current = onLockLost;
 
   useEffect(() => {
     const canvas = gl.domElement;
     const canLock = shiftLock && !window.matchMedia('(pointer: coarse)').matches;
-    function onLockChange() { if (canLock && document.pointerLockElement !== canvas) onLockLost?.(); }
+    function onLockChange() { if (canLock && document.pointerLockElement !== canvas) lostRef.current?.(); }
     if (canLock && document.pointerLockElement !== canvas) {
-      try { Promise.resolve(canvas.requestPointerLock()).catch(() => onLockLost?.()); } catch { onLockLost?.(); }
+      try { Promise.resolve(canvas.requestPointerLock()).catch(() => lostRef.current?.()); } catch { lostRef.current?.(); }
     }
+    const noMenu = (e) => e.preventDefault();
+    canvas.addEventListener('contextmenu', noMenu);
     document.addEventListener('pointerlockchange', onLockChange);
     canvas.style.touchAction = 'none';
 
@@ -903,6 +907,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost }) {
     canvas.addEventListener('wheel', onWheel, { passive: false });
     return () => {
       document.removeEventListener('pointerlockchange', onLockChange);
+      canvas.removeEventListener('contextmenu', noMenu);
       if (document.pointerLockElement === canvas) document.exitPointerLock?.();
       canvas.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointerup', onPointerUp);
@@ -910,7 +915,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost }) {
       window.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('wheel', onWheel);
     };
-  }, [gl, shiftLock, onLockLost]);
+  }, [gl, shiftLock]);
 
   useFrame((_, delta) => {
     if (!myEntity) return;
@@ -984,7 +989,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       if (keys.has('KeyA') || keys.has('ArrowLeft')) inputX -= 1;
       if (keys.has('KeyD') || keys.has('ArrowRight')) inputX += 1;
       const jump = keys.has('Space');
-      const slow = keys.has('KeyC');
+      const slow = keys.has('ShiftLeft') || keys.has('ShiftRight');
 
       if (inputX !== 0 && inputZ !== 0) {
         const norm = Math.SQRT1_2;

@@ -110,7 +110,7 @@ export default function TouchControls({ isAsymRole, cardCooldowns = {}, skillCoo
           >
             {isAsymRole ? 'Curar' : 'Usar'}
           </button>
-          <Btn label="Lento" code="KeyC" size={56} style={{ fontSize: 12 }} />
+          <Btn label="Lento" code="ShiftLeft" size={56} style={{ fontSize: 12 }} />
           <Btn label="Salto" code="Space" size={64} style={{ fontSize: 13 }} />
         </div>
       </div>

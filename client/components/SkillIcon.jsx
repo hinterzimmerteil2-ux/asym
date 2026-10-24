@@ -60,7 +60,7 @@ const IMAGES = new Set(['acetilcolina', 'tajo_carmesi', 'red_mist', 'agua_rimac'
 
 export default function SkillIcon({ id, size = 30 }) {
   if (IMAGES.has(id)) {
-    return <img src={`/icons/${id}.png`} alt="" width={size} height={size} draggable={false} style={{ flexShrink: 0, borderRadius: 6, objectFit: 'cover' }} />;
+    return <img src={`/icons/${id}.png`} alt="" width={size} height={size} draggable={false} onContextMenu={(e) => e.preventDefault()} style={{ flexShrink: 0, borderRadius: 6, objectFit: 'cover' }} />;
   }
   const shapes = ICONS[id];
   if (!shapes) return null;

@@ -63,6 +63,16 @@ export default function LobbyPage() {
   const [panelOpen, setPanelOpen] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   useEffect(() => {
+    const block = (e) => {
+      const tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      e.preventDefault();
+    };
+    document.addEventListener('contextmenu', block);
+    document.addEventListener('dragstart', block);
+    return () => { document.removeEventListener('contextmenu', block); document.removeEventListener('dragstart', block); };
+  }, []);
+  useEffect(() => {
     const mc = window.matchMedia('(pointer: coarse), (max-width: 760px)');
     const mt = window.matchMedia('(pointer: coarse)');
     const mp = window.matchMedia('(orientation: portrait)');
@@ -490,7 +500,7 @@ export default function LobbyPage() {
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (e.code === 'KeyH') setHelpOpen((open) => !open);
-      else if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !e.repeat) setShiftLock((on) => !on);
+      else if ((e.code === 'ControlLeft' || e.code === 'ControlRight') && !e.repeat) setShiftLock((on) => !on);
       else if (e.code === 'KeyB') setHitboxes((prev) => ({ ...prev, on: !prev.on }));
       else if (e.code === 'Escape') setHelpOpen(false);
       else if (e.code === 'KeyE') {
@@ -921,7 +931,7 @@ export default function LobbyPage() {
           type="button"
           onClick={() => setShiftLock((on) => !on)}
           style={sx({ ...styles.hitboxButton(shiftLock), right: 328 }, { top: 8, right: 228, width: 36, height: 36, zIndex: 30 })}
-          title="Shiftlock (Shift)"
+          title="Shiftlock (Ctrl)"
           aria-label="Shiftlock"
         >
           ⌖
