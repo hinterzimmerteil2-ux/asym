@@ -984,7 +984,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       if (keys.has('KeyA') || keys.has('ArrowLeft')) inputX -= 1;
       if (keys.has('KeyD') || keys.has('ArrowRight')) inputX += 1;
       const jump = keys.has('Space');
-      const slow = keys.has('ShiftLeft') || keys.has('ShiftRight');
+      const slow = keys.has('KeyC');
 
       if (inputX !== 0 && inputZ !== 0) {
         const norm = Math.SQRT1_2;

@@ -490,7 +490,7 @@ export default function LobbyPage() {
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (e.code === 'KeyH') setHelpOpen((open) => !open);
-      else if (e.code === 'KeyV') setShiftLock((on) => !on);
+      else if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !e.repeat) setShiftLock((on) => !on);
       else if (e.code === 'KeyB') setHitboxes((prev) => ({ ...prev, on: !prev.on }));
       else if (e.code === 'Escape') setHelpOpen(false);
       else if (e.code === 'KeyE') {
@@ -921,7 +921,7 @@ export default function LobbyPage() {
           type="button"
           onClick={() => setShiftLock((on) => !on)}
           style={sx({ ...styles.hitboxButton(shiftLock), right: 328 }, { top: 8, right: 228, width: 36, height: 36, zIndex: 30 })}
-          title="Shiftlock (V)"
+          title="Shiftlock (Shift)"
           aria-label="Shiftlock"
         >
           ⌖
