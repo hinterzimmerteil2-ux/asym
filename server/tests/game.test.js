@@ -248,3 +248,12 @@ test('Un jugador en ragdoll es empujado al caminar contra él', () => {
   room.stepPhysics(0.05);
   assert.ok(e.b.kbUntil > Date.now() && e.b.kbX > 0);
 });
+
+test('Shiftlock: la orientación enviada por el cliente manda sobre el movimiento', () => {
+  const { room, e } = setup();
+  room.applyPlayerInput('a', { moveX: 1, moveZ: 0, face: { x: 0, z: -2 } });
+  assert.strictEqual(e.a.faceX, 0);
+  assert.strictEqual(e.a.faceZ, -1);
+  room.applyPlayerInput('a', { moveX: 1, moveZ: 0 });
+  assert.strictEqual(e.a.faceX, 1);
+});

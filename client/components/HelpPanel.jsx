@@ -11,6 +11,7 @@ const CONTROLS = [
   ['1 2', 'Usar carta (Paciente)'],
   ['H', 'Abrir o cerrar esta ayuda'],
   ['B', 'Mostrar u ocultar hitboxes'],
+  ['V', 'Shiftlock: el personaje mira hacia donde apunta la cámara'],
 ];
 
 export default function HelpPanel({ characters, cards, onClose }) {

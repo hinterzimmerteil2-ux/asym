@@ -861,6 +861,14 @@ class Room {
       entity.faceX = entity.input.moveX / len;
       entity.faceZ = entity.input.moveZ / len;
     }
+    const face = input.face;
+    if (face && Number.isFinite(face.x) && Number.isFinite(face.z)) {
+      const fl = Math.hypot(face.x, face.z);
+      if (fl > 0.01) {
+        entity.faceX = face.x / fl;
+        entity.faceZ = face.z / fl;
+      }
+    }
   }
 
   endlagSlow(entity, now, ms) {

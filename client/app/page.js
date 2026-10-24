@@ -57,6 +57,7 @@ export default function LobbyPage() {
   const [touch, setTouch] = useState(false);
   const [portrait, setPortrait] = useState(false);
   const [specIndex, setSpecIndex] = useState(0);
+  const [shiftLock, setShiftLock] = useState(false);
   const [hitboxCfg, setHitboxCfg] = useState({ half: 0.4, height: 1.8, interact: 1.2 });
   const specRef = useRef({ on: false });
   const [panelOpen, setPanelOpen] = useState(null);
@@ -489,6 +490,7 @@ export default function LobbyPage() {
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (e.code === 'KeyH') setHelpOpen((open) => !open);
+      else if (e.code === 'KeyV') setShiftLock((on) => !on);
       else if (e.code === 'KeyB') setHitboxes((prev) => ({ ...prev, on: !prev.on }));
       else if (e.code === 'Escape') setHelpOpen(false);
       else if (e.code === 'KeyE') {
@@ -587,10 +589,12 @@ export default function LobbyPage() {
             hitboxes={hitboxes}
             hitboxCfg={hitboxCfg}
             followId={specId}
+            shiftLock={shiftLock}
+            onShiftLockLost={() => setShiftLock(false)}
           />
         </div>
 
-        <div style={sx(styles.topBar, { top: 8, left: 8, maxWidth: 'calc(100% - 232px)', flexWrap: 'wrap', padding: '4px 8px', gap: 6, zIndex: 30 })}>
+        <div style={sx(styles.topBar, { top: 8, left: 8, maxWidth: 'calc(100% - 276px)', flexWrap: 'wrap', padding: '4px 8px', gap: 6, zIndex: 30 })}>
           <span style={styles.dot('in_room')} />
           <span style={styles.statusText}>Sala: {roomId}</span>
           <span style={styles.roleTag(isAsymRole)}>
@@ -913,6 +917,16 @@ export default function LobbyPage() {
         >
           ◎
         </button>
+        <button
+          type="button"
+          onClick={() => setShiftLock((on) => !on)}
+          style={sx({ ...styles.hitboxButton(shiftLock), right: 328 }, { top: 8, right: 228, width: 36, height: 36, zIndex: 30 })}
+          title="Shiftlock (V)"
+          aria-label="Shiftlock"
+        >
+          ⌖
+        </button>
+        {shiftLock && <div style={{ position: 'absolute', left: '50%', top: '50%', width: 6, height: 6, marginLeft: -3, marginTop: -3, borderRadius: '50%', background: 'rgba(255,255,255,0.8)', pointerEvents: 'none', zIndex: 5 }} />}
         {compact && (
           <>
             <button type="button" onClick={() => { setPanelOpen(!playersOpen); setChatOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 96, width: 36, height: 36, zIndex: 30, borderColor: playersOpen ? '#54d1f2' : '#2a2d3d' })} aria-label="Jugadores">☰</button>

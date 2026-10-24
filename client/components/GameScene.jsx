@@ -174,7 +174,12 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
     if (!groupRef.current) return;
     const mx = entityState.x - lastPos.current[0];
     const mz = entityState.z - lastPos.current[1];
-    if (Math.abs(mx) + Math.abs(mz) > 0.01) {
+    if (isMe && CAMERA_LOCK.on) {
+      let diff = CAMERA_LOCK.yaw + Math.PI - yaw.current;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      yaw.current += diff * Math.min(1, delta * 14);
+      lastPos.current = [entityState.x, entityState.z];
+    } else if (Math.abs(mx) + Math.abs(mz) > 0.01) {
       const target = Math.atan2(mx, mz);
       let diff = target - yaw.current;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
@@ -846,7 +851,7 @@ function CollisionObject({ obj }) {
  * WASD sea relativo a hacia dónde mira la cámara, no a los ejes fijos
  * del mundo — así "adelante" siempre es "hacia donde estoy mirando".
  */
-function FollowCamera({ myEntity, yawRef }) {
+function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost }) {
   const { camera, gl } = useThree();
   const yaw = useRef(Math.PI);
   const pitch = useRef(0.5);
@@ -854,9 +859,16 @@ function FollowCamera({ myEntity, yawRef }) {
   const dragging = useRef(null);
   const lastPointer = useRef({ x: 0, y: 0 });
   const smoothedTarget = useRef(new Vector3(0, 1, 0));
+  const shoulder = useRef(0);
 
   useEffect(() => {
     const canvas = gl.domElement;
+    const canLock = shiftLock && !window.matchMedia('(pointer: coarse)').matches;
+    function onLockChange() { if (canLock && document.pointerLockElement !== canvas) onLockLost?.(); }
+    if (canLock && document.pointerLockElement !== canvas) {
+      try { Promise.resolve(canvas.requestPointerLock()).catch(() => onLockLost?.()); } catch { onLockLost?.(); }
+    }
+    document.addEventListener('pointerlockchange', onLockChange);
     canvas.style.touchAction = 'none';
 
     const sens = e => (e.pointerType === 'touch' ? 0.009 : 0.006);
@@ -867,6 +879,11 @@ function FollowCamera({ myEntity, yawRef }) {
     }
     function onPointerUp(e) { if (dragging.current === e.pointerId) dragging.current = null; }
     function onPointerMove(e) {
+      if (document.pointerLockElement === canvas) {
+        yaw.current -= e.movementX * 0.0025;
+        pitch.current = Math.max(0.15, Math.min(1.4, pitch.current - e.movementY * 0.0025));
+        return;
+      }
       if (dragging.current !== e.pointerId) return;
       const dx = e.clientX - lastPointer.current.x;
       const dy = e.clientY - lastPointer.current.y;
@@ -885,31 +902,39 @@ function FollowCamera({ myEntity, yawRef }) {
     window.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('wheel', onWheel, { passive: false });
     return () => {
+      document.removeEventListener('pointerlockchange', onLockChange);
+      if (document.pointerLockElement === canvas) document.exitPointerLock?.();
       canvas.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
       window.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('wheel', onWheel);
     };
-  }, [gl]);
+  }, [gl, shiftLock, onLockLost]);
 
   useFrame((_, delta) => {
     if (!myEntity) return;
     yawRef.current = yaw.current;
+    CAMERA_LOCK.on = Boolean(shiftLock);
+    CAMERA_LOCK.yaw = yaw.current;
+    shoulder.current += ((shiftLock ? 1 : 0) - shoulder.current) * Math.min(1, delta * 10);
+    const rightX = Math.cos(yaw.current) * 1.1 * shoulder.current;
+    const rightZ = -Math.sin(yaw.current) * 1.1 * shoulder.current;
 
     const t = Math.min(1, delta * 10);
     smoothedTarget.current.x += (myEntity.x - smoothedTarget.current.x) * t;
     smoothedTarget.current.y += (myEntity.y + 1.1 - smoothedTarget.current.y) * t;
     smoothedTarget.current.z += (myEntity.z - smoothedTarget.current.z) * t;
 
-    const horizontalRadius = Math.cos(pitch.current) * distance.current;
-    const height = Math.sin(pitch.current) * distance.current;
+    const dist = shiftLock ? Math.min(distance.current, 5) : distance.current;
+    const horizontalRadius = Math.cos(pitch.current) * dist;
+    const height = Math.sin(pitch.current) * dist;
     camera.position.set(
-      smoothedTarget.current.x + Math.sin(yaw.current) * horizontalRadius,
+      smoothedTarget.current.x + rightX + Math.sin(yaw.current) * horizontalRadius,
       smoothedTarget.current.y + height,
-      smoothedTarget.current.z + Math.cos(yaw.current) * horizontalRadius
+      smoothedTarget.current.z + rightZ + Math.cos(yaw.current) * horizontalRadius
     );
-    camera.lookAt(smoothedTarget.current);
+    camera.lookAt(smoothedTarget.current.x + rightX, smoothedTarget.current.y, smoothedTarget.current.z + rightZ);
   });
 
   return null;
@@ -917,7 +942,9 @@ function FollowCamera({ myEntity, yawRef }) {
 
 const SKILL_KEYS = ['KeyQ', 'KeyE', 'KeyR', 'KeyF', 'KeyG'];
 
-function useKeyboardInput(sendInput, yawRef, onPulse) {
+const CAMERA_LOCK = { on: false, yaw: 0 };
+
+function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
   const keysPressed = useRef(new Set());
 
   useEffect(() => {
@@ -972,10 +999,10 @@ function useKeyboardInput(sendInput, yawRef, onPulse) {
       const moveX = inputX * cosY + inputZ * sinY;
       const moveZ = inputZ * cosY - inputX * sinY;
 
-      sendInput({ moveX, moveZ, jump, slow });
+      sendInput({ moveX, moveZ, jump, slow, face: shiftRef && shiftRef.current ? { x: -sinY, z: -cosY } : undefined });
     }, 50);
     return () => clearInterval(interval);
-  }, [sendInput, yawRef]);
+  }, [sendInput, yawRef, shiftRef]);
 }
 
 function SquareFrame({ x, z, half, color, opacity, y = 0, hy, hz }) {
@@ -1064,9 +1091,13 @@ export default function GameScene({
   hitboxes,
   hitboxCfg,
   followId,
+  shiftLock,
+  onShiftLockLost,
 }) {
   const yawRef = useRef(Math.PI);
-  useKeyboardInput(sendInput, yawRef, onPulse);
+  const shiftRef = useRef(false);
+  shiftRef.current = Boolean(shiftLock);
+  useKeyboardInput(sendInput, yawRef, onPulse, shiftRef);
 
   const playerById = new Map(players.map((p) => [p.id, p]));
   const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
@@ -1078,7 +1109,7 @@ export default function GameScene({
       <ambientLight intensity={phase === 'action' ? 0.5 : 0.4} />
       <directionalLight position={[8, 12, 6]} intensity={1.1} castShadow={!coarse} shadow-mapSize={[1024, 1024]} />
 
-      <FollowCamera myEntity={myEntity} yawRef={yawRef} />
+      <FollowCamera myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
 
       <Ground halfSize={areaHalfSize} themed={phase === 'action'} />
 
