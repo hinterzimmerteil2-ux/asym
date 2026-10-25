@@ -757,7 +757,7 @@ export default function LobbyPage() {
               <input
                 type="range"
                 min={0}
-                max={9}
+                max={19}
                 value={players.filter((pl) => pl.isBot).length}
                 onChange={(e) => handleBotCount(Number(e.target.value))}
                 style={{ flex: 1 }}

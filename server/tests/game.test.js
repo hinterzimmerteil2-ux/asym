@@ -63,11 +63,15 @@ test('un golpe que falla da endlag solo proporcional a la Flojera', () => {
   e.a.x = 0; e.a.z = 0; e.c.x = 25; e.c.z = 25;
   give(e.a, 0, 'tajo_carmesi');
   e.a.flojera = e.a.flojeraMax;
+  const expire = () => { room.hitWindows.forEach((w) => { w.endsAt = 0; }); room.tickHitWindows(Date.now()); };
   room.useCard('a', 0);
+  assert.strictEqual(Status.until(e.a, 'slow'), 0);
+  expire();
   assert.strictEqual(Status.until(e.a, 'slow'), 0);
   give(e.a, 0, 'tajo_carmesi');
   e.a.flojera = 0;
   room.useCard('a', 0);
+  expire();
   assert.ok(Status.until(e.a, 'slow') > Date.now());
   assert.strictEqual(Status.until(e.a, 'stun'), 0);
   assert.ok(Status.until(e.a, 'slow') > Date.now());
@@ -299,4 +303,20 @@ test('Los objetos de auto-daño no aparecen dentro de estructuras ni en zonas in
   room.nav = null;
   const plateau = room.selfDamageCandidates().find((p) => p.id === 'obj_6');
   assert.strictEqual(plateau.y, 1.6);
+});
+
+test('la espada espera en ventana y aturde una sola vez al primer impacto', () => {
+  const { room, e } = setup();
+  e.a.x = 0; e.a.z = 0; e.a.faceX = 1; e.a.faceZ = 0; e.c.x = 5; e.c.z = 0;
+  give(e.a, 0, 'tajo_carmesi');
+  room.useCard('a', 0);
+  assert.strictEqual(Status.until(e.c, 'stun'), 0);
+  assert.strictEqual(room.hitWindows.length, 1);
+  e.c.x = 1.2;
+  room.tickHitWindows(Date.now());
+  const first = Status.until(e.c, 'stun');
+  assert.ok(first > Date.now());
+  assert.strictEqual(room.hitWindows.length, 0);
+  room.tickHitWindows(Date.now() + 100);
+  assert.strictEqual(Status.until(e.c, 'stun'), first);
 });

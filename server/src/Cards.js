@@ -72,6 +72,7 @@ const CARDS = {
   },
   red_mist: {
     id: 'red_mist',
+    window: 350,
     hitRadius: 1.3,
     reach: 1.4,
     deck: 'Sangre',
@@ -87,6 +88,7 @@ const CARDS = {
   },
   tajo_carmesi: {
     id: 'tajo_carmesi',
+    window: 350,
     hitRadius: 1.2,
     reach: 1.3,
     deck: 'Sangre',
