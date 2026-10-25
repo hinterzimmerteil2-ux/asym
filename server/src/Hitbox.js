@@ -34,7 +34,7 @@ function blockedAt(platforms, x, z, y, stepUp = STEP_UP) {
 }
 
 function extentOf(o) {
-  return o.input ? { half: PLAYER_HALF, height: PLAYER_HEIGHT } : { half: 0, height: 0 };
+  return o.input && !o.corpse ? { half: PLAYER_HALF, height: PLAYER_HEIGHT } : { half: 0, height: 0 };
 }
 
 function distanceBetween(a, b) {

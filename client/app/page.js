@@ -570,7 +570,7 @@ export default function LobbyPage() {
   const isHost = hostId !== null && hostId === myPlayerId;
   const myPatient = patients[myPlayerId];
   const spectating = phase === 'action' && !isAsymRole && Boolean(myPatient) && myPatient.status !== 'alive';
-  const specTargets = Object.keys(entities).filter((id) => id !== myPlayerId);
+  const specTargets = Object.keys(entities).filter((id) => id !== myPlayerId && !entities[id].gone && !entities[id].corpse);
   const specId = spectating && specTargets.length ? specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] : null;
   specRef.current.on = spectating;
   const sx = (base, extra) => (compact ? { ...base, ...extra } : base);

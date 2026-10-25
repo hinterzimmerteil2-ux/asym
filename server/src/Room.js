@@ -601,6 +601,8 @@ class Room {
       entity.allyBoostUntil = 0;
       entity.allyBoostLevel = 0;
       entity.fx = {};
+      entity.corpse = false;
+      entity.gone = false;
       entity.hand = player.isAsymRole ? [] : Cards.dealSlots();
       entity.draftEndsAt = player.isAsymRole ? 0 : Date.now() + Cards.DRAFT_DURATION_MS;
     }
@@ -646,6 +648,8 @@ class Room {
         x: entity.x,
         y: entity.y,
         z: entity.z,
+        corpse: Boolean(entity.corpse),
+        gone: Boolean(entity.gone),
         rag: entity.rag ? { p: RagdollBody.serialize(entity.rag, entity) } : null,
       };
     }
@@ -739,7 +743,7 @@ class Room {
       entity.prevZ = entity.z;
     }
     for (const [rid, ragEntity] of bodies) {
-      if (!Status.active(ragEntity, 'ragdoll', now) || !ragEntity.rag) continue;
+      if (!Status.active(ragEntity, 'ragdoll', now) || !ragEntity.rag || ragEntity.corpse) continue;
       for (const [oid, other] of bodies) {
         if (oid === rid || Status.blocksMove(other, now) || other.speedNow < 0.5) continue;
         const patient = this.gameState.patients[oid];
@@ -758,6 +762,11 @@ class Room {
       const inAction = this.phase === 'action';
       const resolved = this.gameState.patients[entityPlayerId] && this.gameState.patients[entityPlayerId].status !== 'alive';
       const heldAtSpawn = this.players.get(entityPlayerId)?.isAsymRole && inAction && now < (this.gameState.curatorReleaseAt || 0);
+      if (resolved && !entity.corpse) {
+        entity.corpse = true;
+        entity.gone = this.gameState.patients[entityPlayerId].status === 'self_won';
+        if (!entity.gone) Status.apply(entity, 'ragdoll', 3600000, now);
+      }
       if (entity.channel && entity.channel.endsAt <= now) entity.channel = null;
       if (Status.active(entity, 'ragdoll', now)) {
         if (!entity.rag) entity.rag = RagdollBody.create(entity, now);

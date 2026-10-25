@@ -269,3 +269,15 @@ test('Pathfinding rodea plataformas altas y entra por la rampa', () => {
   const end = path[path.length - 1];
   assert.ok(Math.hypot(end.x - 0, end.z + 25) < 1.2);
 });
+
+test('Pacientes resueltos: eliminado queda como cadáver sin hitbox, el que escapa desaparece', () => {
+  const { room, e, p, step } = setup();
+  p.a.status = 'eliminated';
+  p.b.status = 'self_won';
+  step(2, 0.05, false);
+  assert.ok(e.a.corpse && !e.a.gone);
+  assert.ok(Status.active(e.a, 'ragdoll', Date.now()));
+  assert.ok(e.b.corpse && e.b.gone);
+  assert.strictEqual(distanceBetween({ x: 0, y: 0, z: 0, input: {} }, { ...e.a, x: 3, z: 0, y: 0 }) > 2.5, true);
+  assert.strictEqual(require('../src/Hitbox').extentOf(e.a).half, 0);
+});

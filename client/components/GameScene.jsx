@@ -1141,7 +1141,7 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
       {(platforms || []).map((p) => (
         <SquareFrame key={p.id} x={p.x} z={p.z} y={p.h / 2} half={p.hx} hy={p.h / 2} hz={p.hz} color="#e0555f" opacity={opacity} />
       ))}
-      {Object.entries(entities || {}).map(([id, entity]) => (
+      {Object.entries(entities || {}).filter(([, entity]) => !entity.corpse && !entity.gone).map(([id, entity]) => (
         <group key={id}>
           <SquareFrame x={entity.x} z={entity.z} y={entity.y + cfg.height / 2} half={cfg.half} hy={cfg.height / 2} color="#e0555f" opacity={opacity} />
           {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} y={entity.y} half={cfg.interact} color="#e0555f" opacity={opacity * 0.6} />}
@@ -1238,7 +1238,7 @@ export default function GameScene({
 
       {Object.entries(entities).map(([playerId, entityState]) => {
         const player = playerById.get(playerId);
-        if (!player) return null;
+        if (!player || entityState.gone) return null;
         const color =
           phase === 'action' ? (player.isAsymRole ? COLOR_CURADOR : COLOR_PACIENTE) : COLOR_UNASSIGNED;
         return (
