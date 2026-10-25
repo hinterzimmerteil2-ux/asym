@@ -257,6 +257,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
     } else if (anim && Date.now() - anim.startedAt > ANIM_DURATION[anim.anim]) {
       HAND_ANIMS.delete(playerId);
     }
+    groupRef.current.visible = !(CAMERA_LOCK.fp && CAMERA_LOCK.fpId === playerId);
     const t = Math.min(1, delta * 12);
     groupRef.current.position.x += (targetPos.current[0] - groupRef.current.position.x) * t;
     groupRef.current.position.y += (targetPos.current[1] - groupRef.current.position.y) * t;
@@ -894,7 +895,7 @@ function CollisionObject({ obj }) {
  * WASD sea relativo a hacia dónde mira la cámara, no a los ejes fijos
  * del mundo — así "adelante" siempre es "hacia donde estoy mirando".
  */
-function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost }) {
+function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId }) {
   const { camera, gl } = useThree();
   const yaw = useRef(Math.PI);
   const pitch = useRef(0.5);
@@ -919,17 +920,41 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost }) {
     canvas.style.touchAction = 'none';
 
     const sens = e => (e.pointerType === 'touch' ? 0.009 : 0.006);
+    const touches = new Map();
+    let pinchLast = 0;
     function onPointerDown(e) {
+      if (e.pointerType === 'touch') {
+        touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (touches.size === 2) {
+          const [a, b] = [...touches.values()];
+          pinchLast = Math.hypot(a.x - b.x, a.y - b.y);
+          dragging.current = null;
+          return;
+        }
+      }
       if (dragging.current !== null) return;
       dragging.current = e.pointerId;
       lastPointer.current = { x: e.clientX, y: e.clientY };
     }
-    function onPointerUp(e) { if (dragging.current === e.pointerId) dragging.current = null; }
+    function onPointerUp(e) {
+      touches.delete(e.pointerId);
+      if (dragging.current === e.pointerId) dragging.current = null;
+    }
     function onPointerMove(e) {
       if (document.pointerLockElement === canvas) {
         yaw.current -= e.movementX * 0.0025;
         pitch.current = Math.max(0.15, Math.min(1.4, pitch.current - e.movementY * 0.0025));
         return;
+      }
+      if (touches.has(e.pointerId)) {
+        touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (touches.size === 2) {
+          const [a, b] = [...touches.values()];
+          const d = Math.hypot(a.x - b.x, a.y - b.y);
+          distance.current = Math.max(0, Math.min(14, distance.current - (d - pinchLast) * 0.03));
+          pinchLast = d;
+          return;
+        }
       }
       if (dragging.current !== e.pointerId) return;
       const dx = e.clientX - lastPointer.current.x;
@@ -940,7 +965,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost }) {
     }
     function onWheel(e) {
       e.preventDefault();
-      distance.current = Math.max(2.5, Math.min(14, distance.current + e.deltaY * 0.01));
+      distance.current = Math.max(0, Math.min(14, distance.current + e.deltaY * 0.01));
     }
 
     canvas.addEventListener('pointerdown', onPointerDown);
@@ -974,6 +999,20 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost }) {
     smoothedTarget.current.y += (myEntity.y + 1.1 - smoothedTarget.current.y) * t;
     smoothedTarget.current.z += (myEntity.z - smoothedTarget.current.z) * t;
 
+    const firstPerson = distance.current < 1;
+    CAMERA_LOCK.fp = firstPerson;
+    CAMERA_LOCK.fpId = focusId;
+    if (firstPerson) {
+      const elev = pitch.current - 0.78;
+      const ce = Math.cos(elev);
+      const hx = myEntity.x;
+      const hy = myEntity.y + 1.62;
+      const hz = myEntity.z;
+      camera.position.set(hx, hy, hz);
+      smoothedTarget.current.set(hx, myEntity.y + 1.1, hz);
+      camera.lookAt(hx - Math.sin(yaw.current) * ce, hy + Math.sin(elev), hz - Math.cos(yaw.current) * ce);
+      return;
+    }
     const dist = shiftLock ? Math.min(distance.current, 5) : distance.current;
     const horizontalRadius = Math.cos(pitch.current) * dist;
     const height = Math.sin(pitch.current) * dist;
@@ -990,7 +1029,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost }) {
 
 const SKILL_KEYS = ['KeyQ', 'KeyE', 'KeyR', 'KeyF', 'KeyG'];
 
-const CAMERA_LOCK = { on: false, yaw: 0 };
+const CAMERA_LOCK = { on: false, yaw: 0, fp: false, fpId: null };
 
 function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
   const keysPressed = useRef(new Set());
@@ -1157,7 +1196,7 @@ export default function GameScene({
       <ambientLight intensity={phase === 'action' ? 0.5 : 0.4} />
       <directionalLight position={[8, 12, 6]} intensity={1.1} castShadow={!coarse} shadow-mapSize={[1024, 1024]} />
 
-      <FollowCamera myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
+      <FollowCamera focusId={followId || myPlayerId} myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
 
       <Ground halfSize={areaHalfSize} themed={phase === 'action'} />
 
