@@ -281,3 +281,22 @@ test('Pacientes resueltos: eliminado queda como cadáver sin hitbox, el que esca
   assert.strictEqual(distanceBetween({ x: 0, y: 0, z: 0, input: {} }, { ...e.a, x: 3, z: 0, y: 0 }) > 2.5, true);
   assert.strictEqual(require('../src/Hitbox').extentOf(e.a).half, 0);
 });
+
+test('Los objetos de auto-daño no aparecen dentro de estructuras ni en zonas inalcanzables', () => {
+  const GameMap = require('../src/GameMap');
+  const { room } = setup();
+  const original = GameMap.resolveSelfDamagePositions;
+  GameMap.resolveSelfDamagePositions = () => [
+    { id: 'ok', x: 20, z: 20 },
+    { id: 'en_pilar', x: 12, z: 12 },
+    { id: 'en_estante', x: 6, z: -14 },
+    { id: 'meseta', x: 0, z: -25 },
+  ];
+  room.nav = null;
+  const ids = room.selfDamageCandidates().map((p) => p.id);
+  GameMap.resolveSelfDamagePositions = original;
+  assert.deepStrictEqual(ids, ['ok', 'meseta']);
+  room.nav = null;
+  const plateau = room.selfDamageCandidates().find((p) => p.id === 'obj_6');
+  assert.strictEqual(plateau.y, 1.6);
+});

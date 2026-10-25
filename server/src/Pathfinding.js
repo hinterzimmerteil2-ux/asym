@@ -207,4 +207,40 @@ function findPath(grid, from, to) {
   return out;
 }
 
-module.exports = { buildGrid, findPath, lineClear, cellOf };
+function reachableFrom(grid, from) {
+  const n = grid.n;
+  const seen = new Uint8Array(n * n);
+  const start = nearestFree(grid, cellOf(grid, from.x, from.z));
+  const stack = [start];
+  seen[start] = 1;
+  while (stack.length) {
+    const cur = stack.pop();
+    const ci = cur % n;
+    const cj = Math.floor(cur / n);
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const ni = ci + di;
+      const nj = cj + dj;
+      if (ni < 0 || nj < 0 || ni >= n || nj >= n) continue;
+      const nk = nj * n + ni;
+      if (!seen[nk] && walkable(grid, cur, nk)) { seen[nk] = 1; stack.push(nk); }
+    }
+  }
+  return seen;
+}
+
+function isReachableNear(grid, seen, x, z, cells = 2) {
+  const c = cellOf(grid, x, z);
+  const ci = c % grid.n;
+  const cj = Math.floor(c / grid.n);
+  for (let dj = -cells; dj <= cells; dj++) {
+    for (let di = -cells; di <= cells; di++) {
+      const ni = ci + di;
+      const nj = cj + dj;
+      if (ni < 0 || nj < 0 || ni >= grid.n || nj >= grid.n) continue;
+      if (seen[nj * grid.n + ni]) return true;
+    }
+  }
+  return false;
+}
+
+module.exports = { buildGrid, findPath, lineClear, cellOf, reachableFrom, isReachableNear };

@@ -148,6 +148,27 @@ class Room {
     return this.nav.grid;
   }
 
+  selfDamageCandidates() {
+    const area = GameMap.MATCH_AREA;
+    const all = GameMap.resolveSelfDamagePositions(this.mapId, area);
+    const grid = this.navigation();
+    if (!this.nav.seen) this.nav.seen = Pathfinding.reachableFrom(grid, GameMap.getCuratorSpawn());
+    const objects = GameMap.resolveCollisionObjects(this.mapId, area);
+    const platforms = GameMap.resolvePlatforms(this.mapId, area);
+    const ok = all
+      .filter((p) => !objects.some((o) => o.height > 0.5 && Math.abs(p.x - o.x) <= o.radius + 0.6 && Math.abs(p.z - o.z) <= o.radius + 0.6))
+      .filter((p) => Pathfinding.isReachableNear(grid, this.nav.seen, p.x, p.z, 2))
+      .map((p) => {
+        let top = GROUND_Y;
+        for (const pl of platforms) {
+          const t = Hitbox.platformTop(pl, p.x, p.z);
+          if (t !== null && t > top) top = t;
+        }
+        return { ...p, y: top };
+      });
+    return ok.length ? ok : all.map((p) => ({ ...p, y: GROUND_Y }));
+  }
+
   botSteer(player, entity, goal, now, stopDist = 0.3) {
     const st = player.nav || (player.nav = { path: [], goal: null, repathAt: 0, lastX: entity.x, lastZ: entity.z, lastCheck: now, stuck: 0 });
     const grid = this.navigation();
@@ -615,9 +636,9 @@ class Room {
     this.gameState.zones = [];
     this.gameState.curator = { hp: CURATOR_HP_START, max: CURATOR_HP_MAX };
     this.gameState.selfDamageObjectPositions = {};
-    const selfDamagePositions = GameMap.resolveSelfDamagePositions(this.mapId, GameMap.MATCH_AREA);
+    const selfDamagePositions = this.selfDamageCandidates();
     for (const obj of selfDamagePositions) {
-      this.gameState.selfDamageObjectPositions[obj.id] = { x: obj.x, y: GROUND_Y, z: obj.z };
+      this.gameState.selfDamageObjectPositions[obj.id] = { x: obj.x, y: obj.y, z: obj.z };
     }
   }
 
@@ -1209,12 +1230,12 @@ class Room {
 
   relocateSelfDamageObjects(now) {
     this.lastRelocateAt = now;
-    const allPositions = GameMap.resolveSelfDamagePositions(this.mapId, GameMap.MATCH_AREA);
+    const allPositions = this.selfDamageCandidates();
     for (const objectId of Object.keys(this.gameState.selfDamageObjectPositions)) {
       const others = allPositions.filter((p) => p.id !== objectId);
       if (others.length === 0) continue;
       const newPos = others[Math.floor(Math.random() * others.length)];
-      this.gameState.selfDamageObjectPositions[objectId] = { x: newPos.x, y: GROUND_Y, z: newPos.z };
+      this.gameState.selfDamageObjectPositions[objectId] = { x: newPos.x, y: newPos.y, z: newPos.z };
     }
   }
 
@@ -1499,10 +1520,11 @@ class Room {
     patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - SELF_DAMAGE_AMOUNT);
     if (patient.hp <= PATIENT_HP_MIN) patient.status = 'self_won';
 
-    const allPositions = GameMap.resolveSelfDamagePositions(this.mapId, GameMap.MATCH_AREA);
+    const allPositions = this.selfDamageCandidates();
     const otherPositions = allPositions.filter((p) => p.id !== objectId);
-    const newPos = otherPositions[Math.floor(Math.random() * otherPositions.length)];
-    this.gameState.selfDamageObjectPositions[objectId] = { x: newPos.x, y: GROUND_Y, z: newPos.z };
+    const pool = otherPositions.length ? otherPositions : allPositions;
+    const newPos = pool[Math.floor(Math.random() * pool.length)];
+    this.gameState.selfDamageObjectPositions[objectId] = { x: newPos.x, y: newPos.y, z: newPos.z };
 
     this.sendTo(playerId, MessageType.SELF_DAMAGE_RESULT, {
       playerId,
