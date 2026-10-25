@@ -88,6 +88,7 @@ const {
 } = require('./Constants');
 const Status = require('./Status');
 const RagdollBody = require('./RagdollBody');
+const Pathfinding = require('./Pathfinding');
 
 function clampUnit(value) {
   const n = typeof value === 'number' && !Number.isNaN(value) ? value : 0;
@@ -136,6 +137,50 @@ class Room {
     this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
   }
 
+  navigation() {
+    if (!this.nav || this.nav.key !== this.mapId) {
+      const area = GameMap.MATCH_AREA;
+      this.nav = {
+        key: this.mapId,
+        grid: Pathfinding.buildGrid(area.halfSize, GameMap.resolveCollisionObjects(this.mapId, area), GameMap.resolvePlatforms(this.mapId, area)),
+      };
+    }
+    return this.nav.grid;
+  }
+
+  botSteer(player, entity, goal, now, stopDist = 0.3) {
+    const st = player.nav || (player.nav = { path: [], goal: null, repathAt: 0, lastX: entity.x, lastZ: entity.z, lastCheck: now, stuck: 0 });
+    const grid = this.navigation();
+    if (now - st.lastCheck > 700) {
+      const moved = Math.hypot(entity.x - st.lastX, entity.z - st.lastZ);
+      st.stuck = moved < 0.15 && (entity.input.moveX || entity.input.moveZ) ? st.stuck + 1 : 0;
+      st.lastX = entity.x;
+      st.lastZ = entity.z;
+      st.lastCheck = now;
+      if (st.stuck >= 1) st.repathAt = 0;
+    }
+    const goalMoved = !st.goal || Math.hypot(goal.x - st.goal.x, goal.z - st.goal.z) > 1.5;
+    if (goalMoved || now >= st.repathAt || !st.path.length) {
+      const jitter = st.stuck >= 2 ? { x: (Math.random() - 0.5) * 3, z: (Math.random() - 0.5) * 3 } : { x: 0, z: 0 };
+      st.path = Pathfinding.findPath(grid, { x: entity.x + jitter.x, z: entity.z + jitter.z }, goal);
+      st.goal = { x: goal.x, z: goal.z };
+      st.repathAt = now + 500 + Math.random() * 300;
+    }
+    while (st.path.length > 1 && Math.hypot(st.path[0].x - entity.x, st.path[0].z - entity.z) < 0.6) st.path.shift();
+    const wp = st.path[0] || goal;
+    const dx = wp.x - entity.x;
+    const dz = wp.z - entity.z;
+    const len = Math.hypot(dx, dz);
+    if (len < stopDist) {
+      entity.input.moveX = 0;
+      entity.input.moveZ = 0;
+      return false;
+    }
+    entity.input.moveX = dx / len;
+    entity.input.moveZ = dz / len;
+    return true;
+  }
+
   botCurator(botId, player, now) {
     const entity = this.gameState.entities[botId];
     if (!entity) return;
@@ -154,9 +199,13 @@ class Room {
       return;
     }
     if (targetDist > INTERACTION_RADIUS - 0.5) {
-      const reach = euclid(entity, target.entity) || 1;
-      entity.input.moveX = (target.entity.x - entity.x) / reach;
-      entity.input.moveZ = (target.entity.z - entity.z) / reach;
+      const lead = target.entity.input ? 0.4 * MOVE_SPEED : 0;
+      const goal = {
+        x: target.entity.x + (target.entity.input?.moveX || 0) * lead,
+        z: target.entity.z + (target.entity.input?.moveZ || 0) * lead,
+      };
+      this.botSteer(player, entity, goal, now, 0.15);
+      entity.input.slow = entity.flojera < 12;
     } else {
       entity.input.moveX = 0;
       entity.input.moveZ = 0;
@@ -192,11 +241,21 @@ class Room {
           player.nextBotPick = now + 800;
         }
       });
+      let curatorEntity = null;
+      let curatorDist = Infinity;
+      for (const [otherId, other] of this.players) {
+        if (!other.isAsymRole) continue;
+        const ce = this.gameState.entities[otherId];
+        if (ce) { curatorEntity = ce; curatorDist = euclid(entity, ce); }
+      }
       let best = null;
       let bestDist = Infinity;
+      let bestScore = Infinity;
       for (const [objectId, pos] of Object.entries(this.gameState.selfDamageObjectPositions)) {
         const d = distanceBetween(entity, pos);
-        if (d < bestDist) { bestDist = d; best = { objectId, pos }; }
+        const danger = curatorEntity ? Math.max(0, 14 - euclid(curatorEntity, pos)) : 0;
+        const score = d + danger * 1.5;
+        if (score < bestScore) { bestScore = score; bestDist = d; best = { objectId, pos }; }
       }
       if (!best) continue;
       if (bestDist <= INTERACTION_RADIUS - 0.3) {
@@ -207,9 +266,23 @@ class Room {
           player.nextBotAct = now + 700;
         }
       } else {
-        const reach = euclid(entity, best.pos) || 1;
-        entity.input.moveX = (best.pos.x - entity.x) / reach;
-        entity.input.moveZ = (best.pos.z - entity.z) / reach;
+        this.botSteer(player, entity, best.pos, now, 0.15);
+        if (curatorEntity && curatorDist < 6) {
+          const ax = entity.x - curatorEntity.x;
+          const az = entity.z - curatorEntity.z;
+          const al = Math.hypot(ax, az) || 1;
+          const w = 1.4 * (1 - curatorDist / 6);
+          const mx = entity.input.moveX + (ax / al) * w;
+          const mz = entity.input.moveZ + (az / al) * w;
+          const ml = Math.hypot(mx, mz) || 1;
+          entity.input.moveX = mx / ml;
+          entity.input.moveZ = mz / ml;
+        }
+        entity.input.slow = curatorDist > 9 && (entity.flojera < 20 || entity.flojeraLockedUntil > now);
+      }
+      if (curatorEntity && curatorDist < 3.2) {
+        const rollSlot = entity.hand.findIndex((sl) => sl && sl.chosen === 'rodar');
+        if (rollSlot >= 0) this.useCard(botId, rollSlot);
       }
       if (now > (player.nextBotCard || 0)) {
         player.nextBotCard = now + 3000 + Math.random() * 4000;

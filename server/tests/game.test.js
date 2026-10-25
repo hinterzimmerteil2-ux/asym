@@ -257,3 +257,15 @@ test('Shiftlock: la orientación enviada por el cliente manda sobre el movimient
   room.applyPlayerInput('a', { moveX: 1, moveZ: 0 });
   assert.strictEqual(e.a.faceX, 1);
 });
+
+test('Pathfinding rodea plataformas altas y entra por la rampa', () => {
+  const GameMap = require('../src/GameMap');
+  const Pathfinding = require('../src/Pathfinding');
+  const area = GameMap.MATCH_AREA;
+  const grid = Pathfinding.buildGrid(area.halfSize, GameMap.resolveCollisionObjects('default', area), GameMap.resolvePlatforms('default', area));
+  const path = Pathfinding.findPath(grid, { x: -9, z: -25.8 }, { x: 0, z: -25 });
+  assert.ok(path.length >= 3);
+  assert.ok(path.some((p) => p.x > 6));
+  const end = path[path.length - 1];
+  assert.ok(Math.hypot(end.x - 0, end.z + 25) < 1.2);
+});
