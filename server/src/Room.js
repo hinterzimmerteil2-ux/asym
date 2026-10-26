@@ -539,10 +539,22 @@ class Room {
     const text = rawText.slice(0, CHAT_MAX_LENGTH);
     const entry = { playerId, playerName: player.name, text, timestamp: now };
 
+    if (this.isGhost(playerId)) {
+      const ghostEntry = { ...entry, ghost: true };
+      for (const id of this.players.keys()) if (this.isGhost(id)) this.sendTo(id, MessageType.CHAT_BROADCAST, ghostEntry);
+      return;
+    }
+
     this.chatHistory.push(entry);
     if (this.chatHistory.length > CHAT_HISTORY_LIMIT) this.chatHistory.shift();
 
     this.broadcast(MessageType.CHAT_BROADCAST, entry);
+  }
+
+  isGhost(playerId) {
+    if (this.phase !== 'action') return false;
+    const patient = this.gameState.patients[playerId];
+    return Boolean(patient) && patient.status !== 'alive';
   }
 
   broadcast(type, payload, excludePlayerId = null) {

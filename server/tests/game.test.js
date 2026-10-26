@@ -364,3 +364,17 @@ test('con Acetil sin Flojera conservas el buff pero caminas más lento que corri
   assert.strictEqual(e.a.flojera, 0);
   assert.ok(e.a.acetilUntil > Date.now());
 });
+
+test('el chat de fantasmas solo lo reciben otros fantasmas', () => {
+  const { room } = setup();
+  const got = {};
+  for (const id of ['a', 'b', 'c']) {
+    const pl = room.players.get(id);
+    pl.ws = { readyState: 1, send: (m) => { (got[id] = got[id] || []).push(m); } };
+  }
+  room.gameState.patients.a.status = 'eliminated';
+  room.gameState.patients.b.status = 'eliminated';
+  room.handleChatMessage('a', 'hola');
+  assert.ok(got.a && got.b);
+  assert.ok(!got.c);
+});

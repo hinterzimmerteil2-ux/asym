@@ -59,7 +59,7 @@ export default function LobbyPage() {
   const [specIndex, setSpecIndex] = useState(0);
   const [shiftLock, setShiftLock] = useState(false);
   const [warn, setWarn] = useState(false);
-  const [hitboxCfg, setHitboxCfg] = useState({ half: 0.25, height: 1.8, interact: 1.2 });
+  const [hitboxCfg, setHitboxCfg] = useState({ half: 0.36, height: 1.8, interact: 1.2 });
   const specRef = useRef({ on: false });
   const [panelOpen, setPanelOpen] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
@@ -118,6 +118,10 @@ export default function LobbyPage() {
   const [chatInput, setChatInput] = useState('');
   const [entities, setEntities] = useState({});
   const [ghosts, setGhosts] = useState({});
+  const [ping, setPing] = useState(null);
+  const pingSentRef = useRef(0);
+  const frameBuf = useRef([]);
+  const [replay, setReplay] = useState(null);
   const [selfDamageObjects, setSelfDamageObjects] = useState({});
   const [zones, setZones] = useState([]);
   const [curatorHp, setCuratorHp] = useState(null);
@@ -217,6 +221,8 @@ export default function LobbyPage() {
           case 'state_snapshot':
             setEntities(payload.entities || {});
             setGhosts(payload.ghosts || {});
+            frameBuf.current.push({ entities: payload.entities || {}, ghosts: payload.ghosts || {} });
+            if (frameBuf.current.length > 100) frameBuf.current.shift();
             setSelfDamageObjects(payload.selfDamageObjects || {});
             setZones(payload.zones || []);
             setCuratorHp(payload.curator || null);
@@ -299,11 +305,15 @@ export default function LobbyPage() {
             }
             break;
           }
+          case 'pong':
+            if (pingSentRef.current) setPing(Math.round(performance.now() - pingSentRef.current));
+            break;
           case 'game_over':
             setGameOverInfo(payload);
             break;
           case 'game_started':
             setPhase(payload.phase);
+            frameBuf.current = [];
             setCollisionObjects(payload.collisionObjects || []);
             setPlatforms(payload.platforms || []);
             if (payload.hitbox) setHitboxCfg(payload.hitbox);
@@ -500,6 +510,28 @@ export default function LobbyPage() {
     setChatInput('');
   }
 
+  useEffect(() => {
+    if (status !== 'in_room') return undefined;
+    const id = setInterval(() => {
+      pingSentRef.current = performance.now();
+      connRef.current?.send('ping', {});
+    }, 2000);
+    return () => clearInterval(id);
+  }, [status]);
+
+  useEffect(() => {
+    if (!replay) return undefined;
+    const id = setInterval(() => {
+      setReplay((r) => (r && r.i + 1 < r.frames.length ? { ...r, i: r.i + 1 } : null));
+    }, 50);
+    return () => clearInterval(id);
+  }, [replay === null]);
+
+  const startReplay = () => {
+    if (frameBuf.current.length < 5) return;
+    setReplay({ frames: frameBuf.current.slice(), i: 0 });
+  };
+
   const handleSendInput = useCallback((input) => {
     connRef.current?.send('player_input', { input });
   }, []);
@@ -617,7 +649,7 @@ export default function LobbyPage() {
       <main style={styles.gameMain}>
         <div style={styles.sceneContainer}>
           <GameScene
-            entities={entities}
+            entities={replay ? replay.frames[replay.i].entities : entities}
             players={players}
             myPlayerId={myPlayerId}
             phase={phase}
@@ -634,7 +666,7 @@ export default function LobbyPage() {
             hitboxes={hitboxes}
             hitboxCfg={hitboxCfg}
             followId={ghostMode ? null : specId}
-            ghosts={ghosts}
+            ghosts={replay ? replay.frames[replay.i].ghosts : ghosts}
             ghostMode={ghostMode}
             shiftLock={shiftLock}
             onShiftLockLost={() => setShiftLock(false)}
@@ -933,7 +965,7 @@ export default function LobbyPage() {
             {chatMessages.map((m, i) => (
               <p key={i} style={styles.chatLine}>
                 <span style={styles.chatAuthor(m.playerId === myPlayerId)}>
-                  {m.playerId === myPlayerId ? 'Tú' : m.playerName}:
+                  {m.ghost ? '(fantasma) ' : ''}{m.playerId === myPlayerId ? 'Tú' : m.playerName}:
                 </span>{' '}
                 <span style={styles.chatText}>{m.text}</span>
               </p>
@@ -958,11 +990,11 @@ export default function LobbyPage() {
         <button
           type="button"
           onClick={() => updateHitboxes({ ...hitboxes, on: !hitboxes.on })}
-          style={sx(styles.hitboxButton(hitboxes.on), { top: 8, right: 52, width: 36, height: 36, zIndex: 30 })}
-          title="Hitboxes (B)"
+          style={sx(styles.hitboxButton(hitboxes.on), { top: 8, right: 52, width: 'auto', minWidth: 36, padding: '0 6px', borderRadius: 18, height: 36, zIndex: 30 })}
+          title="Hitboxes y ping (B)"
           aria-label="Hitboxes"
         >
-          ◎
+          ◎{ping !== null ? <span style={{ fontSize: 10, marginLeft: 3 }}>{ping}ms</span> : null}
         </button>
         <button
           type="button"
@@ -984,6 +1016,7 @@ export default function LobbyPage() {
         {spectating && (
           <div style={{ position: 'absolute', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, background: 'rgba(27, 29, 41, 0.9)', border: '1px solid #2a2d3d', fontSize: 13 }}>
             <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i - 1)} aria-label="Anterior">{'<-'}</button>
+            <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px' }} onClick={startReplay}>Repetición</button>
             <span>{ghostMode ? 'Tu fantasma' : specId ? `Espectando: ${players.find((p) => p.id === specId)?.name || specId}` : 'Nadie a quien seguir'}</span>
             {ghostMode && (
               <button type="button" disabled={ghostBlocked} style={{ ...styles.smallButton, width: 'auto', padding: '6px 12px' }} onClick={() => handlePulse(0)}>
@@ -1025,7 +1058,13 @@ export default function LobbyPage() {
           <p style={sx(styles.reconnectingOverlay, { top: 48, zIndex: 35 })}>Reconectando con el servidor...</p>
         )}
 
-        {gameOverInfo && (
+        {replay && (
+          <div style={{ position: 'absolute', top: 56, left: '50%', transform: 'translateX(-50%)', zIndex: 60, display: 'flex', gap: 10, alignItems: 'center', padding: '6px 12px', borderRadius: 8, background: 'rgba(27, 29, 41, 0.92)', border: '1px solid #f2a154', fontSize: 13 }}>
+            <span>Repetición</span>
+            <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '4px 10px' }} onClick={() => setReplay(null)}>Saltar</button>
+          </div>
+        )}
+        {gameOverInfo && !replay && (
           <div style={styles.gameOverOverlay}>
             <div style={styles.gameOverCard}>
               <h2 style={styles.gameOverTitle(gameOverInfo.curatorWon)}>
@@ -1057,7 +1096,10 @@ export default function LobbyPage() {
                 })}
               </ul>
               {isHost ? (
-                <button style={styles.button(false)} onClick={handleReturnToLobby}>Volver al lobby</button>
+                <>
+                  <button style={styles.linkButton(false)} onClick={startReplay}>Ver repetición</button>
+                  <button style={styles.button(false)} onClick={handleReturnToLobby}>Volver al lobby</button>
+                </>
               ) : (
                 <>
                   <p style={styles.waitingForHost}>Esperando a que el host vuelva al lobby...</p>

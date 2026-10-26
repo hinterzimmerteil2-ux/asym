@@ -19,13 +19,15 @@ const COLOR_EMERGENCY_LIGHT = '#5468ff';
 
 const FACING = new Map();
 const HAND_ANIMS = new Map();
-const ANIM_DURATION = { swing: 650, consume: 950, throw: 750, cast: 850 };
-const IMPACT_MS = { swing: 260, consume: 560, throw: 340, cast: 380 };
+const ANIM_DURATION = { swing: 650, consume: 950, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600 };
+const IMPACT_MS = { swing: 260, consume: 560, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150 };
 const ANIM_BY_KIND = {
   skill_melee_stun: 'swing',
   card_tajo_carmesi: 'swing',
   card_red_mist: 'swing',
-  card_tropiezo: 'swing',
+  card_tropiezo: 'stumble',
+  card_rodar: 'roll',
+  card_grito_animo: 'shout',
   card_chicharron: 'consume',
   card_goyslop: 'consume',
   card_racion_compartida: 'consume',
@@ -66,6 +68,16 @@ function HeldItem({ held }) {
       group.rotation.set(-Math.PI + 2.9 * e, 0, 0);
       group.children[0].position.set(0, -0.9, 0);
       group.scale.setScalar(1.2);
+    } else if (held.anim === 'shout') {
+      group.position.set(0.1, 1.62, 0.4);
+      group.rotation.set(0, 0, 0);
+      group.children[0].position.set(0, 0, 0);
+      group.scale.setScalar(0.9 + 0.12 * Math.sin(t * 40));
+    } else if (held.anim === 'stumble' || held.anim === 'roll') {
+      group.position.set(0, 2.5 + 0.12 * Math.sin(t * 14), 0);
+      group.rotation.set(0, 0, 0);
+      group.children[0].position.set(0, 0, 0);
+      group.scale.setScalar(1.1 * Math.min(1, t * 6));
     } else if (held.anim === 'consume') {
       const toMouth = Math.min(1, t / 0.45);
       const bites = t < 0.55 ? 1 : Math.max(0.15, 1 - (t - 0.55) * 2.2);
@@ -225,6 +237,21 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
         if (ha.anim === 'swing') {
           rax = -Math.PI + 2.9 * easeOut(ht);
           raz = 0.1;
+        } else if (ha.anim === 'shout') {
+          const up = easeOut(Math.min(1, ht / 0.3));
+          rax = -1.9 * up;
+          lax = -0.4 * up;
+          raz = 0.2;
+        } else if (ha.anim === 'stumble') {
+          lax = -1.4 * Math.sin(ht * 14);
+          rax = 1.4 * Math.sin(ht * 14);
+          laz = -0.8;
+          raz = 0.8;
+        } else if (ha.anim === 'roll') {
+          lax = -2.8;
+          rax = -2.8;
+          laz = -0.15;
+          raz = 0.15;
         } else if (ha.anim === 'consume') {
           rax = -1.9 * easeOut(Math.min(1, ht / 0.45));
           raz = 0.2;
@@ -252,8 +279,26 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
       }
       const showRag = Boolean(ragdoll && entityState.rag && entityState.rag.p);
       body.visible = !showRag;
-      body.rotation.set(0, yaw.current, 0);
-      body.position.y += (0 - body.position.y) * Math.min(1, delta * 8);
+      const pa = HAND_ANIMS.get(playerId);
+      const pt = pa && ANIM_DURATION[pa.anim] ? Math.min(1, (Date.now() - pa.startedAt) / ANIM_DURATION[pa.anim]) : 1;
+      let pitch = 0;
+      let offY = 0;
+      let offF = 0;
+      if (pa && pt < 1) {
+        if (pa.anim === 'roll') {
+          pitch = pt * Math.PI * 2;
+          offY = 0.9 - 0.9 * Math.cos(pitch);
+          offF = -0.9 * Math.sin(pitch);
+        } else if (pa.anim === 'stumble') {
+          pitch = 0.55 * Math.sin(pt * Math.PI);
+          offF = -0.9 * Math.sin(pitch) * 0.5;
+        } else if (pa.anim === 'shout') {
+          pitch = -0.3 * Math.sin(Math.min(1, pt * 3) * Math.PI / 2) * (1 - Math.max(0, pt - 0.7) / 0.3);
+        }
+      }
+      body.rotation.order = 'YXZ';
+      body.rotation.set(pitch, yaw.current, 0);
+      body.position.set(Math.sin(yaw.current) * offF, offY, Math.cos(yaw.current) * offF);
       limbRefs.current.forEach((limb) => { if (limb) limb.visible = false; });
     }
     const anim = HAND_ANIMS.get(playerId);
