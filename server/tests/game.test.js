@@ -419,3 +419,23 @@ test('chicharrón y goyslop en el mínimo dan velocidad temporal o Flojera', () 
   room.useCard('a', 0);
   assert.strictEqual(e.a.flojera, 50);
 });
+
+test('la cáscara no se gasta dos veces con la misma entidad que sigue encima', () => {
+  const { room, e } = setup();
+  e.a.x = 0; e.a.z = 0; e.a.faceX = 1; e.a.faceZ = 0; e.c.x = 40; e.c.z = 40;
+  give(e.a, 0, 'cascara_platano');
+  room.useCard('a', 0);
+  const zone = room.gameState.zones[0];
+  zone.armedAt = 0; zone.ownerArmedAt = 0;
+  e.a.x = zone.x; e.a.z = zone.z;
+  room.tickZones(Date.now(), 0.05);
+  assert.strictEqual(zone.charges, 1);
+  zone.cooldownUntil = 0;
+  room.tickZones(Date.now(), 0.05);
+  assert.strictEqual(zone.charges, 1);
+  e.a.x = zone.x + 10;
+  room.tickZones(Date.now(), 0.05);
+  e.a.x = zone.x;
+  room.tickZones(Date.now(), 0.05);
+  assert.strictEqual(room.gameState.zones.length === 0 || zone.charges === 0, true);
+});

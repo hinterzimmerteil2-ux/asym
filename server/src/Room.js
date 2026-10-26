@@ -1381,15 +1381,22 @@ class Room {
         if (zone.charges > 0 && now >= zone.cooldownUntil) {
           const stunMs = [0, 1000, 1500, 2000][zone.level];
           const heal = [0, 10, 20, 30][zone.level];
+          zone.spent = zone.spent || {};
           for (const [playerId, player] of this.players) {
             if (zone.charges <= 0) break;
             const entity = this.gameState.entities[playerId];
-            if (!entity || distanceBetween(entity, zone) > TRAP_RADIUS) continue;
+            if (!entity) continue;
+            if (distanceBetween(entity, zone) > TRAP_RADIUS) {
+              delete zone.spent[playerId];
+              continue;
+            }
+            if (zone.spent[playerId]) continue;
             const isOwner = playerId === zone.ownerId && !player.isAsymRole;
             if (!player.isAsymRole && !(isOwner && now >= zone.ownerArmedAt && this.gameState.patients[playerId]?.status === 'alive')) continue;
             this.ragdoll(playerId, entity, stunMs, now);
             if (player.isAsymRole) this.adjustCuratorHp(heal);
             zone.charges -= 1;
+            zone.spent[playerId] = true;
             zone.cooldownUntil = now + 1500;
           }
         }
