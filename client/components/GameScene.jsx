@@ -618,11 +618,11 @@ function SimpleProp({ parts }) {
 }
 
 const PROP_IMG = {
-  img_rodar: { src: '/props/rodar.png', h: 0.6, aspect: 1 },
-  img_tropiezo: { src: '/props/tropiezo.png', h: 0.6, aspect: 1 },
-  img_goyslop: { src: '/props/goyslop.png', h: 0.5, aspect: 1 },
-  img_cascara_platano: { src: '/props/cascara_platano.png', h: 0.5, aspect: 1 },
-  img_grito_animo: { src: '/props/grito_animo.png', h: 0.6, aspect: 1 },
+  img_rodar: { src: '/props/rodar.png', h: 0.45, aspect: 3.82 },
+  img_tropiezo: { src: '/props/tropiezo.png', h: 1.1, aspect: 0.57 },
+  img_goyslop: { src: '/props/goyslop.png', h: 0.6, aspect: 1.48 },
+  img_cascara_platano: { src: '/props/cascara_platano.png', h: 0.4, aspect: 2.08 },
+  img_grito_animo: { src: '/props/grito_animo.png', h: 0.7, aspect: 1.04 },
   img_tajo_carmesi: { src: '/props/tajo_carmesi.png', h: 1.1, aspect: 0.34 },
   img_red_mist: { src: '/props/red_mist.png', h: 1.0, aspect: 1.08 },
   img_acetilcolina: { src: '/props/acetilcolina.png', h: 0.4, aspect: 2.48 },
