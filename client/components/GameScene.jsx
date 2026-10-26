@@ -1165,7 +1165,6 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
       {Object.entries(entities || {}).filter(([, entity]) => !entity.corpse && !entity.gone).map(([id, entity]) => (
         <group key={id}>
           <SquareFrame x={entity.x} z={entity.z} y={entity.y + cfg.height / 2} half={cfg.half} hy={cfg.height / 2} color="#e0555f" opacity={opacity} />
-          {id === myPlayerId && <SquareFrame x={entity.x} z={entity.z} y={entity.y} half={cfg.interact} color="#e0555f" opacity={opacity * 0.6} />}
         </group>
       ))}
       {(collisionObjects || []).map((obj) => (
