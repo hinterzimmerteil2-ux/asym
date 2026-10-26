@@ -19,8 +19,8 @@ const handlers = {
     entity.dashUntil = now + C.ROLL_DASH_MS;
     entity.dashVX = (dirX * C.ROLL_DISTANCE) / (C.ROLL_DASH_MS / 1000);
     entity.dashVZ = (dirZ * C.ROLL_DISTANCE) / (C.ROLL_DASH_MS / 1000);
+    entity.dashExhausted = entity.flojera < C.ROLL_FLOJERA_COST;
     entity.flojera = Math.max(0, entity.flojera - C.ROLL_FLOJERA_COST);
-    entity.dashExhausted = entity.flojera === 0;
     if (entity.dashExhausted) entity.flojeraLockedUntil = now + C.FLOJERA_EXHAUST_LOCKOUT_MS;
   },
 

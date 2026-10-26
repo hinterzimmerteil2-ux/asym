@@ -337,3 +337,18 @@ test('el fantasma es invisible para otros y su habilidad es de un solo uso', () 
   room.tickGhosts(0.1);
   assert.ok(room.gameState.ghosts.a.x > x0);
 });
+
+test('rodar solo da ragdoll si no alcanza la Flojera para pagarlo', () => {
+  const { room, e, step } = setup();
+  e.a.flojera = 25;
+  give(e.a, 0, 'rodar');
+  room.useCard('a', 0);
+  assert.strictEqual(e.a.dashExhausted, false);
+  step(12);
+  assert.strictEqual(Status.until(e.a, 'ragdoll'), 0);
+  e.a.flojera = 10;
+  e.a.cardCooldowns = {};
+  give(e.a, 0, 'rodar');
+  room.useCard('a', 0);
+  assert.strictEqual(e.a.dashExhausted, true);
+});
