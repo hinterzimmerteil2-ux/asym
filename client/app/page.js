@@ -578,6 +578,7 @@ export default function LobbyPage() {
   const spectating = phase === 'action' && !isAsymRole && Boolean(myPatient) && myPatient.status !== 'alive';
   const myGhost = ghosts[myPlayerId];
   const specTargets = [...(myGhost ? [myPlayerId] : []), ...Object.keys(entities).filter((id) => id !== myPlayerId && !entities[id].gone && !entities[id].corpse)];
+  const ghostBlocked = Boolean(myGhost) && (myGhost.uses >= myGhost.maxUses || myGhost.cooldownMs > 0);
   const ghostMode = spectating && Boolean(myGhost) && specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] === myPlayerId;
   const specId = spectating && specTargets.length ? specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] : null;
   specRef.current.on = spectating;
@@ -825,7 +826,7 @@ export default function LobbyPage() {
 
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
-        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={Boolean(myGhost?.used)} onInteract={handleInteract} isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
+        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
 
         {phase === 'action' && flojera && (
           <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: isAsymRole ? 80 : 110 })}>
@@ -985,8 +986,8 @@ export default function LobbyPage() {
             <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i - 1)} aria-label="Anterior">{'<-'}</button>
             <span>{ghostMode ? 'Tu fantasma' : specId ? `Espectando: ${players.find((p) => p.id === specId)?.name || specId}` : 'Nadie a quien seguir'}</span>
             {ghostMode && (
-              <button type="button" disabled={myGhost.used} style={{ ...styles.smallButton, width: 'auto', padding: '6px 12px' }} onClick={() => handlePulse(0)}>
-                {myGhost.visible ? `Visible ${Math.ceil(myGhost.ms / 1000)}s` : myGhost.used ? 'Usada' : 'Aparecer (Q)'}
+              <button type="button" disabled={ghostBlocked} style={{ ...styles.smallButton, width: 'auto', padding: '6px 12px' }} onClick={() => handlePulse(0)}>
+                {myGhost.visible ? `Visible ${Math.ceil(myGhost.visibleMs / 1000)}s` : myGhost.uses >= myGhost.maxUses ? 'Sin usos' : myGhost.cooldownMs > 0 ? `Aparecer ${Math.ceil(myGhost.cooldownMs / 1000)}s` : `Aparecer (Q) ${myGhost.maxUses - myGhost.uses}/${myGhost.maxUses}`}
               </button>
             )}
             <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i + 1)} aria-label="Siguiente">{'->'}</button>

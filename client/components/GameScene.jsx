@@ -153,7 +153,7 @@ function RagdollR6({ entityState, color }) {
   );
 }
 
-function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, ghost }) {
+function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, ghost, ghostOpacity = 0.65 }) {
   const bodyRef = useRef();
   const lastPos = useRef([entityState.x, entityState.z]);
   const yaw = useRef(0);
@@ -175,7 +175,10 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
     if (ghost) {
       groupRef.current.traverse((o) => {
         const m = o.material;
-        if (m && !m.userData.ghosted) { m.transparent = true; m.opacity = 0.65; m.depthWrite = false; m.userData.ghosted = true; m.needsUpdate = true; }
+        if (m) {
+          if (!m.userData.ghosted) { m.transparent = true; m.depthWrite = false; m.userData.ghosted = true; m.needsUpdate = true; }
+          m.opacity = ghostOpacity;
+        }
       });
     }
     const mx = entityState.x - lastPos.current[0];
@@ -1109,7 +1112,7 @@ function SquareFrame({ x, z, half, color, opacity, y = 0, hy, hz }) {
       </lineSegments>
       <mesh>
         <boxGeometry args={[half * 2, halfY * 2, halfZ * 2]} />
-        <meshBasicMaterial color={color} transparent opacity={0.14} depthWrite={false} />
+        <meshBasicMaterial color={color} transparent opacity={0.16} depthWrite={false} side={DoubleSide} />
       </mesh>
     </group>
   );
@@ -1254,6 +1257,7 @@ export default function GameScene({
           stunned={false}
           ragdoll={false}
           ghost
+          ghostOpacity={g.visible ? 0.65 : 0.4}
         />
       ))}
 

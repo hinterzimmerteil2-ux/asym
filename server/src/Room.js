@@ -79,6 +79,8 @@ const {
   ROLL_EXHAUST_RAGDOLL_MS,
   HIT_WINDOW_MS,
   GHOST_REVEAL_MS,
+  GHOST_REVEAL_COOLDOWN_MS,
+  GHOST_REVEAL_MAX_USES,
   FLOJERA_MAX,
   FLOJERA_MAX_MINIMUM,
   FLOJERA_DRAIN_PER_SEC,
@@ -687,7 +689,7 @@ class Room {
         const own = ghostId === viewerId;
         const visible = ghost.visibleUntil > now;
         if (!own && !visible) continue;
-        out[ghostId] = { x: ghost.x, y: ghost.y, z: ghost.z, faceX: ghost.faceX, faceZ: ghost.faceZ, own, visible, used: ghost.used, ms: visible ? ghost.visibleUntil - now : 0 };
+        out[ghostId] = { x: ghost.x, y: ghost.y, z: ghost.z, faceX: ghost.faceX, faceZ: ghost.faceZ, own, visible, uses: ghost.uses, maxUses: GHOST_REVEAL_MAX_USES, visibleMs: visible ? ghost.visibleUntil - now : 0, cooldownMs: Math.max(0, ghost.cooldownUntil - now) };
       }
       return out;
     };
@@ -730,10 +732,30 @@ class Room {
 
   tickGhosts(dt) {
     const half = this.getCurrentArea().halfSize;
+    const platforms = this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.MATCH_AREA) : [];
     for (const [ghostId, ghost] of Object.entries(this.gameState.ghosts)) {
       const owner = this.gameState.entities[ghostId];
       if (!owner) continue;
       const { moveX, moveZ } = owner.input;
+      if (owner.input.jump && ghost.onGround) {
+        ghost.vy = JUMP_VELOCITY;
+        ghost.onGround = false;
+      }
+      let ground = groundAt(platforms, ghost.x, ghost.z, ghost.y, STEP_UP);
+      if (ghost.onGround && ghost.y - ground > STEP_DOWN) ghost.onGround = false;
+      if (ghost.onGround) {
+        ghost.y = ground;
+        ghost.vy = 0;
+      } else {
+        ghost.vy += GRAVITY * dt;
+        ghost.y += ghost.vy * dt;
+        ground = groundAt(platforms, ghost.x, ghost.z, ghost.y - ghost.vy * dt);
+        if (ghost.y <= ground) {
+          ghost.y = ground;
+          ghost.vy = 0;
+          ghost.onGround = true;
+        }
+      }
       const len = Math.hypot(moveX, moveZ);
       if (len > 0) {
         const speed = MOVE_SPEED * 1.2 * Math.min(1, len);
@@ -747,9 +769,11 @@ class Room {
 
   revealGhost(playerId) {
     const ghost = this.gameState.ghosts[playerId];
-    if (!ghost || ghost.used) return;
-    ghost.used = true;
-    ghost.visibleUntil = Date.now() + GHOST_REVEAL_MS;
+    const now = Date.now();
+    if (!ghost || ghost.uses >= GHOST_REVEAL_MAX_USES || now < ghost.cooldownUntil) return;
+    ghost.uses += 1;
+    ghost.visibleUntil = now + GHOST_REVEAL_MS;
+    ghost.cooldownUntil = now + GHOST_REVEAL_COOLDOWN_MS;
   }
 
   visiblePatients(playerId) {
@@ -828,9 +852,9 @@ class Room {
       const heldAtSpawn = this.players.get(entityPlayerId)?.isAsymRole && inAction && now < (this.gameState.curatorReleaseAt || 0);
       if (resolved && !entity.corpse) {
         entity.corpse = true;
-        entity.gone = this.gameState.patients[entityPlayerId].status === 'self_won';
-        if (!entity.gone) Status.apply(entity, 'ragdoll', 3600000, now);
-        this.gameState.ghosts[entityPlayerId] = { x: entity.x, y: entity.y || 0, z: entity.z, faceX: entity.faceX || 0, faceZ: entity.faceZ || 1, visibleUntil: 0, used: false };
+        entity.gone = false;
+        Status.apply(entity, 'ragdoll', 3600000, now);
+        this.gameState.ghosts[entityPlayerId] = { x: entity.x, y: entity.y || 0, z: entity.z, faceX: entity.faceX || 0, faceZ: entity.faceZ || 1, visibleUntil: 0, uses: 0, cooldownUntil: 0, vy: 0, onGround: true };
       }
       if (entity.channel && entity.channel.endsAt <= now) entity.channel = null;
       if (Status.active(entity, 'ragdoll', now)) {

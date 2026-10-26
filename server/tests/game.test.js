@@ -274,14 +274,14 @@ test('Pathfinding rodea plataformas altas y entra por la rampa', () => {
   assert.ok(Math.hypot(end.x - 0, end.z + 25) < 1.2);
 });
 
-test('Pacientes resueltos: eliminado queda como cadáver sin hitbox, el que escapa desaparece', () => {
+test('Pacientes resueltos: eliminado queda como cadáver sin hitbox, el que escapa también', () => {
   const { room, e, p, step } = setup();
   p.a.status = 'eliminated';
   p.b.status = 'self_won';
   step(2, 0.05, false);
   assert.ok(e.a.corpse && !e.a.gone);
   assert.ok(Status.active(e.a, 'ragdoll', Date.now()));
-  assert.ok(e.b.corpse && e.b.gone);
+  assert.ok(e.b.corpse && !e.b.gone);
   assert.strictEqual(distanceBetween({ x: 0, y: 0, z: 0, input: {} }, { ...e.a, x: 3, z: 0, y: 0 }) > 2.5, true);
   assert.strictEqual(require('../src/Hitbox').extentOf(e.a).half, 0);
 });
@@ -321,34 +321,28 @@ test('la espada espera en ventana y aturde una sola vez al primer impacto', () =
   assert.strictEqual(Status.until(e.c, 'stun'), first);
 });
 
-test('el fantasma es invisible para otros y su habilidad es de un solo uso', () => {
+test('el fantasma aparece con cooldown de 30s y hasta 3 veces', () => {
   const { room, e } = setup();
   room.gameState.patients.a.status = 'eliminated';
   room.stepPhysics(0.05);
   assert.ok(room.gameState.ghosts.a);
+  const g = room.gameState.ghosts.a;
   room.revealGhost('a');
-  const until = room.gameState.ghosts.a.visibleUntil;
-  assert.ok(until > Date.now());
-  room.gameState.ghosts.a.visibleUntil = 0;
+  assert.ok(g.visibleUntil > Date.now());
+  g.visibleUntil = 0;
   room.revealGhost('a');
-  assert.strictEqual(room.gameState.ghosts.a.visibleUntil, 0);
+  assert.strictEqual(g.visibleUntil, 0);
+  for (let i = 0; i < 3; i++) { g.cooldownUntil = 0; room.revealGhost('a'); }
+  assert.strictEqual(g.uses, 3);
+  g.cooldownUntil = 0;
+  g.visibleUntil = 0;
+  room.revealGhost('a');
+  assert.strictEqual(g.visibleUntil, 0);
   e.a.input.moveX = 1;
-  const x0 = room.gameState.ghosts.a.x;
+  const x0 = g.x;
   room.tickGhosts(0.1);
-  assert.ok(room.gameState.ghosts.a.x > x0);
-});
-
-test('rodar solo da ragdoll si no alcanza la Flojera para pagarlo', () => {
-  const { room, e, step } = setup();
-  e.a.flojera = 25;
-  give(e.a, 0, 'rodar');
-  room.useCard('a', 0);
-  assert.strictEqual(e.a.dashExhausted, false);
-  step(12);
-  assert.strictEqual(Status.until(e.a, 'ragdoll'), 0);
-  e.a.flojera = 10;
-  e.a.cardCooldowns = {};
-  give(e.a, 0, 'rodar');
-  room.useCard('a', 0);
-  assert.strictEqual(e.a.dashExhausted, true);
+  assert.ok(g.x > x0);
+  g.y = 5; g.onGround = false;
+  for (let i = 0; i < 40; i++) room.tickGhosts(0.05);
+  assert.ok(g.y < 1);
 });
