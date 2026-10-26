@@ -1373,16 +1373,20 @@ class Room {
           }
         }
       } else if (zone.kind === 'trap' && now >= zone.armedAt) {
-        let triggered = false;
-        for (const [playerId, player] of this.players) {
-          const entity = this.gameState.entities[playerId];
-          if (!entity || distanceBetween(entity, zone) > TRAP_RADIUS) continue;
-          if (!player.isAsymRole) continue;
-          this.ragdoll(playerId, entity, zone.stunMs, now);
-          if (zone.hpLoss) this.adjustCuratorHp(-zone.hpLoss);
-          triggered = true;
+        if (now >= zone.cooldownUntil) {
+          for (const [playerId, player] of this.players) {
+            if (zone.charges <= 0) break;
+            const entity = this.gameState.entities[playerId];
+            if (!entity || distanceBetween(entity, zone) > TRAP_RADIUS) continue;
+            const isOwner = playerId === zone.ownerId && !player.isAsymRole;
+            if (!player.isAsymRole && !(isOwner && now >= zone.ownerArmedAt && this.gameState.patients[playerId]?.status === 'alive')) continue;
+            this.ragdoll(playerId, entity, zone.stunMs, now);
+            if (player.isAsymRole && zone.heal) this.adjustCuratorHp(zone.heal);
+            zone.charges -= 1;
+            zone.cooldownUntil = now + 1500;
+          }
         }
-        if (triggered) remaining.pop();
+        if (zone.charges <= 0) remaining.pop();
       }
     }
     this.gameState.zones = remaining;

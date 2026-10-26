@@ -796,15 +796,17 @@ export default function LobbyPage() {
 
           {phase === 'lobby' && isHost && (
             <label style={styles.botRow}>
-              <span>Bots: {players.filter((pl) => pl.isBot).length}</span>
+              <span style={{ minWidth: 56 }}>Bots: {players.filter((pl) => pl.isBot).length}</span>
+              <button type="button" style={{ ...styles.smallButton, width: 34, height: 34, padding: 0, fontSize: 18 }} onClick={() => handleBotCount(Math.max(0, players.filter((pl) => pl.isBot).length - 1))} aria-label="Menos bots">-</button>
               <input
                 type="range"
                 min={0}
                 max={19}
                 value={players.filter((pl) => pl.isBot).length}
                 onChange={(e) => handleBotCount(Number(e.target.value))}
-                style={{ flex: 1 }}
+                style={{ flex: 1, height: 34, minWidth: 0, cursor: 'pointer', touchAction: 'none', accentColor: '#54d1f2' }}
               />
+              <button type="button" style={{ ...styles.smallButton, width: 34, height: 34, padding: 0, fontSize: 18 }} onClick={() => handleBotCount(Math.min(19, players.filter((pl) => pl.isBot).length + 1))} aria-label="Más bots">+</button>
             </label>
           )}
 

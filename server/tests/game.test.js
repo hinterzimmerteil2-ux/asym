@@ -378,3 +378,44 @@ test('el chat de fantasmas solo lo reciben otros fantasmas', () => {
   assert.ok(got.a && got.b);
   assert.ok(!got.c);
 });
+
+test('cáscara de plátano: 2 usos, cura 30 al Curador y también tropieza su dueño tras armarse', () => {
+  const { room, e } = setup();
+  e.a.x = 0; e.a.z = 0; e.a.faceX = 1; e.a.faceZ = 0; e.c.x = 40; e.c.z = 40;
+  give(e.a, 0, 'cascara_platano');
+  room.useCard('a', 0);
+  const zone = room.gameState.zones[0];
+  assert.strictEqual(zone.charges, 2);
+  assert.ok(Math.abs(zone.x - 3) < 0.01);
+  zone.armedAt = 0; zone.ownerArmedAt = Date.now() + 99999;
+  room.gameState.curator.hp = 50;
+  e.c.x = zone.x; e.c.z = zone.z;
+  room.tickZones(Date.now(), 0.05);
+  assert.strictEqual(room.gameState.curator.hp, 80);
+  assert.strictEqual(zone.charges, 1);
+  assert.strictEqual(Status.active(e.a, 'ragdoll', Date.now()), false);
+  e.c.x = 40;
+  zone.cooldownUntil = 0; zone.ownerArmedAt = 0;
+  e.a.x = zone.x; e.a.z = zone.z;
+  room.tickZones(Date.now(), 0.05);
+  assert.strictEqual(Status.active(e.a, 'ragdoll', Date.now()), true);
+  assert.strictEqual(room.gameState.zones.length, 0);
+});
+
+test('chicharrón y goyslop en el mínimo dan velocidad temporal o Flojera', () => {
+  const { room, e } = setup();
+  room.gameState.patients.a.hp = 80;
+  give(e.a, 0, 'chicharron');
+  room.useCard('a', 0);
+  assert.ok(!(e.a.sprintUntil > Date.now()));
+  e.a.cardCooldowns = {};
+  give(e.a, 0, 'chicharron');
+  room.useCard('a', 0);
+  assert.ok(e.a.sprintUntil > Date.now());
+  e.a.flojera = 10;
+  e.a.cardCooldowns = {};
+  room.gameState.patients.a.hp = 30;
+  give(e.a, 0, 'goyslop');
+  room.useCard('a', 0);
+  assert.strictEqual(e.a.flojera, 50);
+});
