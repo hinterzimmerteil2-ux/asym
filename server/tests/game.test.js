@@ -346,3 +346,21 @@ test('el fantasma aparece con cooldown de 30s y hasta 3 veces', () => {
   for (let i = 0; i < 40; i++) room.tickGhosts(0.05);
   assert.ok(g.y < 1);
 });
+
+test('con Acetil sin Flojera conservas el buff pero caminas más lento que corriendo', () => {
+  const { room, e, step } = setup();
+  e.a.x = -10; e.a.z = 0;
+  give(e.a, 0, 'acetilcolina');
+  room.useCard('a', 0);
+  e.a.input.moveX = 1;
+  e.a.flojera = e.a.flojeraMax;
+  step(40);
+  const run = e.a.x;
+  e.a.x = -10;
+  e.a.flojera = 0;
+  step(40);
+  const walk = e.a.x;
+  assert.ok(walk > -10);
+  assert.strictEqual(e.a.flojera, 0);
+  assert.ok(e.a.acetilUntil > Date.now());
+});

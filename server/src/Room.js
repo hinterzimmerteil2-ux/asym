@@ -878,7 +878,8 @@ class Room {
 
       let speedMultiplier = FAST_MULTIPLIER;
       if (sprinting) {
-        const base = entity.flojera <= 0 ? FLOJERA_SLOW_MULTIPLIER : FAST_MULTIPLIER;
+        const walkingNow = entity.flojera <= 0 || Boolean(input.slow) || (inAction && locked);
+        const base = walkingNow ? FLOJERA_SLOW_MULTIPLIER : FAST_MULTIPLIER;
         speedMultiplier = base * (entity.sprintFactor || SPRINT_CARD_MULTIPLIER);
       } else if (wantsSlow) {
         speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
@@ -898,7 +899,7 @@ class Room {
       speedMultiplier = entity.curMult;
 
       if (inAction && entity.acetilUntil > now) {
-        if (isMoving) {
+        if (isMoving && entity.flojera > 0 && !input.slow) {
           entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
           if (entity.flojera <= 0) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
         }
