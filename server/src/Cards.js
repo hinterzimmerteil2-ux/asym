@@ -68,7 +68,7 @@ const CARDS = {
   },
   red_mist: {
     id: 'red_mist',
-    window: 350,
+    window: 300,
     hitRadius: 1.3,
     reach: 1.4,
     corrupt: true,
@@ -83,7 +83,7 @@ const CARDS = {
   },
   tajo_carmesi: {
     id: 'tajo_carmesi',
-    window: 350,
+    window: 420,
     hitRadius: 1.2,
     reach: 1.3,
     keywords: ['ofensiva'],

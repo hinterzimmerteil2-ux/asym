@@ -19,6 +19,7 @@ const CHARACTERS = {
       {
         id: 'somnifero_valeriana',
         type: 'stun',
+        windowMs: 700,
         name: 'Somnífero de Valeriana',
         description: 'Aturde a los Pacientes cercanos 1.5s.',
         keywords: ['ofensiva'],
@@ -29,6 +30,7 @@ const CHARACTERS = {
       {
         id: 'raiz_atrayente',
         type: 'pull',
+        windowMs: 800,
         name: 'Raíz Atrayente',
         description: 'Arrastra a los Pacientes hacia ti.',
         keywords: ['ofensiva'],
@@ -69,6 +71,7 @@ const CHARACTERS = {
       {
         id: 'anestesia',
         type: 'stun',
+        windowMs: 700,
         name: 'Anestesia',
         description: 'Aturde a los Pacientes muy cercanos 2.2s.',
         keywords: ['ofensiva'],
@@ -79,6 +82,7 @@ const CHARACTERS = {
       {
         id: 'camilla_magnetica',
         type: 'pull',
+        windowMs: 800,
         name: 'Camilla Magnética',
         description: 'Arrastra con fuerza a los Pacientes lejanos.',
         keywords: ['ofensiva'],
@@ -108,6 +112,7 @@ const GENERIC_MELEE = {
   keywords: ['ofensiva'],
   radius: 1,
   reach: 1.1,
+  windowMs: 450,
   durationMs: 1200,
   cooldownMs: 20000,
 };

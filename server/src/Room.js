@@ -844,6 +844,7 @@ class Room {
         entity.acetilOn = false;
         if (entity.flojera <= 0) this.endlag(entityPlayerId, entity, now);
       }
+      const rolling = entity.dashUntil > now;
       const stunned = Status.blocksMove(entity, now) || Boolean(resolved) || Boolean(heldAtSpawn);
       const isMoving = !stunned && (input.moveX !== 0 || input.moveZ !== 0);
       const sprinting = entity.sprintUntil > now;
@@ -866,7 +867,7 @@ class Room {
       }
       if (entity.allyBoostUntil > now) speedMultiplier *= 1 + ACETIL_ALLY_STEP * (entity.allyBoostLevel || 1);
       if (stunned) speedMultiplier = 0;
-      if (!isMoving) entity.curMult = Math.min(entity.curMult || 1, FLOJERA_SLOW_MULTIPLIER);
+      if (!isMoving && !rolling) entity.curMult = Math.min(entity.curMult || 1, FLOJERA_SLOW_MULTIPLIER);
       const prevMult = entity.curMult ?? speedMultiplier;
       entity.curMult = speedMultiplier > prevMult ? prevMult + (speedMultiplier - prevMult) * Math.min(1, dt * 6) : speedMultiplier;
       speedMultiplier = entity.curMult;
@@ -876,7 +877,7 @@ class Room {
           entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
           if (entity.flojera <= 0) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
         }
-      } else if (inAction) {
+      } else if (inAction && !rolling) {
         if (sprinting || wantsSlow || !isMoving) {
           if (!sprinting && entity.regenBlockedUntil <= now) {
             entity.flojera = Math.min(entity.flojeraMax, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);
@@ -1089,9 +1090,9 @@ class Room {
       curadorEntity.cureBoostFactor = skill.factor;
       if (skill.selfHeal) this.adjustCuratorHp(skill.selfHeal);
     } else if (skill.type === 'stun' || skill.type === 'pull') {
-      this.hitWindows.push({ kind: 'area', playerId, skill, index, endsAt: now + HIT_WINDOW_MS });
+      this.hitWindows.push({ kind: 'area', playerId, skill, index, endsAt: now + (skill.windowMs || HIT_WINDOW_MS) });
     } else if (skill.type === 'melee_stun') {
-      this.hitWindows.push({ kind: 'melee', playerId, skill, index, endsAt: now + HIT_WINDOW_MS });
+      this.hitWindows.push({ kind: 'melee', playerId, skill, index, endsAt: now + (skill.windowMs || HIT_WINDOW_MS) });
     } else {
       for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
         if (patient.status !== 'alive') continue;
