@@ -1042,6 +1042,7 @@ const CAMERA_LOCK = { on: false, yaw: 0, fp: false, fpId: null };
 
 function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
   const keysPressed = useRef(new Set());
+  const lastSent = useRef({ key: '', at: 0 });
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -1095,7 +1096,13 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       const moveX = inputX * cosY + inputZ * sinY;
       const moveZ = inputZ * cosY - inputX * sinY;
 
-      sendInput({ moveX, moveZ, jump, slow, face: shiftRef && shiftRef.current ? { x: -sinY, z: -cosY } : undefined });
+      const face = shiftRef && shiftRef.current ? { x: Math.round(-sinY * 100) / 100, z: Math.round(-cosY * 100) / 100 } : undefined;
+      const payload = { moveX: Math.round(moveX * 100) / 100, moveZ: Math.round(moveZ * 100) / 100, jump, slow, face };
+      const key = JSON.stringify(payload);
+      const nowMs = performance.now();
+      if (key === lastSent.current.key && nowMs - lastSent.current.at < 400) return;
+      lastSent.current = { key, at: nowMs };
+      sendInput(payload);
     }, 50);
     return () => clearInterval(interval);
   }, [sendInput, yawRef, shiftRef]);

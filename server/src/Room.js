@@ -675,9 +675,9 @@ class Room {
     const publicEntities = {};
     for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
       publicEntities[entityPlayerId] = {
-        x: entity.x,
-        y: entity.y,
-        z: entity.z,
+        x: Math.round(entity.x * 100) / 100,
+        y: Math.round(entity.y * 100) / 100,
+        z: Math.round(entity.z * 100) / 100,
         corpse: Boolean(entity.corpse),
         gone: Boolean(entity.gone),
         rag: entity.rag ? { p: RagdollBody.serialize(entity.rag, entity) } : null,
@@ -689,7 +689,7 @@ class Room {
         const own = ghostId === viewerId;
         const visible = ghost.visibleUntil > now;
         if (!own && !visible) continue;
-        out[ghostId] = { x: ghost.x, y: ghost.y, z: ghost.z, faceX: ghost.faceX, faceZ: ghost.faceZ, own, visible, uses: ghost.uses, maxUses: GHOST_REVEAL_MAX_USES, visibleMs: visible ? ghost.visibleUntil - now : 0, cooldownMs: Math.max(0, ghost.cooldownUntil - now) };
+        out[ghostId] = { x: Math.round(ghost.x * 100) / 100, y: Math.round(ghost.y * 100) / 100, z: Math.round(ghost.z * 100) / 100, faceX: Math.round(ghost.faceX * 100) / 100, faceZ: Math.round(ghost.faceZ * 100) / 100, own, visible, uses: ghost.uses, maxUses: GHOST_REVEAL_MAX_USES, visibleMs: visible ? ghost.visibleUntil - now : 0, cooldownMs: Math.max(0, ghost.cooldownUntil - now) };
       }
       return out;
     };

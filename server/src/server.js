@@ -86,6 +86,7 @@ wss.on('connection', (ws) => {
   let playerId = null;
   let currentRoomId = null;
 
+  if (ws._socket && ws._socket.setNoDelay) ws._socket.setNoDelay(true);
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
 
