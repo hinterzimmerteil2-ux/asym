@@ -387,7 +387,7 @@ test('cáscara de plátano: 2 usos, cura 30 al Curador y también tropieza su du
   const zone = room.gameState.zones[0];
   assert.strictEqual(zone.charges, 2);
   assert.ok(Math.abs(zone.x - 3) < 0.01);
-  zone.armedAt = 0; zone.ownerArmedAt = Date.now() + 99999;
+  zone.armedAt = 0; zone.ownerArmedAt = Date.now() + 99999; zone.placedAt = Date.now() - 60000;
   room.gameState.curator.hp = 50;
   e.c.x = zone.x; e.c.z = zone.z;
   room.tickZones(Date.now(), 0.05);
@@ -404,7 +404,7 @@ test('cáscara de plátano: 2 usos, cura 30 al Curador y también tropieza su du
 
 test('chicharrón y goyslop en el mínimo dan velocidad temporal o Flojera', () => {
   const { room, e } = setup();
-  room.gameState.patients.a.hp = 80;
+  room.gameState.patients.a.hp = 60;
   give(e.a, 0, 'chicharron');
   room.useCard('a', 0);
   assert.ok(!(e.a.sprintUntil > Date.now()));

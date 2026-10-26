@@ -33,9 +33,11 @@ const handlers = {
     room.checkGameEndConditions();
   },
 
-  goyslop({ room, playerId, entity }) {
+  goyslop({ room, playerId, entity, now }) {
     const hurt = room.damagePatient(playerId, C.GOYSLOP_DAMAGE, C.GOYSLOP_FLOOR);
     if (!hurt) entity.flojera = Math.min(entity.flojeraMax, entity.flojera + C.FOOD_BONUS_FLOJERA);
+    entity.sprintUntil = now + C.GOYSLOP_SPRINT_MS;
+    entity.sprintFactor = C.GOYSLOP_SPRINT_FACTOR;
     room.checkGameEndConditions();
   },
 
@@ -52,8 +54,7 @@ const handlers = {
       until: now + C.TRAP_LIFETIME_MS,
       cardId: card.id,
       charges: C.TRAP_CHARGES,
-      stunMs: 2000,
-      heal: C.TRAP_HEAL,
+      placedAt: now,
       cooldownUntil: 0,
     });
   },

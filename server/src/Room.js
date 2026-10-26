@@ -44,6 +44,7 @@ const {
   MAX_HP_MINIMUM,
   TRAP_RADIUS,
   TRAP_ARM_MS,
+  TRAP_PEAK_LIFE,
   TRAP_LIFETIME_MS,
   RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC,
   ROLL_DASH_MS,
@@ -705,7 +706,7 @@ class Room {
       }
       return out;
     };
-    const zones = this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt }));
+    const zones = this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, level: z.level || 0, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt }));
 
     for (const [playerId, player] of this.players) {
       if (player.isBot || player.ws.readyState !== 1) continue;
@@ -1373,15 +1374,21 @@ class Room {
           }
         }
       } else if (zone.kind === 'trap' && now >= zone.armedAt) {
-        if (now >= zone.cooldownUntil) {
+        const age = (now - zone.placedAt) / 1000;
+        const life = age <= TRAP_PEAK_LIFE - 1 ? 1 + age : TRAP_PEAK_LIFE - (age - (TRAP_PEAK_LIFE - 1));
+        zone.level = life >= TRAP_PEAK_LIFE ? 3 : life >= 31 ? 2 : 1;
+        if (life <= 0) zone.charges = 0;
+        if (zone.charges > 0 && now >= zone.cooldownUntil) {
+          const stunMs = [0, 1000, 1500, 2000][zone.level];
+          const heal = [0, 10, 20, 30][zone.level];
           for (const [playerId, player] of this.players) {
             if (zone.charges <= 0) break;
             const entity = this.gameState.entities[playerId];
             if (!entity || distanceBetween(entity, zone) > TRAP_RADIUS) continue;
             const isOwner = playerId === zone.ownerId && !player.isAsymRole;
             if (!player.isAsymRole && !(isOwner && now >= zone.ownerArmedAt && this.gameState.patients[playerId]?.status === 'alive')) continue;
-            this.ragdoll(playerId, entity, zone.stunMs, now);
-            if (player.isAsymRole && zone.heal) this.adjustCuratorHp(zone.heal);
+            this.ragdoll(playerId, entity, stunMs, now);
+            if (player.isAsymRole) this.adjustCuratorHp(heal);
             zone.charges -= 1;
             zone.cooldownUntil = now + 1500;
           }
