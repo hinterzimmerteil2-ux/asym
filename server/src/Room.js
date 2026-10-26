@@ -710,6 +710,7 @@ class Room {
           mode: own.acetilUntil > now ? (own.flojera <= 0 ? 'acetil_walk' : 'acetil') : (own.input.slow || own.flojeraLockedUntil > now ? 'walk' : 'run'),
           sprinting: own.sprintUntil > now,
           stunned: Status.active(own, 'stun', now),
+          ragdoll: Status.active(own, 'ragdoll', now),
           statuses: this.buildStatuses(own, now),
           channel: own.channel ? { elapsed: now - own.channel.startedAt, total: CHANNEL_MS, beatMs: CHANNEL_BEAT_MS, beats: CHANNEL_BEATS, hits: own.channel.hits, scored: Object.keys(own.channel.scored).map(Number), slot: own.channel.slot } : null,
           cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
