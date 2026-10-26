@@ -32,6 +32,7 @@ const MessageType = {
 
   // --- Fase acción rápida (tick loop) ---
   PLAYER_INPUT: 'player_input',
+  GHOST_REVEAL: 'ghost_reveal',
   STATE_SNAPSHOT: 'state_snapshot', // { tick, entities, timeRemainingMs, patients, selfDamageObjects }
 
   // --- Interacciones de curación/daño ---

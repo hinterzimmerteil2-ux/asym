@@ -240,6 +240,13 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.GHOST_REVEAL: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room || room.phase !== 'action') return;
+        room.revealGhost(playerId);
+        break;
+      }
+
       case MessageType.CURE_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room || room.phase !== 'action') return;

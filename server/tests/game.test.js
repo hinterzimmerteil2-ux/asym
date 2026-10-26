@@ -320,3 +320,20 @@ test('la espada espera en ventana y aturde una sola vez al primer impacto', () =
   room.tickHitWindows(Date.now() + 100);
   assert.strictEqual(Status.until(e.c, 'stun'), first);
 });
+
+test('el fantasma es invisible para otros y su habilidad es de un solo uso', () => {
+  const { room, e } = setup();
+  room.gameState.patients.a.status = 'eliminated';
+  room.stepPhysics(0.05);
+  assert.ok(room.gameState.ghosts.a);
+  room.revealGhost('a');
+  const until = room.gameState.ghosts.a.visibleUntil;
+  assert.ok(until > Date.now());
+  room.gameState.ghosts.a.visibleUntil = 0;
+  room.revealGhost('a');
+  assert.strictEqual(room.gameState.ghosts.a.visibleUntil, 0);
+  e.a.input.moveX = 1;
+  const x0 = room.gameState.ghosts.a.x;
+  room.tickGhosts(0.1);
+  assert.ok(room.gameState.ghosts.a.x > x0);
+});

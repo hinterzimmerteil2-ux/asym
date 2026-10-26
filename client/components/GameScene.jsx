@@ -1178,6 +1178,8 @@ export default function GameScene({
   hitboxes,
   hitboxCfg,
   followId,
+  ghosts,
+  ghostMode,
   shiftLock,
   onShiftLockLost,
 }) {
@@ -1189,7 +1191,7 @@ export default function GameScene({
   const playerById = new Map(players.map((p) => [p.id, p]));
   const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const areaHalfSize = phase === 'action' ? MATCH_HALF_SIZE : LOBBY_HALF_SIZE;
-  const myEntity = entities[followId || myPlayerId];
+  const myEntity = ghostMode && ghosts?.[myPlayerId] ? ghosts[myPlayerId] : entities[followId || myPlayerId];
 
   return (
     <Canvas shadows={!coarse} dpr={[1, coarse ? 1.5 : 2]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
@@ -1235,6 +1237,15 @@ export default function GameScene({
             <SelfDamageObject position={pos} />
           </group>
         ))}
+
+      {Object.entries(ghosts || {}).map(([gid, g]) => (
+        <group key={`ghost_${gid}`} position={[g.x, g.y, g.z]}>
+          <mesh position={[0, 0.9, 0]}>
+            <capsuleGeometry args={[0.35, 0.9, 4, 10]} />
+            <meshStandardMaterial color="#cfd6ff" transparent opacity={g.own && !g.visible ? 0.2 : 0.45} depthWrite={false} />
+          </mesh>
+        </group>
+      ))}
 
       {Object.entries(entities).map(([playerId, entityState]) => {
         const player = playerById.get(playerId);

@@ -85,12 +85,28 @@ function Btn({ label, code, size = 52, style, until = 0 }) {
   );
 }
 
-export default function TouchControls({ isAsymRole, cardCooldowns = {}, skillCooldowns = {}, onInteract }) {
+export default function TouchControls({ ghost, onReveal, ghostUsed, isAsymRole, cardCooldowns = {}, skillCooldowns = {}, onInteract }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
     setShow(window.matchMedia('(pointer: coarse)').matches);
   }, []);
   if (!show) return null;
+  if (ghost) {
+    return (
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
+        <Stick />
+        <button
+          type="button"
+          disabled={ghostUsed}
+          onContextMenu={(e) => e.preventDefault()}
+          onPointerDown={(e) => { e.preventDefault(); onReveal && onReveal(); }}
+          style={{ position: 'absolute', right: 20, bottom: 70, width: 72, height: 72, borderRadius: '50%', background: ghostUsed ? 'rgba(80,80,90,0.6)' : 'rgba(150,120,255,0.8)', color: '#fff', border: '2px solid rgba(255,255,255,0.35)', fontSize: 12, fontWeight: 700, touchAction: 'none', pointerEvents: 'auto' }}
+        >
+          Aparecer
+        </button>
+      </div>
+    );
+  }
   const skills = [['Q', 'KeyQ'], ['E', 'KeyE'], ['R', 'KeyR'], ['F', 'KeyF'], ['G', 'KeyG']];
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>

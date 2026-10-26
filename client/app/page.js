@@ -117,6 +117,7 @@ export default function LobbyPage() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [entities, setEntities] = useState({});
+  const [ghosts, setGhosts] = useState({});
   const [selfDamageObjects, setSelfDamageObjects] = useState({});
   const [zones, setZones] = useState([]);
   const [curatorHp, setCuratorHp] = useState(null);
@@ -215,6 +216,7 @@ export default function LobbyPage() {
             break;
           case 'state_snapshot':
             setEntities(payload.entities || {});
+            setGhosts(payload.ghosts || {});
             setSelfDamageObjects(payload.selfDamageObjects || {});
             setZones(payload.zones || []);
             setCuratorHp(payload.curator || null);
@@ -512,7 +514,11 @@ export default function LobbyPage() {
     // Validamos en el cliente solo para no spamear el servidor con un
     // mensaje que de todos modos va a rechazar — la validación real
     // (rol, cooldown, fase) vive en Room.applyCuratorPulse.
-    if (!isAsymRole || phase !== 'action') return;
+    if (phase !== 'action') return;
+    if (!isAsymRole) {
+      if (skill === 0) connRef.current?.send('ghost_reveal', {});
+      return;
+    }
     connRef.current?.send('curator_pulse_action', { skill });
   }, [isAsymRole, phase]);
 
@@ -570,7 +576,9 @@ export default function LobbyPage() {
   const isHost = hostId !== null && hostId === myPlayerId;
   const myPatient = patients[myPlayerId];
   const spectating = phase === 'action' && !isAsymRole && Boolean(myPatient) && myPatient.status !== 'alive';
-  const specTargets = Object.keys(entities).filter((id) => id !== myPlayerId && !entities[id].gone && !entities[id].corpse);
+  const myGhost = ghosts[myPlayerId];
+  const specTargets = [...(myGhost ? [myPlayerId] : []), ...Object.keys(entities).filter((id) => id !== myPlayerId && !entities[id].gone && !entities[id].corpse)];
+  const ghostMode = spectating && Boolean(myGhost) && specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] === myPlayerId;
   const specId = spectating && specTargets.length ? specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] : null;
   specRef.current.on = spectating;
   const sx = (base, extra) => (compact ? { ...base, ...extra } : base);
@@ -624,7 +632,9 @@ export default function LobbyPage() {
             onPulse={handlePulse}
             hitboxes={hitboxes}
             hitboxCfg={hitboxCfg}
-            followId={specId}
+            followId={ghostMode ? null : specId}
+            ghosts={ghosts}
+            ghostMode={ghostMode}
             shiftLock={shiftLock}
             onShiftLockLost={() => setShiftLock(false)}
           />
@@ -815,7 +825,7 @@ export default function LobbyPage() {
 
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
-        {phase === 'action' && !spectating && <TouchControls onInteract={handleInteract} isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
+        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={Boolean(myGhost?.used)} onInteract={handleInteract} isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
 
         {phase === 'action' && flojera && (
           <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: isAsymRole ? 80 : 110 })}>
@@ -973,7 +983,12 @@ export default function LobbyPage() {
         {spectating && (
           <div style={{ position: 'absolute', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, background: 'rgba(27, 29, 41, 0.9)', border: '1px solid #2a2d3d', fontSize: 13 }}>
             <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i - 1)} aria-label="Anterior">{'<-'}</button>
-            <span>{specId ? `Espectando: ${players.find((p) => p.id === specId)?.name || specId}` : 'Nadie a quien seguir'}</span>
+            <span>{ghostMode ? 'Tu fantasma' : specId ? `Espectando: ${players.find((p) => p.id === specId)?.name || specId}` : 'Nadie a quien seguir'}</span>
+            {ghostMode && (
+              <button type="button" disabled={myGhost.used} style={{ ...styles.smallButton, width: 'auto', padding: '6px 12px' }} onClick={() => handlePulse(0)}>
+                {myGhost.visible ? `Visible ${Math.ceil(myGhost.ms / 1000)}s` : myGhost.used ? 'Usada' : 'Aparecer (Q)'}
+              </button>
+            )}
             <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i + 1)} aria-label="Siguiente">{'->'}</button>
           </div>
         )}

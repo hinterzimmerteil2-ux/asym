@@ -78,6 +78,7 @@ const {
   ENDLAG_MAX_MS,
   ROLL_EXHAUST_RAGDOLL_MS,
   HIT_WINDOW_MS,
+  GHOST_REVEAL_MS,
   FLOJERA_MAX,
   FLOJERA_MAX_MINIMUM,
   FLOJERA_DRAIN_PER_SEC,
@@ -118,6 +119,7 @@ class Room {
       timeRemainingMs: GAME_DURATION_MS,
       gameOver: false,
       selfDamageObjectPositions: {},
+      ghosts: {},
       zones: [],
       curator: { hp: CURATOR_HP_START, max: CURATOR_HP_MAX },
     };
@@ -627,6 +629,7 @@ class Room {
       entity.fx = {};
       entity.corpse = false;
       entity.gone = false;
+      this.gameState.ghosts = {};
       entity.hand = player.isAsymRole ? [] : Cards.dealSlots();
       entity.draftEndsAt = player.isAsymRole ? 0 : Date.now() + Cards.DRAFT_DURATION_MS;
     }
@@ -658,6 +661,7 @@ class Room {
     }
 
     this.stepPhysics(dt);
+    this.tickGhosts(dt);
     this.tickPereza(now, dt);
     if (this.phase === 'action' && !this.gameState.gameOver) {
       this.botThink(now);
@@ -677,6 +681,16 @@ class Room {
         rag: entity.rag ? { p: RagdollBody.serialize(entity.rag, entity) } : null,
       };
     }
+    const ghostsFor = (viewerId) => {
+      const out = {};
+      for (const [ghostId, ghost] of Object.entries(this.gameState.ghosts)) {
+        const own = ghostId === viewerId;
+        const visible = ghost.visibleUntil > now;
+        if (!own && !visible) continue;
+        out[ghostId] = { x: ghost.x, y: ghost.y, z: ghost.z, faceX: ghost.faceX, faceZ: ghost.faceZ, own, visible, used: ghost.used, ms: visible ? ghost.visibleUntil - now : 0 };
+      }
+      return out;
+    };
     const zones = this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt }));
 
     for (const [playerId, player] of this.players) {
@@ -703,6 +717,7 @@ class Room {
         flojera,
         tick: this.tickCount,
         entities: publicEntities,
+        ghosts: ghostsFor(playerId),
         timeRemainingMs: this.gameState.timeRemainingMs,
         patients: this.visiblePatients(playerId),
         selfDamageObjects: this.gameState.selfDamageObjectPositions,
@@ -711,6 +726,30 @@ class Room {
         zones,
       });
     }
+  }
+
+  tickGhosts(dt) {
+    const half = this.getCurrentArea().halfSize;
+    for (const [ghostId, ghost] of Object.entries(this.gameState.ghosts)) {
+      const owner = this.gameState.entities[ghostId];
+      if (!owner) continue;
+      const { moveX, moveZ } = owner.input;
+      const len = Math.hypot(moveX, moveZ);
+      if (len > 0) {
+        const speed = MOVE_SPEED * 1.2 * Math.min(1, len);
+        ghost.x = Math.max(-half, Math.min(half, ghost.x + (moveX / len) * speed * dt));
+        ghost.z = Math.max(-half, Math.min(half, ghost.z + (moveZ / len) * speed * dt));
+        ghost.faceX = moveX / len;
+        ghost.faceZ = moveZ / len;
+      }
+    }
+  }
+
+  revealGhost(playerId) {
+    const ghost = this.gameState.ghosts[playerId];
+    if (!ghost || ghost.used) return;
+    ghost.used = true;
+    ghost.visibleUntil = Date.now() + GHOST_REVEAL_MS;
   }
 
   visiblePatients(playerId) {
@@ -791,6 +830,7 @@ class Room {
         entity.corpse = true;
         entity.gone = this.gameState.patients[entityPlayerId].status === 'self_won';
         if (!entity.gone) Status.apply(entity, 'ragdoll', 3600000, now);
+        this.gameState.ghosts[entityPlayerId] = { x: entity.x, y: entity.y || 0, z: entity.z, faceX: entity.faceX || 0, faceZ: entity.faceZ || 1, visibleUntil: 0, used: false };
       }
       if (entity.channel && entity.channel.endsAt <= now) entity.channel = null;
       if (Status.active(entity, 'ragdoll', now)) {
