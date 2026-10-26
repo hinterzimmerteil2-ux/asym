@@ -437,7 +437,7 @@ export default function LobbyPage() {
 
   function handleBotCount(target) {
     const current = players.filter((pl) => pl.isBot).length;
-    const room = Math.min(target, current + (10 - players.length));
+    const room = Math.min(target, current + (20 - players.length));
     for (let i = current; i < room; i++) connRef.current?.send('add_bot', {});
     for (let i = current; i > target; i--) connRef.current?.send('remove_bot', {});
   }

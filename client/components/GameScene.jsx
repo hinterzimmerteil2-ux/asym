@@ -153,7 +153,7 @@ function RagdollR6({ entityState, color }) {
   );
 }
 
-function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll }) {
+function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, ghost }) {
   const bodyRef = useRef();
   const lastPos = useRef([entityState.x, entityState.z]);
   const yaw = useRef(0);
@@ -172,6 +172,12 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll })
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
+    if (ghost) {
+      groupRef.current.traverse((o) => {
+        const m = o.material;
+        if (m && !m.userData.ghosted) { m.transparent = true; m.opacity = 0.65; m.depthWrite = false; m.userData.ghosted = true; m.needsUpdate = true; }
+      });
+    }
     const mx = entityState.x - lastPos.current[0];
     const mz = entityState.z - lastPos.current[1];
     if (isMe && CAMERA_LOCK.on) {
@@ -1239,12 +1245,16 @@ export default function GameScene({
         ))}
 
       {Object.entries(ghosts || {}).map(([gid, g]) => (
-        <group key={`ghost_${gid}`} position={[g.x, g.y, g.z]}>
-          <mesh position={[0, 0.9, 0]}>
-            <capsuleGeometry args={[0.35, 0.9, 4, 10]} />
-            <meshStandardMaterial color="#cfd6ff" transparent opacity={g.own && !g.visible ? 0.2 : 0.45} depthWrite={false} />
-          </mesh>
-        </group>
+        <PlayerCapsule
+          key={`ghost_${gid}`}
+          playerId={`ghost_${gid}`}
+          entityState={g}
+          color={COLOR_PACIENTE}
+          isMe={false}
+          stunned={false}
+          ragdoll={false}
+          ghost
+        />
       ))}
 
       {Object.entries(entities).map(([playerId, entityState]) => {
