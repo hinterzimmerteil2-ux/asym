@@ -39,7 +39,7 @@ test('el rango de ataque es un cubo entre cajas', () => {
 
 test('Espada del UTTVM solo aturde, sin daño ni efectos', () => {
   const { room, e } = setup();
-  e.a.x = 0; e.a.z = 0; e.c.x = 1; e.c.z = 0;
+  e.a.x = 0; e.a.z = 0; e.a.faceX = 1; e.a.faceZ = 0; e.c.x = 1.3; e.c.z = 0;
   give(e.a, 0, 'tajo_carmesi');
   const hp = room.gameState.curator.hp;
   room.useCard('a', 0);
