@@ -59,7 +59,7 @@ export default function LobbyPage() {
   const [specIndex, setSpecIndex] = useState(0);
   const [shiftLock, setShiftLock] = useState(false);
   const [warn, setWarn] = useState(false);
-  const [hitboxCfg, setHitboxCfg] = useState({ half: 0.4, height: 1.8, interact: 1.2 });
+  const [hitboxCfg, setHitboxCfg] = useState({ half: 0.36, height: 1.8, interact: 1.2 });
   const specRef = useRef({ on: false });
   const [panelOpen, setPanelOpen] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
