@@ -1,4 +1,5 @@
 import SkillIcon from './SkillIcon';
+import { KEYWORDS } from '../lib/keywords';
 
 const CONTROLS = [
   ['W A S D', 'Moverte'],
@@ -17,7 +18,7 @@ const CONTROLS = [
 export default function HelpPanel({ characters, cards, onClose }) {
   const decks = {};
   for (const card of cards) {
-    const key = card.deck || 'Generales';
+    const key = KEYWORDS[card.keywords?.[0]]?.label || 'Otras';
     if (!decks[key]) decks[key] = [];
     decks[key].push(card);
   }

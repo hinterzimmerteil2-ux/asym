@@ -1,12 +1,9 @@
-const GENERIC = new Set(['area', 'corrupto']);
+const GENERIC = new Set();
 const COMPLEMENTS = [
-  ['flojera', 'sabotaje', 0.3],
-  ['daño', 'comida', 0.4],
-  ['aliado', 'veloz', 0.3],
-  ['impulso', 'sabotaje', 0.4],
-  ['zona', 'trampa', 0.4],
-  ['exacerbacion', 'sabotaje', 0.3],
-  ['pereza', 'aliado', 0.3],
+  ['ofensiva', 'bonificadora', 0.3],
+  ['escapista', 'defensiva', 0.3],
+  ['ofensiva', 'escapista', 0.2],
+  ['bonificadora', 'defensiva', 0.2],
 ];
 
 function has(card, keyword) {

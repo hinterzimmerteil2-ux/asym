@@ -865,7 +865,7 @@ export default function LobbyPage() {
                         title={card.description}
                       >
                         <span style={styles.draftHeader}><SkillIcon id={card.id} size={26} /><span style={styles.cardButtonName}>{card.displayName}</span></span>
-                        {card.deck && !compact && <span style={styles.draftDeck}>Mazo {card.deck}{card.corrupt ? ' · corrupto' : ''}</span>}
+                        {card.corrupt && !compact && <span style={styles.draftDeck}>corrupto</span>}
                         {!compact && <span style={styles.draftDescription}>{card.description}</span>}
                         <span style={styles.keywordRow}>
                           {(card.keywords || []).slice(0, 2).map((k) => <KeywordChip key={k} id={k} />)}

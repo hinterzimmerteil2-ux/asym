@@ -1088,6 +1088,8 @@ class Room {
       curadorEntity.cureBoostUntil = now + skill.durationMs;
       curadorEntity.cureBoostFactor = skill.factor;
       if (skill.selfHeal) this.adjustCuratorHp(skill.selfHeal);
+    } else if (skill.type === 'stun' || skill.type === 'pull') {
+      this.hitWindows.push({ kind: 'area', playerId, skill, index, endsAt: now + HIT_WINDOW_MS });
     } else if (skill.type === 'melee_stun') {
       this.hitWindows.push({ kind: 'melee', playerId, skill, index, endsAt: now + HIT_WINDOW_MS });
     } else {
@@ -1105,15 +1107,6 @@ class Room {
             this.onPatientFullyCured();
           }
           healedAny = true;
-        } else if (skill.type === 'stun') {
-          Status.apply(targetEntity, 'stun', skill.durationMs, now);
-        } else if (skill.type === 'pull') {
-          const flat = euclid(curadorEntity, targetEntity);
-          const travel = Math.min(skill.strength, Math.max(0, flat - 1));
-          if (flat > 0) {
-            targetEntity.x += ((curadorEntity.x - targetEntity.x) / flat) * travel;
-            targetEntity.z += ((curadorEntity.z - targetEntity.z) / flat) * travel;
-          }
         } else if (skill.type === 'purge') {
           targetEntity.sprintUntil = 0;
           targetEntity.exacerbacionLevel = 0;
@@ -1125,7 +1118,7 @@ class Room {
       }
     }
 
-    if (skill.type !== 'boost' && skill.type !== 'melee_stun' && affectedPlayerIds.length === 0) this.endlag(playerId, curadorEntity, now);
+    if (skill.type !== 'boost' && skill.type !== 'melee_stun' && skill.type !== 'stun' && skill.type !== 'pull' && affectedPlayerIds.length === 0) this.endlag(playerId, curadorEntity, now);
 
     if (skill.type === 'pulse' && skill.selfHeal) this.adjustCuratorHp(skill.selfHeal * affectedPlayerIds.length);
 
@@ -1143,7 +1136,7 @@ class Room {
     };
     this.broadcastPulse(pulseResult);
     if (healedAny) this.checkGameEndConditions();
-    if (skill.type === 'melee_stun') this.tickHitWindows(now);
+    if (skill.type === 'melee_stun' || skill.type === 'stun' || skill.type === 'pull') this.tickHitWindows(now);
   }
 
   broadcastPulse(pulseResult) {
@@ -1164,7 +1157,45 @@ class Room {
     for (const win of this.hitWindows) {
       const owner = this.gameState.entities[win.playerId];
       if (!owner || this.phase !== 'action' || this.gameState.gameOver || Status.blocksSkills(owner, now)) continue;
-      if (win.kind === 'melee') {
+      if (win.kind === 'area') {
+        const skill = win.skill;
+        const ids = [];
+        for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
+          if (patient.status !== 'alive') continue;
+          const targetEntity = this.gameState.entities[targetPlayerId];
+          if (!targetEntity || distanceBetween(owner, targetEntity) > skill.radius) continue;
+          if (skill.type === 'stun') {
+            Status.apply(targetEntity, 'stun', skill.durationMs, now);
+          } else {
+            const flat = euclid(owner, targetEntity);
+            const travel = Math.min(skill.strength, Math.max(0, flat - 1));
+            if (flat > 0) {
+              targetEntity.x += ((owner.x - targetEntity.x) / flat) * travel;
+              targetEntity.z += ((owner.z - targetEntity.z) / flat) * travel;
+            }
+          }
+          ids.push(targetPlayerId);
+        }
+        if (ids.length) {
+          this.broadcastPulse({
+            playerId: win.playerId,
+            skillIndex: win.index,
+            skillId: skill.id,
+            skillName: skill.name,
+            skillType: skill.type,
+            radius: skill.radius || 0,
+            center: null,
+            cooldownUntil: owner.skillCooldowns[win.index],
+            healedPlayerIds: [],
+            affectedPlayerIds: ids,
+          });
+          continue;
+        }
+        if (win.endsAt <= now) {
+          this.endlag(win.playerId, owner, now);
+          continue;
+        }
+      } else if (win.kind === 'melee') {
         const skill = win.skill;
         let nearestId = null;
         let nearestDist = skill.radius;
