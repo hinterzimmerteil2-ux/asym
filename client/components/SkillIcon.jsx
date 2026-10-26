@@ -56,7 +56,7 @@ const ICONS = {
   golpe_aturdidor: <><circle cx="16" cy="16" r="8" fill={Y} /><path d="M16 2 V7 M16 25 V30 M2 16 H7 M25 16 H30 M6 6 L10 10 M22 22 L26 26 M26 6 L22 10 M10 22 L6 26" stroke={Y} strokeWidth="2" strokeLinecap="round" /></>,
 };
 
-const IMAGES = new Set(['acetilcolina', 'tajo_carmesi', 'red_mist', 'agua_rimac', 'chicharron']);
+const IMAGES = new Set(['acetilcolina', 'tajo_carmesi', 'red_mist', 'agua_rimac', 'chicharron', 'rodar', 'tropiezo', 'goyslop', 'cascara_platano', 'grito_animo', 'pulso_hierbas', 'somnifero_valeriana', 'raiz_atrayente', 'tonico_reforzado', 'ronda_suero', 'anestesia', 'camilla_magnetica', 'desinfectante', 'golpe_aturdidor']);
 
 export default function SkillIcon({ id, size = 30 }) {
   if (IMAGES.has(id)) {
