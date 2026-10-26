@@ -1375,9 +1375,9 @@ class Room {
         }
       } else if (zone.kind === 'trap' && now >= zone.armedAt) {
         const age = (now - zone.placedAt) / 1000;
-        const life = age <= TRAP_PEAK_LIFE - 1 ? 1 + age : TRAP_PEAK_LIFE - (age - (TRAP_PEAK_LIFE - 1));
-        zone.level = life >= TRAP_PEAK_LIFE ? 3 : life >= 31 ? 2 : 1;
-        if (life <= 0) zone.charges = 0;
+        const life = 1 + age;
+        zone.level = life >= TRAP_PEAK_LIFE ? 1 : life >= 31 ? 2 : 3;
+        if (life >= TRAP_PEAK_LIFE) zone.charges = 0;
         if (zone.charges > 0 && now >= zone.cooldownUntil) {
           const stunMs = [0, 1000, 1500, 2000][zone.level];
           const heal = [0, 10, 20, 30][zone.level];
