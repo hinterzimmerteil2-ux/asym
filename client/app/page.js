@@ -120,6 +120,7 @@ export default function LobbyPage() {
   const [entities, setEntities] = useState({});
   const [ghosts, setGhosts] = useState({});
   const [ping, setPing] = useState(null);
+  const [lobbyPlatforms, setLobbyPlatforms] = useState([]);
   const [cosmetics, setCosmetics] = useState({});
   const [cosmeticsOpen, setCosmeticsOpen] = useState(false);
   const pingSentRef = useRef(0);
@@ -211,6 +212,7 @@ export default function LobbyPage() {
             setCharacters(payload.characters || []);
             setCardCatalog(payload.cards || []);
             setMaps(payload.maps || []);
+            setLobbyPlatforms(payload.lobbyPlatforms || []);
             setMapId(payload.mapId || 'default');
             break;
           case 'room_update':
@@ -681,7 +683,7 @@ export default function LobbyPage() {
             stunnedIds={stunnedIds}
             ragdollIds={ragdollIds}
             collisionObjects={collisionObjects}
-            platforms={platforms}
+            platforms={phase === 'action' ? platforms : lobbyPlatforms}
             sendInput={handleSendInput}
             sendAction={handleSendAction}
             onPulse={handlePulse}

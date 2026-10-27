@@ -396,6 +396,7 @@ function LobbyDecor() {
           </mesh>
         </group>
       ))}
+      <mesh position={[11.5, 5.2, 0.6]}><octahedronGeometry args={[0.45, 0]} /><meshBasicMaterial color="#f2d154" /></mesh>
       {[[-6, -6], [6, -6], [-6, 6], [6, 6]].map(([x, z], i) => (
         <mesh key={`b${i}`} position={[x, 0.3, z]} castShadow><boxGeometry args={[1.6, 0.6, 0.6]} /><meshStandardMaterial color="#4a4f66" roughness={0.9} /></mesh>
       ))}
@@ -1344,7 +1345,7 @@ export default function GameScene({
         />
       )}
 
-      {phase === 'action' && (platforms || []).map((p) => <Platform key={p.id} p={p} />)}
+      {(platforms || []).map((p) => <Platform key={p.id} p={p} />)}
 
       {phase === 'action' &&
         (collisionObjects || []).map((obj) => <CollisionObject key={obj.id} obj={obj} />)}

@@ -29,6 +29,7 @@ const {
   FALL_ENDLAG_MIN,
   FALL_ENDLAG_MS,
   GRAVITY,
+  LOBBY_GRAVITY_FACTOR,
   GROUND_Y,
   PLAYER_COLLISION_RADIUS,
   INTERACTION_RADIUS,
@@ -843,7 +844,7 @@ class Room {
     const collisionObjects =
       this.phase === 'action' ? GameMap.resolveCollisionObjects(this.mapId, GameMap.MATCH_AREA) : [];
     const platforms =
-      this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.MATCH_AREA) : [];
+      this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.MATCH_AREA) : this.phase === 'lobby' ? GameMap.LOBBY_PLATFORMS : [];
 
     const now = Date.now();
     const allyCounts = {};
@@ -1050,7 +1051,7 @@ class Room {
         entity.velocityY = 0;
         entity.y = Math.max(entity.y, ground);
       } else {
-        entity.velocityY += GRAVITY * dt;
+        entity.velocityY += GRAVITY * (this.phase === 'lobby' ? LOBBY_GRAVITY_FACTOR : 1) * dt;
         entity.y += entity.velocityY * dt;
         entity.peakY = Math.max(entity.peakY || entity.y, entity.y);
         ground = groundAt(platforms, entity.x, entity.z, entity.y - entity.velocityY * dt);

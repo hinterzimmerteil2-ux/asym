@@ -16,6 +16,14 @@ const LOBBY_AREA = {
   spawnRadius: 3,
 };
 
+const LOBBY_PLATFORMS = [
+  { id: 'lp1', x: 7, z: -9, hx: 1.3, hz: 1.3, h: 0.8, ramp: null },
+  { id: 'lp2', x: 10, z: -9.5, hx: 1.2, hz: 1.2, h: 1.6, ramp: null },
+  { id: 'lp3', x: 12.2, z: -6.8, hx: 1.2, hz: 1.2, h: 2.4, ramp: null },
+  { id: 'lp4', x: 12.2, z: -3.2, hx: 1.1, hz: 1.1, h: 3.2, ramp: null },
+  { id: 'lp5', x: 11.5, z: 0.6, hx: 1.8, hz: 1.8, h: 4.0, ramp: null },
+];
+
 const MATCH_AREA = {
   halfSize: 30,
 };
@@ -188,6 +196,7 @@ function getCuratorSpawn() {
 
 module.exports = {
   LOBBY_AREA,
+  LOBBY_PLATFORMS,
   MATCH_AREA,
   MAPS,
   DEFAULT_MAP_ID,

@@ -505,3 +505,14 @@ test('los cosméticos se validan y se publican en el resumen de jugadores', () =
   assert.strictEqual(sum.cosmetics.back.id, 'alas');
   assert.notStrictEqual(sum.cosmetics.back.color, 'x');
 });
+
+test('en el lobby hay parkour y la gravedad es 0.6x', () => {
+  const { room, e } = setup();
+  room.phase = 'lobby';
+  e.a.x = 12.2; e.a.z = -3.2; e.a.y = 20; e.a.onGround = false; e.a.velocityY = 0;
+  room.stepPhysics(0.05);
+  const lobbyDrop = e.a.velocityY;
+  assert.ok(Math.abs(lobbyDrop - -18 * 0.6 * 0.05) < 0.01);
+  for (let i = 0; i < 200; i++) room.stepPhysics(0.05);
+  assert.ok(Math.abs(e.a.y - 3.2) < 0.01);
+});

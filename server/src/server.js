@@ -135,6 +135,7 @@ wss.on('connection', (ws) => {
           cards: Cards.listCards(),
           mapId: room.mapId,
           maps: GameMap.listMaps(),
+          lobbyPlatforms: GameMap.LOBBY_PLATFORMS,
         }));
 
         room.broadcast(MessageType.ROOM_UPDATE, { players: room.getPlayersSummary(), hostId: room.hostId }, playerId);
