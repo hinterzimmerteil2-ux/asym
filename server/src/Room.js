@@ -86,6 +86,10 @@ const {
   FLOJERA_MAX_MINIMUM,
   FLOJERA_DRAIN_PER_SEC,
   FLOJERA_REGEN_PER_SEC,
+  REST_DELAY_MS,
+  REST_REGEN_FACTOR,
+  RESERVE_THRESHOLD,
+  RESERVE_COOLDOWN_BONUS,
   FLOJERA_SLOW_MULTIPLIER,
   FLOJERA_EXHAUST_LOCKOUT_MS,
   PLAYER_HALF,
@@ -724,7 +728,7 @@ class Room {
           sprinting: own.sprintUntil > now,
           stunned: Status.active(own, 'stun', now),
           ragdoll: Status.active(own, 'ragdoll', now),
-          statuses: this.buildStatuses(own, now),
+          statuses: this.buildStatuses(own, now, playerId),
           channel: own.channel ? { elapsed: now - own.channel.startedAt, total: CHANNEL_MS, beatMs: CHANNEL_BEAT_MS, beats: CHANNEL_BEATS, hits: own.channel.hits, scored: Object.keys(own.channel.scored).map(Number), slot: own.channel.slot } : null,
           cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
         };
@@ -797,20 +801,29 @@ class Room {
     return own ? { [playerId]: own } : {};
   }
 
+  hasReserve(entityId, entity) {
+    if (this.phase !== 'action' || this.players.get(entityId)?.isAsymRole) return false;
+    return entity.flojeraMax > 0 && entity.flojera / entity.flojeraMax >= RESERVE_THRESHOLD;
+  }
+
   tickPereza(now, dt) {
-    for (const entity of Object.values(this.gameState.entities)) {
-      if (entity.perezaUntil <= now) continue;
-      const extra = dt * 1000 * PEREZA_SPEED_PER_LEVEL * (entity.perezaLevel || 1);
+    for (const [entityId, entity] of Object.entries(this.gameState.entities)) {
+      let extra = 0;
+      if (entity.perezaUntil > now) extra += dt * 1000 * PEREZA_SPEED_PER_LEVEL * (entity.perezaLevel || 1);
+      if (this.hasReserve(entityId, entity)) extra += dt * 1000 * RESERVE_COOLDOWN_BONUS;
+      if (extra <= 0) continue;
       for (const key of Object.keys(entity.cardCooldowns)) if (entity.cardCooldowns[key] > now) entity.cardCooldowns[key] -= extra;
       for (const key of Object.keys(entity.skillCooldowns)) if (entity.skillCooldowns[key] > now) entity.skillCooldowns[key] -= extra;
     }
   }
 
-  buildStatuses(entity, now) {
+  buildStatuses(entity, now, entityId) {
     const list = [];
     const add = (id, level, until) => { if (until > now) list.push({ id, level, ms: until - now }); };
     if (entity.exacerbacionLevel) add('exacerbacion', entity.exacerbacionLevel, entity.exacerbacionUntil);
     add('pereza', entity.perezaLevel || 1, entity.perezaUntil);
+    if (entity.respiro) add('respiro', 1, now + 300);
+    if (this.hasReserve(entityId, entity)) add('reserva', 1, now + 300);
     add('acetilcolina', 1, entity.acetilUntil);
     if (entity.acetilUntil <= now) add('fatiga', 1, entity.fatigueUntil);
     add('impulso', entity.allyBoostLevel || 1, entity.allyBoostUntil);
@@ -911,6 +924,15 @@ class Room {
       entity.curMult = speedMultiplier > prevMult ? prevMult + (speedMultiplier - prevMult) * Math.min(1, dt * 6) : speedMultiplier;
       speedMultiplier = entity.curMult;
 
+      const resting = inAction && !isMoving && !stunned && !entity.channel && !rolling;
+      if (resting) {
+        if (!entity.idleSince) entity.idleSince = now;
+      } else {
+        entity.idleSince = 0;
+      }
+      entity.respiro = resting && now - entity.idleSince >= REST_DELAY_MS;
+      if (entity.respiro && entity.flojeraLockedUntil > now) entity.flojeraLockedUntil -= dt * 1000;
+
       if (inAction && entity.acetilUntil > now) {
         if (isMoving && entity.flojera > 0 && !input.slow) {
           entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
@@ -919,7 +941,7 @@ class Room {
       } else if (inAction && !rolling) {
         if (sprinting || wantsSlow || !isMoving) {
           if (!sprinting && entity.regenBlockedUntil <= now) {
-            entity.flojera = Math.min(entity.flojeraMax, entity.flojera + FLOJERA_REGEN_PER_SEC * dt);
+            entity.flojera = Math.min(entity.flojeraMax, entity.flojera + FLOJERA_REGEN_PER_SEC * (entity.respiro ? REST_REGEN_FACTOR : 1) * dt);
           }
         } else if (entity.noDrainUntil <= now) {
           const before = entity.flojera;

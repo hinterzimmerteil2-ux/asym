@@ -461,3 +461,23 @@ test('las zonas se colocan a la altura del suelo bajo ellas y funcionan sobre pl
     GameMap.resolvePlatforms = orig;
   }
 });
+
+test('quieto regeneras Flojera al doble y con reserva alta los cooldowns bajan más rápido', () => {
+  const { room, e, step } = setup();
+  room.phase = 'action';
+  e.a.flojera = 10;
+  e.a.input.moveX = 0; e.a.input.moveZ = 0;
+  step(10);
+  const early = e.a.flojera;
+  step(30);
+  assert.ok(e.a.respiro);
+  const before = e.a.flojera;
+  step(20);
+  const rate = (e.a.flojera - before) / 1;
+  assert.ok(rate > 15);
+  e.a.flojera = e.a.flojeraMax;
+  assert.ok(room.hasReserve('a', e.a));
+  e.a.flojera = 10;
+  assert.ok(!room.hasReserve('a', e.a));
+  assert.ok(early >= 10);
+});
