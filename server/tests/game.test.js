@@ -439,3 +439,25 @@ test('la cáscara no se gasta dos veces con la misma entidad que sigue encima', 
   room.tickZones(Date.now(), 0.05);
   assert.strictEqual(room.gameState.zones.length === 0 || zone.charges === 0, true);
 });
+
+test('las zonas se colocan a la altura del suelo bajo ellas y funcionan sobre plataformas', () => {
+  const { room, e } = setup();
+  const Hitbox = require('../src/Hitbox');
+  const plats = [{ id: 'p', x: 3, z: 0, hx: 3, hz: 3, h: 2 }];
+  const GameMap = require('../src/GameMap');
+  const orig = GameMap.resolvePlatforms;
+  GameMap.resolvePlatforms = () => plats;
+  try {
+    e.a.x = 0; e.a.z = 0; e.a.y = 2; e.a.faceX = 1; e.a.faceZ = 0;
+    room.phase = 'action';
+    room.addZone({ kind: 'rimac', x: 3, z: 0, radius: 2, ownerId: 'a', until: Date.now() + 5000 });
+    const zone = room.gameState.zones[room.gameState.zones.length - 1];
+    assert.ok(Math.abs(zone.y - 2) < 0.01);
+    e.c.x = 3; e.c.z = 0; e.c.y = 2;
+    assert.ok(room.zoneDistance(e.c, zone) <= 2);
+    e.c.y = 0;
+    assert.ok(room.zoneDistance(e.c, zone) > 2);
+  } finally {
+    GameMap.resolvePlatforms = orig;
+  }
+});

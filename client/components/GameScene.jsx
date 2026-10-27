@@ -516,7 +516,7 @@ function ZoneDisc({ zone, ghost }) {
   const isTrap = zone.kind === 'trap';
   const bananaColor = zone.cardId === 'platano_podrido' ? '#7a6a2a' : '#f2d154';
   return (
-    <group position={[zone.x, 0, zone.z]}>
+    <group position={[zone.x, zone.y || 0, zone.z]}>
       {isTrap ? (
         <SquareFrame x={0} z={0} half={zone.radius} color={color} opacity={zone.armed ? 0.6 : 0.25} />
       ) : (
@@ -1219,7 +1219,7 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
         <SquareFrame key={id} x={pos.x} z={pos.z} half={cfg.interact} color="#e0555f" opacity={opacity} />
       ))}
       {(zones || []).map((zone) => (
-        <SquareFrame key={zone.id} x={zone.x} z={zone.z} half={zone.radius} color="#e0555f" opacity={opacity} />
+        <SquareFrame key={zone.id} x={zone.x} z={zone.z} y={zone.y || 0} half={zone.radius} color="#e0555f" opacity={opacity} />
       ))}
     </>
   );

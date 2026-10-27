@@ -706,7 +706,7 @@ class Room {
       }
       return out;
     };
-    const zones = this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, level: z.level || 0, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt }));
+    const zones = this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, y: z.y || 0, level: z.level || 0, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt }));
 
     for (const [playerId, player] of this.players) {
       if (player.isBot || player.ws.readyState !== 1) continue;
@@ -1325,7 +1325,15 @@ class Room {
     return true;
   }
 
+  zoneDistance(entity, zone) {
+    if (Math.abs((entity.y || 0) - (zone.y || 0)) > 1.6) return Infinity;
+    return distanceBetween({ ...entity, y: 0 }, { x: zone.x, z: zone.z, y: 0 });
+  }
+
   addZone(zone) {
+    const owner = this.gameState.entities[zone.ownerId];
+    const platforms = this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.MATCH_AREA) : [];
+    zone.y = groundAt(platforms, zone.x, zone.z, owner ? owner.y || 0 : 0, 2);
     this.gameState.zones.push({ id: `z${this.zoneCounter = (this.zoneCounter || 0) + 1}`, ...zone });
   }
 
@@ -1343,7 +1351,7 @@ class Room {
         for (const [playerId, patient] of Object.entries(this.gameState.patients)) {
           if (patient.status !== 'alive') continue;
           const entity = this.gameState.entities[playerId];
-          if (!entity || distanceBetween(entity, zone) > zone.radius) continue;
+          if (!entity || this.zoneDistance(entity, zone) > zone.radius) continue;
           const before = patient.status;
           if (zone.kind === 'rimac') {
             zone.inside = zone.inside || {};
@@ -1357,7 +1365,7 @@ class Room {
           for (const [playerId, player] of this.players) {
             if (!player.isAsymRole) continue;
             const entity = this.gameState.entities[playerId];
-            if (entity && distanceBetween(entity, zone) <= zone.radius) {
+            if (entity && this.zoneDistance(entity, zone) <= zone.radius) {
               this.adjustCuratorHp(PUDDLE_CURATOR_PER_SEC * dt);
             }
           }
@@ -1366,7 +1374,7 @@ class Room {
           for (const [playerId, player] of this.players) {
             if (!player.isAsymRole) continue;
             const entity = this.gameState.entities[playerId];
-            if (!entity || distanceBetween(entity, zone) > zone.radius) continue;
+            if (!entity || this.zoneDistance(entity, zone) > zone.radius) continue;
             entity.flojera = Math.max(0, entity.flojera - RIMAC_CURADOR_FLOJERA_DRAIN_PER_SEC * dt);
             const curator = this.gameState.curator;
             this.adjustCuratorHp((curator.hp < curator.max / 2 ? -1 : 1) * zone.perSecond * dt);
@@ -1386,7 +1394,7 @@ class Room {
             if (zone.charges <= 0) break;
             const entity = this.gameState.entities[playerId];
             if (!entity) continue;
-            if (distanceBetween(entity, zone) > TRAP_RADIUS) {
+            if (this.zoneDistance(entity, zone) > TRAP_RADIUS) {
               delete zone.spent[playerId];
               continue;
             }
