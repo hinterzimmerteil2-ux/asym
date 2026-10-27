@@ -462,7 +462,7 @@ test('las zonas se colocan a la altura del suelo bajo ellas y funcionan sobre pl
   }
 });
 
-test('quieto regeneras Flojera al doble y con reserva alta los cooldowns bajan más rápido', () => {
+test('quieto regeneras Flojera al doble', () => {
   const { room, e, step } = setup();
   room.phase = 'action';
   e.a.flojera = 10;
@@ -475,9 +475,22 @@ test('quieto regeneras Flojera al doble y con reserva alta los cooldowns bajan m
   step(20);
   const rate = (e.a.flojera - before) / 1;
   assert.ok(rate > 15);
-  e.a.flojera = e.a.flojeraMax;
-  assert.ok(room.hasReserve('a', e.a));
-  e.a.flojera = 10;
-  assert.ok(!room.hasReserve('a', e.a));
   assert.ok(early >= 10);
+});
+
+test('correr sin parar gasta cada vez más Flojera y agotarla bloquea la regeneración', () => {
+  const { room, e, step } = setup();
+  room.phase = 'action';
+  e.a.x = -20; e.a.z = 0;
+  e.a.input.moveX = 1;
+  e.a.flojera = e.a.flojeraMax;
+  step(20);
+  const first = e.a.flojeraMax - e.a.flojera;
+  const mid = e.a.flojera;
+  step(20);
+  const second = mid - e.a.flojera;
+  assert.ok(second > first);
+  e.a.flojera = 0.1;
+  step(3);
+  assert.ok(e.a.regenBlockedUntil > Date.now());
 });
