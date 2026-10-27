@@ -511,12 +511,14 @@ function BrokenBottle({ color }) {
   );
 }
 
-function ZoneDisc({ zone, ghost }) {
+function ZoneDisc({ zone, ghost, platforms }) {
+  const ramp = (platforms || []).find((p) => p.ramp && Math.abs(zone.x - p.x) <= p.hx && Math.abs(zone.z - p.z) <= p.hz);
+  const tilt = ramp ? Math.atan2(ramp.h, ramp.hx * 2) * (ramp.ramp === '+x' ? 1 : -1) : 0;
   const color = ZONE_COLORS[zone.kind] || '#ffffff';
   const isTrap = zone.kind === 'trap';
   const bananaColor = zone.cardId === 'platano_podrido' ? '#7a6a2a' : '#f2d154';
   return (
-    <group position={[zone.x, zone.y || 0, zone.z]}>
+    <group position={[zone.x, zone.y || 0, zone.z]} rotation={[0, 0, tilt]}>
       {isTrap ? (
         <SquareFrame x={0} z={0} half={zone.radius} color={color} opacity={zone.armed ? 0.6 : 0.25} />
       ) : (
@@ -1269,7 +1271,7 @@ export default function GameScene({
 
       {phase === 'action' && (effects || []).map((effect) => <SkillEffect key={effect.id} effect={effect} />)}
 
-      {phase === 'action' && (zones || []).map((zone) => <ZoneDisc key={zone.id} zone={zone} ghost={Boolean(playerById.get(myPlayerId)?.isAsymRole)} />)}
+      {phase === 'action' && (zones || []).map((zone) => <ZoneDisc key={zone.id} zone={zone} platforms={platforms} ghost={Boolean(playerById.get(myPlayerId)?.isAsymRole)} />)}
 
       {hitboxes?.on && (
         <Hitboxes
