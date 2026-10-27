@@ -886,6 +886,7 @@ export default function LobbyPage() {
 
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
+        {phase === 'lobby' && <TouchControls lobby />}
         {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
 
         {phase === 'action' && flojera && (

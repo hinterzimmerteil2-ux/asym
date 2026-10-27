@@ -370,6 +370,39 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
   );
 }
 
+function LobbyDecor() {
+  const glow = useRef([]);
+  useFrame(({ clock }) => {
+    glow.current.forEach((m, i) => { if (m) m.position.y = 3.2 + Math.sin(clock.elapsedTime * 1.5 + i) * 0.25; });
+  });
+  const posts = Array.from({ length: 8 }, (_, i) => [Math.cos((i / 8) * Math.PI * 2) * 11, Math.sin((i / 8) * Math.PI * 2) * 11]);
+  const colors = ['#e0555f', '#f2a154', '#f2d154', '#5fd58c', '#54d1f2', '#5468ff', '#b07cf2', '#e8e9f0'];
+  return (
+    <group>
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[3.2, 3.6, 48]} />
+        <meshBasicMaterial color="#54d1f2" transparent opacity={0.5} />
+      </mesh>
+      <mesh position={[0, 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[3.2, 48]} />
+        <meshBasicMaterial color="#1b1d29" transparent opacity={0.35} />
+      </mesh>
+      {posts.map(([x, z], i) => (
+        <group key={i} position={[x, 0, z]}>
+          <mesh position={[0, 1.5, 0]} castShadow><cylinderGeometry args={[0.12, 0.16, 3, 8]} /><meshStandardMaterial color="#3a3d52" roughness={0.8} /></mesh>
+          <mesh ref={(el) => { glow.current[i] = el; }} position={[0, 3.2, 0]}>
+            <octahedronGeometry args={[0.32, 0]} />
+            <meshBasicMaterial color={colors[i]} />
+          </mesh>
+        </group>
+      ))}
+      {[[-6, -6], [6, -6], [-6, 6], [6, 6]].map(([x, z], i) => (
+        <mesh key={`b${i}`} position={[x, 0.3, z]} castShadow><boxGeometry args={[1.6, 0.6, 0.6]} /><meshStandardMaterial color="#4a4f66" roughness={0.9} /></mesh>
+      ))}
+    </group>
+  );
+}
+
 function Ground({ halfSize, themed }) {
   const floorColor = themed ? COLOR_FLOOR_MATCH : '#1b1d29';
   const gridColorMajor = themed ? '#c9c5b8' : '#3a3d52';
@@ -1291,6 +1324,7 @@ export default function GameScene({
       <FollowCamera focusId={followId || myPlayerId} myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
 
       <Ground halfSize={areaHalfSize} themed={phase === 'action'} />
+      {phase !== 'action' && <LobbyDecor />}
 
       {phase === 'action' && (effects || []).map((effect) => <SkillEffect key={effect.id} effect={effect} />)}
 

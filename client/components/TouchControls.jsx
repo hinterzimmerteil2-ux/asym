@@ -85,12 +85,23 @@ function Btn({ label, code, size = 52, style, until = 0 }) {
   );
 }
 
-export default function TouchControls({ ghost, onReveal, ghostUsed, isAsymRole, cardCooldowns = {}, skillCooldowns = {}, onInteract }) {
+export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsymRole, cardCooldowns = {}, skillCooldowns = {}, onInteract }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
     setShow(window.matchMedia('(pointer: coarse)').matches);
   }, []);
   if (!show) return null;
+  if (lobby) {
+    return (
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
+        <Stick />
+        <div style={{ position: 'absolute', right: 20, bottom: 24, display: 'flex', gap: 10 }}>
+          <Btn label="Lento" code="ShiftLeft" size={56} style={{ fontSize: 12 }} />
+          <Btn label="Salto" code="Space" size={64} style={{ fontSize: 13 }} />
+        </div>
+      </div>
+    );
+  }
   if (ghost) {
     return (
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>

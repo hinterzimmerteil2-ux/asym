@@ -21,6 +21,7 @@ const {
   CHAT_HISTORY_LIMIT,
   CHAT_RATE_LIMIT_MS,
   MOVE_SPEED,
+  CURATOR_SPEED_BONUS,
   JUMP_VELOCITY,
   STEP_UP,
   DASH_STEP_UP,
@@ -921,6 +922,7 @@ class Room {
         entity.allyBoostLevel = Math.min(ALLY_BOOST_MAX_LEVEL, allyCounts[entityPlayerId]);
       }
       if (entity.allyBoostUntil > now) speedMultiplier *= 1 + ACETIL_ALLY_STEP * (entity.allyBoostLevel || 1);
+      if (this.players.get(entityPlayerId)?.isAsymRole) speedMultiplier *= CURATOR_SPEED_BONUS;
       if (stunned) speedMultiplier = 0;
       if (!isMoving && !rolling) entity.curMult = Math.min(entity.curMult || 1, FLOJERA_SLOW_MULTIPLIER);
       const prevMult = entity.curMult ?? speedMultiplier;
