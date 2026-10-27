@@ -18,7 +18,7 @@ const CARDS = {
     displayName: 'Rodar',
     description: 'Dash que, si golpea al Curador, lo lanza lejos (ragdoll) y te deja donde estaba él (dropkick); arrastra a tus aliados; sube plataformas de hasta 1.8 de alto. Gasta 25 de Flojera.',
     rarity: 'uncommon',
-    cooldownMs: 24000,
+    cooldownMs: 32000,
   },
   tropiezo: {
     id: 'tropiezo',
@@ -54,7 +54,7 @@ const CARDS = {
     id: 'cascara_platano',
     keywords: ['defensiva'],
     displayName: 'Cáscara de Plátano',
-    description: 'Lanzas una cáscara 3 de distancia con 2 usos. Dura 1 minuto: empieza con 1 de vida y se cura 1 por segundo hasta 61, donde desaparece. Con 31 y 61 de vida pierde un nivel: el Curador que la pisa cae 1, 1.5 o 2s y se cura 10, 20 o 30. Tú también puedes tropezar con ella pasados 2.5s.',
+    description: 'Lanzas una cáscara 3 de distancia con 2 usos. Dura 1 minuto: empieza con 1 de vida y se cura 1 por segundo hasta 61, donde desaparece. Con 31 y 61 de vida pierde un nivel: el Curador que la pisa cae 1, 1.5 o 2s y se cura 8, 14 o 20. Tú también puedes tropezar con ella pasados 2.5s.',
     rarity: 'uncommon',
     cooldownMs: 25000,
   },
@@ -79,7 +79,7 @@ const CARDS = {
     maxHpSet: 180,
     rarity: 'rare',
     durationMs: 2000,
-    cooldownMs: 30000,
+    cooldownMs: 36000,
   },
   tajo_carmesi: {
     id: 'tajo_carmesi',

@@ -22,6 +22,7 @@ const {
   CHAT_RATE_LIMIT_MS,
   MOVE_SPEED,
   CURATOR_SPEED_BONUS,
+  CURATOR_DRAIN_FACTOR,
   JUMP_VELOCITY,
   STEP_UP,
   DASH_STEP_UP,
@@ -953,7 +954,7 @@ class Room {
         } else if (entity.noDrainUntil <= now) {
           const before = entity.flojera;
           entity.runStreak = (entity.runStreak || 0) + dt;
-          const drainFactor = 1 + Math.min(RUN_STREAK_MAX, entity.runStreak * RUN_STREAK_RAMP);
+          const drainFactor = (1 + Math.min(RUN_STREAK_MAX, entity.runStreak * RUN_STREAK_RAMP)) * (this.players.get(entityPlayerId)?.isAsymRole ? CURATOR_DRAIN_FACTOR : 1);
           entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * drainFactor * dt);
           if (entity.flojera <= 0) {
             entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
@@ -1421,7 +1422,7 @@ class Room {
         if (life >= TRAP_PEAK_LIFE) zone.charges = 0;
         if (zone.charges > 0 && now >= zone.cooldownUntil) {
           const stunMs = [0, 1000, 1500, 2000][zone.level];
-          const heal = [0, 10, 20, 30][zone.level];
+          const heal = [0, 8, 14, 20][zone.level];
           zone.spent = zone.spent || {};
           for (const [playerId, player] of this.players) {
             if (zone.charges <= 0) break;

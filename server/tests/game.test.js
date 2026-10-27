@@ -167,7 +167,7 @@ test('caer de una plataforma da ralentización a los Pacientes', () => {
 test('Rodar sube hasta la plataforma baja', () => {
   const { room, e, step } = setup();
   e.c.x = -25; e.c.z = 25;
-  e.a.x = -12; e.a.z = -22.5; e.a.faceX = 1; e.a.faceZ = 0;
+  e.a.x = -11; e.a.z = -22.5; e.a.faceX = 1; e.a.faceZ = 0;
   give(e.a, 0, 'rodar');
   room.useCard('a', 0);
   step(12);
@@ -379,7 +379,7 @@ test('el chat de fantasmas solo lo reciben otros fantasmas', () => {
   assert.ok(!got.c);
 });
 
-test('cáscara de plátano: 2 usos, cura 30 al Curador y también tropieza su dueño tras armarse', () => {
+test('cáscara de plátano: 2 usos, cura 20 al Curador y también tropieza su dueño tras armarse', () => {
   const { room, e } = setup();
   e.a.x = 0; e.a.z = 0; e.a.faceX = 1; e.a.faceZ = 0; e.c.x = 40; e.c.z = 40;
   give(e.a, 0, 'cascara_platano');
@@ -391,7 +391,7 @@ test('cáscara de plátano: 2 usos, cura 30 al Curador y también tropieza su du
   room.gameState.curator.hp = 50;
   e.c.x = zone.x; e.c.z = zone.z;
   room.tickZones(Date.now(), 0.05);
-  assert.strictEqual(room.gameState.curator.hp, 80);
+  assert.strictEqual(room.gameState.curator.hp, 70);
   assert.strictEqual(zone.charges, 1);
   assert.strictEqual(Status.active(e.a, 'ragdoll', Date.now()), false);
   e.c.x = 40;
