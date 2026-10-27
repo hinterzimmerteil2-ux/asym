@@ -18,6 +18,7 @@ import StatusColumn from '../components/StatusColumn';
 import RhythmBar from '../components/RhythmBar';
 import TouchControls from '../components/TouchControls';
 import { KEYWORDS } from '../lib/keywords';
+import { ITEMS, COLORS, SLOT_LABELS } from '../lib/cosmetics';
 
 function KeywordChip({ id }) {
   const k = KEYWORDS[id];
@@ -119,6 +120,8 @@ export default function LobbyPage() {
   const [entities, setEntities] = useState({});
   const [ghosts, setGhosts] = useState({});
   const [ping, setPing] = useState(null);
+  const [cosmetics, setCosmetics] = useState({});
+  const [cosmeticsOpen, setCosmeticsOpen] = useState(false);
   const pingSentRef = useRef(0);
   const frameBuf = useRef([]);
   const [replay, setReplay] = useState(null);
@@ -511,6 +514,25 @@ export default function LobbyPage() {
   }
 
   useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('asym_cosmetics') || 'null');
+      if (stored && typeof stored === 'object') setCosmetics(stored);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'in_room' || !isConnected) return;
+    connRef.current?.send('set_cosmetics', { cosmetics });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, isConnected]);
+
+  const updateCosmetics = (next) => {
+    setCosmetics(next);
+    try { localStorage.setItem('asym_cosmetics', JSON.stringify(next)); } catch {}
+    connRef.current?.send('set_cosmetics', { cosmetics: next });
+  };
+
+  useEffect(() => {
     if (status !== 'in_room') return undefined;
     const id = setInterval(() => {
       pingSentRef.current = performance.now();
@@ -768,6 +790,10 @@ export default function LobbyPage() {
                 );
               })}
             </div>
+          )}
+
+          {phase === 'lobby' && (
+            <button type="button" style={{ ...styles.smallButton, width: '100%', padding: '8px 12px' }} onClick={() => setCosmeticsOpen(true)}>Personalizar personaje</button>
           )}
 
           {phase === 'lobby' && (
@@ -1060,6 +1086,32 @@ export default function LobbyPage() {
           <p style={sx(styles.reconnectingOverlay, { top: 48, zIndex: 35 })}>Reconectando con el servidor...</p>
         )}
 
+        {cosmeticsOpen && phase === 'lobby' && (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 70, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setCosmeticsOpen(false)}>
+            <div style={{ width: 'min(440px, calc(100% - 24px))', maxHeight: 'calc(100% - 24px)', overflowY: 'auto', boxSizing: 'border-box', padding: 14, borderRadius: 10, background: '#1b1d29', border: '1px solid #2a2d3d', display: 'flex', flexDirection: 'column', gap: 10 }} onClick={(e) => e.stopPropagation()}>
+              <strong>Personalizar personaje</strong>
+              {Object.keys(ITEMS).map((slot) => (
+                <div key={slot} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span style={{ fontSize: 12, color: '#8a8da3' }}>{SLOT_LABELS[slot]}</span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px', borderColor: !cosmetics[slot] ? '#54d1f2' : '#2a2d3d' }} onClick={() => { const next = { ...cosmetics }; delete next[slot]; updateCosmetics(next); }}>Ninguno</button>
+                    {Object.entries(ITEMS[slot]).map(([id, def]) => (
+                      <button key={id} type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px', borderColor: cosmetics[slot]?.id === id ? '#54d1f2' : '#2a2d3d' }} onClick={() => updateCosmetics({ ...cosmetics, [slot]: { id, color: cosmetics[slot]?.color || COLORS[0] } })}>{def.name}</button>
+                    ))}
+                  </div>
+                  {cosmetics[slot] && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {COLORS.map((c) => (
+                        <button key={c} type="button" aria-label={`Color ${c}`} onClick={() => updateCosmetics({ ...cosmetics, [slot]: { ...cosmetics[slot], color: c } })} style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: cosmetics[slot].color === c ? '2px solid #fff' : '1px solid #2a2d3d', cursor: 'pointer', padding: 0 }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 12px', alignSelf: 'flex-end' }} onClick={() => setCosmeticsOpen(false)}>Listo</button>
+            </div>
+          </div>
+        )}
         {replay && (
           <div style={{ position: 'absolute', top: 56, left: '50%', transform: 'translateX(-50%)', zIndex: 60, display: 'flex', gap: 10, alignItems: 'center', padding: '6px 12px', borderRadius: 8, background: 'rgba(27, 29, 41, 0.92)', border: '1px solid #f2a154', fontSize: 13 }}>
             <span>Repetición</span>

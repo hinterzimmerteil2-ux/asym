@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { BoxGeometry, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace } from 'three';
+import { itemOf } from '../lib/cosmetics';
 
 const LOBBY_HALF_SIZE = 15;
 const MATCH_HALF_SIZE = 30;
@@ -165,7 +166,26 @@ function RagdollR6({ entityState, color }) {
   );
 }
 
-function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, ghost, ghostOpacity = 0.65 }) {
+function CosmeticPieces({ slot, cosmetics }) {
+  const item = itemOf(slot, cosmetics);
+  if (!item) return null;
+  return (
+    <>
+      {item.def.pieces.map((piece, i) => {
+        const col = piece.c === 'main' ? item.color : piece.c;
+        const args = piece.t === 'box' ? piece.s : piece.t === 'cyl' ? [piece.s[0], piece.s[1], piece.s[2], 14] : [piece.s[0], piece.s[1], 10];
+        return (
+          <mesh key={i} castShadow position={piece.p} rotation={piece.r || [0, 0, 0]}>
+            {piece.t === 'box' ? <boxGeometry args={args} /> : piece.t === 'cyl' ? <cylinderGeometry args={args} /> : <coneGeometry args={args} />}
+            <meshStandardMaterial color={col} roughness={0.7} />
+          </mesh>
+        );
+      })}
+    </>
+  );
+}
+
+function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, ghost, ghostOpacity = 0.65, cosmetics }) {
   const bodyRef = useRef();
   const lastPos = useRef([entityState.x, entityState.z]);
   const yaw = useRef(0);
@@ -327,7 +347,10 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
           <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
           <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
           <mesh position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+          <CosmeticPieces slot="head" cosmetics={cosmetics} />
         </group>
+        <CosmeticPieces slot="torso" cosmetics={cosmetics} />
+        <CosmeticPieces slot="back" cosmetics={cosmetics} />
         {[['armL', -0.54, 1.44, SKIN], ['armR', 0.54, 1.44, SKIN], ['legL', -0.18, 0.72, '#3a3d52'], ['legR', 0.18, 0.72, '#3a3d52']].map(([key, px, py, col]) => (
           <group key={key} ref={(el) => { rig.current[key] = el; }} position={[px, py, 0]}>
             <mesh castShadow position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
@@ -1315,6 +1338,7 @@ export default function GameScene({
           stunned={false}
           ragdoll={false}
           ghost
+          cosmetics={playerById.get(gid)?.cosmetics}
           ghostOpacity={g.visible ? 0.65 : 0.4}
         />
       ))}
@@ -1342,6 +1366,7 @@ export default function GameScene({
               isMe={playerId === myPlayerId}
               stunned={(stunnedIds || []).includes(playerId)}
               ragdoll={(ragdollIds || []).includes(playerId)}
+              cosmetics={player.cosmetics}
             />
           </group>
         );

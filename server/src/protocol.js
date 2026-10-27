@@ -24,6 +24,7 @@ const MessageType = {
   SET_MAP: 'set_map',                   // client(host) -> server: { mapId } — elige el mapa para la próxima partida
 
   // --- Nombre de jugador ---
+  SET_COSMETICS: 'set_cosmetics',
   SET_DISPLAY_NAME: 'set_display_name', // client -> server: { displayName } — cambia el nombre visible en la sala actual
 
   // --- Chat de sala ---

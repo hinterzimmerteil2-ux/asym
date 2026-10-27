@@ -198,6 +198,13 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.SET_COSMETICS: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.setCosmetics(playerId, msg.payload.cosmetics);
+        break;
+      }
+
       case MessageType.SET_DISPLAY_NAME: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;

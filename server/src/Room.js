@@ -1,5 +1,6 @@
 const { MessageType, encode } = require('./protocol');
 const GameMap = require('./GameMap');
+const Cosmetics = require('./Cosmetics');
 const Characters = require('./Characters');
 const Cards = require('./Cards');
 const CardEffects = require('./CardEffects');
@@ -430,6 +431,7 @@ class Room {
         name: p.name,
         isAsymRole: p.isAsymRole,
         isBot: Boolean(p.isBot),
+        cosmetics: p.cosmetics || {},
         characterId: p.isAsymRole ? (p.characterId || Characters.DEFAULT_CHARACTER_ID) : null,
         character: characterData
           ? { displayName: characterData.displayName, weaponName: characterData.weaponName, skills: Characters.publicSkills(characterData) }
@@ -445,6 +447,13 @@ class Room {
    * (/auth/update-name) — esto solo mantiene en sincro lo que ya se
    * está mostrando en una sala sin forzar una reconexión.
    */
+  setCosmetics(playerId, selection) {
+    const player = this.players.get(playerId);
+    if (!player) return;
+    player.cosmetics = Cosmetics.sanitize(selection);
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
+  }
+
   setDisplayName(playerId, displayName) {
     const player = this.players.get(playerId);
     if (!player) return;

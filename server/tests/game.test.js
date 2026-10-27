@@ -494,3 +494,14 @@ test('correr sin parar gasta cada vez más Flojera y agotarla bloquea la regener
   step(3);
   assert.ok(e.a.regenBlockedUntil > Date.now());
 });
+
+test('los cosméticos se validan y se publican en el resumen de jugadores', () => {
+  const { room } = setup();
+  room.broadcast = () => {};
+  room.setCosmetics('a', { head: { id: 'gorro_lana', color: '#5468ff' }, torso: { id: 'nada', color: '#fff' }, back: { id: 'alas', color: 'x' } });
+  const sum = room.getPlayersSummary().find((p) => p.id === 'a');
+  assert.deepStrictEqual(sum.cosmetics.head, { id: 'gorro_lana', color: '#5468ff' });
+  assert.strictEqual(sum.cosmetics.torso, undefined);
+  assert.strictEqual(sum.cosmetics.back.id, 'alas');
+  assert.notStrictEqual(sum.cosmetics.back.color, 'x');
+});
