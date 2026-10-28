@@ -198,8 +198,21 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
   const walk = useRef({ phase: 0, amp: 0, px: entityState.x, pz: entityState.z, py: entityState.y, air: 0, t: 0 });
   const targetPos = useRef([entityState.x, entityState.y, entityState.z]);
 
+  const lead = useRef({ t: 0, x: entityState.x, z: entityState.z, vx: 0, vz: 0 });
   useEffect(() => {
-    targetPos.current = [entityState.x, entityState.y, entityState.z];
+    const now = performance.now();
+    const l = lead.current;
+    const dt = (now - l.t) / 1000;
+    if (isMe && dt > 0.02 && dt < 0.3) {
+      l.vx = (entityState.x - l.x) / dt;
+      l.vz = (entityState.z - l.z) / dt;
+    } else if (!isMe || dt >= 0.3) {
+      l.vx = 0;
+      l.vz = 0;
+    }
+    l.t = now; l.x = entityState.x; l.z = entityState.z;
+    const ahead = isMe ? 0.06 : 0;
+    targetPos.current = [entityState.x + l.vx * ahead, entityState.y, entityState.z + l.vz * ahead];
   }, [entityState.x, entityState.y, entityState.z]);
 
   useFrame((_, delta) => {
@@ -332,7 +345,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
       HAND_ANIMS.delete(playerId);
     }
     groupRef.current.visible = !(CAMERA_LOCK.fp && CAMERA_LOCK.fpId === playerId);
-    const t = Math.min(1, delta * 12);
+    const t = Math.min(1, delta * (isMe ? 24 : 16));
     groupRef.current.position.x += (targetPos.current[0] - groupRef.current.position.x) * t;
     groupRef.current.position.y += (targetPos.current[1] - groupRef.current.position.y) * t;
     groupRef.current.position.z += (targetPos.current[2] - groupRef.current.position.z) * t;
