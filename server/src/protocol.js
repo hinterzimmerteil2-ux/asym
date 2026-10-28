@@ -41,6 +41,7 @@ const MessageType = {
   CURE_RESULT: 'cure_result',
   SELF_DAMAGE_ACTION: 'self_damage_action',
   SELF_DAMAGE_RESULT: 'self_damage_result',
+  DESGRACIAS_AWARD: 'desgracias_award',
 
   // --- Habilidad especial del Curador: "Pulso de Curación" (AoE, cooldown) ---
   CURATOR_PULSE_ACTION: 'curator_pulse_action', // client(Curador) -> server: {}

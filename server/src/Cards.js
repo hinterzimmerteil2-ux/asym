@@ -63,7 +63,7 @@ const CARDS = {
     corrupt: true,
     keywords: ['defensiva'],
     displayName: 'Agua del Río Rímac',
-    description: 'Lanzas la botella: golpea al Paciente frente a ti (6 de daño y +3 de Flojera) y le deja 4s de daño por segundo (3/s), dándole +2 de Flojera por segundo y a ti +1. Además deja un charco pequeño 3s: los Pacientes dentro reciben daño que sube rápido hasta 12 por segundo. El Curador pierde Flojera y, si tiene menos de la mitad de HP, recibe daño; si tiene más, se cura. Al elegirla (una vez por partida): HP máximo −18, Flojera máxima +8.',
+    description: 'Lanzas la botella: golpe en área pequeña a tu alrededor, a los otros Pacientes (4 de daño y 2/s durante 3s) y ganas +2 de Flojera. Deja un charco pequeño 3s que se debilita en 3 fases: hace hasta 12 de daño en total a cada Paciente. El Curador pierde Flojera y, si tiene menos de la mitad de HP, recibe daño; si tiene más, se cura. Al elegirla (una vez por partida): HP máximo −18, Flojera máxima +8.',
     maxHpDelta: -18,
     flojeraMaxDelta: 8,
     rarity: 'uncommon',

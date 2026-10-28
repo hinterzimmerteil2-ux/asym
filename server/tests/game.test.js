@@ -520,13 +520,12 @@ test('en el lobby hay parkour y la gravedad es 0.6x', () => {
   assert.ok(Math.abs(e.a.y - 3.2) < 0.01);
 });
 
-test('Agua del Río Rímac: melee DoT al Paciente, charco pequeño, costos de corrupta', () => {
+test('Agua del Río Rímac: melee AoE con DoT, charco con tope de 12 y costos de corrupta', () => {
   const { room, e, p, step } = setup();
   room.broadcast = () => {};
   e.c.x = 25; e.c.z = 25;
-  e.a.x = 0; e.a.z = 0; e.a.faceX = 0; e.a.faceZ = 1;
-  e.b.x = 0; e.b.z = 1; e.b.flojera = 10;
-  e.a.flojera = 10;
+  e.a.x = 0; e.a.z = 0; e.a.flojera = 10;
+  e.b.x = 0.5; e.b.z = 0;
   give(e.a, 0, 'agua_rimac');
   room.finalizeChoice('a', 0, 'agua_rimac');
   const hp = p.b.hp;
@@ -535,9 +534,24 @@ test('Agua del Río Rímac: melee DoT al Paciente, charco pequeño, costos de co
   assert.strictEqual(room.gameState.zones[0].radius, 1.6);
   assert.ok(p.b.hp < hp);
   assert.ok(e.b.rimacDot);
+  assert.ok(e.a.flojera > 10);
   const hp1 = p.b.hp;
-  e.b.x = 10; e.b.z = 10; e.a.x = -10;
-  for (let i = 0; i < 20; i++) { step(1, 0.05, false); room.tickZones(Date.now(), 0.05); }
+  e.a.x = -10;
+  for (let i = 0; i < 70; i++) { step(1, 0.05, false); room.tickZones(Date.now(), 0.05); }
   assert.ok(p.b.hp < hp1);
-  assert.ok(e.b.flojera > 12);
+  assert.ok(hp - p.b.hp <= 4 + 6 + 12 + 0.5);
+});
+
+test('Desgracias se acumulan por hazañas y se envían al terminar la partida', () => {
+  const { room, sent, e, p } = setup();
+  room.broadcast = () => {};
+  p.a.hp = 20;
+  e.a.x = 0; e.a.z = 0;
+  room.gameState.selfDamageObjectPositions = { o1: { x: 0, y: 0, z: 0.5 } };
+  room.handleSelfDamage ? room.handleSelfDamage('a', 'o1') : null;
+  room.award('a', 10, 'Prueba');
+  room.endGame('test', true);
+  const msg = sent.a.find((m) => m.type === 'desgracias_award');
+  assert.ok(msg && msg.payload.total >= 10);
+  assert.ok(msg.payload.items.some((i) => i.label === 'Prueba'));
 });

@@ -19,6 +19,7 @@ import RhythmBar from '../components/RhythmBar';
 import TouchControls from '../components/TouchControls';
 import { KEYWORDS } from '../lib/keywords';
 import { ITEMS, COLORS, SLOT_LABELS } from '../lib/cosmetics';
+import { loadDesgracias, saveDesgracias, priceOf, FREE_ITEMS } from '../lib/desgracias';
 
 const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -136,6 +137,8 @@ export default function LobbyPage() {
   const [lobbyPlatforms, setLobbyPlatforms] = useState([]);
   const [cosmetics, setCosmetics] = useState({});
   const [cosmeticsOpen, setCosmeticsOpen] = useState(false);
+  const [desgracias, setDesgracias] = useState({ balance: 0, owned: FREE_ITEMS });
+  const [lastAward, setLastAward] = useState(null);
   const pingSentRef = useRef(0);
   const frameBuf = useRef([]);
   const [replay, setReplay] = useState(null);
@@ -341,6 +344,15 @@ export default function LobbyPage() {
             break;
           case 'game_over':
             setGameOverInfo(payload);
+            setLastAward(null);
+            break;
+          case 'desgracias_award':
+            setLastAward(payload);
+            setDesgracias((prev) => {
+              const next = { ...prev, balance: prev.balance + (payload.total || 0) };
+              saveDesgracias(next);
+              return next;
+            });
             break;
           case 'game_started':
             setPhase(payload.phase);
@@ -544,7 +556,8 @@ export default function LobbyPage() {
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('asym_cosmetics') || 'null');
-      if (stored && typeof stored === 'object') setCosmetics(stored);
+      if (stored && typeof stored === 'object') { setCosmetics(stored); setDesgracias(loadDesgracias(stored)); }
+      else setDesgracias(loadDesgracias({}));
     } catch {}
   }, []);
 
@@ -553,6 +566,15 @@ export default function LobbyPage() {
     connRef.current?.send('set_cosmetics', { cosmetics });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, isConnected]);
+
+  const buyItem = (id) => {
+    const price = priceOf(id);
+    if (desgracias.owned.includes(id) || desgracias.balance < price) return false;
+    const next = { balance: desgracias.balance - price, owned: [...desgracias.owned, id] };
+    setDesgracias(next);
+    saveDesgracias(next);
+    return true;
+  };
 
   const updateCosmetics = (next) => {
     setCosmetics(next);
@@ -1118,15 +1140,36 @@ export default function LobbyPage() {
         {cosmeticsOpen && phase === 'lobby' && (
           <div style={{ position: 'absolute', inset: 0, zIndex: 70, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setCosmeticsOpen(false)}>
             <div style={{ width: 'min(440px, calc(100% - 24px))', maxHeight: 'calc(100% - 24px)', overflowY: 'auto', boxSizing: 'border-box', padding: 14, borderRadius: 10, background: '#1b1d29', border: '1px solid #2a2d3d', display: 'flex', flexDirection: 'column', gap: 10 }} onClick={(e) => e.stopPropagation()}>
-              <strong>Personalizar personaje</strong>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <strong>Personalizar personaje</strong>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                  <img src="/desgracias.png" alt="Desgracias" width={22} height={22} />
+                  <strong>{desgracias.balance}</strong>
+                </span>
+              </div>
               {Object.keys(ITEMS).map((slot) => (
                 <div key={slot} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <span style={{ fontSize: 12, color: '#8a8da3' }}>{SLOT_LABELS[slot]}</span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px', borderColor: !cosmetics[slot] ? '#54d1f2' : '#2a2d3d' }} onClick={() => { const next = { ...cosmetics }; delete next[slot]; updateCosmetics(next); }}>Ninguno</button>
-                    {Object.entries(ITEMS[slot]).map(([id, def]) => (
-                      <button key={id} type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px', borderColor: cosmetics[slot]?.id === id ? '#54d1f2' : '#2a2d3d' }} onClick={() => updateCosmetics({ ...cosmetics, [slot]: { id, color: cosmetics[slot]?.color || COLORS[0] } })}>{def.name}</button>
-                    ))}
+                    {Object.entries(ITEMS[slot]).map(([id, def]) => {
+                      const owned = desgracias.owned.includes(id);
+                      const price = priceOf(id);
+                      const affordable = desgracias.balance >= price;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px', borderColor: cosmetics[slot]?.id === id ? '#54d1f2' : owned ? '#2a2d3d' : affordable ? '#f2d154' : '#2a2d3d', opacity: owned || affordable ? 1 : 0.55 }}
+                          onClick={() => {
+                            if (!owned && !buyItem(id)) return;
+                            updateCosmetics({ ...cosmetics, [slot]: { id, color: cosmetics[slot]?.color || COLORS[0] } });
+                          }}
+                        >
+                          {def.name}{!owned && <span style={{ marginLeft: 6, color: '#f2d154' }}>{price}</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                   {cosmetics[slot] && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1159,6 +1202,17 @@ export default function LobbyPage() {
                     ? `Perdiste como ${players.find((p) => p.id === myPlayerId)?.character?.displayName || 'Curador'}`
                     : '¡Los Pacientes ganaron!'}
               </h2>
+              {lastAward && lastAward.total > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '6px 0', fontSize: 13 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <img src="/desgracias.png" alt="Desgracias" width={28} height={28} />
+                    <strong>+{lastAward.total} Desgracias</strong>
+                  </div>
+                  {lastAward.items.map((it) => (
+                    <div key={it.label} style={{ display: 'flex', justifyContent: 'space-between', color: '#8a8da3' }}><span>{it.label}</span><span>+{it.amount}</span></div>
+                  ))}
+                </div>
+              )}
               <p style={styles.gameOverReason}>
                 {gameOverInfo.reason === 'timeout' ? 'Se acabó el tiempo' : gameOverInfo.reason === 'curator_depleted' ? 'La salud del Curador llegó a 0' : gameOverInfo.reason === 'curator_overhealed' ? 'El Curador se curó hasta el máximo' : 'Todos los Pacientes fueron resueltos'}
               </p>

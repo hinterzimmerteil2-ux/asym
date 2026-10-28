@@ -596,7 +596,7 @@ function ZoneDisc({ zone, ghost, platforms }) {
       ) : (
         <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[zone.radius * 2, zone.radius * 2]} />
-          <meshBasicMaterial color={color} transparent opacity={0.3} />
+          <meshBasicMaterial color={color} transparent opacity={zone.kind === 'rimac' ? 0.1 + 0.07 * (zone.level || 3) : 0.3} />
         </mesh>
       )}
       {isTrap && <BananaMesh color={bananaColor} spotted={false} ghost={ghost} fade={zone.level > 0 && zone.level <= 2} />}

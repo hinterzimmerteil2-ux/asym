@@ -96,12 +96,9 @@ const {
   RUN_STREAK_MAX,
   EXHAUST_REGEN_BLOCK_MS,
   FLOJERA_SLOW_MULTIPLIER,
-  RIMAC_DAMAGE_MAX,
-  RIMAC_DAMAGE_BASE,
-  RIMAC_DAMAGE_RAMP,
+  RIMAC_PUDDLE_RATES,
+  RIMAC_PUDDLE_CAP,
   RIMAC_DOT_PER_SEC,
-  RIMAC_DOT_FLOJERA_TARGET,
-  RIMAC_DOT_FLOJERA_HEALER,
   FLOJERA_EXHAUST_LOCKOUT_MS,
   PLAYER_HALF,
   PLAYER_HEIGHT,
@@ -675,6 +672,7 @@ class Room {
     this.gameState.patientsInitialCount = patientIds.length;
     this.gameState.timeRemainingMs = GAME_DURATION_MS;
     this.gameState.gameOver = false;
+    this.gameState.desgracias = {};
 
     this.lastRelocateAt = Date.now();
     this.gameState.zones = [];
@@ -1386,9 +1384,6 @@ class Room {
       if (now >= dot.until || !patient || patient.status !== 'alive') { entity.rimacDot = null; continue; }
       const before = patient.status;
       this.damagePatient(playerId, RIMAC_DOT_PER_SEC * dt);
-      entity.flojera = Math.min(entity.flojeraMax, entity.flojera + RIMAC_DOT_FLOJERA_TARGET * dt);
-      const healer = this.gameState.entities[dot.healerId];
-      if (healer) healer.flojera = Math.min(healer.flojeraMax, healer.flojera + RIMAC_DOT_FLOJERA_HEALER * dt);
       if (patient.status !== before) statusChanged = true;
     }
     const remaining = [];
@@ -1399,6 +1394,10 @@ class Room {
       }
       remaining.push(zone);
 
+      if (zone.kind === 'rimac') {
+        const frac = Math.min(1, (now - zone.placedAt) / (zone.until - zone.placedAt));
+        zone.level = frac < 1 / 3 ? 3 : frac < 2 / 3 ? 2 : 1;
+      }
       if (zone.kind === 'rimac' || zone.kind === 'puddle') {
         for (const [playerId, patient] of Object.entries(this.gameState.patients)) {
           if (patient.status !== 'alive') continue;
@@ -1408,7 +1407,14 @@ class Room {
           if (zone.kind === 'rimac') {
             zone.inside = zone.inside || {};
             zone.inside[playerId] = (zone.inside[playerId] || 0) + dt;
-            this.damagePatient(playerId, Math.min(RIMAC_DAMAGE_MAX, RIMAC_DAMAGE_BASE + RIMAC_DAMAGE_RAMP * zone.inside[playerId]) * dt);
+            zone.dealt = zone.dealt || {};
+            const rate = RIMAC_PUDDLE_RATES[zone.level || 3];
+            const left = Math.max(0, RIMAC_PUDDLE_CAP - (zone.dealt[playerId] || 0));
+            const amount = Math.min(rate * dt, left);
+            if (amount > 0) {
+              zone.dealt[playerId] = (zone.dealt[playerId] || 0) + amount;
+              this.damagePatient(playerId, amount);
+            }
           }
           else this.healPatient(playerId, zone.perSecond * dt);
           if (patient.status !== before) statusChanged = true;
@@ -1455,6 +1461,8 @@ class Room {
             if (!player.isAsymRole && !(isOwner && now >= zone.ownerArmedAt && this.gameState.patients[playerId]?.status === 'alive')) continue;
             this.ragdoll(playerId, entity, stunMs, now);
             if (player.isAsymRole) this.adjustCuratorHp(heal);
+            else if (isOwner) this.award(playerId, 1, 'Tropezaste');
+            if (player.isAsymRole) this.award(zone.ownerId, 8, 'Cáscara de plátano');
             zone.charges -= 1;
             zone.spent[playerId] = true;
             zone.cooldownUntil = now + 1500;
@@ -1627,7 +1635,15 @@ class Room {
     return false;
   }
 
+  award(playerId, amount, reason) {
+    const player = this.players.get(playerId);
+    if (!player || player.isBot || !this.gameState.desgracias) return;
+    const book = this.gameState.desgracias[playerId] || (this.gameState.desgracias[playerId] = {});
+    book[reason] = (book[reason] || 0) + amount;
+  }
+
   gainExacerbacion(entity, now) {
+    for (const [id, e] of Object.entries(this.gameState.entities)) if (e === entity) this.award(id, 5, 'Golpe al Curador');
     const active = entity.exacerbacionUntil > now;
     entity.exacerbacionLevel = Math.min(EXACERBACION_MAX_LEVEL, (active ? entity.exacerbacionLevel : 0) + 1);
     entity.exacerbacionUntil = now + EXACERBACION_MS;
@@ -1718,6 +1734,7 @@ class Room {
     curadorEntity.baseCooldownUntil = Date.now() + (Characters.getCharacter(curador.characterId).baseCooldownMs || 900);
     const boost = curadorEntity.cureBoostUntil > Date.now() ? curadorEntity.cureBoostFactor : 1;
     patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, CURE_AMOUNT * boost, Date.now()));
+    this.award(curadorId, 3, 'Cura'); 
     if (patient.hp >= patient.maxHp) {
       patient.status = 'eliminated';
       this.onPatientFullyCured();
@@ -1763,6 +1780,7 @@ class Room {
     }
 
     patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - SELF_DAMAGE_AMOUNT);
+    this.award(playerId, 2, 'Auto-daño');
     if (patient.hp <= PATIENT_HP_MIN) patient.status = 'self_won';
 
     const allPositions = this.selfDamageCandidates();
@@ -1823,7 +1841,24 @@ class Room {
     const majorityThreshold = Math.ceil(this.gameState.patientsInitialCount / 2);
     const curatorWon = curatorLost ? false : eliminatedCount >= majorityThreshold;
 
+    for (const [playerId, player] of this.players) {
+      if (player.isBot) continue;
+      if (player.isAsymRole) {
+        this.award(playerId, 5, 'Partida jugada');
+        if (curatorWon) this.award(playerId, 40, 'Victoria del Curador');
+      } else {
+        this.award(playerId, 5, 'Partida jugada');
+        const status = patientResults[playerId]?.status;
+        if (status === 'self_won') this.award(playerId, 40, 'Escapaste');
+        else if (status === 'timeout') this.award(playerId, 15, 'Sobreviviste');
+      }
+    }
     this.broadcast(MessageType.GAME_OVER, { curatorWon, patientResults, reason });
+    for (const [playerId, book] of Object.entries(this.gameState.desgracias || {})) {
+      const items = Object.entries(book).map(([label, amount]) => ({ label, amount }));
+      const total = items.reduce((sum, i) => sum + i.amount, 0);
+      if (total > 0) this.sendTo(playerId, MessageType.DESGRACIAS_AWARD, { total, items });
+    }
   }
 
   /**

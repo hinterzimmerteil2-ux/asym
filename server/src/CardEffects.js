@@ -61,24 +61,17 @@ const handlers = {
   },
 
   agua_rimac({ room, playerId, entity, card, now }) {
-    room.addZone({ kind: 'rimac', cardId: card.id, x: entity.x, z: entity.z, radius: C.RIMAC_RADIUS, perSecond: C.RIMAC_CURATOR_PER_SEC, ownerId: playerId, until: now + C.RIMAC_LIFETIME_MS });
-    const origin = reachPoint(entity, C.RIMAC_MELEE_REACH);
-    let nearest = null;
-    let nearestDist = C.RIMAC_MELEE_RADIUS;
+    room.addZone({ kind: 'rimac', cardId: card.id, x: entity.x, z: entity.z, radius: C.RIMAC_RADIUS, perSecond: C.RIMAC_CURATOR_PER_SEC, ownerId: playerId, until: now + C.RIMAC_LIFETIME_MS, placedAt: now, level: 3 });
+    entity.flojera = Math.min(entity.flojeraMax, entity.flojera + C.RIMAC_FLOJERA_INITIAL);
     for (const [id, patient] of Object.entries(room.gameState.patients)) {
       if (id === playerId || patient.status !== 'alive') continue;
       const target = room.gameState.entities[id];
-      if (!target) continue;
-      const d = distanceBetween(origin, target);
-      if (d <= nearestDist) { nearestDist = d; nearest = id; }
+      if (!target || distanceBetween(entity, target) > C.RIMAC_MELEE_RADIUS) continue;
+      room.damagePatient(id, C.RIMAC_DOT_INITIAL);
+      target.rimacDot = { until: now + C.RIMAC_DOT_MS };
+      room.award(playerId, 4, 'Botellazo');
     }
-    if (nearest) {
-      const target = room.gameState.entities[nearest];
-      room.damagePatient(nearest, C.RIMAC_DOT_INITIAL);
-      target.flojera = Math.min(target.flojeraMax, target.flojera + C.RIMAC_DOT_FLOJERA_INITIAL);
-      target.rimacDot = { until: now + C.RIMAC_DOT_MS, healerId: playerId };
-      room.checkGameEndConditions();
-    }
+    room.checkGameEndConditions();
   },
 
   acetilcolina({ entity, card, now }) {
