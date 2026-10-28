@@ -217,7 +217,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
-    if (ghost) {
+    if (ghost && groupRef.current.userData.ghostOp !== ghostOpacity) {
+      groupRef.current.userData.ghostOp = ghostOpacity;
       groupRef.current.traverse((o) => {
         const m = o.material;
         if (m) {

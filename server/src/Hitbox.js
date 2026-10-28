@@ -37,6 +37,8 @@ function extentOf(o) {
   return o.input && !o.corpse ? { half: PLAYER_HALF, height: PLAYER_HEIGHT } : { half: 0, height: 0 };
 }
 
+const ATTACK_VERTICAL_PAD = 1.5;
+
 function distanceBetween(a, b) {
   const ea = extentOf(a);
   const eb = extentOf(b);
@@ -46,7 +48,7 @@ function distanceBetween(a, b) {
   return Math.max(
     Math.max(0, Math.abs(a.x - b.x) - reach),
     Math.max(0, Math.abs(a.z - b.z) - reach),
-    Math.max(0, ay - (by + eb.height), by - (ay + ea.height))
+    Math.max(0, ay - (by + eb.height) - ATTACK_VERTICAL_PAD, by - (ay + ea.height) - ATTACK_VERTICAL_PAD)
   );
 }
 

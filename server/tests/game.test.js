@@ -494,7 +494,7 @@ test('correr sin parar gasta cada vez más Flojera y agotarla bloquea la regener
   const second = mid - e.a.flojera;
   assert.ok(second > first);
   e.a.flojera = 0.1;
-  step(3);
+  step(3, 0.05, false);
   assert.ok(e.a.regenBlockedUntil > Date.now());
 });
 
