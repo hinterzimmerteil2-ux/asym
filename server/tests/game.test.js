@@ -167,7 +167,7 @@ test('caer de una plataforma da ralentización a los Pacientes', () => {
 test('Rodar sube hasta la plataforma baja', () => {
   const { room, e, step } = setup();
   e.c.x = -25; e.c.z = 25;
-  e.a.x = -11; e.a.z = -22.5; e.a.faceX = 1; e.a.faceZ = 0;
+  e.a.x = -11; e.a.z = -45; e.a.faceX = 1; e.a.faceZ = 0;
   give(e.a, 0, 'rodar');
   room.useCard('a', 0);
   step(12);
@@ -267,11 +267,11 @@ test('Pathfinding rodea plataformas altas y entra por la rampa', () => {
   const Pathfinding = require('../src/Pathfinding');
   const area = GameMap.MATCH_AREA;
   const grid = Pathfinding.buildGrid(area.halfSize, GameMap.resolveCollisionObjects('default', area), GameMap.resolvePlatforms('default', area));
-  const path = Pathfinding.findPath(grid, { x: -9, z: -25.8 }, { x: 0, z: -25 });
+  const path = Pathfinding.findPath(grid, { x: -9, z: -48.3 }, { x: 0, z: -47.5 });
   assert.ok(path.length >= 3);
   assert.ok(path.some((p) => p.x > 6));
   const end = path[path.length - 1];
-  assert.ok(Math.hypot(end.x - 0, end.z + 25) < 1.2);
+  assert.ok(Math.hypot(end.x - 0, end.z + 47.5) < 1.2);
 });
 
 test('Pacientes resueltos: eliminado queda como cadáver sin hitbox, el que escapa también', () => {
@@ -291,17 +291,20 @@ test('Los objetos de auto-daño no aparecen dentro de estructuras ni en zonas in
   const { room } = setup();
   const original = GameMap.resolveSelfDamagePositions;
   GameMap.resolveSelfDamagePositions = () => [
-    { id: 'ok', x: 20, z: 20 },
-    { id: 'en_pilar', x: 12, z: 12 },
-    { id: 'en_estante', x: 6, z: -14 },
-    { id: 'meseta', x: 0, z: -25 },
+    { id: 'ok', x: 30, z: 10 },
+    { id: 'en_pilar', x: 24, z: 24 },
+    { id: 'en_estante', x: 12, z: -28 },
+    { id: 'meseta', x: 0, z: -45 },
   ];
   room.nav = null;
   const ids = room.selfDamageCandidates().map((p) => p.id);
   GameMap.resolveSelfDamagePositions = original;
   assert.deepStrictEqual(ids, ['ok', 'meseta']);
   room.nav = null;
-  const plateau = room.selfDamageCandidates().find((p) => p.id === 'obj_6');
+  GameMap.resolveSelfDamagePositions = () => [{ id: 'meseta', x: 0, z: -45 }];
+  room.nav = null;
+  const plateau = room.selfDamageCandidates().find((p) => p.id === 'meseta');
+  GameMap.resolveSelfDamagePositions = original;
   assert.strictEqual(plateau.y, 1.6);
 });
 

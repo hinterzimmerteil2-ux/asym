@@ -6,7 +6,7 @@ import { BoxGeometry, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader
 import { itemOf } from '../lib/cosmetics';
 
 const LOBBY_HALF_SIZE = 15;
-const MATCH_HALF_SIZE = 30;
+const MATCH_HALF_SIZE = 60;
 
 const COLOR_SELF_DAMAGE_OBJECT = '#e0555f';
 const COLOR_CURADOR = '#f2a154';

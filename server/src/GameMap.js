@@ -24,8 +24,10 @@ const LOBBY_PLATFORMS = [
   { id: 'lp5', x: 11.5, z: 0.6, hx: 1.8, hz: 1.8, h: 4.0, ramp: null },
 ];
 
+const REF_HALF = 30;
+
 const MATCH_AREA = {
-  halfSize: 30,
+  halfSize: 60,
 };
 
 /**
@@ -77,6 +79,56 @@ const DEFAULT_MAP_LAYOUT = {
     { id: 'ramp_3', xFrac: 0.3, zFrac: -0.75, hxFrac: 0.1, hzFrac: 0.08, h: 1.6, ramp: '-x' },
   ],
 };
+
+(function expandDefaultMap() {
+  const half = 60;
+  let seed = 7;
+  const rnd = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+  for (const ramp of DEFAULT_MAP_LAYOUT.platforms.filter((q) => q.ramp)) {
+    const plat = DEFAULT_MAP_LAYOUT.platforms.find((q) => q.id === ramp.id.replace('ramp', 'plat'));
+    const dir = Math.sign(ramp.xFrac - plat.xFrac);
+    ramp.xFrac = (plat.xFrac * half + dir * (plat.hxFrac * REF_HALF + ramp.hxFrac * REF_HALF)) / half;
+    ramp.zFrac = plat.zFrac;
+  }
+  const taken = [
+    ...DEFAULT_MAP_LAYOUT.selfDamageObjects.map((o) => [o.xFrac * half, o.zFrac * half, 6]),
+    ...DEFAULT_MAP_LAYOUT.platforms.map((p) => [p.xFrac * half, p.zFrac * half, 12]),
+  ];
+  const types = ['gurney', 'shelf', 'cart', 'pillar'];
+  const radii = { gurney: 0.04, shelf: 0.05, cart: 0.03, pillar: 0.033 };
+  let n = 0;
+  let tries = 0;
+  while (n < 46 && tries < 2000) {
+    tries++;
+    const x = (rnd() * 2 - 1) * 56;
+    const z = (rnd() * 2 - 1) * 56;
+    const r = Math.hypot(x, z);
+    if (r < 6 || Math.abs(r - 21) < 4) continue;
+    if (taken.some(([tx, tz, m]) => Math.hypot(x - tx, z - tz) < m)) continue;
+    const type = types[Math.floor(rnd() * types.length)];
+    taken.push([x, z, 5]);
+    DEFAULT_MAP_LAYOUT.collisionObjects.push({ id: `col_x${n}`, type, xFrac: x / half, zFrac: z / half, radiusFrac: radii[type] });
+    n++;
+  }
+  const outposts = [
+    [-0.45, -0.55, 2.0, '+x'],
+    [0.5, 0.65, 2.6, '-x'],
+    [-0.2, 0.75, 1.4, '+x'],
+    [0.2, -0.3, 1.2, '-x'],
+    [0.88, -0.6, 3.0, '-x'],
+    [-0.88, -0.6, 3.0, '+x'],
+  ];
+  outposts.forEach(([xf, zf, h, dir], i) => {
+    const hx = 3.6;
+    const hz = 3.6;
+    DEFAULT_MAP_LAYOUT.platforms.push({ id: `op_${i}`, xFrac: xf, zFrac: zf, hxFrac: hx / REF_HALF, hzFrac: hz / REF_HALF, h });
+    const rx = xf * half + (dir === '+x' ? hx + 3 : -(hx + 3));
+    DEFAULT_MAP_LAYOUT.platforms.push({ id: `opr_${i}`, xFrac: rx / half, zFrac: zf, hxFrac: 3 / REF_HALF, hzFrac: 2.4 / REF_HALF, h, ramp: dir === '+x' ? '-x' : '+x' });
+  });
+})();
 
 // Catálogo de mapas disponibles — hoy solo uno, agregar otro es otra
 // entrada acá con la misma forma que DEFAULT_MAP_LAYOUT.
@@ -153,7 +205,7 @@ function resolveCollisionObjects(mapId, area) {
     type: obj.type,
     x: obj.xFrac * area.halfSize,
     z: obj.zFrac * area.halfSize,
-    radius: obj.radiusFrac * area.halfSize,
+    radius: obj.radiusFrac * REF_HALF,
     height: OBJECT_HEIGHTS[obj.type] || 1.2,
   }));
 }
@@ -165,7 +217,7 @@ function resolveCollisionObjects(mapId, area) {
  * sin necesitar cambios.
  */
 function getPatientSpawnPositions(count, area) {
-  const radius = area.halfSize * 0.7;
+  const radius = Math.min(area.halfSize * 0.7, 21);
   const positions = [];
   for (let i = 0; i < count; i++) {
     const angle = (i * 2 * Math.PI) / Math.max(count, 1);
@@ -183,8 +235,8 @@ function resolvePlatforms(mapId, area) {
     id: p.id,
     x: p.xFrac * area.halfSize,
     z: p.zFrac * area.halfSize,
-    hx: p.hxFrac * area.halfSize,
-    hz: p.hzFrac * area.halfSize,
+    hx: p.hxFrac * REF_HALF,
+    hz: p.hzFrac * REF_HALF,
     h: p.h,
     ramp: p.ramp || null,
   }));
