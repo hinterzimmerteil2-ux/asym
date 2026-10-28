@@ -61,7 +61,11 @@ const handlers = {
   },
 
   agua_rimac({ room, playerId, entity, card, now }) {
-    room.addZone({ kind: 'rimac', cardId: card.id, x: entity.x, z: entity.z, radius: 4, perSecond: 4, ownerId: playerId, until: now + 5000 });
+    room.addZone({ kind: 'rimac', cardId: card.id, x: entity.x, z: entity.z, radius: C.RIMAC_RADIUS, perSecond: C.RIMAC_CURATOR_PER_SEC, ownerId: playerId, until: now + C.RIMAC_LIFETIME_MS });
+    forEachCurator(room, entity, C.RIMAC_MELEE_RADIUS, (id, target) => {
+      room.adjustCuratorHp(-C.RIMAC_MELEE_DAMAGE);
+    }, C.RIMAC_MELEE_REACH);
+    room.checkGameEndConditions();
   },
 
   acetilcolina({ entity, card, now }) {

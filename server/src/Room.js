@@ -96,6 +96,10 @@ const {
   RUN_STREAK_MAX,
   EXHAUST_REGEN_BLOCK_MS,
   FLOJERA_SLOW_MULTIPLIER,
+  RIMAC_DAMAGE_MAX,
+  RIMAC_DAMAGE_BASE,
+  RIMAC_DAMAGE_RAMP,
+  RIMAC_FLOJERA_REGEN,
   FLOJERA_EXHAUST_LOCKOUT_MS,
   PLAYER_HALF,
   PLAYER_HEIGHT,
@@ -1390,7 +1394,8 @@ class Room {
           if (zone.kind === 'rimac') {
             zone.inside = zone.inside || {};
             zone.inside[playerId] = (zone.inside[playerId] || 0) + dt;
-            this.damagePatient(playerId, (zone.perSecond + Math.floor(zone.inside[playerId] / 5)) * dt);
+            this.damagePatient(playerId, Math.min(RIMAC_DAMAGE_MAX, RIMAC_DAMAGE_BASE + RIMAC_DAMAGE_RAMP * zone.inside[playerId]) * dt);
+            entity.flojera = Math.min(entity.flojeraMax, entity.flojera + RIMAC_FLOJERA_REGEN * dt);
           }
           else this.healPatient(playerId, zone.perSecond * dt);
           if (patient.status !== before) statusChanged = true;

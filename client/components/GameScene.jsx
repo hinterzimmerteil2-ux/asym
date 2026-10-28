@@ -530,13 +530,13 @@ function CollisionObjectMesh({ type, radius }) {
 
 const ZONE_COLORS = { rimac: '#6b8f3a', puddle: '#5fd58c', trap: '#f2d154' };
 
-function BananaMesh({ color, spotted, ghost }) {
+function BananaMesh({ color, spotted, ghost, fade }) {
   return (
     <group scale={[2.4, 2.4, 2.4]}>
       {[-0.22, 0, 0.22].map((x, i) => (
         <mesh key={x} position={[x, 0.1 + (i === 1 ? 0.05 : 0), 0]} rotation={[Math.PI / 2, 0, (i - 1) * 0.5 + 1.57]}>
           <capsuleGeometry args={[0.07, 0.28, 4, 8]} />
-          <meshStandardMaterial color={color} transparent={Boolean(ghost)} opacity={ghost ? 0.35 : 1} />
+          <meshStandardMaterial color={color} transparent={Boolean(ghost || fade)} opacity={ghost ? 0.35 : fade ? 0.5 : 1} />
         </mesh>
       ))}
       {spotted && [-0.15, 0.1, 0.25].map((x) => (
@@ -599,7 +599,7 @@ function ZoneDisc({ zone, ghost, platforms }) {
           <meshBasicMaterial color={color} transparent opacity={0.3} />
         </mesh>
       )}
-      {isTrap && <BananaMesh color={bananaColor} spotted={false} ghost={ghost} />}
+      {isTrap && <BananaMesh color={bananaColor} spotted={false} ghost={ghost} fade={zone.level > 0 && zone.level <= 2} />}
       {zone.kind === 'rimac' && (
         <>
           <PuddleRipples radius={zone.radius} color={zone.cardId === 'rimac_sin_filtrar' ? '#5f7f20' : '#8fb050'} />

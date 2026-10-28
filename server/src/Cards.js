@@ -60,9 +60,12 @@ const CARDS = {
   },
   agua_rimac: {
     id: 'agua_rimac',
+    corrupt: true,
     keywords: ['defensiva'],
     displayName: 'Agua del Río Rímac',
-    description: 'Zona 5s: los Pacientes dentro reciben daño que sube 1 por cada 5s que permanecen. El Curador pierde Flojera y, si tiene menos de la mitad de HP, recibe daño; si tiene más, se cura.',
+    description: 'Lanzas la botella: golpea al Curador frente a ti (−15 HP) y deja un charco pequeño 3s. Los Pacientes dentro reciben daño que sube rápido hasta 12 por segundo y regeneran Flojera. El Curador pierde Flojera y, si tiene menos de la mitad de HP, recibe daño; si tiene más, se cura. Al elegirla (una vez por partida): HP máximo −18, Flojera máxima +8.',
+    maxHpDelta: -18,
+    flojeraMaxDelta: 8,
     rarity: 'uncommon',
     cooldownMs: 30000,
   },
