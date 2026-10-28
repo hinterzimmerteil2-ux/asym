@@ -99,7 +99,9 @@ const {
   RIMAC_DAMAGE_MAX,
   RIMAC_DAMAGE_BASE,
   RIMAC_DAMAGE_RAMP,
-  RIMAC_FLOJERA_REGEN,
+  RIMAC_DOT_PER_SEC,
+  RIMAC_DOT_FLOJERA_TARGET,
+  RIMAC_DOT_FLOJERA_HEALER,
   FLOJERA_EXHAUST_LOCKOUT_MS,
   PLAYER_HALF,
   PLAYER_HEIGHT,
@@ -1377,6 +1379,18 @@ class Room {
 
   tickZones(now, dt) {
     let statusChanged = false;
+    for (const [playerId, entity] of Object.entries(this.gameState.entities)) {
+      const dot = entity.rimacDot;
+      if (!dot) continue;
+      const patient = this.gameState.patients[playerId];
+      if (now >= dot.until || !patient || patient.status !== 'alive') { entity.rimacDot = null; continue; }
+      const before = patient.status;
+      this.damagePatient(playerId, RIMAC_DOT_PER_SEC * dt);
+      entity.flojera = Math.min(entity.flojeraMax, entity.flojera + RIMAC_DOT_FLOJERA_TARGET * dt);
+      const healer = this.gameState.entities[dot.healerId];
+      if (healer) healer.flojera = Math.min(healer.flojeraMax, healer.flojera + RIMAC_DOT_FLOJERA_HEALER * dt);
+      if (patient.status !== before) statusChanged = true;
+    }
     const remaining = [];
     for (const zone of this.gameState.zones) {
       if (now >= zone.until) {
@@ -1395,7 +1409,6 @@ class Room {
             zone.inside = zone.inside || {};
             zone.inside[playerId] = (zone.inside[playerId] || 0) + dt;
             this.damagePatient(playerId, Math.min(RIMAC_DAMAGE_MAX, RIMAC_DAMAGE_BASE + RIMAC_DAMAGE_RAMP * zone.inside[playerId]) * dt);
-            entity.flojera = Math.min(entity.flojeraMax, entity.flojera + RIMAC_FLOJERA_REGEN * dt);
           }
           else this.healPatient(playerId, zone.perSecond * dt);
           if (patient.status !== before) statusChanged = true;

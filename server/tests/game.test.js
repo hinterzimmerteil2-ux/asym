@@ -520,22 +520,24 @@ test('en el lobby hay parkour y la gravedad es 0.6x', () => {
   assert.ok(Math.abs(e.a.y - 3.2) < 0.01);
 });
 
-test('Agua del Río Rímac: melee al Curador, charco pequeño que daña a Pacientes y regenera Flojera, costos de corrupta', () => {
+test('Agua del Río Rímac: melee DoT al Paciente, charco pequeño, costos de corrupta', () => {
   const { room, e, p, step } = setup();
   room.broadcast = () => {};
-  e.c.x = 0; e.c.z = 1; e.a.x = 0; e.a.z = 0; e.a.faceX = 0; e.a.faceZ = 1;
-  const hp0 = room.gameState.curator.hp;
+  e.c.x = 25; e.c.z = 25;
+  e.a.x = 0; e.a.z = 0; e.a.faceX = 0; e.a.faceZ = 1;
+  e.b.x = 0; e.b.z = 1; e.b.flojera = 10;
+  e.a.flojera = 10;
   give(e.a, 0, 'agua_rimac');
   room.finalizeChoice('a', 0, 'agua_rimac');
-  assert.ok(p.a.maxHp < 100 || p.a.maxHp !== undefined);
+  const hp = p.b.hp;
   room.useCard('a', 0);
-  assert.ok(room.gameState.curator.hp < hp0);
   assert.strictEqual(room.gameState.zones.length, 1);
   assert.strictEqual(room.gameState.zones[0].radius, 1.6);
-  e.c.x = 20; e.c.z = 20;
-  e.a.flojera = 10;
-  const hp = p.a.hp;
+  assert.ok(p.b.hp < hp);
+  assert.ok(e.b.rimacDot);
+  const hp1 = p.b.hp;
+  e.b.x = 10; e.b.z = 10; e.a.x = -10;
   for (let i = 0; i < 20; i++) { step(1, 0.05, false); room.tickZones(Date.now(), 0.05); }
-  assert.ok(p.a.hp < hp);
-  assert.ok(e.a.flojera > 10);
+  assert.ok(p.b.hp < hp1);
+  assert.ok(e.b.flojera > 12);
 });

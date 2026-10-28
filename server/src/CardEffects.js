@@ -62,10 +62,23 @@ const handlers = {
 
   agua_rimac({ room, playerId, entity, card, now }) {
     room.addZone({ kind: 'rimac', cardId: card.id, x: entity.x, z: entity.z, radius: C.RIMAC_RADIUS, perSecond: C.RIMAC_CURATOR_PER_SEC, ownerId: playerId, until: now + C.RIMAC_LIFETIME_MS });
-    forEachCurator(room, entity, C.RIMAC_MELEE_RADIUS, (id, target) => {
-      room.adjustCuratorHp(-C.RIMAC_MELEE_DAMAGE);
-    }, C.RIMAC_MELEE_REACH);
-    room.checkGameEndConditions();
+    const origin = reachPoint(entity, C.RIMAC_MELEE_REACH);
+    let nearest = null;
+    let nearestDist = C.RIMAC_MELEE_RADIUS;
+    for (const [id, patient] of Object.entries(room.gameState.patients)) {
+      if (id === playerId || patient.status !== 'alive') continue;
+      const target = room.gameState.entities[id];
+      if (!target) continue;
+      const d = distanceBetween(origin, target);
+      if (d <= nearestDist) { nearestDist = d; nearest = id; }
+    }
+    if (nearest) {
+      const target = room.gameState.entities[nearest];
+      room.damagePatient(nearest, C.RIMAC_DOT_INITIAL);
+      target.flojera = Math.min(target.flojeraMax, target.flojera + C.RIMAC_DOT_FLOJERA_INITIAL);
+      target.rimacDot = { until: now + C.RIMAC_DOT_MS, healerId: playerId };
+      room.checkGameEndConditions();
+    }
   },
 
   acetilcolina({ entity, card, now }) {
