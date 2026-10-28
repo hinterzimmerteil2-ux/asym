@@ -57,6 +57,7 @@ const handlers = {
       placedAt: now,
       cooldownUntil: 0,
     });
+    room.endlagSlow(entity, now, C.TRAP_ENDLAG_MS);
   },
 
   agua_rimac({ room, playerId, entity, card, now }) {
