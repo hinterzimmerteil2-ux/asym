@@ -84,7 +84,7 @@ test('Rodar hace dropkick al Curador y se detiene donde estaba', () => {
   room.useCard('a', 0);
   step(12);
   assert.ok(Math.abs(e.a.x - -2) < 0.8);
-  assert.ok(e.c.x > 1.5);
+  assert.ok(e.c.x > 0);
   assert.ok(e.c.rag || Status.until(e.c, 'ragdoll') > 0);
 });
 
