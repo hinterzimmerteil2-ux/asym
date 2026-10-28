@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001';
 
@@ -16,6 +18,64 @@ const CANVAS_SIZE = 560;
 const CANVAS_HALF = CANVAS_SIZE / 2;
 
 const COLLISION_TYPES = ['gurney', 'shelf', 'cart', 'pillar'];
+const REF_HALF = 30;
+const MAP_HALF = 60;
+const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3 };
+
+function PlatformMesh({ p }) {
+  const hx = p.hxFrac * REF_HALF;
+  const hz = p.hzFrac * REF_HALF;
+  const x = p.xFrac * MAP_HALF;
+  const z = p.zFrac * MAP_HALF;
+  if (!p.ramp) {
+    return (
+      <mesh position={[x, p.h / 2, z]}>
+        <boxGeometry args={[hx * 2, p.h, hz * 2]} />
+        <meshStandardMaterial color="#6b7280" />
+      </mesh>
+    );
+  }
+  const len = hx * 2;
+  const angle = Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1);
+  return (
+    <mesh position={[x, p.h / 2, z]} rotation={[0, 0, angle]}>
+      <boxGeometry args={[Math.hypot(len, p.h), 0.2, hz * 2]} />
+      <meshStandardMaterial color="#9ca3af" />
+    </mesh>
+  );
+}
+
+function Preview3D({ platforms, collisionObjects, selfDamageObjects, onGround }) {
+  return (
+    <Canvas camera={{ position: [0, 70, 80], fov: 50 }} style={{ width: CANVAS_SIZE, height: 380, background: '#0b0d14', borderRadius: 8 }}>
+      <ambientLight intensity={0.7} />
+      <directionalLight position={[30, 60, 20]} intensity={0.9} />
+      <OrbitControls makeDefault maxPolarAngle={Math.PI / 2.05} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} onClick={(e) => { if (e.delta > 4) return; e.stopPropagation(); onGround(e.point.x / MAP_HALF, e.point.z / MAP_HALF); }}>
+        <planeGeometry args={[MAP_HALF * 2, MAP_HALF * 2]} />
+        <meshStandardMaterial color="#d9d5c7" />
+      </mesh>
+      <gridHelper args={[MAP_HALF * 2, 24, '#5468ff', '#b8b4a6']} position={[0, 0.02, 0]} />
+      <mesh position={[0, 0.3, 0]}><cylinderGeometry args={[0.8, 0.8, 0.6, 12]} /><meshBasicMaterial color="#5468ff" /></mesh>
+      {platforms.map((p) => <PlatformMesh key={p.id} p={p} />)}
+      {collisionObjects.map((o) => {
+        const h = OBJECT_HEIGHTS[o.type] || 1.2;
+        return (
+          <mesh key={o.id} position={[o.xFrac * MAP_HALF, h / 2, o.zFrac * MAP_HALF]}>
+            <cylinderGeometry args={[o.radiusFrac * REF_HALF, o.radiusFrac * REF_HALF, h, 12]} />
+            <meshStandardMaterial color={TYPE_COLORS[o.type] || '#888'} />
+          </mesh>
+        );
+      })}
+      {selfDamageObjects.map((o) => (
+        <mesh key={o.id} position={[o.xFrac * MAP_HALF, 0.6, o.zFrac * MAP_HALF]}>
+          <sphereGeometry args={[0.6, 12, 12]} />
+          <meshStandardMaterial color="#e0555f" emissive="#e0555f" emissiveIntensity={0.4} />
+        </mesh>
+      ))}
+    </Canvas>
+  );
+}
 
 const TYPE_COLORS = {
   gurney: '#8a8674',
@@ -86,7 +146,11 @@ function generateId(prefix) {
 export default function MapEditorPage() {
   const [selfDamageObjects, setSelfDamageObjects] = useState([]);
   const [collisionObjects, setCollisionObjects] = useState([]);
-  const [selectedTool, setSelectedTool] = useState('self_damage'); // 'self_damage' | tipo de collision
+  const [platforms, setPlatforms] = useState([]);
+  const [buildH, setBuildH] = useState(1.6);
+  const [buildSize, setBuildSize] = useState(3);
+  const [rampDir, setRampDir] = useState('-x');
+  const [selectedTool, setSelectedTool] = useState('self_damage'); // 'self_damage' | 'block' | 'ramp' | tipo de collision
   const [draggingId, setDraggingId] = useState(null);
   const [exportedJson, setExportedJson] = useState(null);
   const [mapName, setMapName] = useState('');
@@ -113,8 +177,22 @@ export default function MapEditorPage() {
   function handleCanvasClick(e) {
     if (draggingId) return; // un click que termina un drag no debe crear un objeto nuevo
     const { xFrac, zFrac } = pixelToFraction(e.clientX, e.clientY);
+    placeAt(xFrac, zFrac);
+  }
 
-    if (selectedTool === 'self_damage') {
+  function placeAt(xFrac, zFrac) {
+    xFrac = Math.max(-1, Math.min(1, xFrac));
+    zFrac = Math.max(-1, Math.min(1, zFrac));
+    if (selectedTool === 'block' || selectedTool === 'ramp') {
+      setPlatforms((prev) => [...prev, {
+        id: generateId(selectedTool === 'ramp' ? 'ramp' : 'block'),
+        xFrac, zFrac,
+        hxFrac: buildSize / REF_HALF,
+        hzFrac: (selectedTool === 'ramp' ? buildSize * 0.8 : buildSize) / REF_HALF,
+        h: buildH,
+        ramp: selectedTool === 'ramp' ? rampDir : null,
+      }]);
+    } else if (selectedTool === 'self_damage') {
       setSelfDamageObjects((prev) => [...prev, { id: generateId('obj'), xFrac, zFrac }]);
     } else {
       setCollisionObjects((prev) => [
@@ -134,6 +212,7 @@ export default function MapEditorPage() {
     const { xFrac, zFrac } = pixelToFraction(e.clientX, e.clientY);
     setSelfDamageObjects((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
     setCollisionObjects((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
+    setPlatforms((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
   }
 
   function handlePointerUp() {
@@ -144,6 +223,7 @@ export default function MapEditorPage() {
     e.stopPropagation();
     setSelfDamageObjects((prev) => prev.filter((o) => o.id !== id));
     setCollisionObjects((prev) => prev.filter((o) => o.id !== id));
+    setPlatforms((prev) => prev.filter((o) => o.id !== id));
   }
 
   function handleRadiusChange(id, newRadiusFrac) {
@@ -169,6 +249,15 @@ export default function MapEditorPage() {
         zFrac: round3(o.zFrac),
         radiusFrac: round3(o.radiusFrac),
       })),
+      platforms: platforms.map((p) => ({
+        id: p.id,
+        xFrac: round3(p.xFrac),
+        zFrac: round3(p.zFrac),
+        hxFrac: round3(p.hxFrac),
+        hzFrac: round3(p.hzFrac),
+        h: round3(p.h),
+        ramp: p.ramp,
+      })),
     };
   }
 
@@ -184,7 +273,7 @@ export default function MapEditorPage() {
       setSaveStatus({ error: 'Poné un id para el mapa (sin espacios, ej. "quirofano_2").' });
       return;
     }
-    if (selfDamageObjects.length === 0 && collisionObjects.length === 0) {
+    if (selfDamageObjects.length === 0 && collisionObjects.length === 0 && platforms.length === 0) {
       setSaveStatus({ error: 'El mapa está vacío — colocá al menos un objeto antes de guardar.' });
       return;
     }
@@ -207,6 +296,7 @@ export default function MapEditorPage() {
   function handleClear() {
     setSelfDamageObjects([]);
     setCollisionObjects([]);
+    setPlatforms([]);
     setExportedJson(null);
   }
 
@@ -230,6 +320,8 @@ export default function MapEditorPage() {
             >
               Objeto de auto-daño
             </button>
+            <button style={styles.toolButton(selectedTool === 'block', '#6b7280')} onClick={() => setSelectedTool('block')}>Bloque</button>
+            <button style={styles.toolButton(selectedTool === 'ramp', '#9ca3af')} onClick={() => setSelectedTool('ramp')}>Rampa</button>
             {COLLISION_TYPES.map((type) => (
               <button
                 key={type}
@@ -241,7 +333,26 @@ export default function MapEditorPage() {
             ))}
           </div>
 
+          {(selectedTool === 'block' || selectedTool === 'ramp') && (
+            <div style={styles.countsBox}>
+              <label style={styles.countLine}>Altura: {buildH.toFixed(1)}
+                <input type="range" min="0.4" max="4" step="0.2" value={buildH} onChange={(e) => setBuildH(parseFloat(e.target.value))} style={{ width: '100%' }} />
+              </label>
+              <label style={styles.countLine}>Tamaño: {buildSize.toFixed(1)}
+                <input type="range" min="1.5" max="8" step="0.5" value={buildSize} onChange={(e) => setBuildSize(parseFloat(e.target.value))} style={{ width: '100%' }} />
+              </label>
+              {selectedTool === 'ramp' && (
+                <p style={styles.countLine}>
+                  Sube hacia:{' '}
+                  <button style={styles.toolButton(rampDir === '-x', '#5468ff')} onClick={() => setRampDir('-x')}>-X</button>{' '}
+                  <button style={styles.toolButton(rampDir === '+x', '#5468ff')} onClick={() => setRampDir('+x')}>+X</button>
+                </p>
+              )}
+            </div>
+          )}
+
           <div style={styles.countsBox}>
+            <p style={styles.countLine}>Bloques y rampas: {platforms.length}</p>
             <p style={styles.countLine}>Objetos de auto-daño: {selfDamageObjects.length}</p>
             <p style={styles.countLine}>Objetos de colisión: {collisionObjects.length}</p>
             {hasAnyConflict && (
@@ -353,6 +464,23 @@ export default function MapEditorPage() {
               Centro (spawn Curador)
             </text>
 
+            {platforms.map((p) => {
+              const w = p.hxFrac * REF_HALF / MAP_HALF * CANVAS_HALF;
+              const d = p.hzFrac * REF_HALF / MAP_HALF * CANVAS_HALF;
+              return (
+                <g
+                  key={p.id}
+                  transform={`translate(${p.xFrac * CANVAS_HALF + CANVAS_HALF}, ${p.zFrac * CANVAS_HALF + CANVAS_HALF})`}
+                  onPointerDown={(e) => handleMarkerPointerDown(e, p.id)}
+                  onContextMenu={(e) => { e.preventDefault(); handleRemove(p.id, e); }}
+                  style={{ cursor: 'grab' }}
+                >
+                  <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.ramp ? '#9ca3af' : '#6b7280'} fillOpacity={0.55} stroke="#3d4a42" strokeWidth={2} />
+                  <text x={0} y={4} fontSize={10} fill="#111" textAnchor="middle">{p.ramp ? `${p.ramp === '+x' ? '→' : '←'} ${p.h.toFixed(1)}` : p.h.toFixed(1)}</text>
+                </g>
+              );
+            })}
+
             {/* Marcadores de objetos de auto-daño */}
             {selfDamageObjects.map((o) => {
               const inConflict = conflicts.has(o.id);
@@ -401,6 +529,8 @@ export default function MapEditorPage() {
               );
             })}
           </svg>
+          <p style={styles.canvasCaption}>Vista 3D: arrastra para girar, rueda para acercar y haz clic en el suelo para colocar la herramienta elegida.</p>
+          <Preview3D platforms={platforms} collisionObjects={collisionObjects} selfDamageObjects={selfDamageObjects} onGround={placeAt} />
           <p style={styles.canvasCaption}>
             El lienzo representa el área de partida completa (MATCH_AREA). Las posiciones
             se guardan como fracción del centro, no en unidades fijas — el mismo layout
