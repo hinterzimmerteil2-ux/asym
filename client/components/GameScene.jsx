@@ -1225,7 +1225,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       if (key === lastSent.current.key && nowMs - lastSent.current.at < 400) return;
       lastSent.current = { key, at: nowMs };
       sendInput(payload);
-    }, 50);
+    }, 16);
     return () => clearInterval(interval);
   }, [sendInput, yawRef, shiftRef]);
 }
