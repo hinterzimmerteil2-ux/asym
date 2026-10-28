@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState, useMemo } from 'react';
+import { useRef, useEffect, useState, useMemo, memo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { BoxGeometry, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace } from 'three';
 import { itemOf } from '../lib/cosmetics';
@@ -422,6 +422,7 @@ function Ground({ halfSize, themed }) {
   const gridColorMajor = themed ? '#c9c5b8' : '#3a3d52';
   const gridColorMinor = themed ? '#d8d4c8' : '#2a2d3d';
   const borderColor = themed ? COLOR_EMERGENCY_LIGHT : '#5468ff';
+  const borderGeo = useMemo(() => new BoxGeometry(halfSize * 2, 0.01, halfSize * 2), [halfSize]);
 
   return (
     <group>
@@ -434,7 +435,7 @@ function Ground({ halfSize, themed }) {
         position={[0, 0.01, 0]}
       />
       <lineSegments position={[0, 0.02, 0]}>
-        <edgesGeometry args={[new BoxGeometry(halfSize * 2, 0.01, halfSize * 2)]} />
+        <edgesGeometry args={[borderGeo]} />
         <lineBasicMaterial color={borderColor} />
       </lineSegments>
     </group>
@@ -1297,6 +1298,12 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
   );
 }
 
+const MGround = memo(Ground);
+const MLobbyDecor = memo(LobbyDecor);
+const MPlatform = memo(Platform);
+const MCollisionObject = memo(CollisionObject);
+const MSelfDamageObject = memo(SelfDamageObject, (a, b) => a.position.x === b.position.x && a.position.y === b.position.y && a.position.z === b.position.z);
+
 export default function GameScene({
   entities,
   players,
@@ -1331,14 +1338,14 @@ export default function GameScene({
   const myEntity = ghostMode && ghosts?.[myPlayerId] ? ghosts[myPlayerId] : entities[followId || myPlayerId];
 
   return (
-    <Canvas dpr={[1, coarse ? 1.5 : 2]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
+    <Canvas dpr={[1, coarse ? 1.25 : 1.5]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
       <ambientLight intensity={phase === 'action' ? 0.5 : 0.4} />
       <directionalLight position={[8, 12, 6]} intensity={1.1} />
 
       <FollowCamera focusId={followId || myPlayerId} myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
 
-      <Ground halfSize={areaHalfSize} themed={phase === 'action'} />
-      {phase !== 'action' && <LobbyDecor />}
+      <MGround halfSize={areaHalfSize} themed={phase === 'action'} />
+      {phase !== 'action' && <MLobbyDecor />}
 
       {phase === 'action' && (effects || []).map((effect) => <SkillEffect key={effect.id} effect={effect} />)}
 
@@ -1358,10 +1365,10 @@ export default function GameScene({
         />
       )}
 
-      {(platforms || []).map((p) => <Platform key={p.id} p={p} />)}
+      {(platforms || []).map((p) => <MPlatform key={p.id} p={p} />)}
 
       {phase === 'action' &&
-        (collisionObjects || []).map((obj) => <CollisionObject key={obj.id} obj={obj} />)}
+        (collisionObjects || []).map((obj) => <MCollisionObject key={obj.id} obj={obj} />)}
 
       {phase === 'action' &&
         Object.entries(selfDamageObjects || {}).map(([objectId, pos]) => (
@@ -1372,7 +1379,7 @@ export default function GameScene({
               sendAction('self_damage_action', { objectId });
             }}
           >
-            <SelfDamageObject position={pos} />
+            <MSelfDamageObject position={pos} />
           </group>
         ))}
 
