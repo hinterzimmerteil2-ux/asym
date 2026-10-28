@@ -157,10 +157,10 @@ function RagdollR6({ entityState, color }) {
 
   return (
     <group>
-      <mesh ref={torso} castShadow><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
-      <mesh ref={head} castShadow><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
+      <mesh ref={torso}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+      <mesh ref={head}><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
       {[SKIN, SKIN, '#3a3d52', '#3a3d52'].map((col, i) => (
-        <mesh key={i} ref={(el) => { parts.current[i] = el; }} castShadow><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
+        <mesh key={i} ref={(el) => { parts.current[i] = el; }}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
       ))}
     </group>
   );
@@ -175,7 +175,7 @@ function CosmeticPieces({ slot, cosmetics }) {
         const col = piece.c === 'main' ? item.color : piece.c;
         const args = piece.t === 'box' ? piece.s : piece.t === 'cyl' ? [piece.s[0], piece.s[1], piece.s[2], 14] : [piece.s[0], piece.s[1], 10];
         return (
-          <mesh key={i} castShadow position={piece.p} rotation={piece.r || [0, 0, 0]}>
+          <mesh key={i} position={piece.p} rotation={piece.r || [0, 0, 0]}>
             {piece.t === 'box' ? <boxGeometry args={args} /> : piece.t === 'cyl' ? <cylinderGeometry args={args} /> : <coneGeometry args={args} />}
             <meshStandardMaterial color={col} roughness={0.7} />
           </mesh>
@@ -341,9 +341,9 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
   return (
     <group ref={groupRef} position={targetPos.current}>
       <group ref={bodyRef}>
-        <mesh castShadow position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+        <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
         <group position={[0, 1.62, 0]}>
-          <mesh castShadow><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
+          <mesh><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
           <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
           <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
           <mesh position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
@@ -353,7 +353,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
         <CosmeticPieces slot="back" cosmetics={cosmetics} />
         {[['armL', -0.54, 1.44, SKIN], ['armR', 0.54, 1.44, SKIN], ['legL', -0.18, 0.72, '#3a3d52'], ['legR', 0.18, 0.72, '#3a3d52']].map(([key, px, py, col]) => (
           <group key={key} ref={(el) => { rig.current[key] = el; }} position={[px, py, 0]}>
-            <mesh castShadow position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
+            <mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
           </group>
         ))}
         <HeldItem held={held} />
@@ -389,7 +389,7 @@ function LobbyDecor() {
       </mesh>
       {posts.map(([x, z], i) => (
         <group key={i} position={[x, 0, z]}>
-          <mesh position={[0, 1.5, 0]} castShadow><cylinderGeometry args={[0.12, 0.16, 3, 8]} /><meshStandardMaterial color="#3a3d52" roughness={0.8} /></mesh>
+          <mesh position={[0, 1.5, 0]}><cylinderGeometry args={[0.12, 0.16, 3, 8]} /><meshStandardMaterial color="#3a3d52" roughness={0.8} /></mesh>
           <mesh ref={(el) => { glow.current[i] = el; }} position={[0, 3.2, 0]}>
             <octahedronGeometry args={[0.32, 0]} />
             <meshBasicMaterial color={colors[i]} />
@@ -398,7 +398,7 @@ function LobbyDecor() {
       ))}
       <mesh position={[11.5, 5.2, 0.6]}><octahedronGeometry args={[0.45, 0]} /><meshBasicMaterial color="#f2d154" /></mesh>
       {[[-6, -6], [6, -6], [-6, 6], [6, 6]].map(([x, z], i) => (
-        <mesh key={`b${i}`} position={[x, 0.3, z]} castShadow><boxGeometry args={[1.6, 0.6, 0.6]} /><meshStandardMaterial color="#4a4f66" roughness={0.9} /></mesh>
+        <mesh key={`b${i}`} position={[x, 0.3, z]}><boxGeometry args={[1.6, 0.6, 0.6]} /><meshStandardMaterial color="#4a4f66" roughness={0.9} /></mesh>
       ))}
     </group>
   );
@@ -412,7 +412,7 @@ function Ground({ halfSize, themed }) {
 
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[halfSize * 2, halfSize * 2]} />
         <meshStandardMaterial color={floorColor} roughness={themed ? 0.75 : 0.9} />
       </mesh>
@@ -446,7 +446,7 @@ function SelfDamageObject({ position }) {
 
   return (
     <group ref={groupRef} position={targetPos.current}>
-      <mesh position={[0, 0.4, 0]} castShadow>
+      <mesh position={[0, 0.4, 0]}>
         <octahedronGeometry args={[0.4, 0]} />
         <meshStandardMaterial
           color={COLOR_SELF_DAMAGE_OBJECT}
@@ -464,11 +464,11 @@ function CollisionObjectMesh({ type, radius }) {
     case 'gurney':
       return (
         <group>
-          <mesh position={[0, 0.5, 0]} castShadow receiveShadow rotation={[0, 0.15, 0]}>
+          <mesh position={[0, 0.5, 0]} rotation={[0, 0.15, 0]}>
             <boxGeometry args={[radius * 1.8, 0.15, radius * 0.9]} />
             <meshStandardMaterial color={COLOR_METAL} roughness={0.6} metalness={0.5} />
           </mesh>
-          <mesh position={[0, 0.15, 0]} castShadow>
+          <mesh position={[0, 0.15, 0]}>
             <cylinderGeometry args={[0.06, 0.06, 0.3, 6]} />
             <meshStandardMaterial color="#2a2d3d" roughness={0.8} />
           </mesh>
@@ -477,12 +477,12 @@ function CollisionObjectMesh({ type, radius }) {
     case 'shelf':
       return (
         <group rotation={[0, -0.1, 0]}>
-          <mesh position={[0, radius * 0.9, 0]} castShadow receiveShadow>
+          <mesh position={[0, radius * 0.9, 0]}>
             <boxGeometry args={[radius * 1.2, radius * 1.8, radius * 0.6]} />
             <meshStandardMaterial color={COLOR_METAL} roughness={0.7} metalness={0.3} />
           </mesh>
           {[0.4, 0.9, 1.4].map((h, i) => (
-            <mesh key={i} position={[0, h, radius * 0.31]} castShadow>
+            <mesh key={i} position={[0, h, radius * 0.31]}>
               <boxGeometry args={[radius * 1.15, 0.04, 0.05]} />
               <meshStandardMaterial color="#12131a" roughness={0.9} />
             </mesh>
@@ -492,11 +492,11 @@ function CollisionObjectMesh({ type, radius }) {
     case 'cart':
       return (
         <group rotation={[0, 0.3, 0]}>
-          <mesh position={[0, radius * 0.9, 0]} castShadow receiveShadow>
+          <mesh position={[0, radius * 0.9, 0]}>
             <boxGeometry args={[radius * 1.1, radius * 1.6, radius * 0.7]} />
             <meshStandardMaterial color={COLOR_METAL} roughness={0.5} metalness={0.6} />
           </mesh>
-          <mesh position={[0, radius * 1.75, 0]} castShadow>
+          <mesh position={[0, radius * 1.75, 0]}>
             <boxGeometry args={[radius * 1.2, 0.06, radius * 0.8]} />
             <meshStandardMaterial color="#c9c5b8" roughness={0.4} metalness={0.4} />
           </mesh>
@@ -505,7 +505,7 @@ function CollisionObjectMesh({ type, radius }) {
     case 'pillar':
     default:
       return (
-        <mesh position={[0, radius * 1.5, 0]} castShadow receiveShadow>
+        <mesh position={[0, radius * 1.5, 0]}>
           <cylinderGeometry args={[radius * 0.6, radius * 0.7, radius * 3, 8]} />
           <meshStandardMaterial color={COLOR_WALL_TINT} roughness={0.85} />
         </mesh>
@@ -1238,7 +1238,7 @@ function Platform({ p }) {
   const color = p.ramp ? '#5b6270' : '#464c59';
   if (!p.ramp) {
     return (
-      <mesh position={[p.x, p.h / 2, p.z]} castShadow receiveShadow>
+      <mesh position={[p.x, p.h / 2, p.z]}>
         <boxGeometry args={[p.hx * 2, p.h, p.hz * 2]} />
         <meshStandardMaterial color={color} roughness={0.8} />
       </mesh>
@@ -1247,7 +1247,7 @@ function Platform({ p }) {
   const len = p.hx * 2;
   const angle = Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1);
   return (
-    <mesh position={[p.x, p.h / 2, p.z]} rotation={[0, 0, angle]} castShadow receiveShadow>
+    <mesh position={[p.x, p.h / 2, p.z]} rotation={[0, 0, angle]}>
       <boxGeometry args={[Math.hypot(len, p.h), 0.2, p.hz * 2]} />
       <meshStandardMaterial color={color} roughness={0.8} />
     </mesh>
@@ -1318,9 +1318,9 @@ export default function GameScene({
   const myEntity = ghostMode && ghosts?.[myPlayerId] ? ghosts[myPlayerId] : entities[followId || myPlayerId];
 
   return (
-    <Canvas shadows={!coarse} dpr={[1, coarse ? 1.5 : 2]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
+    <Canvas dpr={[1, coarse ? 1.5 : 2]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
       <ambientLight intensity={phase === 'action' ? 0.5 : 0.4} />
-      <directionalLight position={[8, 12, 6]} intensity={1.1} castShadow={!coarse} shadow-mapSize={[1024, 1024]} />
+      <directionalLight position={[8, 12, 6]} intensity={1.1} />
 
       <FollowCamera focusId={followId || myPlayerId} myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useReducer } from 'react';
 import Link from 'next/link';
 import { createGameConnection } from '../lib/socket';
 import {
@@ -19,6 +19,18 @@ import RhythmBar from '../components/RhythmBar';
 import TouchControls from '../components/TouchControls';
 import { KEYWORDS } from '../lib/keywords';
 import { ITEMS, COLORS, SLOT_LABELS } from '../lib/cosmetics';
+
+const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+function LiveScene({ store, replay, ...props }) {
+  const [, bump] = useReducer((n) => n + 1, 0);
+  useEffect(() => {
+    store.subs.add(bump);
+    return () => { store.subs.delete(bump); };
+  }, [store]);
+  const frame = replay ? replay.frames[replay.i] : null;
+  return <GameScene {...props} entities={frame ? frame.entities : store.entities} ghosts={frame ? frame.ghosts : store.ghosts} />;
+}
 
 function KeywordChip({ id }) {
   const k = KEYWORDS[id];
@@ -117,8 +129,9 @@ export default function LobbyPage() {
   const [oauthLoading, setOauthLoading] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
-  const [entities, setEntities] = useState({});
-  const [ghosts, setGhosts] = useState({});
+  const sceneStore = useRef({ entities: {}, ghosts: {}, subs: new Set() }).current;
+  const [entityMeta, setEntityMeta] = useState({});
+  const [myGhost, setMyGhost] = useState(null);
   const [ping, setPing] = useState(null);
   const [lobbyPlatforms, setLobbyPlatforms] = useState([]);
   const [cosmetics, setCosmetics] = useState({});
@@ -224,17 +237,30 @@ export default function LobbyPage() {
             setChatMessages((prev) => [...prev, payload]);
             break;
           case 'state_snapshot':
-            setEntities(payload.entities || {});
-            setGhosts(payload.ghosts || {});
+            sceneStore.entities = payload.entities || {};
+            sceneStore.ghosts = payload.ghosts || {};
+            sceneStore.subs.forEach((fn) => fn());
+            {
+              const meta = {};
+              for (const [id, en] of Object.entries(payload.entities || {})) meta[id] = { corpse: Boolean(en.corpse), gone: Boolean(en.gone) };
+              setEntityMeta((prev) => (sameValue(prev, meta) ? prev : meta));
+              const mg = payload.ghosts?.[myPlayerIdRef.current];
+              const slim = mg ? { uses: mg.uses, maxUses: mg.maxUses, visible: mg.visible, visibleMs: Math.ceil((mg.visibleMs || 0) / 1000) * 1000, cooldownMs: Math.ceil((mg.cooldownMs || 0) / 1000) * 1000 } : null;
+              setMyGhost((prev) => (sameValue(prev, slim) ? prev : slim));
+            }
             frameBuf.current.push({ entities: payload.entities || {}, ghosts: payload.ghosts || {} });
             if (frameBuf.current.length > 100) frameBuf.current.shift();
-            setSelfDamageObjects(payload.selfDamageObjects || {});
-            setZones(payload.zones || []);
+            setSelfDamageObjects((prev) => (sameValue(prev, payload.selfDamageObjects || {}) ? prev : payload.selfDamageObjects || {}));
+            setZones((prev) => (sameValue(prev, payload.zones || []) ? prev : payload.zones || []));
             setCuratorHp(payload.curator || null);
             setSpawnMs(payload.spawnMs || 0);
             entitiesRef.current = payload.entities || {};
-            setStunnedIds(Object.entries(payload.flojera || {}).filter(([, v]) => v.stunned).map(([id]) => id));
-            setRagdollIds(Object.entries(payload.flojera || {}).filter(([, v]) => v.ragdoll).map(([id]) => id));
+            {
+              const stun = Object.entries(payload.flojera || {}).filter(([, v]) => v.stunned).map(([id]) => id);
+              const rag = Object.entries(payload.flojera || {}).filter(([, v]) => v.ragdoll).map(([id]) => id);
+              setStunnedIds((prev) => (sameValue(prev, stun) ? prev : stun));
+              setRagdollIds((prev) => (sameValue(prev, rag) ? prev : rag));
+            }
             channelRef.current = payload.flojera?.[myPlayerIdRef.current]?.channel ? { ...payload.flojera[myPlayerIdRef.current].channel, at: performance.now() } : null;
             setPatients(payload.patients || {});
             setTimeRemainingMs(payload.timeRemainingMs ?? null);
@@ -632,8 +658,7 @@ export default function LobbyPage() {
   const isHost = hostId !== null && hostId === myPlayerId;
   const myPatient = patients[myPlayerId];
   const spectating = phase === 'action' && !isAsymRole && Boolean(myPatient) && myPatient.status !== 'alive';
-  const myGhost = ghosts[myPlayerId];
-  const specTargets = [...(myGhost ? [myPlayerId] : []), ...Object.keys(entities).filter((id) => id !== myPlayerId && !entities[id].gone && !entities[id].corpse)];
+  const specTargets = [...(myGhost ? [myPlayerId] : []), ...Object.keys(entityMeta).filter((id) => id !== myPlayerId && !entityMeta[id].gone && !entityMeta[id].corpse)];
   const ghostBlocked = Boolean(myGhost) && (myGhost.uses >= myGhost.maxUses || myGhost.cooldownMs > 0);
   const ghostMode = spectating && Boolean(myGhost) && specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] === myPlayerId;
   const specId = spectating && specTargets.length ? specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] : null;
@@ -641,6 +666,7 @@ export default function LobbyPage() {
   const sx = (base, extra) => (compact ? { ...base, ...extra } : base);
   const playersOpen = panelOpen ?? phase === 'lobby';
   const handleInteract = () => {
+    const entities = entitiesRef.current;
     const me = entities[myPlayerId];
     if (!me) return;
     let best = null;
@@ -672,8 +698,9 @@ export default function LobbyPage() {
     return (
       <main style={styles.gameMain}>
         <div style={styles.sceneContainer}>
-          <GameScene
-            entities={replay ? replay.frames[replay.i].entities : entities}
+          <LiveScene
+            store={sceneStore}
+            replay={replay}
             players={players}
             myPlayerId={myPlayerId}
             phase={phase}
@@ -690,7 +717,6 @@ export default function LobbyPage() {
             hitboxes={hitboxes}
             hitboxCfg={hitboxCfg}
             followId={ghostMode ? null : specId}
-            ghosts={replay ? replay.frames[replay.i].ghosts : ghosts}
             ghostMode={ghostMode}
             shiftLock={shiftLock}
             onShiftLockLost={() => setShiftLock(false)}
