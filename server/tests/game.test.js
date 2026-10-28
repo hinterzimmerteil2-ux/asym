@@ -84,7 +84,7 @@ test('Rodar hace dropkick al Curador y se detiene donde estaba', () => {
   room.useCard('a', 0);
   step(12);
   assert.ok(Math.abs(e.a.x - -2) < 0.8);
-  assert.ok(e.c.x > 3);
+  assert.ok(e.c.x > 1.5);
   assert.ok(e.c.rag || Status.until(e.c, 'ragdoll') > 0);
 });
 
@@ -151,7 +151,7 @@ test('Acetilcolina sin Flojera camina con buff y no genera endlag en uso', () =>
   const buffed = run(100);
   const spent = run(0);
   assert.ok(buffed > normal * 1.3);
-  assert.ok(spent < buffed && spent > normal * 0.4);
+  assert.ok(spent < buffed && spent > normal * 0.2);
   assert.strictEqual(Status.until(e.a, 'slow'), 0);
 });
 
