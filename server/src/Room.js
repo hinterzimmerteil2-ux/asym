@@ -789,7 +789,7 @@ class Room {
       }
       const len = Math.hypot(moveX, moveZ);
       if (len > 0) {
-        const speed = MOVE_SPEED * 1.2 * Math.min(1, len);
+        const speed = MOVE_SPEED * FAST_MULTIPLIER * Math.min(1, len);
         ghost.x = Math.max(-half, Math.min(half, ghost.x + (moveX / len) * speed * dt));
         ghost.z = Math.max(-half, Math.min(half, ghost.z + (moveZ / len) * speed * dt));
         ghost.faceX = moveX / len;
