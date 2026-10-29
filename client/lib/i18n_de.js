@@ -319,5 +319,17 @@ export const DE = [
 "Slot",
 "Stufe",
 "Host",
-"uttvms schwert bei"
+"uttvms schwert bei",
+"Tutorial (gegen einen Bot spielen)",
+"Tutorial wird vorbereitet...",
+"Tutorial",
+"Anzeigen",
+"Ausblenden",
+"Bewege dich mit WASD oder dem Joystick.",
+"Renne weiter: Die Faulheitsleiste sinkt beim Rennen.",
+"Halte Shift (oder die Taste „Langsam“) gedrückt, um zu gehen, ohne Faulheit zu verbrauchen.",
+"Wähle im Kartenmenü oben eine Karte.",
+"Benutze deine Karte mit der Taste oder dem Knopf ihres Slots.",
+"Geh nah an ein rotes Objekt und klicke (oder drücke E), um dich selbst zu verletzen: So gewinnst du.",
+"Tutorial abgeschlossen. Jeder Patient gewinnt, indem er seine HP auf 0 senkt; der Kurator gewinnt, wenn er alle heilt. Endet das Spiel, kann der Host zur Lobby zurückkehren."
 ];

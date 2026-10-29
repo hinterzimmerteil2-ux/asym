@@ -322,6 +322,18 @@ const PAIRS = [
 ['nivel', 'level'],
 ['host', 'host'],
 ['Espada del UTTVM al', 'uttvms sword at'],
+["Tutorial (jugar contra un bot)", "Tutorial (play against a bot)"],
+["Preparando tutorial...", "Preparing tutorial..."],
+["Tutorial", "Tutorial"],
+["Mostrar", "Show"],
+["Ocultar", "Hide"],
+["Muévete con WASD o el joystick.", "Move with WASD or the joystick."],
+["Sigue corriendo: la barra de Flojera baja al correr.", "Keep running: the Laziness bar drops as you run."],
+["Mantén Shift (o el botón Lento) para caminar sin gastar Flojera.", "Hold Shift (or the Slow button) to walk without spending Laziness."],
+["Elige una carta en el menú de cartas de arriba.", "Choose a card in the card menu above."],
+["Usa tu carta con la tecla o botón de su ranura.", "Use your card with the key or button of its slot."],
+["Acércate a un objeto rojo y haz clic (o pulsa E) para auto-dañarte: así ganas.", "Get close to a red object and click (or press E) to hurt yourself: that is how you win."],
+["Tutorial completado. Gana cada Paciente que baja su HP a 0; el Curador gana si los cura a todos. Si la partida termina, el host puede volver al lobby.", "Tutorial complete. Each Patient wins by bringing their HP down to 0; the Curator wins by healing them all. If the match ends, the host can return to the lobby."],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

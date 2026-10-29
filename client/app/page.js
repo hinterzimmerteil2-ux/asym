@@ -139,6 +139,9 @@ export default function LobbyPage() {
   const [cosmeticsOpen, setCosmeticsOpen] = useState(false);
   const [desgracias, setDesgracias] = useState({ balance: emptyQ(), owned: FREE_ITEMS });
   const [lastAward, setLastAward] = useState(null);
+  const [tutorial, setTutorial] = useState({ launching: false, active: false, minimized: false, flags: {} });
+  const tutStartRef = useRef(null);
+  const tutSentRef = useRef({ role: false, start: false });
   const pingSentRef = useRef(0);
   const frameBuf = useRef([]);
   const [replay, setReplay] = useState(null);
@@ -278,6 +281,7 @@ export default function LobbyPage() {
             break;
           case 'cure_result':
           case 'self_damage_result':
+            if (type === 'self_damage_result') setTutorial((t) => (t.active && !t.flags.selfDamage ? { ...t, flags: { ...t.flags, selfDamage: true } } : t));
             setLastActionFeedback(
               type === 'cure_result'
                 ? `Curaste a un Paciente (HP: ${payload.newHp})`
@@ -498,6 +502,53 @@ export default function LobbyPage() {
   function handleStart() {
     connRef.current?.send('start_game', {});
   }
+
+  function handleStartTutorial() {
+    tutSentRef.current = { role: false, start: false };
+    tutStartRef.current = null;
+    setTutorial({ launching: true, active: false, minimized: false, flags: {} });
+    if (!players.some((pl) => pl.isBot)) connRef.current?.send('add_bot', {});
+  }
+
+  useEffect(() => {
+    if (tutorial.launching && phase === 'lobby') {
+      const bot = players.find((pl) => pl.isBot);
+      if (!bot) return;
+      if (!bot.isAsymRole) {
+        if (!tutSentRef.current.role) { tutSentRef.current.role = true; connRef.current?.send('set_asym_role', { targetPlayerId: bot.id }); }
+        return;
+      }
+      if (!tutSentRef.current.start) { tutSentRef.current.start = true; connRef.current?.send('start_game', {}); }
+    }
+    if (tutorial.launching && phase === 'action') setTutorial((t) => ({ ...t, launching: false, active: true }));
+    if (tutorial.active && phase === 'lobby') setTutorial({ launching: false, active: false, minimized: false, flags: {} });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tutorial.launching, tutorial.active, phase, players]);
+
+  const tutLive = useRef({});
+  tutLive.current = { flojera, hand, cardCooldowns, myPlayerId };
+
+  useEffect(() => {
+    if (!tutorial.active || phase !== 'action') return;
+    const id = setInterval(() => {
+      const { flojera, hand, cardCooldowns, myPlayerId } = tutLive.current;
+      const me = sceneStore.entities[myPlayerId];
+      if (!me) return;
+      if (!tutStartRef.current) tutStartRef.current = { x: me.x, z: me.z };
+      const moved = Math.hypot(me.x - tutStartRef.current.x, me.z - tutStartRef.current.z) > 3;
+      setTutorial((t) => {
+        const f = { ...t.flags };
+        if (moved) f.move = true;
+        if (flojera && flojera.value < flojera.max - 8 && f.move) f.run = true;
+        if (flojera && flojera.mode === 'walk' && f.run) f.walk = true;
+        if (hand.some((slot) => slot.chosen)) f.pick = true;
+        if (Object.values(cardCooldowns).some((until) => until > Date.now())) f.card = true;
+        return JSON.stringify(f) === JSON.stringify(t.flags) ? t : { ...t, flags: f };
+      });
+    }, 400);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tutorial.active, phase]);
 
   function handleSetAsymRole(targetPlayerId) {
     connRef.current?.send('set_asym_role', { targetPlayerId });
@@ -846,6 +897,12 @@ export default function LobbyPage() {
             <button type="button" style={{ ...styles.smallButton, width: '100%', padding: '8px 12px' }} onClick={() => setCosmeticsOpen(true)}>Personalizar personaje</button>
           )}
 
+          {phase === 'lobby' && isHost && (
+            <button type="button" style={{ ...styles.smallButton, width: '100%', padding: '8px 12px', borderColor: '#f2d154' }} onClick={handleStartTutorial} disabled={tutorial.launching}>
+              {tutorial.launching ? 'Preparando tutorial...' : 'Tutorial (jugar contra un bot)'}
+            </button>
+          )}
+
           {phase === 'lobby' && (
             <div style={styles.mapPicker}>
               <p style={styles.characterPickerLabel}>Mapa</p>
@@ -933,6 +990,37 @@ export default function LobbyPage() {
         {phase === 'action' && isAsymRole && spawnMs > 0 && (
           <div style={sx(styles.resolvedBanner(false), { top: 150, fontSize: 15 })}>Entras en {Math.ceil(spawnMs / 1000)}s</div>
         )}
+
+        {tutorial.active && phase === 'action' && !isAsymRole && (() => {
+          const steps = [
+            ['move', 'Muévete con WASD o el joystick.'],
+            ['run', 'Sigue corriendo: la barra de Flojera baja al correr.'],
+            ['walk', 'Mantén Shift (o el botón Lento) para caminar sin gastar Flojera.'],
+            ['pick', 'Elige una carta en el menú de cartas de arriba.'],
+            ['card', 'Usa tu carta con la tecla o botón de su ranura.'],
+            ['selfDamage', 'Acércate a un objeto rojo y haz clic (o pulsa E) para auto-dañarte: así ganas.'],
+          ];
+          const current = steps.findIndex(([k]) => !tutorial.flags[k]);
+          const finished = current === -1;
+          return (
+            <div style={{ position: 'absolute', left: 8, top: compact ? 96 : 150, zIndex: 40, width: 'min(300px, calc(100% - 16px))', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, background: 'rgba(27,29,41,0.92)', border: '1px solid #f2d154', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong>Tutorial</strong>
+                <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '2px 8px', fontSize: 11 }} onClick={() => setTutorial((t) => ({ ...t, minimized: !t.minimized }))}>{tutorial.minimized ? 'Mostrar' : 'Ocultar'}</button>
+              </div>
+              {!tutorial.minimized && (
+                <>
+                  {steps.map(([k, text], i) => (
+                    <div key={k} style={{ color: tutorial.flags[k] ? '#5fd58c' : i === current ? '#f2d154' : '#8a8da3' }}>
+                      {tutorial.flags[k] ? '✓' : i === current ? '→' : '·'} {text}
+                    </div>
+                  ))}
+                  {finished && <div style={{ color: '#5fd58c' }}>Tutorial completado. Gana cada Paciente que baja su HP a 0; el Curador gana si los cura a todos. Si la partida termina, el host puede volver al lobby.</div>}
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
