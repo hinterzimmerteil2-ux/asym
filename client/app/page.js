@@ -19,7 +19,7 @@ import RhythmBar from '../components/RhythmBar';
 import TouchControls from '../components/TouchControls';
 import { KEYWORDS } from '../lib/keywords';
 import { ITEMS, COLORS, SLOT_LABELS } from '../lib/cosmetics';
-import { loadDesgracias, saveDesgracias, priceOf, FREE_ITEMS } from '../lib/desgracias';
+import { loadDesgracias, saveDesgracias, priceOf, FREE_ITEMS, emptyQ, addQ, normQ, spendQ, awardToQ, formatQ } from '../lib/desgracias';
 
 const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -137,7 +137,7 @@ export default function LobbyPage() {
   const [lobbyPlatforms, setLobbyPlatforms] = useState([]);
   const [cosmetics, setCosmetics] = useState({});
   const [cosmeticsOpen, setCosmeticsOpen] = useState(false);
-  const [desgracias, setDesgracias] = useState({ balance: 0, owned: FREE_ITEMS });
+  const [desgracias, setDesgracias] = useState({ balance: emptyQ(), owned: FREE_ITEMS });
   const [lastAward, setLastAward] = useState(null);
   const pingSentRef = useRef(0);
   const frameBuf = useRef([]);
@@ -349,7 +349,7 @@ export default function LobbyPage() {
           case 'desgracias_award':
             setLastAward(payload);
             setDesgracias((prev) => {
-              const next = { ...prev, balance: prev.balance + (payload.total || 0) };
+              const next = { ...prev, balance: addQ(prev.balance, awardToQ(payload.items)) };
               saveDesgracias(next);
               return next;
             });
@@ -569,8 +569,8 @@ export default function LobbyPage() {
 
   const buyItem = (id) => {
     const price = priceOf(id);
-    if (desgracias.owned.includes(id) || desgracias.balance < price) return false;
-    const next = { balance: desgracias.balance - price, owned: [...desgracias.owned, id] };
+    if (desgracias.owned.includes(id) || normQ(desgracias.balance) < price) return false;
+    const next = { balance: spendQ(desgracias.balance, price), owned: [...desgracias.owned, id] };
     setDesgracias(next);
     saveDesgracias(next);
     return true;
@@ -1144,7 +1144,7 @@ export default function LobbyPage() {
                 <strong>Personalizar personaje</strong>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                   <img src="/desgracias.png" alt="Desgracias (hipercomplejos)" title="Desgracias: se miden en hipercomplejos (ℍ, cuaterniones)" width={22} height={22} />
-                  <strong>{desgracias.balance} ℍ</strong>
+                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}><strong>{Math.floor(normQ(desgracias.balance))} ℍ</strong><span style={{ fontSize: 10, color: '#8a8da3' }}>{formatQ(desgracias.balance)}</span></span>
                 </span>
               </div>
               {Object.keys(ITEMS).map((slot) => (
@@ -1155,7 +1155,7 @@ export default function LobbyPage() {
                     {Object.entries(ITEMS[slot]).map(([id, def]) => {
                       const owned = desgracias.owned.includes(id);
                       const price = priceOf(id);
-                      const affordable = desgracias.balance >= price;
+                      const affordable = normQ(desgracias.balance) >= price;
                       return (
                         <button
                           key={id}
@@ -1206,10 +1206,10 @@ export default function LobbyPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '6px 0', fontSize: 13 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <img src="/desgracias.png" alt="Desgracias" width={28} height={28} />
-                    <strong>+{lastAward.total} ℍ · Desgracias</strong>
+                    <strong>+{Math.round(normQ(awardToQ(lastAward.items)))} ℍ · {formatQ(awardToQ(lastAward.items))}</strong>
                   </div>
                   {lastAward.items.map((it) => (
-                    <div key={it.label} style={{ display: 'flex', justifyContent: 'space-between', color: '#8a8da3' }}><span>{it.label}</span><span>+{it.amount} ℍ</span></div>
+                    <div key={it.label} style={{ display: 'flex', justifyContent: 'space-between', color: '#8a8da3' }}><span>{it.label}</span><span>+{it.amount}{it.axis && it.axis !== 'r' ? it.axis : ''}</span></div>
                   ))}
                 </div>
               )}

@@ -113,6 +113,13 @@ function clampUnit(value) {
   return Math.max(-1, Math.min(1, n));
 }
 
+const DESGRACIA_AXES = {
+  'Partida jugada': 'r', 'Sobreviviste': 'r', 'Tropezaste': 'r',
+  'Golpe al Curador': 'i', 'Botellazo': 'i', 'Cáscara de plátano': 'i',
+  'Cura': 'j', 'Auto-daño': 'j',
+  'Escapaste': 'k', 'Victoria del Curador': 'k',
+};
+
 class Room {
   constructor(roomId) {
     this.roomId = roomId;
@@ -1855,7 +1862,7 @@ class Room {
     }
     this.broadcast(MessageType.GAME_OVER, { curatorWon, patientResults, reason });
     for (const [playerId, book] of Object.entries(this.gameState.desgracias || {})) {
-      const items = Object.entries(book).map(([label, amount]) => ({ label, amount }));
+      const items = Object.entries(book).map(([label, amount]) => ({ label, amount, axis: DESGRACIA_AXES[label] || 'r' }));
       const total = items.reduce((sum, i) => sum + i.amount, 0);
       if (total > 0) this.sendTo(playerId, MessageType.DESGRACIAS_AWARD, { total, items });
     }
