@@ -240,7 +240,7 @@ const PAIRS = [
 ['Dash que, si golpea al Curador, lo lanza lejos (ragdoll) y te deja donde estaba él (dropkick); arrastra a tus aliados; sube plataformas de hasta 1.8 de alto. Gasta 25 de Flojera.', 'A dash that, if it hits the Curator, sends them flying (ragdoll) and leaves you where they stood (dropkick); drags your allies along; climbs platforms up to 1.8 high. Costs 25 Laziness.'],
 ['Tropiezo', 'Trip'],
 ['Derriba (ragdoll) 3s al Curador dentro de un cubo de 2.5 alrededor tuyo y le quita 25 HP. Tú quedas en endlag 1.2s al usarla.', 'Knocks the Curator down (ragdoll) for 3s inside a 2.5 cube around you and takes 25 HP from them. You are in endlag for 1.2s after using it.'],
-['Chicharrón', 'Pork Crackling'],
+['Chicharrón', 'Chicharrón'],
 ['Comes: pierdes 20 de HP, hasta un mínimo de 55. Si ya estás en el mínimo, correr 3s más rápido.', 'You eat: lose 20 HP, down to a minimum of 55. If you are already at the minimum, run faster for 3s.'],
 ['Pierdes 38 de HP, hasta un mínimo de 35 y corres 4s mucho más rápido. Si ya estás en el mínimo, además recuperas 40 de Flojera. Cada uso: HP máximo −30, sin límite.', 'You lose 38 HP, down to a minimum of 35, and run much faster for 4s. If you are already at the minimum, you also recover 40 Laziness. Each use: maximum HP −30, no limit.'],
 ['Cáscara de Plátano', 'Banana Peel'],
@@ -321,7 +321,7 @@ const PAIRS = [
 ['Slot', 'Slot'],
 ['nivel', 'level'],
 ['host', 'host'],
-['Espada del UTTVM al', 'UTTVMs Sword at'],
+['Espada del UTTVM al', 'uttvms sword at'],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

@@ -238,7 +238,7 @@ export const DE = [
 "Ein Sprint, der den Kurator, wenn er ihn trifft, wegschleudert (Ragdoll) und dich dort lässt, wo er stand (Dropkick); zieht deine Verbündeten mit; erklimmt Plattformen bis 1,8 Höhe. Kostet 25 Faulheit.",
 "Stolpern",
 "Wirft den Kurator 3 s lang (Ragdoll) in einem Würfel von 2,5 um dich zu Boden und nimmt ihm 25 HP. Du bist nach dem Einsatz 1,2 s im Endlag.",
-"Schweinekruste",
+"Chicharrón",
 "Du isst: Du verlierst 20 HP, bis zu einem Minimum von 55. Bist du schon am Minimum, rennst du 3 s schneller.",
 "Du verlierst 38 HP, bis zu einem Minimum von 35, und rennst 4 s viel schneller. Bist du schon am Minimum, erholst du außerdem 40 Faulheit. Pro Einsatz: maximale HP −30, ohne Grenze.",
 "Bananenschale",
@@ -319,5 +319,5 @@ export const DE = [
 "Slot",
 "Stufe",
 "Host",
-"UTTVMs Schwert bei"
+"uttvms schwert bei"
 ];
