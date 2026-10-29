@@ -54,7 +54,7 @@ const CARDS = {
     id: 'cascara_platano',
     keywords: ['defensiva'],
     displayName: 'Cáscara de Plátano',
-    description: 'Lanzas una cáscara 3 de distancia con 2 usos; al lanzarla quedas ralentizado 0.9s. Dura 1 minuto: empieza con 1 de vida y se cura 1 por segundo hasta 61, donde desaparece. Con 31 y 61 de vida pierde un nivel: el Curador que la pisa cae 1, 1.5 o 2s y se cura 8, 14 o 20. Tú también puedes tropezar con ella pasados 2.5s.',
+    description: 'Lanzas una cáscara 3 de distancia con 2 usos; al lanzarla quedas ralentizado 1.6s. Dura 1 minuto: empieza con 1 de vida y se cura 1 por segundo hasta 61, donde desaparece. Con 31 y 61 de vida pierde un nivel: el Curador que la pisa cae 1, 1.5 o 2s y se cura 8, 14 o 20. Tú también puedes tropezar con ella pasados 2.5s.',
     rarity: 'uncommon',
     cooldownMs: 25000,
   },

@@ -802,7 +802,7 @@ export default function LobbyPage() {
               return (
                 <li key={p.id} style={styles.playerItem}>
                   <span>
-                    {p.isAsymRole ? '🩺 ' : ''}{p.name}{p.id === myPlayerId ? ' (tú)' : ''}
+                    {p.isAsymRole ? '🩺 ' : ''}<span translate="no">{p.name}</span>{p.id === myPlayerId ? ' (tú)' : ''}
                   </span>
                   <span style={styles.playerTag}>
                     {p.id === hostId ? 'Host' : ''} {characterTag}
@@ -1046,7 +1046,7 @@ export default function LobbyPage() {
                 <span style={styles.chatAuthor(m.playerId === myPlayerId)}>
                   {m.ghost ? '(fantasma) ' : ''}{m.playerId === myPlayerId ? 'Tú' : m.playerName}:
                 </span>{' '}
-                <span style={styles.chatText}>{m.text}</span>
+                <span translate="no" style={styles.chatText}>{m.text}</span>
               </p>
             ))}
             <div ref={chatEndRef} />
