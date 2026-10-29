@@ -1,3 +1,5 @@
+import { DE } from './i18n_de';
+
 const PAIRS = [
 ['Ocurrió un error al iniciar sesión.', 'An error occurred while signing in.'],
 ['No se pudo iniciar sesión', 'Could not sign in'],
@@ -321,33 +323,42 @@ const PAIRS = [
 ['host', 'host'],
 ];
 
-const MAP = new Map();
-for (const [es, en] of PAIRS) if (!MAP.has(es)) MAP.set(es, en);
-const KEYS = [...MAP.keys()].sort((x, y) => y.length - x.length);
+const MAPS = { 'en-GB': new Map(), de: new Map() };
+PAIRS.forEach(([es, en], i) => {
+  if (!MAPS['en-GB'].has(es)) MAPS['en-GB'].set(es, en);
+  if (!MAPS.de.has(es)) MAPS.de.set(es, DE[i]);
+});
+const KEYS = [...MAPS['en-GB'].keys()].sort((x, y) => y.length - x.length);
 const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const isLetter = (c) => /\p{L}/u.test(c);
 const RX = new RegExp(
   KEYS.map((k) => (isLetter(k[0]) ? '(?<!\\p{L})' : '') + esc(k) + (isLetter(k[k.length - 1]) ? '(?!\\p{L})' : '')).join('|'),
   'gu'
 );
-const EXACT = new Map([['o', 'or']]);
-const cache = new Map();
+const EXACT = { 'en-GB': new Map([['o', 'or']]), de: new Map([['o', 'oder']]) };
+const caches = { 'en-GB': new Map(), de: new Map() };
 
 export function translate(text, lang) {
-  if (lang !== 'en-GB' || !text || !/\p{L}/u.test(text)) return text;
-  if (EXACT.has(text.trim())) return text.replace(text.trim(), EXACT.get(text.trim()));
+  const map = MAPS[lang];
+  if (!map || !text || !/\p{L}/u.test(text)) return text;
+  const trimmed = text.trim();
+  if (EXACT[lang].has(trimmed)) return text.replace(trimmed, EXACT[lang].get(trimmed));
+  const cache = caches[lang];
   const hit = cache.get(text);
   if (hit !== undefined) return hit;
-  const out = text.replace(RX, (m) => MAP.get(m) ?? m);
+  const out = text.replace(RX, (m) => map.get(m) ?? m);
   if (cache.size > 3000) cache.clear();
   cache.set(text, out);
   return out;
 }
 
+export const LANGS = ['es', 'en-GB', 'de'];
+
 export function detectLang() {
   try {
     const stored = localStorage.getItem('asym_lang');
-    if (stored === 'es' || stored === 'en-GB') return stored;
+    if (stored === 'es' || stored === 'en-GB' || stored === 'de') return stored;
   } catch {}
-  return typeof navigator !== 'undefined' && /^en/i.test(navigator.language || '') ? 'en-GB' : 'es';
+  const nav = typeof navigator !== 'undefined' ? navigator.language || '' : '';
+  return /^en/i.test(nav) ? 'en-GB' : /^de/i.test(nav) ? 'de' : 'es';
 }

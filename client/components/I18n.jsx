@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { translate, detectLang } from '../lib/i18n';
+import { translate, detectLang, LANGS } from '../lib/i18n';
 
 const ATTRS = ['title', 'placeholder', 'aria-label', 'alt'];
 
@@ -77,9 +77,9 @@ export default function I18n() {
         }
       }
     }
-    if (langRef.current === 'en-GB') walk(document.body);
+    if (langRef.current !== 'es') walk(document.body);
     document.title = translate('Réplica', langRef.current);
-    document.documentElement.lang = langRef.current === 'en-GB' ? 'en-GB' : 'es';
+    document.documentElement.lang = langRef.current;
   };
 
   useEffect(() => {
@@ -87,7 +87,7 @@ export default function I18n() {
     langRef.current = l;
     setLang(l);
     const observer = new MutationObserver((records) => {
-      if (langRef.current !== 'en-GB') return;
+      if (langRef.current === 'es') return;
       for (const r of records) {
         if (r.type === 'characterData') applyText(r.target);
         else if (r.type === 'attributes') applyAttrs(r.target);
@@ -100,8 +100,7 @@ export default function I18n() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const toggle = () => {
-    const next = langRef.current === 'en-GB' ? 'es' : 'en-GB';
+  const choose = (next) => {
     langRef.current = next;
     setLang(next);
     try { localStorage.setItem('asym_lang', next); } catch {}
@@ -109,14 +108,18 @@ export default function I18n() {
   };
 
   return (
-    <button
-      type="button"
-      translate="no"
-      onClick={toggle}
-      aria-label="language"
-      style={{ position: 'fixed', top: 2, right: 2, zIndex: 500, fontSize: 10, padding: '1px 6px', borderRadius: 4, border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(20,22,30,0.6)', color: '#e8e9f0', opacity: 0.7, cursor: 'pointer', lineHeight: 1.4 }}
-    >
-      {lang === 'en-GB' ? 'es' : 'en'}
-    </button>
+    <div translate="no" style={{ position: 'fixed', top: 3, right: 3, zIndex: 500, display: 'flex', gap: 3 }}>
+      {LANGS.map((l) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => choose(l)}
+          aria-label={`language ${l}`}
+          style={{ fontSize: 13, padding: '3px 9px', borderRadius: 5, border: '1px solid rgba(255,255,255,0.3)', background: lang === l ? 'rgba(84,104,255,0.85)' : 'rgba(20,22,30,0.65)', color: '#e8e9f0', opacity: lang === l ? 1 : 0.75, cursor: 'pointer', lineHeight: 1.4 }}
+        >
+          {l === 'en-GB' ? 'en' : l}
+        </button>
+      ))}
+    </div>
   );
 }
