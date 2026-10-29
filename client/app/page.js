@@ -907,7 +907,7 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && !isAsymRole && myPlayerId && patients[myPlayerId] && (
-          <div style={sx(styles.hpBarContainer, { ...bar, bottom: 'auto', top: 80 })}>
+          <div style={sx(styles.hpBarContainer, { ...bar, bottom: 'auto', top: compact ? 40 : 80 })}>
             <div style={sx(styles.hpBarLabel, { fontSize: 10, marginBottom: 3 })}>
               Tu HP: {Math.round(patients[myPlayerId].hp)}/{patients[myPlayerId].maxHp || 120}
               {patients[myPlayerId].hp <= 20 && ' (¡cerca de ganar!)'}
@@ -940,7 +940,7 @@ export default function LobbyPage() {
         {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
 
         {phase === 'action' && flojera && (
-          <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: isAsymRole ? 80 : 110 })}>
+          <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: compact ? (isAsymRole ? 40 : 64) : (isAsymRole ? 80 : 110) })}>
             <div style={sx(styles.flojeraBarLabel, { fontSize: 10, marginBottom: 3 })}>
               Flojera: {Math.round(flojera.value)}/{flojera.max}
               {flojera.locked && ' (¡exhausto, no puedes correr!)'}
@@ -1143,8 +1143,8 @@ export default function LobbyPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <strong>Personalizar personaje</strong>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                  <img src="/desgracias.png" alt="Desgracias" width={22} height={22} />
-                  <strong>{desgracias.balance}</strong>
+                  <img src="/desgracias.png" alt="Desgracias (hipercomplejos)" title="Desgracias: se miden en hipercomplejos (ℍ, cuaterniones)" width={22} height={22} />
+                  <strong>{desgracias.balance} ℍ</strong>
                 </span>
               </div>
               {Object.keys(ITEMS).map((slot) => (
@@ -1166,7 +1166,7 @@ export default function LobbyPage() {
                             updateCosmetics({ ...cosmetics, [slot]: { id, color: cosmetics[slot]?.color || COLORS[0] } });
                           }}
                         >
-                          {def.name}{!owned && <span style={{ marginLeft: 6, color: '#f2d154' }}>{price}</span>}
+                          {def.name}{!owned && <span style={{ marginLeft: 6, color: '#f2d154' }}>{price} ℍ</span>}
                         </button>
                       );
                     })}
@@ -1206,10 +1206,10 @@ export default function LobbyPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '6px 0', fontSize: 13 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <img src="/desgracias.png" alt="Desgracias" width={28} height={28} />
-                    <strong>+{lastAward.total} Desgracias</strong>
+                    <strong>+{lastAward.total} ℍ · Desgracias</strong>
                   </div>
                   {lastAward.items.map((it) => (
-                    <div key={it.label} style={{ display: 'flex', justifyContent: 'space-between', color: '#8a8da3' }}><span>{it.label}</span><span>+{it.amount}</span></div>
+                    <div key={it.label} style={{ display: 'flex', justifyContent: 'space-between', color: '#8a8da3' }}><span>{it.label}</span><span>+{it.amount} ℍ</span></div>
                   ))}
                 </div>
               )}

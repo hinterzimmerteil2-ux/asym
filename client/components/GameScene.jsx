@@ -1076,7 +1076,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId }) {
     function onPointerMove(e) {
       if (document.pointerLockElement === canvas) {
         yaw.current -= e.movementX * 0.0025;
-        pitch.current = Math.max(0.15, Math.min(1.4, pitch.current - e.movementY * 0.0025));
+        pitch.current = Math.max(0.15, Math.min(1.4, pitch.current + e.movementY * 0.0025));
         return;
       }
       if (touches.has(e.pointerId)) {
@@ -1094,7 +1094,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId }) {
       const dy = e.clientY - lastPointer.current.y;
       lastPointer.current = { x: e.clientX, y: e.clientY };
       yaw.current -= dx * sens(e);
-      pitch.current = Math.max(0.15, Math.min(1.4, pitch.current - dy * sens(e)));
+      pitch.current = Math.max(0.15, Math.min(1.4, pitch.current + dy * sens(e)));
     }
     function onWheel(e) {
       e.preventDefault();
