@@ -321,6 +321,7 @@ const PAIRS = [
 ['Slot', 'Slot'],
 ['nivel', 'level'],
 ['host', 'host'],
+['Espada del UTTVM al', 'UTTVMs Sword at'],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

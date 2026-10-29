@@ -318,5 +318,6 @@ export const DE = [
 "Patienten",
 "Slot",
 "Stufe",
-"Host"
+"Host",
+"UTTVMs Schwert bei"
 ];
