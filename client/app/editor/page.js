@@ -378,6 +378,11 @@ export default function MapEditorPage() {
             click derecho o el botón × para borrar.
           </p>
 
+          <p style={styles.countLine}>Herramienta</p>
+          <div style={{ ...styles.toolGroup, borderBottom: '1px solid #3a3d52', paddingBottom: 8, marginBottom: 8 }}>
+            <button style={styles.toolButton(selectedTool === 'edit', '#facc15')} onClick={() => setSelectedTool('edit')}>✎ Editar (altura / escala)</button>
+          </div>
+          <p style={styles.countLine}>Elementos para colocar</p>
           <div style={styles.toolGroup}>
             <button
               style={styles.toolButton(selectedTool === 'self_damage', '#e0555f')}
@@ -389,7 +394,6 @@ export default function MapEditorPage() {
             <button style={styles.toolButton(selectedTool === 'ramp', '#9ca3af')} onClick={() => setSelectedTool('ramp')}>Rampa</button>
             <button style={styles.toolButton(selectedTool === 'pit', '#3b6ea5')} onClick={() => setSelectedTool('pit')}>Sótano (foso)</button>
             <button style={styles.toolButton(selectedTool === 'pit_ramp', '#5b8fb0')} onClick={() => setSelectedTool('pit_ramp')}>Rampa de sótano (bajada)</button>
-            <button style={styles.toolButton(selectedTool === 'edit', '#facc15')} onClick={() => setSelectedTool('edit')}>✎ Editar / altura / escalar</button>
             <button style={styles.toolButton(selectedTool === 'slab', '#8fc6ea')} onClick={() => setSelectedTool('slab')}>Entrepiso (pasable por debajo)</button>
             <button style={styles.toolButton(selectedTool === 'gate', '#f2a154')} onClick={() => setSelectedTool('gate')}>Puerta solo Curador</button>
             {COLLISION_TYPES.map((type) => (
