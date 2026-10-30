@@ -1512,7 +1512,7 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
         <SquareFrame key={obj.id} x={obj.x} z={obj.z} y={(obj.height || 1.2) / 2} half={obj.radius} hy={(obj.height || 1.2) / 2} color="#e0555f" opacity={opacity} />
       ))}
       {Object.entries(selfDamageObjects || {}).map(([id, pos]) => (
-        <SquareFrame key={id} x={pos.x} z={pos.z} half={cfg.interact} color="#e0555f" opacity={opacity} />
+        <SquareFrame key={id} x={pos.x} z={pos.z} y={(pos.y || 0) + cfg.interact} half={cfg.interact} color="#e0555f" opacity={opacity} />
       ))}
       {(zones || []).map((zone) => (
         <SquareFrame key={zone.id} x={zone.x} z={zone.z} y={zone.y || 0} half={zone.radius} color="#e0555f" opacity={opacity} />
