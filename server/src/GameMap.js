@@ -228,8 +228,9 @@ function registerMap(layout) {
     id: layout.id,
     name: typeof layout.name === 'string' && layout.name.trim() ? layout.name.trim() : layout.id,
     custom: true,
-    curatorSpawns: (Array.isArray(layout.curatorSpawns) ? layout.curatorSpawns : []).slice(0, 16).map((s) => ({ xFrac: clampFrac(s.xFrac), zFrac: clampFrac(s.zFrac) })),
-    patientSpawns: (Array.isArray(layout.patientSpawns) ? layout.patientSpawns : []).slice(0, 32).map((s) => ({ xFrac: clampFrac(s.xFrac), zFrac: clampFrac(s.zFrac) })),
+    halfSize: Math.max(20, Math.min(250, Number(layout.halfSize) || MATCH_AREA.halfSize)),
+    curatorSpawns: (Array.isArray(layout.curatorSpawns) ? layout.curatorSpawns : []).slice(0, 64).map((s) => ({ xFrac: clampFrac(s.xFrac), zFrac: clampFrac(s.zFrac) })),
+    patientSpawns: (Array.isArray(layout.patientSpawns) ? layout.patientSpawns : []).slice(0, 128).map((s) => ({ xFrac: clampFrac(s.xFrac), zFrac: clampFrac(s.zFrac) })),
     selfDamageObjects: layout.selfDamageObjects.map((o) => ({
       id: String(o.id),
       xFrac: clampFrac(o.xFrac),
@@ -240,19 +241,19 @@ function registerMap(layout) {
       type: typeof o.type === 'string' ? o.type : 'gurney',
       xFrac: clampFrac(o.xFrac),
       zFrac: clampFrac(o.zFrac),
-      radiusFrac: Math.max(0.01, Math.min(0.2, Number(o.radiusFrac) || 0.04)),
+      radiusFrac: Math.max(0.01, Math.min(0.5, Number(o.radiusFrac) || 0.04)),
     })),
-    platforms: (Array.isArray(layout.platforms) ? layout.platforms : []).slice(0, 200).map((p, i) => ({
+    platforms: (Array.isArray(layout.platforms) ? layout.platforms : []).slice(0, 1500).map((p, i) => ({
       id: typeof p.id === 'string' ? p.id : `pl_${i}`,
       xFrac: clampFrac(p.xFrac),
       zFrac: clampFrac(p.zFrac),
-      hxFrac: Math.max(0.02, Math.min(0.7, Number(p.hxFrac) || 0.1)),
-      hzFrac: Math.max(0.02, Math.min(0.7, Number(p.hzFrac) || 0.1)),
-      h: Math.max(0.4, Math.min(12, Number(p.h) || 1.6)),
+      hxFrac: Math.max(0.02, Math.min(4, Number(p.hxFrac) || 0.1)),
+      hzFrac: Math.max(0.02, Math.min(4, Number(p.hzFrac) || 0.1)),
+      h: Math.max(0.4, Math.min(40, Number(p.h) || 1.6)),
       ramp: p.ramp === '+x' || p.ramp === '-x' ? p.ramp : null,
       kind: ['pit', 'gate', 'mezzanine'].includes(p.kind) ? p.kind : null,
       slab: p.kind === 'mezzanine' ? 0.4 : 0,
-      y0: Math.max(0, Math.min(20, Number(p.y0) || 0)),
+      y0: Math.max(0, Math.min(80, Number(p.y0) || 0)),
       tex: ['marble', 'tile', 'plaster', 'tower', 'roof', 'ramp', 'concrete', 'brick', 'wood', 'metal'].includes(p.tex) ? p.tex : null,
       tint: /^#[0-9a-fA-F]{6}$/.test(p.tint || '') ? p.tint : null,
     })),
@@ -349,12 +350,17 @@ function resolvePlatforms(mapId, area) {
   }));
 }
 
+function areaFor(mapId) {
+  const h = (MAPS[mapId] || {}).halfSize;
+  return h ? { ...MATCH_AREA, halfSize: h } : MATCH_AREA;
+}
+
 function resolveSpawns(list, area) {
   return (list || []).map((s) => ({ x: s.xFrac * area.halfSize, z: s.zFrac * area.halfSize }));
 }
 
 function getCuratorSpawn(mapId, pick) {
-  const spawns = resolveSpawns((MAPS[mapId] || {}).curatorSpawns, MATCH_AREA);
+  const spawns = resolveSpawns((MAPS[mapId] || {}).curatorSpawns, areaFor(mapId));
   if (!spawns.length) return { x: 0, z: 0 };
   return spawns[pick === undefined ? Math.floor(Math.random() * spawns.length) : pick % spawns.length];
 }
@@ -363,6 +369,7 @@ module.exports = {
   LOBBY_AREA,
   LOBBY_PLATFORMS,
   MATCH_AREA,
+  areaFor,
   MAPS,
   DEFAULT_MAP_ID,
   HOSPITAL_ID,

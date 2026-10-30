@@ -1568,6 +1568,7 @@ export default function GameScene({
   ragdollIds,
   collisionObjects,
   platforms,
+  matchHalf,
   revealedIds,
   sendInput,
   sendAction,
@@ -1587,7 +1588,7 @@ export default function GameScene({
 
   const playerById = new Map(players.map((p) => [p.id, p]));
   const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
-  const areaHalfSize = phase === 'action' ? MATCH_HALF_SIZE : LOBBY_HALF_SIZE;
+  const areaHalfSize = phase === 'action' ? matchHalf || MATCH_HALF_SIZE : LOBBY_HALF_SIZE;
   const myEntity = ghostMode && ghosts?.[myPlayerId] ? ghosts[myPlayerId] : entities[followId || myPlayerId];
   const pits = useMemo(() => (phase === 'action' ? (platforms || []).filter((p) => p.kind === 'pit') : []), [platforms, phase]);
 

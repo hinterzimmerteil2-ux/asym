@@ -3,7 +3,7 @@ const { platformTop, baseAt } = require('./Hitbox');
 const CELL = 0.5;
 const PAD = 0.5;
 const STEP = 0.45;
-const MAX_EXPANSIONS = 8000;
+const MAX_EXPANSIONS = 60000;
 
 function buildGrid(half, objects, platforms) {
   const n = Math.ceil((half * 2) / CELL);

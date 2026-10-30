@@ -166,7 +166,7 @@ class Room {
 
   navigation(curator = false) {
     if (!this.nav || this.nav.key !== this.mapId) {
-      const area = GameMap.MATCH_AREA;
+      const area = GameMap.areaFor(this.mapId);
       const objects = GameMap.resolveCollisionObjects(this.mapId, area);
       const platforms = GameMap.resolvePlatforms(this.mapId, area);
       this.nav = {
@@ -179,7 +179,7 @@ class Room {
   }
 
   selfDamageCandidates() {
-    const area = GameMap.MATCH_AREA;
+    const area = GameMap.areaFor(this.mapId);
     const all = GameMap.resolveSelfDamagePositions(this.mapId, area);
     const grid = this.navigation();
     if (!this.nav.seen) this.nav.seen = Pathfinding.reachableFrom(grid, GameMap.getCuratorSpawn(this.mapId, 0));
@@ -602,7 +602,7 @@ class Room {
   }
 
   getCurrentArea() {
-    return this.phase === 'action' ? GameMap.MATCH_AREA : GameMap.LOBBY_AREA;
+    return this.phase === 'action' ? GameMap.areaFor(this.mapId) : GameMap.LOBBY_AREA;
   }
 
   startTickLoop() {
@@ -628,7 +628,7 @@ class Room {
     for (const [playerId, player] of this.players) {
       if (!player.isAsymRole) patientIds.push(playerId);
     }
-    const patientSpawns = GameMap.getPatientSpawnPositions(patientIds.length, GameMap.MATCH_AREA, this.mapId);
+    const patientSpawns = GameMap.getPatientSpawnPositions(patientIds.length, GameMap.areaFor(this.mapId), this.mapId);
     const curatorSpawn = GameMap.getCuratorSpawn(this.mapId);
 
     let patientIndex = 0;
@@ -778,7 +778,7 @@ class Room {
 
   tickGhosts(dt) {
     const half = this.getCurrentArea().halfSize;
-    const platforms = this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.MATCH_AREA) : [];
+    const platforms = this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)) : [];
     for (const [ghostId, ghost] of Object.entries(this.gameState.ghosts)) {
       const owner = this.gameState.entities[ghostId];
       if (!owner) continue;
@@ -858,9 +858,9 @@ class Room {
     this.tickHitWindows(Date.now());
     const area = this.getCurrentArea();
     const collisionObjects =
-      this.phase === 'action' ? GameMap.resolveCollisionObjects(this.mapId, GameMap.MATCH_AREA) : [];
+      this.phase === 'action' ? GameMap.resolveCollisionObjects(this.mapId, GameMap.areaFor(this.mapId)) : [];
     const allPlatforms =
-      this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.MATCH_AREA) : this.phase === 'lobby' ? GameMap.LOBBY_PLATFORMS : [];
+      this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)) : this.phase === 'lobby' ? GameMap.LOBBY_PLATFORMS : [];
     const curPlatforms = allPlatforms.filter((p) => p.kind !== 'gate');
 
     const now = Date.now();
@@ -1394,7 +1394,7 @@ class Room {
 
   addZone(zone) {
     const owner = this.gameState.entities[zone.ownerId];
-    const platforms = this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.MATCH_AREA) : [];
+    const platforms = this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)) : [];
     zone.y = groundAt(platforms, zone.x, zone.z, owner ? owner.y || 0 : 0, 2);
     this.gameState.zones.push({ id: `z${this.zoneCounter = (this.zoneCounter || 0) + 1}`, ...zone });
   }

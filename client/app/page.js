@@ -156,6 +156,7 @@ export default function LobbyPage() {
   const entitiesRef = useRef({});
   const effectCounterRef = useRef(0);
   const [collisionObjects, setCollisionObjects] = useState([]);
+  const [matchHalf, setMatchHalf] = useState(60);
   const [platforms, setPlatforms] = useState([]);
   const [patients, setPatients] = useState({});
   const [timeRemainingMs, setTimeRemainingMs] = useState(null);
@@ -364,6 +365,7 @@ export default function LobbyPage() {
             frameBuf.current = [];
             setCollisionObjects(payload.collisionObjects || []);
             setPlatforms(payload.platforms || []);
+            setMatchHalf(payload.halfSize || 60);
             if (payload.hitbox) setHitboxCfg(payload.hitbox);
             break;
           case 'room_full':
@@ -784,6 +786,7 @@ export default function LobbyPage() {
             stunnedIds={stunnedIds}
             ragdollIds={ragdollIds}
             collisionObjects={collisionObjects}
+            matchHalf={matchHalf}
             platforms={phase === 'action' ? platforms : lobbyPlatforms}
             sendInput={handleSendInput}
             sendAction={handleSendAction}

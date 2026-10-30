@@ -27,7 +27,7 @@ const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3, crate: 1.1
 
 const DEFAULT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', mezzanine: 'marble' };
 
-function PlatformMesh({ p, onPick, selected }) {
+function PlatformMesh({ p, onPick, selected, MAP_HALF }) {
   const hx = p.hxFrac * REF_HALF;
   const hz = p.hzFrac * REF_HALF;
   const x = p.xFrac * MAP_HALF;
@@ -89,7 +89,7 @@ function PlatformMesh({ p, onPick, selected }) {
   );
 }
 
-function Preview3D({ platforms, collisionObjects, selfDamageObjects, onGround, onPick, selectedId }) {
+function Preview3D({ platforms, collisionObjects, selfDamageObjects, onGround, onPick, selectedId, MAP_HALF }) {
   return (
     <Canvas camera={{ position: [0, 70, 80], fov: 50 }} style={{ width: CANVAS_SIZE, height: 380, background: '#0b0d14', borderRadius: 8 }}>
       <ambientLight intensity={0.7} />
@@ -101,7 +101,7 @@ function Preview3D({ platforms, collisionObjects, selfDamageObjects, onGround, o
       </mesh>
       <gridHelper args={[MAP_HALF * 2, 24, '#5468ff', '#b8b4a6']} position={[0, 0.02, 0]} />
       <mesh position={[0, 0.3, 0]}><cylinderGeometry args={[0.8, 0.8, 0.6, 12]} /><meshBasicMaterial color="#5468ff" /></mesh>
-      {platforms.map((p) => <PlatformMesh key={p.id} p={p} onPick={onPick} selected={p.id === selectedId} />)}
+      {platforms.map((p) => <PlatformMesh key={p.id} p={p} onPick={onPick} selected={p.id === selectedId} MAP_HALF={MAP_HALF} />)}
       {collisionObjects.map((o) => {
         const h = OBJECT_HEIGHTS[o.type] || 1.2;
         return (
@@ -192,6 +192,8 @@ function generateId(prefix) {
 }
 
 export default function MapEditorPage() {
+  const [mapHalf, setMapHalf] = useState(60);
+  const MAP_HALF = mapHalf;
   const [selfDamageObjects, setSelfDamageObjects] = useState([]);
   const [collisionObjects, setCollisionObjects] = useState([]);
   const [curatorSpawns, setCuratorSpawns] = useState([]);
@@ -325,6 +327,7 @@ export default function MapEditorPage() {
     return {
       id,
       name,
+      halfSize: mapHalf,
       curatorSpawns: curatorSpawns.map((o) => ({ xFrac: round3(o.xFrac), zFrac: round3(o.zFrac) })),
       patientSpawns: patientSpawns.map((o) => ({ xFrac: round3(o.xFrac), zFrac: round3(o.zFrac) })),
       selfDamageObjects: selfDamageObjects.map((o) => ({
@@ -409,6 +412,11 @@ export default function MapEditorPage() {
             click derecho o el botón × para borrar.
           </p>
 
+          <div style={styles.countsBox}>
+            <label style={styles.countLine}>Tamaño del mapa (mitad): {mapHalf}
+              <input type="range" min="20" max="250" step="5" value={mapHalf} onChange={(e) => setMapHalf(parseInt(e.target.value, 10))} style={{ width: '100%' }} />
+            </label>
+          </div>
           <p style={styles.countLine}>Herramienta</p>
           <div style={{ ...styles.toolGroup, borderBottom: '1px solid #3a3d52', paddingBottom: 8, marginBottom: 8 }}>
             <button style={styles.toolButton(selectedTool === 'edit', '#facc15')} onClick={() => setSelectedTool('edit')}>✎ Editar (altura / escala)</button>
@@ -422,11 +430,11 @@ export default function MapEditorPage() {
               <div style={styles.countsBox}>
                 <p style={styles.countLine}>Editando: {sp.id}</p>
                 <label style={styles.countLine}>{pitLike ? 'Profundidad' : 'Altura'}: {sp.h.toFixed(1)}
-                  <input type="range" min="0.4" max={pitLike ? 6 : 12} step="0.1" value={sp.h} onChange={(e) => upd({ h: parseFloat(e.target.value) })} style={{ width: '100%' }} />
+                  <input type="range" min="0.4" max={pitLike ? 20 : 40} step="0.1" value={sp.h} onChange={(e) => upd({ h: parseFloat(e.target.value) })} style={{ width: '100%' }} />
                 </label>
                 {!pitLike && (
                   <label style={styles.countLine}>Elevación (en qué piso está): {(sp.y0 || 0).toFixed(1)}
-                    <input type="range" min="0" max="20" step="0.5" value={sp.y0 || 0} onChange={(e) => upd({ y0: parseFloat(e.target.value) })} style={{ width: '100%' }} />
+                    <input type="range" min="0" max="60" step="0.5" value={sp.y0 || 0} onChange={(e) => upd({ y0: parseFloat(e.target.value) })} style={{ width: '100%' }} />
                   </label>
                 )}
                 <label style={styles.countLine}>Textura:{' '}
@@ -436,10 +444,10 @@ export default function MapEditorPage() {
                   <input type="color" value={sp.tint || '#ffffff'} onChange={(e) => upd({ tint: e.target.value === '#ffffff' ? null : e.target.value })} />
                 </label>
                 <label style={styles.countLine}>Largo (X): {(sp.hxFrac * REF_HALF * 2).toFixed(1)}
-                  <input type="range" min="0.6" max="40" step="0.2" value={sp.hxFrac * REF_HALF * 2} onChange={(e) => upd({ hxFrac: parseFloat(e.target.value) / 2 / REF_HALF })} style={{ width: '100%' }} />
+                  <input type="range" min="0.6" max="200" step="0.2" value={sp.hxFrac * REF_HALF * 2} onChange={(e) => upd({ hxFrac: parseFloat(e.target.value) / 2 / REF_HALF })} style={{ width: '100%' }} />
                 </label>
                 <label style={styles.countLine}>Ancho (Z): {(sp.hzFrac * REF_HALF * 2).toFixed(1)}
-                  <input type="range" min="0.6" max="40" step="0.2" value={sp.hzFrac * REF_HALF * 2} onChange={(e) => upd({ hzFrac: parseFloat(e.target.value) / 2 / REF_HALF })} style={{ width: '100%' }} />
+                  <input type="range" min="0.6" max="200" step="0.2" value={sp.hzFrac * REF_HALF * 2} onChange={(e) => upd({ hzFrac: parseFloat(e.target.value) / 2 / REF_HALF })} style={{ width: '100%' }} />
                 </label>
                 {sp.ramp && (
                   <p style={styles.countLine}>
@@ -493,13 +501,13 @@ export default function MapEditorPage() {
                 <input type="color" value={buildTint} onChange={(e) => setBuildTint(e.target.value)} />
               </label>
               <label style={styles.countLine}>Elevación (piso): {buildY0.toFixed(1)}
-                <input type="range" min="0" max="12" step="0.5" value={buildY0} onChange={(e) => setBuildY0(parseFloat(e.target.value))} style={{ width: '100%' }} />
+                <input type="range" min="0" max="40" step="0.5" value={buildY0} onChange={(e) => setBuildY0(parseFloat(e.target.value))} style={{ width: '100%' }} />
               </label>
               <label style={styles.countLine}>Altura: {buildH.toFixed(1)}
-                <input type="range" min="0.4" max="4" step="0.2" value={buildH} onChange={(e) => setBuildH(parseFloat(e.target.value))} style={{ width: '100%' }} />
+                <input type="range" min="0.4" max="20" step="0.2" value={buildH} onChange={(e) => setBuildH(parseFloat(e.target.value))} style={{ width: '100%' }} />
               </label>
               <label style={styles.countLine}>Tamaño: {buildSize.toFixed(1)}
-                <input type="range" min="1.5" max="8" step="0.5" value={buildSize} onChange={(e) => setBuildSize(parseFloat(e.target.value))} style={{ width: '100%' }} />
+                <input type="range" min="1.5" max="40" step="0.5" value={buildSize} onChange={(e) => setBuildSize(parseFloat(e.target.value))} style={{ width: '100%' }} />
               </label>
               {(selectedTool === 'ramp' || selectedTool === 'pit_ramp') && (
                 <p style={styles.countLine}>
@@ -551,7 +559,7 @@ export default function MapEditorPage() {
                   <input
                     type="range"
                     min="0.01"
-                    max="0.1"
+                    max="0.3"
                     step="0.005"
                     value={o.radiusFrac}
                     onChange={(e) => handleRadiusChange(o.id, parseFloat(e.target.value))}
@@ -723,7 +731,7 @@ export default function MapEditorPage() {
             })}
           </svg>
           <p style={styles.canvasCaption}>Vista 3D: arrastra para girar, rueda para acercar y haz clic en el suelo para colocar la herramienta elegida.</p>
-          <Preview3D platforms={platforms} collisionObjects={collisionObjects} selfDamageObjects={selfDamageObjects} onGround={placeAt} onPick={selectedTool === 'edit' ? setSelectedId : null} selectedId={selectedId} />
+          <Preview3D platforms={platforms} collisionObjects={collisionObjects} selfDamageObjects={selfDamageObjects} onGround={placeAt} onPick={selectedTool === 'edit' ? setSelectedId : null} selectedId={selectedId} MAP_HALF={MAP_HALF} />
           <p style={styles.canvasCaption}>
             El lienzo representa el área de partida completa (MATCH_AREA). Las posiciones
             se guardan como fracción del centro, no en unidades fijas — el mismo layout

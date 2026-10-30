@@ -192,8 +192,9 @@ wss.on('connection', (ws) => {
         room.broadcast(MessageType.GAME_STARTED, {
           phase: 'action',
           state: room.gameState,
-          collisionObjects: GameMap.resolveCollisionObjects(room.mapId, GameMap.MATCH_AREA),
-          platforms: GameMap.resolvePlatforms(room.mapId, GameMap.MATCH_AREA),
+          collisionObjects: GameMap.resolveCollisionObjects(room.mapId, GameMap.areaFor(room.mapId)),
+          platforms: GameMap.resolvePlatforms(room.mapId, GameMap.areaFor(room.mapId)),
+          halfSize: GameMap.areaFor(room.mapId).halfSize,
           hitbox: { half: Constants.PLAYER_HALF, height: Constants.PLAYER_HEIGHT, interact: Constants.INTERACTION_RADIUS },
         });
         break;
