@@ -252,6 +252,7 @@ function registerMap(layout) {
       ramp: p.ramp === '+x' || p.ramp === '-x' ? p.ramp : null,
       kind: ['pit', 'gate', 'mezzanine'].includes(p.kind) ? p.kind : null,
       slab: p.kind === 'mezzanine' ? 0.4 : 0,
+      y0: Math.max(0, Math.min(20, Number(p.y0) || 0)),
       tex: ['marble', 'tile', 'plaster', 'tower', 'roof', 'ramp', 'concrete', 'brick', 'wood', 'metal'].includes(p.tex) ? p.tex : null,
       tint: /^#[0-9a-fA-F]{6}$/.test(p.tint || '') ? p.tint : null,
     })),
@@ -342,6 +343,7 @@ function resolvePlatforms(mapId, area) {
     ramp: p.ramp || null,
     kind: p.kind || null,
     slab: p.slab || 0,
+    y0: p.y0 || 0,
     tex: p.tex || null,
     tint: p.tint || null,
   }));

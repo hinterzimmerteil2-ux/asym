@@ -1448,13 +1448,14 @@ function Platform({ p }) {
   if (p.kind === 'gate') return <GateMesh p={p} />;
   const name = p.tex || (p.ramp ? 'ramp' : PLAT_TEX[p.kind] || 'concrete');
   const tint = p.tint || '#ffffff';
+  const y0 = p.y0 || 0;
   const len = p.hx * 2;
   const tops = useMemo(() => getTexture(name, Math.max(1, Math.round(len / 3)), Math.max(1, Math.round(p.hz * 2 / 3))), [name, len, p.hz]);
   const sides = useMemo(() => getTexture(name, Math.max(1, Math.round(Math.max(len, p.hz * 2) / 3)), Math.max(1, Math.round(p.h / 3))), [name, len, p.hz, p.h]);
   if (p.slab) {
     const legs = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
     return (
-      <group position={[p.x, 0, p.z]}>
+      <group position={[p.x, y0, p.z]}>
         <mesh position={[0, p.h - p.slab / 2, 0]}>
           <boxGeometry args={[len, p.slab, p.hz * 2]} />
           <meshStandardMaterial map={sides} color={tint} roughness={0.6} />
@@ -1474,7 +1475,7 @@ function Platform({ p }) {
   }
   if (!p.ramp) {
     return (
-      <mesh position={[p.x, p.h / 2, p.z]}>
+      <mesh position={[p.x, y0 + p.h / 2, p.z]}>
         <boxGeometry args={[len, p.h, p.hz * 2]} />
         <meshStandardMaterial map={sides} color={tint} roughness={0.85} />
       </mesh>
@@ -1482,7 +1483,7 @@ function Platform({ p }) {
   }
   const angle = Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1);
   return (
-    <group position={[p.x, p.h / 2, p.z]} rotation={[0, 0, angle]}>
+    <group position={[p.x, y0 + p.h / 2, p.z]} rotation={[0, 0, angle]}>
       <mesh position={[0, -0.2, 0]}>
         <boxGeometry args={[Math.hypot(len, p.h), 0.4, p.hz * 2]} />
         <meshStandardMaterial map={tops} color={tint} roughness={0.8} />
@@ -1492,12 +1493,13 @@ function Platform({ p }) {
 }
 
 function RampFrame({ p, color, opacity }) {
+  const y0 = p.y0 || 0;
   const len = p.hx * 2;
   const angle = Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1);
   const dims = [Math.hypot(len, p.h), 0.4, p.hz * 2];
   const edges = useMemo(() => new EdgesGeometry(new BoxGeometry(...dims)), [len, p.h, p.hz]);
   return (
-    <group position={[p.x, p.h / 2, p.z]} rotation={[0, 0, angle]}>
+    <group position={[p.x, y0 + p.h / 2, p.z]} rotation={[0, 0, angle]}>
       <group position={[0, -0.2, 0]}>
         <lineSegments geometry={edges}>
           <lineBasicMaterial color={color} transparent opacity={Math.min(1, opacity + 0.2)} depthWrite={false} />
@@ -1526,7 +1528,7 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
       {(platforms || []).filter((p) => p.kind !== 'pit').map((p) => p.ramp ? (
         <RampFrame key={p.id} p={p} color="#e0555f" opacity={opacity} />
       ) : (
-        <SquareFrame key={p.id} x={p.x} z={p.z} y={p.slab ? p.h - p.slab / 2 : p.h / 2} half={p.hx} hy={p.slab ? p.slab / 2 : p.h / 2} hz={p.hz} color="#e0555f" opacity={opacity} />
+        <SquareFrame key={p.id} x={p.x} z={p.z} y={(p.y0 || 0) + (p.slab ? p.h - p.slab / 2 : p.h / 2)} half={p.hx} hy={p.slab ? p.slab / 2 : p.h / 2} hz={p.hz} color="#e0555f" opacity={opacity} />
       ))}
       {Object.entries(entities || {}).filter(([, entity]) => !entity.corpse && !entity.gone).map(([id, entity]) => (
         <group key={id}>

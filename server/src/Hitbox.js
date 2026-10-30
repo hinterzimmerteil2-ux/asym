@@ -22,9 +22,10 @@ function baseAt(platforms, x, z) {
 function platformTop(p, x, z) {
   if (p.kind === 'pit') return null;
   if (Math.abs(x - p.x) > p.hx || Math.abs(z - p.z) > p.hz) return null;
-  if (!p.ramp) return p.h;
+  const y0 = p.y0 || 0;
+  if (!p.ramp) return y0 + p.h;
   const t = p.ramp === '-x' ? (p.x + p.hx - x) / (2 * p.hx) : (x - (p.x - p.hx)) / (2 * p.hx);
-  return Math.max(0, Math.min(1, t)) * p.h;
+  return y0 + Math.max(0, Math.min(1, t)) * p.h;
 }
 
 
@@ -45,7 +46,7 @@ function blockedAt(platforms, x, z, y, stepUp = STEP_UP) {
   for (const p of platforms) {
     for (const [ox, oz] of FOOTPRINT) {
       const top = platformTop(p, x + ox, z + oz);
-      if (top !== null && top > y + stepUp && ((!p.ramp && !p.slab) || top - (p.slab || RAMP_SLAB) < y + PLAYER_HEIGHT)) return true;
+      if (top !== null && top > y + stepUp && (p.ramp || p.slab ? top - (p.slab || RAMP_SLAB) : p.y0 || 0) < y + PLAYER_HEIGHT) return true;
     }
   }
   return false;

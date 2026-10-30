@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
+import { getTexture } from '../../lib/textures';
 import Link from 'next/link';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
@@ -24,61 +25,66 @@ const REF_HALF = 30;
 const MAP_HALF = 60;
 const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3, crate: 1.1, desk: 1, plant: 1.4, tank: 2 };
 
+const DEFAULT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', mezzanine: 'marble' };
+
 function PlatformMesh({ p, onPick, selected }) {
   const hx = p.hxFrac * REF_HALF;
   const hz = p.hzFrac * REF_HALF;
   const x = p.xFrac * MAP_HALF;
   const z = p.zFrac * MAP_HALF;
+  const y0 = p.y0 || 0;
+  const texName = p.tex || (p.ramp ? 'ramp' : DEFAULT_TEX[p.kind] || 'concrete');
+  const map = useMemo(() => getTexture(texName, Math.max(1, Math.round(hx * 2 / 3)), Math.max(1, Math.round(Math.max(hz * 2, p.h) / 3))), [texName, hx, hz, p.h]);
   const pick = onPick ? (e) => { e.stopPropagation(); onPick(p.id); } : undefined;
-  const baseColor = selected ? '#facc15' : p.tint || TEX_COLORS[p.tex] || (p.ramp ? '#9ca3af' : '#6b7280');
-  if (p.kind === 'mezzanine') {
-    return (
-      <mesh position={[x, p.h - 0.2, z]}>
-        <boxGeometry args={[hx * 2, 0.4, hz * 2]} />
-        <meshStandardMaterial color={baseColor} />
-      </mesh>
-    );
-  }
+  const color = selected ? '#facc15' : p.tint || '#ffffff';
   if (p.kind === 'pit') {
     if (!p.ramp) {
       return (
-        <mesh position={[x, -p.h + 0.05, z]}>
+        <mesh position={[x, -p.h + 0.05, z]} onClick={pick}>
           <boxGeometry args={[hx * 2, 0.1, hz * 2]} />
-          <meshStandardMaterial color="#3b6ea5" />
+          <meshStandardMaterial color={selected ? '#facc15' : '#3b6ea5'} />
         </mesh>
       );
     }
     const len = hx * 2;
     const ang = Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1);
     return (
-      <mesh position={[x, -p.h / 2, z]} rotation={[0, 0, ang]}>
+      <mesh position={[x, -p.h / 2, z]} rotation={[0, 0, ang]} onClick={pick}>
         <boxGeometry args={[Math.hypot(len, p.h), 0.1, hz * 2]} />
-        <meshStandardMaterial color="#5b8fb0" />
+        <meshStandardMaterial color={selected ? '#facc15' : '#5b8fb0'} />
       </mesh>
     );
   }
   if (p.kind === 'gate') {
     return (
-      <mesh position={[x, p.h / 2, z]}>
+      <mesh position={[x, y0 + p.h / 2, z]} onClick={pick}>
         <boxGeometry args={[hx * 2, p.h, hz * 2]} />
-        <meshStandardMaterial color="#f2a154" transparent opacity={0.6} />
+        <meshStandardMaterial color={selected ? '#facc15' : '#f2a154'} transparent opacity={0.6} />
+      </mesh>
+    );
+  }
+  if (p.kind === 'mezzanine') {
+    return (
+      <mesh position={[x, y0 + p.h - 0.2, z]} onClick={pick}>
+        <boxGeometry args={[hx * 2, 0.4, hz * 2]} />
+        <meshStandardMaterial map={map} color={color} />
       </mesh>
     );
   }
   if (!p.ramp) {
     return (
-      <mesh position={[x, p.h / 2, z]} onClick={pick}>
+      <mesh position={[x, y0 + p.h / 2, z]} onClick={pick}>
         <boxGeometry args={[hx * 2, p.h, hz * 2]} />
-        <meshStandardMaterial color={baseColor} />
+        <meshStandardMaterial map={map} color={color} />
       </mesh>
     );
   }
   const len = hx * 2;
   const angle = Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1);
   return (
-    <mesh position={[x, p.h / 2, z]} rotation={[0, 0, angle]} onClick={pick}>
-      <boxGeometry args={[Math.hypot(len, p.h), 0.2, hz * 2]} />
-      <meshStandardMaterial color={baseColor} />
+    <mesh position={[x, y0 + p.h / 2, z]} rotation={[0, 0, angle]} onClick={pick}>
+      <boxGeometry args={[Math.hypot(len, p.h), 0.3, hz * 2]} />
+      <meshStandardMaterial map={map} color={color} />
     </mesh>
   );
 }
@@ -192,6 +198,7 @@ export default function MapEditorPage() {
   const [patientSpawns, setPatientSpawns] = useState([]);
   const [platforms, setPlatforms] = useState([]);
   const [buildTex, setBuildTex] = useState('');
+  const [buildY0, setBuildY0] = useState(0);
   const [buildTint, setBuildTint] = useState('#ffffff');
   const [buildH, setBuildH] = useState(1.6);
   const [buildSize, setBuildSize] = useState(3);
@@ -249,6 +256,7 @@ export default function MapEditorPage() {
         kind,
         tex: buildTex || null,
         tint: buildTint !== '#ffffff' ? buildTint : null,
+        y0: kind === 'pit' ? 0 : buildY0,
       }]);
     } else if (selectedTool === 'block' || selectedTool === 'ramp') {
       setPlatforms((prev) => [...prev, {
@@ -261,6 +269,7 @@ export default function MapEditorPage() {
         kind: null,
         tex: buildTex || null,
         tint: buildTint !== '#ffffff' ? buildTint : null,
+        y0: buildY0,
       }]);
     } else if (selectedTool === 'curator_spawn') {
       setCuratorSpawns((prev) => [...prev, { id: generateId('cs'), xFrac, zFrac }]);
@@ -341,6 +350,7 @@ export default function MapEditorPage() {
         kind: p.kind || null,
         tex: p.tex || null,
         tint: p.tint || null,
+        y0: round3(p.y0 || 0),
       })),
     };
   }
@@ -414,6 +424,17 @@ export default function MapEditorPage() {
                 <label style={styles.countLine}>{pitLike ? 'Profundidad' : 'Altura'}: {sp.h.toFixed(1)}
                   <input type="range" min="0.4" max={pitLike ? 6 : 12} step="0.1" value={sp.h} onChange={(e) => upd({ h: parseFloat(e.target.value) })} style={{ width: '100%' }} />
                 </label>
+                {!pitLike && (
+                  <label style={styles.countLine}>Elevación (en qué piso está): {(sp.y0 || 0).toFixed(1)}
+                    <input type="range" min="0" max="20" step="0.5" value={sp.y0 || 0} onChange={(e) => upd({ y0: parseFloat(e.target.value) })} style={{ width: '100%' }} />
+                  </label>
+                )}
+                <label style={styles.countLine}>Textura:{' '}
+                  <select value={sp.tex || ''} onChange={(e) => upd({ tex: e.target.value || null })}>
+                    {TEXTURES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>{' '}
+                  <input type="color" value={sp.tint || '#ffffff'} onChange={(e) => upd({ tint: e.target.value === '#ffffff' ? null : e.target.value })} />
+                </label>
                 <label style={styles.countLine}>Largo (X): {(sp.hxFrac * REF_HALF * 2).toFixed(1)}
                   <input type="range" min="0.6" max="40" step="0.2" value={sp.hxFrac * REF_HALF * 2} onChange={(e) => upd({ hxFrac: parseFloat(e.target.value) / 2 / REF_HALF })} style={{ width: '100%' }} />
                 </label>
@@ -470,6 +491,9 @@ export default function MapEditorPage() {
                   {TEXTURES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>{' '}
                 <input type="color" value={buildTint} onChange={(e) => setBuildTint(e.target.value)} />
+              </label>
+              <label style={styles.countLine}>Elevación (piso): {buildY0.toFixed(1)}
+                <input type="range" min="0" max="12" step="0.5" value={buildY0} onChange={(e) => setBuildY0(parseFloat(e.target.value))} style={{ width: '100%' }} />
               </label>
               <label style={styles.countLine}>Altura: {buildH.toFixed(1)}
                 <input type="range" min="0.4" max="4" step="0.2" value={buildH} onChange={(e) => setBuildH(parseFloat(e.target.value))} style={{ width: '100%' }} />
