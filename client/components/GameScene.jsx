@@ -4,6 +4,7 @@ import { useRef, useEffect, useState, useMemo, memo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { BoxGeometry, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace } from 'three';
 import { itemOf } from '../lib/cosmetics';
+import { getTexture } from '../lib/textures';
 
 const LOBBY_HALF_SIZE = 15;
 const MATCH_HALF_SIZE = 60;
@@ -419,6 +420,7 @@ function LobbyDecor() {
 }
 
 function Ground({ halfSize, themed }) {
+  const tex = useMemo(() => (themed ? getTexture('tile', halfSize * 2 / 4, halfSize * 2 / 4) : null), [halfSize, themed]);
   const floorColor = themed ? COLOR_FLOOR_MATCH : '#1b1d29';
   const gridColorMajor = themed ? '#c9c5b8' : '#3a3d52';
   const gridColorMinor = themed ? '#d8d4c8' : '#2a2d3d';
@@ -429,12 +431,12 @@ function Ground({ halfSize, themed }) {
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[halfSize * 2, halfSize * 2]} />
-        <meshStandardMaterial color={floorColor} roughness={themed ? 0.75 : 0.9} />
+        <meshStandardMaterial color={tex ? '#ffffff' : floorColor} map={tex} roughness={themed ? 0.75 : 0.9} />
       </mesh>
-      <gridHelper
+      {!themed && <gridHelper
         args={[halfSize * 2, Math.round(halfSize * 1.33), gridColorMajor, gridColorMinor]}
         position={[0, 0.01, 0]}
-      />
+      />}
       <lineSegments position={[0, 0.02, 0]}>
         <edgesGeometry args={[borderGeo]} />
         <lineBasicMaterial color={borderColor} />
@@ -1232,6 +1234,30 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
   }, [sendInput, yawRef, shiftRef]);
 }
 
+function RevealBeacon({ entity }) {
+  const ref = useRef();
+  useFrame(({ clock }) => {
+    if (ref.current) ref.current.rotation.y = clock.getElapsedTime() * 2;
+  });
+  const mat = { transparent: true, depthTest: false, depthWrite: false };
+  return (
+    <group position={[entity.x, entity.y || 0, entity.z]} renderOrder={999}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]} renderOrder={999}>
+        <ringGeometry args={[0.7, 0.95, 32]} />
+        <meshBasicMaterial color="#f2d154" opacity={0.9} {...mat} />
+      </mesh>
+      <mesh position={[0, 1.5, 0]} renderOrder={999}>
+        <cylinderGeometry args={[0.45, 0.45, 3, 16, 1, true]} />
+        <meshBasicMaterial color="#f2d154" opacity={0.18} side={DoubleSide} {...mat} />
+      </mesh>
+      <mesh ref={ref} position={[0, 3.4, 0]} renderOrder={999}>
+        <octahedronGeometry args={[0.28]} />
+        <meshBasicMaterial color="#ffe98a" opacity={0.95} {...mat} />
+      </mesh>
+    </group>
+  );
+}
+
 function SquareFrame({ x, z, half, color, opacity, y = 0, hy, hz }) {
   const halfY = hy ?? half;
   const halfZ = hz ?? half;
@@ -1249,22 +1275,26 @@ function SquareFrame({ x, z, half, color, opacity, y = 0, hy, hz }) {
   );
 }
 
+const PLAT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', ramp: 'ramp' };
+
 function Platform({ p }) {
-  const color = p.ramp ? '#5b6270' : '#464c59';
+  const name = p.ramp ? 'ramp' : PLAT_TEX[p.kind] || 'concrete';
+  const len = p.hx * 2;
+  const tops = useMemo(() => getTexture(name, Math.max(1, Math.round(len / 3)), Math.max(1, Math.round(p.hz * 2 / 3))), [name, len, p.hz]);
+  const sides = useMemo(() => getTexture(name, Math.max(1, Math.round(Math.max(len, p.hz * 2) / 3)), Math.max(1, Math.round(p.h / 3))), [name, len, p.hz, p.h]);
   if (!p.ramp) {
     return (
       <mesh position={[p.x, p.h / 2, p.z]}>
-        <boxGeometry args={[p.hx * 2, p.h, p.hz * 2]} />
-        <meshStandardMaterial color={color} roughness={0.8} />
+        <boxGeometry args={[len, p.h, p.hz * 2]} />
+        <meshStandardMaterial map={sides} roughness={0.85} />
       </mesh>
     );
   }
-  const len = p.hx * 2;
   const angle = Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1);
   return (
     <mesh position={[p.x, p.h / 2, p.z]} rotation={[0, 0, angle]}>
       <boxGeometry args={[Math.hypot(len, p.h), 0.2, p.hz * 2]} />
-      <meshStandardMaterial color={color} roughness={0.8} />
+      <meshStandardMaterial map={tops} roughness={0.8} />
     </mesh>
   );
 }
@@ -1317,6 +1347,7 @@ export default function GameScene({
   ragdollIds,
   collisionObjects,
   platforms,
+  revealedIds,
   sendInput,
   sendAction,
   onPulse,
@@ -1342,6 +1373,9 @@ export default function GameScene({
     <Canvas dpr={[1, coarse ? 1.25 : 1.5]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
       <ambientLight intensity={phase === 'action' ? 0.5 : 0.4} />
       <directionalLight position={[8, 12, 6]} intensity={1.1} />
+      <hemisphereLight args={['#bcd4ff', '#8a7a68', 0.35]} />
+      {phase === 'action' && <color attach="background" args={['#9fc3e6']} />}
+      {phase === 'action' && <fog attach="fog" args={['#9fc3e6', 60, 150]} />}
 
       <FollowCamera focusId={followId || myPlayerId} myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
 
@@ -1383,6 +1417,8 @@ export default function GameScene({
             <MSelfDamageObject position={pos} />
           </group>
         ))}
+
+      {(revealedIds || []).map((rid) => (entities[rid] && !entities[rid].gone ? <RevealBeacon key={`rv_${rid}`} entity={entities[rid]} /> : null))}
 
       {Object.entries(ghosts || {}).map(([gid, g]) => (
         <PlayerCapsule

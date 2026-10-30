@@ -625,7 +625,7 @@ class Room {
     for (const [playerId, player] of this.players) {
       if (!player.isAsymRole) patientIds.push(playerId);
     }
-    const patientSpawns = GameMap.getPatientSpawnPositions(patientIds.length, GameMap.MATCH_AREA);
+    const patientSpawns = GameMap.getPatientSpawnPositions(patientIds.length, GameMap.MATCH_AREA, this.mapId);
     const curatorSpawn = GameMap.getCuratorSpawn();
 
     let patientIndex = 0;
@@ -768,6 +768,7 @@ class Room {
         curator: player.isAsymRole ? this.gameState.curator : null,
         spawnMs: player.isAsymRole ? Math.max(0, (this.gameState.curatorReleaseAt || 0) - now) : 0,
         zones,
+        revealed: player.isAsymRole ? Object.entries(this.gameState.entities).filter(([, e]) => Status.active(e, 'reveal', now)).map(([id]) => id) : [],
       });
     }
   }
@@ -1200,6 +1201,13 @@ class Room {
           targetEntity.flojera = Math.max(0, targetEntity.flojera - skill.flojeraDrain);
         }
         affectedPlayerIds.push(targetPlayerId);
+      }
+    }
+
+    if (skill.revealMs) {
+      for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
+        const targetEntity = this.gameState.entities[targetPlayerId];
+        if (patient.status === 'alive' && targetEntity) Status.apply(targetEntity, 'reveal', skill.revealMs, now);
       }
     }
 

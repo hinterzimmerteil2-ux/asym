@@ -30,7 +30,7 @@ function LiveScene({ store, replay, ...props }) {
     return () => { store.subs.delete(bump); };
   }, [store]);
   const frame = replay ? replay.frames[replay.i] : null;
-  return <GameScene {...props} entities={frame ? frame.entities : store.entities} ghosts={frame ? frame.ghosts : store.ghosts} />;
+  return <GameScene {...props} entities={frame ? frame.entities : store.entities} ghosts={frame ? frame.ghosts : store.ghosts} revealedIds={frame ? undefined : store.revealed} />;
 }
 
 function KeywordChip({ id }) {
@@ -130,7 +130,7 @@ export default function LobbyPage() {
   const [oauthLoading, setOauthLoading] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
-  const sceneStore = useRef({ entities: {}, ghosts: {}, subs: new Set() }).current;
+  const sceneStore = useRef({ entities: {}, ghosts: {}, revealed: [], subs: new Set() }).current;
   const [entityMeta, setEntityMeta] = useState({});
   const [myGhost, setMyGhost] = useState(null);
   const [ping, setPing] = useState(null);
@@ -245,6 +245,7 @@ export default function LobbyPage() {
           case 'state_snapshot':
             sceneStore.entities = payload.entities || {};
             sceneStore.ghosts = payload.ghosts || {};
+            sceneStore.revealed = payload.revealed || [];
             sceneStore.subs.forEach((fn) => fn());
             {
               const meta = {};

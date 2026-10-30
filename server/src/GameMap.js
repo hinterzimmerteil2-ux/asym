@@ -130,11 +130,71 @@ const DEFAULT_MAP_LAYOUT = {
   });
 })();
 
+const HOSPITAL_LAYOUT = (() => {
+  const half = MATCH_AREA.halfSize;
+  const platforms = [];
+  const plat = (id, x, z, hx, hz, h, ramp, kind) =>
+    platforms.push({ id, xFrac: x / half, zFrac: z / half, hxFrac: hx / REF_HALF, hzFrac: hz / REF_HALF, h, ramp: ramp || null, kind });
+  const wall = (id, x, z, hx, hz) => plat(id, x, z, hx, hz, 6, null, 'wall');
+  wall('w_n1', -22.5, -40, 17.5, 0.5);
+  wall('w_n2', 22.5, -40, 17.5, 0.5);
+  wall('w_s1', -12.5, 40, 27.5, 0.5);
+  wall('w_s2', 32.5, 40, 7.5, 0.5);
+  wall('w_w1', -40, -30, 0.5, 10);
+  wall('w_w2', -40, 14, 0.5, 26);
+  wall('w_e1', 40, -16, 0.5, 24);
+  wall('w_e2', 40, 28, 0.5, 12);
+  const collisionObjects = [];
+  const selfDamageObjects = [];
+  const radii = { gurney: 0.04, shelf: 0.05, cart: 0.03, pillar: 0.033 };
+  const col = (id, type, x, z) => collisionObjects.push({ id, type, xFrac: x / half, zFrac: z / half, radiusFrac: radii[type] });
+  const sd = (id, x, z) => selfDamageObjects.push({ id, xFrac: x / half, zFrac: z / half });
+  const quadrants = [[1, 1], [-1, 1], [1, -1], [-1, -1]];
+  quadrants.forEach(([sx, sz], q) => {
+    wall(`wa_${q}_1`, 4 * sx, 10 * sz, 0.5, 6);
+    wall(`wa_${q}_2`, 4 * sx, 31 * sz, 0.5, 9);
+    wall(`wb_${q}_1`, 15 * sx, 4 * sz, 11, 0.5);
+    wall(`wb_${q}_2`, 36 * sx, 4 * sz, 4, 0.5);
+    plat(`wp_${q}`, 22 * sx, 9 * sz, 0.5, 5, 6, null, 'partition');
+    const tower = (sx === sz);
+    if (tower) {
+      plat(`tw_${q}`, 30 * sx, 30 * sz, 6, 6, 6, null, 'tower');
+      plat(`tr_${q}`, 16 * sx, 30 * sz, 8, 2.5, 6, sx > 0 ? '+x' : '-x', 'ramp');
+    } else {
+      plat(`rf_${q}`, 30 * sx, 30 * sz, 6, 6, 3, null, 'roof');
+      plat(`rr_${q}`, 19 * sx, 30 * sz, 5, 2.5, 3, sx > 0 ? '+x' : '-x', 'ramp');
+    }
+    col(`c_${q}_1`, 'gurney', 10 * sx, 10 * sz);
+    col(`c_${q}_2`, 'cart', 16 * sx, 8 * sz);
+    col(`c_${q}_3`, 'shelf', 13 * sx, 13 * sz);
+    col(`c_${q}_4`, 'gurney', 6 * sx, 36 * sz);
+    col(`c_${q}_5`, 'shelf', 14 * sx, 37 * sz);
+    col(`c_${q}_6`, 'pillar', 36 * sx, 12 * sz);
+    col(`c_${q}_7`, 'cart', 36 * sx, 22 * sz);
+    sd(`sd_room_${q}`, 20 * sx, 17 * sz);
+    sd(`sd_top_${q}`, 30 * sx, 30 * sz);
+  });
+  [[0, 20], [0, -20], [20, 0], [-20, 0]].forEach(([x, z], i) => {
+    col(`c_cor_${i}`, 'pillar', x, z);
+    sd(`sd_cor_${i}`, x * 1.5, z * 1.5);
+  });
+  sd('sd_plaza', 0, 8);
+  return { id: 'hospital', name: 'Hospital de varios pisos', selfDamageObjects, collisionObjects, platforms };
+})();
+
+const HOSPITAL_SPAWNS = [
+  [-50, -50], [50, 50], [50, -50], [-50, 50], [-50, 0], [50, 0], [0, -50], [0, 50],
+  [-50, -25], [50, 25], [25, -50], [-25, 50],
+];
+
 // Catálogo de mapas disponibles — hoy solo uno, agregar otro es otra
 // entrada acá con la misma forma que DEFAULT_MAP_LAYOUT.
 const MAPS = {
   default: DEFAULT_MAP_LAYOUT,
+  hospital: HOSPITAL_LAYOUT,
 };
+
+const HOSPITAL_ID = 'hospital';
 
 const DEFAULT_MAP_ID = 'default';
 
@@ -225,7 +285,15 @@ function resolveCollisionObjects(mapId, area) {
  * halfSize del área pasada, así que escala sola con el tamaño del mapa
  * sin necesitar cambios.
  */
-function getPatientSpawnPositions(count, area) {
+function getPatientSpawnPositions(count, area, mapId) {
+  if (mapId === HOSPITAL_ID) {
+    const out = [];
+    for (let i = 0; i < count; i++) {
+      const [x, z] = HOSPITAL_SPAWNS[i % HOSPITAL_SPAWNS.length];
+      out.push({ x, z });
+    }
+    return out;
+  }
   const radius = Math.min(area.halfSize * 0.7, 21);
   const positions = [];
   for (let i = 0; i < count; i++) {
@@ -248,6 +316,7 @@ function resolvePlatforms(mapId, area) {
     hz: p.hzFrac * REF_HALF,
     h: p.h,
     ramp: p.ramp || null,
+    kind: p.kind || null,
   }));
 }
 
@@ -261,6 +330,7 @@ module.exports = {
   MATCH_AREA,
   MAPS,
   DEFAULT_MAP_ID,
+  HOSPITAL_ID,
   resolveSelfDamagePositions,
   resolveCollisionObjects,
   resolvePlatforms,

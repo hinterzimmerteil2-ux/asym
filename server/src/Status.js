@@ -4,6 +4,7 @@ const KINDS = {
   stun: { blocksMove: true, blocksSkills: true, id: 'aturdido' },
   ragdoll: { blocksMove: true, blocksSkills: true, id: 'ragdoll' },
   slow: { blocksMove: false, blocksSkills: false, id: 'ralentizado' },
+  reveal: { blocksMove: false, blocksSkills: false, id: 'revelado' },
 };
 
 function fx(entity) {

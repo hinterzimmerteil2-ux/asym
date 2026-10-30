@@ -1,3 +1,4 @@
+const GameMap = require('./GameMap');
 const { Room } = require('./Room');
 
 class RoomManager {
@@ -7,7 +8,9 @@ class RoomManager {
 
   getOrCreateRoom(roomId) {
     if (!this.rooms.has(roomId)) {
-      this.rooms.set(roomId, new Room(roomId));
+      const room = new Room(roomId);
+      room.mapId = GameMap.HOSPITAL_ID;
+      this.rooms.set(roomId, room);
     }
     return this.rooms.get(roomId);
   }

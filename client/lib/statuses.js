@@ -11,5 +11,6 @@ export const STATUSES = {
   endlag: { label: 'Endlag', description: 'Penalización por una acción mal hecha.', color: '#5fd58c', favorable: false, icon: 'endlag', dynamic: false },
   ragdoll: { label: 'Ragdoll', description: 'Caído.', color: '#5fd58c', favorable: false, icon: 'ragdoll', dynamic: false },
   aturdido: { label: 'Diligencia', description: 'Aturdido.', color: '#5fd58c', favorable: false, icon: 'aturdido', dynamic: false },
+  revelado: { label: 'Revelado', description: 'El Curador ve dónde estás, incluso a través de las paredes.', color: '#5fd58c', favorable: false, icon: 'ralentizado', dynamic: false },
   ralentizado: { label: 'Ralentizado', description: 'Velocidad reducida.', color: '#5fd58c', favorable: false, icon: 'ralentizado', dynamic: true },
 };

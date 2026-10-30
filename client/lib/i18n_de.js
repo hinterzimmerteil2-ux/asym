@@ -331,5 +331,8 @@ export const DE = [
 "Wähle im Kartenmenü oben eine Karte.",
 "Benutze deine Karte mit der Taste oder dem Knopf ihres Slots.",
 "Geh nah an ein rotes Objekt und klicke (oder drücke E), um dich selbst zu verletzen: So gewinnst du.",
-"Tutorial abgeschlossen. Jeder Patient gewinnt, indem er seine HP auf 0 senkt; der Kurator gewinnt, wenn er alle heilt. Endet das Spiel, kann der Host zur Lobby zurückkehren."
+"Tutorial abgeschlossen. Jeder Patient gewinnt, indem er seine HP auf 0 senkt; der Kurator gewinnt, wenn er alle heilt. Endet das Spiel, kann der Host zur Lobby zurückkehren.",
+"Heilt alle nahen Patienten und enthüllt alle Patienten für 7s.",
+"Heilt sehr nahe Patienten stark und enthüllt alle Patienten für 7s.",
+"Enthüllt"
 ];

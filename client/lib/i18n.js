@@ -334,6 +334,9 @@ const PAIRS = [
 ["Usa tu carta con la tecla o botón de su ranura.", "Use your card with the key or button of its slot."],
 ["Acércate a un objeto rojo y haz clic (o pulsa E) para auto-dañarte: así ganas.", "Get close to a red object and click (or press E) to hurt yourself: that is how you win."],
 ["Tutorial completado. Gana cada Paciente que baja su HP a 0; el Curador gana si los cura a todos. Si la partida termina, el host puede volver al lobby.", "Tutorial complete. Each Patient wins by bringing their HP down to 0; the Curator wins by healing them all. If the match ends, the host can return to the lobby."],
+["Cura a todos los Pacientes cercanos y revela a todos los Pacientes durante 7s.", "Heals all nearby Patients and reveals every Patient for 7s."],
+["Cura fuerte a los Pacientes muy cercanos y revela a todos los Pacientes durante 7s.", "Strongly heals very close Patients and reveals every Patient for 7s."],
+["Revelado", "Revealed"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };
