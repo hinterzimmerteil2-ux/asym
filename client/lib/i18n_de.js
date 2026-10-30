@@ -334,5 +334,9 @@ export const DE = [
 "Tutorial abgeschlossen. Jeder Patient gewinnt, indem er seine HP auf 0 senkt; der Kurator gewinnt, wenn er alle heilt. Endet das Spiel, kann der Host zur Lobby zurückkehren.",
 "Heilt alle nahen Patienten und enthüllt alle Patienten für 7s.",
 "Heilt sehr nahe Patienten stark und enthüllt alle Patienten für 7s.",
-"Enthüllt"
+"Enthüllt",
+"Präziser Puls",
+"Präzise Fähigkeit",
+"Du hast einen Patienten betäubt",
+"Mehrstöckiges Krankenhaus"
 ];

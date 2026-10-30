@@ -337,6 +337,10 @@ const PAIRS = [
 ["Cura a todos los Pacientes cercanos y revela a todos los Pacientes durante 7s.", "Heals all nearby Patients and reveals every Patient for 7s."],
 ["Cura fuerte a los Pacientes muy cercanos y revela a todos los Pacientes durante 7s.", "Strongly heals very close Patients and reveals every Patient for 7s."],
 ["Revelado", "Revealed"],
+["Pulso certero", "Precise Pulse"],
+["Habilidad certera", "Precise Skill"],
+["Aturdiste a un Paciente", "You stunned a Patient"],
+["Hospital de varios pisos", "Multi-storey hospital"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

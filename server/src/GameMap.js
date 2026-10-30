@@ -174,10 +174,18 @@ const HOSPITAL_LAYOUT = (() => {
     sd(`sd_room_${q}`, 20 * sx, 17 * sz);
     sd(`sd_top_${q}`, 30 * sx, 30 * sz);
   });
-  [[0, 20], [0, -20], [20, 0], [-20, 0]].forEach(([x, z], i) => {
+  [[0, 20], [0, -20]].forEach(([x, z], i) => {
     col(`c_cor_${i}`, 'pillar', x, z);
     sd(`sd_cor_${i}`, x * 1.5, z * 1.5);
   });
+  plat('pit_w', -24, 0, 12, 3.5, 3.5, null, 'pit');
+  plat('pit_wr', -8, 0, 4, 3.5, 3.5, '+x', 'pit');
+  plat('pit_e', 24, 0, 12, 3.5, 3.5, null, 'pit');
+  plat('pit_er', 8, 0, 4, 3.5, 3.5, '-x', 'pit');
+  sd('sd_base_0', -32, 0);
+  sd('sd_base_1', 32, 0);
+  sd('sd_base_2', -22, 1.5);
+  sd('sd_base_3', 22, -1.5);
   sd('sd_plaza', 0, 8);
   return { id: 'hospital', name: 'Hospital de varios pisos', selfDamageObjects, collisionObjects, platforms };
 })();

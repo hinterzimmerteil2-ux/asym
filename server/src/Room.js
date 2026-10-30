@@ -186,7 +186,7 @@ class Room {
       .filter((p) => !objects.some((o) => o.height > 0.5 && Math.abs(p.x - o.x) <= o.radius + 0.6 && Math.abs(p.z - o.z) <= o.radius + 0.6))
       .filter((p) => Pathfinding.isReachableNear(grid, this.nav.seen, p.x, p.z, 2))
       .map((p) => {
-        let top = GROUND_Y;
+        let top = Hitbox.baseAt(platforms, p.x, p.z);
         for (const pl of platforms) {
           const t = Hitbox.platformTop(pl, p.x, p.z);
           if (t !== null && t > top) top = t;
@@ -1204,6 +1204,8 @@ class Room {
       }
     }
 
+    if (affectedPlayerIds.length >= 2) this.award(playerId, 4, 'Pulso certero');
+    else if (affectedPlayerIds.length === 1) this.award(playerId, 2, 'Habilidad certera');
     if (skill.revealMs) {
       for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
         const targetEntity = this.gameState.entities[targetPlayerId];
@@ -1257,6 +1259,7 @@ class Room {
           if (patient.status !== 'alive') continue;
           const targetEntity = this.gameState.entities[targetPlayerId];
           if (!targetEntity || distanceBetween(owner, targetEntity) > skill.radius) continue;
+          this.award(win.playerId, skill.type === 'stun' ? 3 : 2, 'Habilidad certera');
           if (skill.type === 'stun') {
             Status.apply(targetEntity, 'stun', skill.durationMs, now);
           } else {
@@ -1304,6 +1307,7 @@ class Room {
           }
         }
         if (nearestId) {
+          this.award(win.playerId, 3, 'Aturdiste a un Paciente');
           Status.apply(this.gameState.entities[nearestId], 'stun', skill.durationMs, now);
           this.broadcastPulse({
             playerId: win.playerId,

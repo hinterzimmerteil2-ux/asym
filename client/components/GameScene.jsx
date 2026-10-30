@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useMemo, memo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace } from 'three';
+import { Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace } from 'three';
 import { itemOf } from '../lib/cosmetics';
 import { getTexture } from '../lib/textures';
 
@@ -419,8 +419,59 @@ function LobbyDecor() {
   );
 }
 
-function Ground({ halfSize, themed }) {
-  const tex = useMemo(() => (themed ? getTexture('tile', halfSize * 2 / 4, halfSize * 2 / 4) : null), [halfSize, themed]);
+function PitMesh({ p }) {
+  const len = p.hx * 2;
+  const wall = useMemo(() => getTexture('concrete', Math.max(1, Math.round(len / 3)), Math.max(1, Math.round(p.h / 3))), [len, p.h]);
+  const floor = useMemo(() => getTexture('tile', Math.max(1, Math.round(len / 4)), Math.max(1, Math.round(p.hz * 2 / 4))), [len, p.hz]);
+  const mat = <meshStandardMaterial map={wall} roughness={0.9} side={DoubleSide} />;
+  const angle = p.ramp ? Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1) : 0;
+  return (
+    <group position={[p.x, 0, p.z]}>
+      {p.ramp ? (
+        <mesh position={[0, -p.h / 2, 0]} rotation={[0, 0, angle]}>
+          <boxGeometry args={[Math.hypot(len, p.h), 0.1, p.hz * 2]} />
+          <meshStandardMaterial map={floor} roughness={0.8} />
+        </mesh>
+      ) : (
+        <mesh position={[0, -p.h, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[len, p.hz * 2]} />
+          <meshStandardMaterial map={floor} roughness={0.8} />
+        </mesh>
+      )}
+      {[-1, 1].map((s) => (
+        <mesh key={s} position={[0, -p.h / 2, s * p.hz]}>
+          <planeGeometry args={[len, p.h]} />
+          {mat}
+        </mesh>
+      ))}
+      {!p.ramp && [-1, 1].map((s) => (
+        <mesh key={`e${s}`} position={[s * p.hx, -p.h / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[p.hz * 2, p.h]} />
+          {mat}
+        </mesh>
+      ))}
+      {p.ramp && (
+        <mesh position={[(p.ramp === '+x' ? -1 : 1) * p.hx, -p.h / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[p.hz * 2, p.h]} />
+          {mat}
+        </mesh>
+      )}
+    </group>
+  );
+}
+
+function Ground({ halfSize, themed, pits }) {
+  const tex = useMemo(() => (themed ? getTexture('tile', 0.25, 0.25) : null), [themed]);
+  const groundGeo = useMemo(() => {
+    const s = new Shape();
+    s.moveTo(-halfSize, -halfSize); s.lineTo(halfSize, -halfSize); s.lineTo(halfSize, halfSize); s.lineTo(-halfSize, halfSize); s.closePath();
+    for (const p of pits || []) {
+      const h = new Path();
+      h.moveTo(p.x - p.hx, -(p.z - p.hz)); h.lineTo(p.x + p.hx, -(p.z - p.hz)); h.lineTo(p.x + p.hx, -(p.z + p.hz)); h.lineTo(p.x - p.hx, -(p.z + p.hz)); h.closePath();
+      s.holes.push(h);
+    }
+    return new ShapeGeometry(s);
+  }, [halfSize, pits]);
   const floorColor = themed ? COLOR_FLOOR_MATCH : '#1b1d29';
   const gridColorMajor = themed ? '#c9c5b8' : '#3a3d52';
   const gridColorMinor = themed ? '#d8d4c8' : '#2a2d3d';
@@ -430,7 +481,7 @@ function Ground({ halfSize, themed }) {
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[halfSize * 2, halfSize * 2]} />
+        <primitive object={groundGeo} attach="geometry" />
         <meshStandardMaterial color={tex ? '#ffffff' : floorColor} map={tex} roughness={themed ? 0.75 : 0.9} />
       </mesh>
       {!themed && <gridHelper
@@ -482,7 +533,7 @@ function CollisionObjectMesh({ type, radius }) {
       return (
         <group>
           <mesh position={[0, 0.5, 0]} rotation={[0, 0.15, 0]}>
-            <boxGeometry args={[radius * 1.8, 0.15, radius * 0.9]} />
+            <boxGeometry args={[radius * 2, 0.15, radius * 1.7]} />
             <meshStandardMaterial color={COLOR_METAL} roughness={0.6} metalness={0.5} />
           </mesh>
           <mesh position={[0, 0.15, 0]}>
@@ -495,12 +546,12 @@ function CollisionObjectMesh({ type, radius }) {
       return (
         <group rotation={[0, -0.1, 0]}>
           <mesh position={[0, radius * 0.9, 0]}>
-            <boxGeometry args={[radius * 1.2, radius * 1.8, radius * 0.6]} />
+            <boxGeometry args={[radius * 1.95, radius * 1.8, radius * 1.5]} />
             <meshStandardMaterial color={COLOR_METAL} roughness={0.7} metalness={0.3} />
           </mesh>
           {[0.4, 0.9, 1.4].map((h, i) => (
             <mesh key={i} position={[0, h, radius * 0.31]}>
-              <boxGeometry args={[radius * 1.15, 0.04, 0.05]} />
+              <boxGeometry args={[radius * 1.9, 0.04, 0.05]} />
               <meshStandardMaterial color="#12131a" roughness={0.9} />
             </mesh>
           ))}
@@ -510,11 +561,11 @@ function CollisionObjectMesh({ type, radius }) {
       return (
         <group rotation={[0, 0.3, 0]}>
           <mesh position={[0, radius * 0.9, 0]}>
-            <boxGeometry args={[radius * 1.1, radius * 1.6, radius * 0.7]} />
+            <boxGeometry args={[radius * 1.9, radius * 1.6, radius * 1.5]} />
             <meshStandardMaterial color={COLOR_METAL} roughness={0.5} metalness={0.6} />
           </mesh>
           <mesh position={[0, radius * 1.75, 0]}>
-            <boxGeometry args={[radius * 1.2, 0.06, radius * 0.8]} />
+            <boxGeometry args={[radius * 1.9, 0.06, radius * 1.5]} />
             <meshStandardMaterial color="#c9c5b8" roughness={0.4} metalness={0.4} />
           </mesh>
         </group>
@@ -529,31 +580,31 @@ function CollisionObjectMesh({ type, radius }) {
     case 'desk':
       return (
         <group>
-          <mesh position={[0, 0.9, 0]}><boxGeometry args={[radius * 2, 0.12, radius * 1.2]} /><meshStandardMaterial color="#7a5a3a" roughness={0.7} /></mesh>
+          <mesh position={[0, 0.9, 0]}><boxGeometry args={[radius * 2, 0.12, radius * 1.8]} /><meshStandardMaterial color="#7a5a3a" roughness={0.7} /></mesh>
           {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => (
-            <mesh key={`${a}${b}`} position={[a * radius * 0.85, 0.45, b * radius * 0.45]}><boxGeometry args={[0.1, 0.9, 0.1]} /><meshStandardMaterial color="#5a4129" /></mesh>
+            <mesh key={`${a}${b}`} position={[a * radius * 0.9, 0.45, b * radius * 0.8]}><boxGeometry args={[0.1, 0.9, 0.1]} /><meshStandardMaterial color="#5a4129" /></mesh>
           ))}
         </group>
       );
     case 'plant':
       return (
         <group>
-          <mesh position={[0, 0.25, 0]}><cylinderGeometry args={[radius * 0.5, radius * 0.4, 0.5, 10]} /><meshStandardMaterial color="#b0603c" roughness={0.9} /></mesh>
-          <mesh position={[0, 0.95, 0]}><sphereGeometry args={[radius * 0.9, 10, 8]} /><meshStandardMaterial color="#4f9a5a" roughness={0.9} /></mesh>
+          <mesh position={[0, 0.25, 0]}><cylinderGeometry args={[radius * 0.8, radius * 0.7, 0.5, 10]} /><meshStandardMaterial color="#b0603c" roughness={0.9} /></mesh>
+          <mesh position={[0, 0.95, 0]}><sphereGeometry args={[radius * 1.0, 10, 8]} /><meshStandardMaterial color="#4f9a5a" roughness={0.9} /></mesh>
         </group>
       );
     case 'tank':
       return (
         <group>
-          <mesh position={[0, 1, 0]}><cylinderGeometry args={[radius * 0.6, radius * 0.6, 2, 12]} /><meshStandardMaterial color="#5b8fb0" roughness={0.4} metalness={0.5} /></mesh>
-          <mesh position={[0, 2.05, 0]}><sphereGeometry args={[radius * 0.6, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#4a7a96" metalness={0.5} roughness={0.4} /></mesh>
+          <mesh position={[0, 1, 0]}><cylinderGeometry args={[radius * 0.95, radius * 0.95, 2, 12]} /><meshStandardMaterial color="#5b8fb0" roughness={0.4} metalness={0.5} /></mesh>
+          <mesh position={[0, 2.05, 0]}><sphereGeometry args={[radius * 0.95, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#4a7a96" metalness={0.5} roughness={0.4} /></mesh>
         </group>
       );
     case 'pillar':
     default:
       return (
         <mesh position={[0, radius * 1.5, 0]}>
-          <cylinderGeometry args={[radius * 0.6, radius * 0.7, radius * 3, 8]} />
+          <cylinderGeometry args={[radius * 0.97, radius * 0.97, radius * 3, 8]} />
           <meshStandardMaterial color={COLOR_WALL_TINT} roughness={0.85} />
         </mesh>
       );
@@ -1362,7 +1413,7 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
       {(effects || []).filter((fx) => fx.radius && Date.now() - fx.startedAt < 900).map((fx) => (
         <SquareFrame key={fx.id} x={fx.x} z={fx.z} y={entities?.[fx.casterId]?.y ?? 0} half={fx.radius} color="#e0555f" opacity={opacity} />
       ))}
-      {(platforms || []).map((p) => p.ramp ? (
+      {(platforms || []).filter((p) => p.kind !== 'pit').map((p) => p.ramp ? (
         <RampFrame key={p.id} p={p} color="#e0555f" opacity={opacity} />
       ) : (
         <SquareFrame key={p.id} x={p.x} z={p.z} y={p.h / 2} half={p.hx} hy={p.h / 2} hz={p.hz} color="#e0555f" opacity={opacity} />
@@ -1388,6 +1439,7 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
 const MGround = memo(Ground);
 const MLobbyDecor = memo(LobbyDecor);
 const MPlatform = memo(Platform);
+const MPit = memo(PitMesh);
 const MCollisionObject = memo(CollisionObject);
 const MSelfDamageObject = memo(SelfDamageObject, (a, b) => a.position.x === b.position.x && a.position.y === b.position.y && a.position.z === b.position.z);
 
@@ -1424,6 +1476,7 @@ export default function GameScene({
   const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const areaHalfSize = phase === 'action' ? MATCH_HALF_SIZE : LOBBY_HALF_SIZE;
   const myEntity = ghostMode && ghosts?.[myPlayerId] ? ghosts[myPlayerId] : entities[followId || myPlayerId];
+  const pits = useMemo(() => (phase === 'action' ? (platforms || []).filter((p) => p.kind === 'pit') : []), [platforms, phase]);
 
   return (
     <Canvas dpr={[1, coarse ? 1.25 : 1.5]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
@@ -1435,7 +1488,8 @@ export default function GameScene({
 
       <FollowCamera focusId={followId || myPlayerId} myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
 
-      <MGround halfSize={areaHalfSize} themed={phase === 'action'} />
+      <MGround halfSize={areaHalfSize} themed={phase === 'action'} pits={pits} />
+      {pits.map((p) => <MPit key={p.id} p={p} />)}
       {phase !== 'action' && <MLobbyDecor />}
 
       {phase === 'action' && (effects || []).map((effect) => <SkillEffect key={effect.id} effect={effect} />)}
@@ -1456,7 +1510,7 @@ export default function GameScene({
         />
       )}
 
-      {(platforms || []).map((p) => <MPlatform key={p.id} p={p} />)}
+      {(platforms || []).filter((p) => p.kind !== 'pit').map((p) => <MPlatform key={p.id} p={p} />)}
 
       {phase === 'action' &&
         (collisionObjects || []).map((obj) => <MCollisionObject key={obj.id} obj={obj} />)}

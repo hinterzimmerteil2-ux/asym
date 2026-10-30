@@ -1,4 +1,4 @@
-const { platformTop } = require('./Hitbox');
+const { platformTop, baseAt } = require('./Hitbox');
 
 const CELL = 0.5;
 const PAD = 0.5;
@@ -14,7 +14,7 @@ function buildGrid(half, objects, platforms) {
       const x = -half + (i + 0.5) * CELL;
       const z = -half + (j + 0.5) * CELL;
       const idx = j * n + i;
-      let top = 0;
+      let top = baseAt(platforms, x, z);
       for (const p of platforms) {
         const t = platformTop(p, x, z);
         if (t !== null && t > top) top = t;

@@ -4,7 +4,21 @@ function euclid(a, b) {
   return Math.hypot(a.x - b.x, a.z - b.z);
 }
 
+function pitDepth(p, x, z) {
+  if (Math.abs(x - p.x) > p.hx || Math.abs(z - p.z) > p.hz) return 0;
+  if (!p.ramp) return p.h;
+  const t = p.ramp === '-x' ? (p.x + p.hx - x) / (2 * p.hx) : (x - (p.x - p.hx)) / (2 * p.hx);
+  return (1 - Math.max(0, Math.min(1, t))) * p.h;
+}
+
+function baseAt(platforms, x, z) {
+  let d = 0;
+  for (const p of platforms) if (p.kind === 'pit') d = Math.max(d, pitDepth(p, x, z));
+  return -d;
+}
+
 function platformTop(p, x, z) {
+  if (p.kind === 'pit') return null;
   if (Math.abs(x - p.x) > p.hx || Math.abs(z - p.z) > p.hz) return null;
   if (!p.ramp) return p.h;
   const t = p.ramp === '-x' ? (p.x + p.hx - x) / (2 * p.hx) : (x - (p.x - p.hx)) / (2 * p.hx);
@@ -13,7 +27,8 @@ function platformTop(p, x, z) {
 
 
 function groundAt(platforms, x, z, y, stepUp = STEP_UP) {
-  let g = GROUND_Y;
+  let g = -Infinity;
+  for (const [ox, oz] of FOOTPRINT) g = Math.max(g, baseAt(platforms, x + ox, z + oz));
   for (const p of platforms) {
     for (const [ox, oz] of FOOTPRINT) {
       const top = platformTop(p, x + ox, z + oz);
@@ -24,6 +39,7 @@ function groundAt(platforms, x, z, y, stepUp = STEP_UP) {
 }
 
 function blockedAt(platforms, x, z, y, stepUp = STEP_UP) {
+  for (const [ox, oz] of FOOTPRINT) if (baseAt(platforms, x + ox, z + oz) > y + stepUp) return true;
   for (const p of platforms) {
     for (const [ox, oz] of FOOTPRINT) {
       const top = platformTop(p, x + ox, z + oz);
@@ -56,4 +72,4 @@ function reachPoint(entity, reach) {
   return { x: entity.x + (entity.faceX || 0) * reach, y: entity.y || 0, z: entity.z + (entity.faceZ || 0) * reach };
 }
 
-module.exports = { reachPoint, platformTop, groundAt, blockedAt, extentOf, distanceBetween, euclid, FOOTPRINT };
+module.exports = { baseAt, reachPoint, platformTop, groundAt, blockedAt, extentOf, distanceBetween, euclid, FOOTPRINT };
