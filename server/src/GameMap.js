@@ -135,15 +135,15 @@ const HOSPITAL_LAYOUT = (() => {
   const platforms = [];
   const plat = (id, x, z, hx, hz, h, ramp, kind) =>
     platforms.push({ id, xFrac: x / half, zFrac: z / half, hxFrac: hx / REF_HALF, hzFrac: hz / REF_HALF, h, ramp: ramp || null, kind });
-  const wall = (id, x, z, hx, hz) => plat(id, x, z, hx, hz, 6, null, 'wall');
-  wall('w_n1', -22.5, -40, 17.5, 0.5);
-  wall('w_n2', 22.5, -40, 17.5, 0.5);
-  wall('w_s1', -12.5, 40, 27.5, 0.5);
-  wall('w_s2', 32.5, 40, 7.5, 0.5);
-  wall('w_w1', -40, -30, 0.5, 10);
-  wall('w_w2', -40, 14, 0.5, 26);
-  wall('w_e1', 40, -16, 0.5, 24);
-  wall('w_e2', 40, 28, 0.5, 12);
+  const wall = (id, x, z, hx, hz) => plat(id, x, z, hx, hz, 9, null, 'wall');
+  wall('w_n1', -22.75, -40, 17.75, 0.5);
+  wall('w_n2', 22.75, -40, 17.75, 0.5);
+  wall('w_s1', -12.75, 40, 27.75, 0.5);
+  wall('w_s2', 32.75, 40, 7.75, 0.5);
+  wall('w_w1', -40, -30.25, 0.5, 10.25);
+  wall('w_w2', -40, 14.25, 0.5, 26.25);
+  wall('w_e1', 40, -16.25, 0.5, 24.25);
+  wall('w_e2', 40, 28.25, 0.5, 12.25);
   const collisionObjects = [];
   const selfDamageObjects = [];
   const radii = { gurney: 0.04, shelf: 0.05, cart: 0.03, pillar: 0.033 };
@@ -151,10 +151,11 @@ const HOSPITAL_LAYOUT = (() => {
   const sd = (id, x, z) => selfDamageObjects.push({ id, xFrac: x / half, zFrac: z / half });
   const quadrants = [[1, 1], [-1, 1], [1, -1], [-1, -1]];
   quadrants.forEach(([sx, sz], q) => {
-    wall(`wa_${q}_1`, 4 * sx, 10 * sz, 0.5, 6);
-    wall(`wa_${q}_2`, 4 * sx, 31 * sz, 0.5, 9);
-    wall(`wb_${q}_1`, 15 * sx, 4 * sz, 11, 0.5);
-    wall(`wb_${q}_2`, 36 * sx, 4 * sz, 4, 0.5);
+    wall(`wa_${q}_1`, 4 * sx, 9.75 * sz, 0.5, 6.25);
+    wall(`wa_${q}_2`, 4 * sx, 26 * sz, 0.5, 4);
+    wall(`wa_${q}_3`, 4 * sx, 37.25 * sz, 0.5, 3.25);
+    wall(`wb_${q}_1`, 14.75 * sx, 4 * sz, 11.25, 0.5);
+    wall(`wb_${q}_2`, 36.25 * sx, 4 * sz, 4.25, 0.5);
     plat(`wp_${q}`, 22 * sx, 9 * sz, 0.5, 5, 6, null, 'partition');
     const tower = (sx === sz);
     if (tower) {
@@ -167,7 +168,7 @@ const HOSPITAL_LAYOUT = (() => {
     col(`c_${q}_1`, 'gurney', 10 * sx, 10 * sz);
     col(`c_${q}_2`, 'cart', 16 * sx, 8 * sz);
     col(`c_${q}_3`, 'shelf', 13 * sx, 13 * sz);
-    col(`c_${q}_4`, 'gurney', 6 * sx, 36 * sz);
+    col(`c_${q}_4`, 'gurney', 9 * sx, 37 * sz);
     col(`c_${q}_5`, 'shelf', 14 * sx, 37 * sz);
     col(`c_${q}_6`, 'pillar', 36 * sx, 12 * sz);
     col(`c_${q}_7`, 'cart', 36 * sx, 22 * sz);
@@ -178,6 +179,7 @@ const HOSPITAL_LAYOUT = (() => {
     col(`c_cor_${i}`, 'pillar', x, z);
     sd(`sd_cor_${i}`, x * 1.5, z * 1.5);
   });
+  [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(([sx, sz], q) => plat(`gate_${q}`, 4 * sx, 19 * sz, 0.3, 3, 3, null, 'gate'));
   plat('pit_w', -24, 0, 12, 3.5, 3.5, null, 'pit');
   plat('pit_wr', -8, 0, 4, 3.5, 3.5, '+x', 'pit');
   plat('pit_e', 24, 0, 12, 3.5, 3.5, null, 'pit');
@@ -243,6 +245,7 @@ function registerMap(layout) {
       hzFrac: Math.max(0.02, Math.min(0.3, Number(p.hzFrac) || 0.1)),
       h: Math.max(0.4, Math.min(4, Number(p.h) || 1.6)),
       ramp: p.ramp === '+x' || p.ramp === '-x' ? p.ramp : null,
+      kind: ['pit', 'gate'].includes(p.kind) ? p.kind : null,
     })),
   };
   return MAPS[layout.id];

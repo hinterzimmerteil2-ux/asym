@@ -27,6 +27,32 @@ function PlatformMesh({ p }) {
   const hz = p.hzFrac * REF_HALF;
   const x = p.xFrac * MAP_HALF;
   const z = p.zFrac * MAP_HALF;
+  if (p.kind === 'pit') {
+    if (!p.ramp) {
+      return (
+        <mesh position={[x, -p.h + 0.05, z]}>
+          <boxGeometry args={[hx * 2, 0.1, hz * 2]} />
+          <meshStandardMaterial color="#3b6ea5" />
+        </mesh>
+      );
+    }
+    const len = hx * 2;
+    const ang = Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1);
+    return (
+      <mesh position={[x, -p.h / 2, z]} rotation={[0, 0, ang]}>
+        <boxGeometry args={[Math.hypot(len, p.h), 0.1, hz * 2]} />
+        <meshStandardMaterial color="#5b8fb0" />
+      </mesh>
+    );
+  }
+  if (p.kind === 'gate') {
+    return (
+      <mesh position={[x, p.h / 2, z]}>
+        <boxGeometry args={[hx * 2, p.h, hz * 2]} />
+        <meshStandardMaterial color="#f2a154" transparent opacity={0.6} />
+      </mesh>
+    );
+  }
   if (!p.ramp) {
     return (
       <mesh position={[x, p.h / 2, z]}>
@@ -187,7 +213,18 @@ export default function MapEditorPage() {
   function placeAt(xFrac, zFrac) {
     xFrac = Math.max(-1, Math.min(1, xFrac));
     zFrac = Math.max(-1, Math.min(1, zFrac));
-    if (selectedTool === 'block' || selectedTool === 'ramp') {
+    if (selectedTool === 'pit' || selectedTool === 'pit_ramp' || selectedTool === 'gate') {
+      const kind = selectedTool === 'gate' ? 'gate' : 'pit';
+      setPlatforms((prev) => [...prev, {
+        id: generateId(kind),
+        xFrac, zFrac,
+        hxFrac: (selectedTool === 'gate' ? 0.3 : buildSize) / REF_HALF,
+        hzFrac: (selectedTool === 'gate' ? buildSize : buildSize * 0.8) / REF_HALF,
+        h: selectedTool === 'gate' ? 3 : buildH,
+        ramp: selectedTool === 'pit_ramp' ? rampDir : null,
+        kind,
+      }]);
+    } else if (selectedTool === 'block' || selectedTool === 'ramp') {
       setPlatforms((prev) => [...prev, {
         id: generateId(selectedTool === 'ramp' ? 'ramp' : 'block'),
         xFrac, zFrac,
@@ -195,6 +232,7 @@ export default function MapEditorPage() {
         hzFrac: (selectedTool === 'ramp' ? buildSize * 0.8 : buildSize) / REF_HALF,
         h: buildH,
         ramp: selectedTool === 'ramp' ? rampDir : null,
+        kind: null,
       }]);
     } else if (selectedTool === 'self_damage') {
       setSelfDamageObjects((prev) => [...prev, { id: generateId('obj'), xFrac, zFrac }]);
@@ -261,6 +299,7 @@ export default function MapEditorPage() {
         hzFrac: round3(p.hzFrac),
         h: round3(p.h),
         ramp: p.ramp,
+        kind: p.kind || null,
       })),
     };
   }
@@ -326,6 +365,9 @@ export default function MapEditorPage() {
             </button>
             <button style={styles.toolButton(selectedTool === 'block', '#6b7280')} onClick={() => setSelectedTool('block')}>Bloque</button>
             <button style={styles.toolButton(selectedTool === 'ramp', '#9ca3af')} onClick={() => setSelectedTool('ramp')}>Rampa</button>
+            <button style={styles.toolButton(selectedTool === 'pit', '#3b6ea5')} onClick={() => setSelectedTool('pit')}>Sótano (foso)</button>
+            <button style={styles.toolButton(selectedTool === 'pit_ramp', '#5b8fb0')} onClick={() => setSelectedTool('pit_ramp')}>Rampa de descenso</button>
+            <button style={styles.toolButton(selectedTool === 'gate', '#f2a154')} onClick={() => setSelectedTool('gate')}>Puerta solo Curador</button>
             {COLLISION_TYPES.map((type) => (
               <button
                 key={type}
@@ -337,7 +379,7 @@ export default function MapEditorPage() {
             ))}
           </div>
 
-          {(selectedTool === 'block' || selectedTool === 'ramp') && (
+          {(selectedTool === 'block' || selectedTool === 'ramp' || selectedTool === 'pit' || selectedTool === 'pit_ramp' || selectedTool === 'gate') && (
             <div style={styles.countsBox}>
               <label style={styles.countLine}>Altura: {buildH.toFixed(1)}
                 <input type="range" min="0.4" max="4" step="0.2" value={buildH} onChange={(e) => setBuildH(parseFloat(e.target.value))} style={{ width: '100%' }} />
@@ -345,7 +387,7 @@ export default function MapEditorPage() {
               <label style={styles.countLine}>Tamaño: {buildSize.toFixed(1)}
                 <input type="range" min="1.5" max="8" step="0.5" value={buildSize} onChange={(e) => setBuildSize(parseFloat(e.target.value))} style={{ width: '100%' }} />
               </label>
-              {selectedTool === 'ramp' && (
+              {(selectedTool === 'ramp' || selectedTool === 'pit_ramp') && (
                 <p style={styles.countLine}>
                   Sube hacia:{' '}
                   <button style={styles.toolButton(rampDir === '-x', '#5468ff')} onClick={() => setRampDir('-x')}>-X</button>{' '}
@@ -479,7 +521,7 @@ export default function MapEditorPage() {
                   onContextMenu={(e) => { e.preventDefault(); handleRemove(p.id, e); }}
                   style={{ cursor: 'grab' }}
                 >
-                  <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.ramp ? '#9ca3af' : '#6b7280'} fillOpacity={0.55} stroke="#3d4a42" strokeWidth={2} />
+                  <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.kind === 'gate' ? '#f2a154' : p.kind === 'pit' ? '#3b6ea5' : p.ramp ? '#9ca3af' : '#6b7280'} fillOpacity={0.55} stroke="#3d4a42" strokeWidth={2} />
                   <text x={0} y={4} fontSize={10} fill="#111" textAnchor="middle">{p.ramp ? `${p.ramp === '+x' ? '→' : '←'} ${p.h.toFixed(1)}` : p.h.toFixed(1)}</text>
                 </g>
               );
@@ -566,7 +608,7 @@ function round3(n) {
 }
 
 function labelForType(type) {
-  const labels = { gurney: 'Camilla', shelf: 'Estantería', cart: 'Carrito', pillar: 'Columna' };
+  const labels = { gurney: 'Camilla', shelf: 'Estantería', cart: 'Carrito', pillar: 'Columna', crate: 'Caja', desk: 'Escritorio', plant: 'Planta', tank: 'Tanque' };
   return labels[type] || type;
 }
 

@@ -555,3 +555,23 @@ test('Desgracias se acumulan por hazañas y se envían al terminar la partida', 
   assert.ok(msg && msg.payload.total >= 10);
   assert.ok(msg.payload.items.some((i) => i.label === 'Prueba'));
 });
+
+test('puerta solo Curador, sótano con rampa y paso bajo rampas altas', () => {
+  const { room, e, clock } = setup();
+  room.mapId = 'hospital';
+  const go = (id, x, z, mx, mz, n) => {
+    const en = e[id];
+    en.x = x; en.z = z; en.y = 0; en.velocityY = 0; en.onGround = true;
+    en.input.moveX = mx; en.input.moveZ = mz;
+    for (let i = 0; i < n; i++) { clock.t += 50; en.flojera = Math.max(en.flojera, 1); room.stepPhysics(0.05); }
+    en.input.moveX = 0; en.input.moveZ = 0;
+    return en;
+  };
+  assert.ok(go('c', -1, 19, 1, 0, 30).x > 8);
+  assert.ok(go('a', -1, 19, 1, 0, 30).x < 4);
+  const down = go('a', -2, 0, -1, 0, 120);
+  assert.ok(down.y < -3);
+  const up = go('a', down.x, 0, down.x > 0 ? 1 : -1, 0, 300);
+  assert.ok(up.y > -0.1);
+  assert.ok(go('a', 20, 24, 0, 1, 30).z > 30);
+});

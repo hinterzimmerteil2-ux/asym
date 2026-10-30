@@ -419,7 +419,8 @@ function LobbyDecor() {
   );
 }
 
-function PitMesh({ p }) {
+function PitMesh({ p, pits }) {
+  const joined = (s) => (pits || []).some((q) => q !== p && Math.abs(q.z - p.z) < 0.01 && Math.abs((q.x + (q.hx * (q.x < p.x ? 1 : -1))) - (p.x + s * p.hx)) < 0.01);
   const len = p.hx * 2;
   const wall = useMemo(() => getTexture('concrete', Math.max(1, Math.round(len / 3)), Math.max(1, Math.round(p.h / 3))), [len, p.h]);
   const floor = useMemo(() => getTexture('tile', Math.max(1, Math.round(len / 4)), Math.max(1, Math.round(p.hz * 2 / 4))), [len, p.hz]);
@@ -444,18 +445,12 @@ function PitMesh({ p }) {
           {mat}
         </mesh>
       ))}
-      {!p.ramp && [-1, 1].map((s) => (
+      {!p.ramp && [-1, 1].filter((s) => !joined(s)).map((s) => (
         <mesh key={`e${s}`} position={[s * p.hx, -p.h / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
           <planeGeometry args={[p.hz * 2, p.h]} />
           {mat}
         </mesh>
       ))}
-      {p.ramp && (
-        <mesh position={[(p.ramp === '+x' ? -1 : 1) * p.hx, -p.h / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
-          <planeGeometry args={[p.hz * 2, p.h]} />
-          {mat}
-        </mesh>
-      )}
     </group>
   );
 }
@@ -1358,7 +1353,99 @@ function SquareFrame({ x, z, half, color, opacity, y = 0, hy, hz }) {
 
 const PLAT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', ramp: 'ramp' };
 
+function WallDecor({ p }) {
+  const alongX = p.hx >= p.hz;
+  const len = (alongX ? p.hx : p.hz) * 2;
+  const thick = alongX ? p.hz : p.hx;
+  const items = useMemo(() => {
+    const out = [];
+    const n = Math.floor(len / 4.5);
+    for (let i = 0; i < n; i++) {
+      const t = -len / 2 + (i + 0.5) * (len / n);
+      for (const y of [3.2, 6.4]) {
+        const seed = Math.sin((p.x * 13 + p.z * 7 + i * 3 + y) * 12.9898) * 43758.5453;
+        out.push({ t, y, lit: seed - Math.floor(seed) > 0.35 });
+      }
+    }
+    return out;
+  }, [len, p.x, p.z]);
+  if (len < 6) return null;
+  return (
+    <group position={[p.x, 0, p.z]}>
+      {items.map((w, i) => [-1, 1].map((s) => (
+        <mesh key={`${i}${s}`} position={alongX ? [w.t, w.y, s * (thick + 0.02)] : [s * (thick + 0.02), w.y, w.t]} rotation={alongX ? [0, s > 0 ? 0 : Math.PI, 0] : [0, s > 0 ? Math.PI / 2 : -Math.PI / 2, 0]}>
+          <planeGeometry args={[1.6, 1.4]} />
+          <meshBasicMaterial color={w.lit ? '#ffd98a' : '#1d2740'} />
+        </mesh>
+      )))}
+      <mesh position={[0, p.h + 0.15, 0]}>
+        <boxGeometry args={[alongX ? len + 0.2 : p.hx * 2 + 0.5, 0.3, alongX ? p.hz * 2 + 0.5 : len + 0.2]} />
+        <meshStandardMaterial color="#2b3144" roughness={0.9} />
+      </mesh>
+    </group>
+  );
+}
+
+const LAMPS = [[8, 8], [-8, 8], [8, -8], [-8, -8], [0, 30], [0, -30], [20, 20], [-20, 20], [20, -20], [-20, -20], [0, 0], [30, 12], [-30, 12], [30, -12], [-30, -12]];
+
+function NightDecor() {
+  const stars = useMemo(() => {
+    const pts = [];
+    for (let i = 0; i < 400; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const e = 0.15 + Math.random() * 1.2;
+      pts.push(Math.cos(a) * Math.cos(e) * 220, Math.sin(e) * 220, Math.sin(a) * Math.cos(e) * 220);
+    }
+    return new Float32Array(pts);
+  }, []);
+  return (
+    <group>
+      <points>
+        <bufferGeometry><bufferAttribute attach="attributes-position" array={stars} count={stars.length / 3} itemSize={3} /></bufferGeometry>
+        <pointsMaterial color="#ffffff" size={1.6} sizeAttenuation={false} fog={false} />
+      </points>
+      <mesh position={[-90, 120, -140]}>
+        <sphereGeometry args={[9, 20, 14]} />
+        <meshBasicMaterial color="#f3f0d8" fog={false} />
+      </mesh>
+      {LAMPS.map(([x, z]) => (
+        <group key={`${x}_${z}`} position={[x, 0, z]}>
+          <mesh position={[0, 1.6, 0]}><cylinderGeometry args={[0.07, 0.09, 3.2, 6]} /><meshStandardMaterial color="#2b3144" /></mesh>
+          <mesh position={[0, 3.3, 0]}><sphereGeometry args={[0.28, 10, 8]} /><meshBasicMaterial color="#ffe6a8" /></mesh>
+        </group>
+      ))}
+      <pointLight position={[0, 4, 0]} intensity={14} distance={30} color="#ffd9a0" />
+      <pointLight position={[20, 4, 20]} intensity={9} distance={26} color="#ffd9a0" />
+      <pointLight position={[-20, 4, -20]} intensity={9} distance={26} color="#ffd9a0" />
+      <pointLight position={[-20, 4, 20]} intensity={9} distance={26} color="#ffd9a0" />
+      <pointLight position={[20, 4, -20]} intensity={9} distance={26} color="#ffd9a0" />
+    </group>
+  );
+}
+
+function GateMesh({ p }) {
+  const bars = Math.max(2, Math.round(p.hz * 2 / 0.6));
+  return (
+    <group position={[p.x, 0, p.z]}>
+      <mesh position={[0, p.h / 2, 0]}>
+        <boxGeometry args={[p.hx * 2, p.h, p.hz * 2]} />
+        <meshBasicMaterial color="#f2a154" transparent opacity={0.18} depthWrite={false} />
+      </mesh>
+      {Array.from({ length: bars + 1 }, (_, i) => (
+        <mesh key={i} position={[0, p.h / 2, -p.hz + (i * p.hz * 2) / bars]}>
+          <boxGeometry args={[p.hx * 2 + 0.1, p.h, 0.08]} />
+          <meshStandardMaterial color="#f2a154" emissive="#f2a154" emissiveIntensity={0.5} />
+        </mesh>
+      ))}
+      {[0.1, p.h - 0.1].map((y) => (
+        <mesh key={y} position={[0, y, 0]}><boxGeometry args={[p.hx * 2 + 0.1, 0.12, p.hz * 2]} /><meshStandardMaterial color="#c97a2e" /></mesh>
+      ))}
+    </group>
+  );
+}
+
 function Platform({ p }) {
+  if (p.kind === 'gate') return <GateMesh p={p} />;
   const name = p.ramp ? 'ramp' : PLAT_TEX[p.kind] || 'concrete';
   const len = p.hx * 2;
   const tops = useMemo(() => getTexture(name, Math.max(1, Math.round(len / 3)), Math.max(1, Math.round(p.hz * 2 / 3))), [name, len, p.hz]);
@@ -1373,33 +1460,31 @@ function Platform({ p }) {
   }
   const angle = Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1);
   return (
-    <mesh position={[p.x, p.h / 2, p.z]} rotation={[0, 0, angle]}>
-      <boxGeometry args={[Math.hypot(len, p.h), 0.2, p.hz * 2]} />
-      <meshStandardMaterial map={tops} roughness={0.8} />
-    </mesh>
+    <group position={[p.x, p.h / 2, p.z]} rotation={[0, 0, angle]}>
+      <mesh position={[0, -0.2, 0]}>
+        <boxGeometry args={[Math.hypot(len, p.h), 0.4, p.hz * 2]} />
+        <meshStandardMaterial map={tops} roughness={0.8} />
+      </mesh>
+    </group>
   );
 }
 
 function RampFrame({ p, color, opacity }) {
-  const geo = useMemo(() => {
-    const s = p.ramp === '+x' ? 1 : -1;
-    const a = -p.hx * s, b = p.hx * s, z = p.hz;
-    const v = [[a, 0, -z], [b, 0, -z], [b, p.h, -z], [a, 0, z], [b, 0, z], [b, p.h, z]];
-    const idx = [0, 2, 1, 3, 4, 5, 0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4, 0, 3, 5, 0, 5, 2];
-    const g = new BufferGeometry();
-    g.setAttribute('position', new Float32BufferAttribute(v.flat(), 3));
-    g.setIndex(idx);
-    return g;
-  }, [p.ramp, p.hx, p.hz, p.h]);
-  const edges = useMemo(() => new EdgesGeometry(geo, 1), [geo]);
+  const len = p.hx * 2;
+  const angle = Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1);
+  const dims = [Math.hypot(len, p.h), 0.4, p.hz * 2];
+  const edges = useMemo(() => new EdgesGeometry(new BoxGeometry(...dims)), [len, p.h, p.hz]);
   return (
-    <group position={[p.x, 0, p.z]}>
-      <lineSegments geometry={edges}>
-        <lineBasicMaterial color={color} transparent opacity={Math.min(1, opacity + 0.2)} depthWrite={false} />
-      </lineSegments>
-      <mesh geometry={geo}>
-        <meshBasicMaterial color={color} transparent opacity={0.16} depthWrite={false} side={DoubleSide} />
-      </mesh>
+    <group position={[p.x, p.h / 2, p.z]} rotation={[0, 0, angle]}>
+      <group position={[0, -0.2, 0]}>
+        <lineSegments geometry={edges}>
+          <lineBasicMaterial color={color} transparent opacity={Math.min(1, opacity + 0.2)} depthWrite={false} />
+        </lineSegments>
+        <mesh>
+          <boxGeometry args={dims} />
+          <meshBasicMaterial color={color} transparent opacity={0.16} depthWrite={false} side={DoubleSide} />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -1440,6 +1525,7 @@ const MGround = memo(Ground);
 const MLobbyDecor = memo(LobbyDecor);
 const MPlatform = memo(Platform);
 const MPit = memo(PitMesh);
+const MWallDecor = memo(WallDecor);
 const MCollisionObject = memo(CollisionObject);
 const MSelfDamageObject = memo(SelfDamageObject, (a, b) => a.position.x === b.position.x && a.position.y === b.position.y && a.position.z === b.position.z);
 
@@ -1480,16 +1566,17 @@ export default function GameScene({
 
   return (
     <Canvas dpr={[1, coarse ? 1.25 : 1.5]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
-      <ambientLight intensity={phase === 'action' ? 0.5 : 0.4} />
-      <directionalLight position={[8, 12, 6]} intensity={1.1} />
-      <hemisphereLight args={['#bcd4ff', '#8a7a68', 0.35]} />
-      {phase === 'action' && <color attach="background" args={['#9fc3e6']} />}
-      {phase === 'action' && <fog attach="fog" args={['#9fc3e6', 60, 150]} />}
+      <ambientLight intensity={phase === 'action' ? 0.32 : 0.4} color={phase === 'action' ? '#8fa4d8' : '#ffffff'} />
+      <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? 0.55 : 1.1} color={phase === 'action' ? '#aab8ff' : '#ffffff'} />
+      <hemisphereLight args={phase === 'action' ? ['#4a5a9a', '#2a2430', 0.45] : ['#bcd4ff', '#8a7a68', 0.35]} />
+      {phase === 'action' && <color attach="background" args={['#070b1c']} />}
+      {phase === 'action' && <fog attach="fog" args={['#0a1024', 50, 140]} />}
+      {phase === 'action' && <NightDecor />}
 
       <FollowCamera focusId={followId || myPlayerId} myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
 
       <MGround halfSize={areaHalfSize} themed={phase === 'action'} pits={pits} />
-      {pits.map((p) => <MPit key={p.id} p={p} />)}
+      {pits.map((p) => <MPit key={p.id} p={p} pits={pits} />)}
       {phase !== 'action' && <MLobbyDecor />}
 
       {phase === 'action' && (effects || []).map((effect) => <SkillEffect key={effect.id} effect={effect} />)}
@@ -1511,6 +1598,7 @@ export default function GameScene({
       )}
 
       {(platforms || []).filter((p) => p.kind !== 'pit').map((p) => <MPlatform key={p.id} p={p} />)}
+      {(platforms || []).filter((p) => p.kind === 'wall').map((p) => <MWallDecor key={`d${p.id}`} p={p} />)}
 
       {phase === 'action' &&
         (collisionObjects || []).map((obj) => <MCollisionObject key={obj.id} obj={obj} />)}

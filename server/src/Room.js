@@ -164,15 +164,18 @@ class Room {
     this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
   }
 
-  navigation() {
+  navigation(curator = false) {
     if (!this.nav || this.nav.key !== this.mapId) {
       const area = GameMap.MATCH_AREA;
+      const objects = GameMap.resolveCollisionObjects(this.mapId, area);
+      const platforms = GameMap.resolvePlatforms(this.mapId, area);
       this.nav = {
         key: this.mapId,
-        grid: Pathfinding.buildGrid(area.halfSize, GameMap.resolveCollisionObjects(this.mapId, area), GameMap.resolvePlatforms(this.mapId, area)),
+        grid: Pathfinding.buildGrid(area.halfSize, objects, platforms),
+        gridCur: Pathfinding.buildGrid(area.halfSize, objects, platforms.filter((p) => p.kind !== 'gate')),
       };
     }
-    return this.nav.grid;
+    return curator ? this.nav.gridCur : this.nav.grid;
   }
 
   selfDamageCandidates() {
@@ -198,7 +201,7 @@ class Room {
 
   botSteer(player, entity, goal, now, stopDist = 0.3) {
     const st = player.nav || (player.nav = { path: [], goal: null, repathAt: 0, lastX: entity.x, lastZ: entity.z, lastCheck: now, stuck: 0 });
-    const grid = this.navigation();
+    const grid = this.navigation(Boolean(player.isAsymRole));
     if (now - st.lastCheck > 700) {
       const moved = Math.hypot(entity.x - st.lastX, entity.z - st.lastZ);
       st.stuck = moved < 0.15 && (entity.input.moveX || entity.input.moveZ) ? st.stuck + 1 : 0;
@@ -856,8 +859,9 @@ class Room {
     const area = this.getCurrentArea();
     const collisionObjects =
       this.phase === 'action' ? GameMap.resolveCollisionObjects(this.mapId, GameMap.MATCH_AREA) : [];
-    const platforms =
+    const allPlatforms =
       this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.MATCH_AREA) : this.phase === 'lobby' ? GameMap.LOBBY_PLATFORMS : [];
+    const curPlatforms = allPlatforms.filter((p) => p.kind !== 'gate');
 
     const now = Date.now();
     const allyCounts = {};
@@ -892,6 +896,7 @@ class Room {
     }
     for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
       const { input } = entity;
+      const platforms = this.players.get(entityPlayerId)?.isAsymRole ? curPlatforms : allPlatforms;
       const inAction = this.phase === 'action';
       const resolved = this.gameState.patients[entityPlayerId] && this.gameState.patients[entityPlayerId].status !== 'alive';
       const heldAtSpawn = this.players.get(entityPlayerId)?.isAsymRole && inAction && now < (this.gameState.curatorReleaseAt || 0);

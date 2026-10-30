@@ -4,6 +4,8 @@ function euclid(a, b) {
   return Math.hypot(a.x - b.x, a.z - b.z);
 }
 
+const RAMP_SLAB = 0.4;
+
 function pitDepth(p, x, z) {
   if (Math.abs(x - p.x) > p.hx || Math.abs(z - p.z) > p.hz) return 0;
   if (!p.ramp) return p.h;
@@ -43,7 +45,7 @@ function blockedAt(platforms, x, z, y, stepUp = STEP_UP) {
   for (const p of platforms) {
     for (const [ox, oz] of FOOTPRINT) {
       const top = platformTop(p, x + ox, z + oz);
-      if (top !== null && top > y + stepUp) return true;
+      if (top !== null && top > y + stepUp && (!p.ramp || top - RAMP_SLAB < y + PLAYER_HEIGHT)) return true;
     }
   }
   return false;
