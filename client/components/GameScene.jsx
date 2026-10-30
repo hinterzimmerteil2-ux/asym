@@ -1410,15 +1410,15 @@ function NightDecor() {
       </mesh>
       {LAMPS.map(([x, z]) => (
         <group key={`${x}_${z}`} position={[x, 0, z]}>
-          <mesh position={[0, 1.6, 0]}><cylinderGeometry args={[0.07, 0.09, 3.2, 6]} /><meshStandardMaterial color="#2b3144" /></mesh>
+          <mesh position={[0, 1.6, 0]}><cylinderGeometry args={[0.07, 0.09, 3.2, 6]} /><meshStandardMaterial color="#e8f1f8" /></mesh>
           <mesh position={[0, 3.3, 0]}><sphereGeometry args={[0.28, 10, 8]} /><meshBasicMaterial color="#ffe6a8" /></mesh>
         </group>
       ))}
-      <pointLight position={[0, 4, 0]} intensity={14} distance={30} color="#ffd9a0" />
-      <pointLight position={[20, 4, 20]} intensity={9} distance={26} color="#ffd9a0" />
-      <pointLight position={[-20, 4, -20]} intensity={9} distance={26} color="#ffd9a0" />
-      <pointLight position={[-20, 4, 20]} intensity={9} distance={26} color="#ffd9a0" />
-      <pointLight position={[20, 4, -20]} intensity={9} distance={26} color="#ffd9a0" />
+      <pointLight position={[0, 4, 0]} intensity={7} distance={30} color="#fff3e0" />
+      <pointLight position={[20, 4, 20]} intensity={5} distance={26} color="#fff3e0" />
+      <pointLight position={[-20, 4, -20]} intensity={5} distance={26} color="#fff3e0" />
+      <pointLight position={[-20, 4, 20]} intensity={5} distance={26} color="#fff3e0" />
+      <pointLight position={[20, 4, -20]} intensity={5} distance={26} color="#fff3e0" />
     </group>
   );
 }

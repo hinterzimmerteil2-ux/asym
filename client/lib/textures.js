@@ -17,9 +17,9 @@ function draw(name) {
     for (let k = 0; k < n; k++) {
       g.strokeStyle = col;
       g.beginPath();
-      let x = Math.random() * 128, y = Math.random() * 128;
-      g.moveTo(x, y);
-      for (let s = 0; s < 5; s++) { x += (Math.random() - 0.4) * 30; y += (Math.random() - 0.4) * 30; g.lineTo(x, y); }
+      const x0 = Math.random() * 128, y0 = Math.random() * 128;
+      g.moveTo(x0, y0);
+      g.bezierCurveTo(x0 + (Math.random() - 0.5) * 60, y0 + (Math.random() - 0.5) * 60, x0 + (Math.random() - 0.5) * 90, y0 + (Math.random() - 0.5) * 90, x0 + (Math.random() - 0.5) * 120, y0 + (Math.random() - 0.5) * 120);
       g.stroke();
     }
   };
@@ -29,9 +29,9 @@ function draw(name) {
       g.fillStyle = (x + y) % 2 ? '#e7eef5' : '#f8fafc';
       g.fillRect(x * 64 + 1, y * 64 + 1, 62, 62);
     }
-    vein(14, 'rgba(120,150,185,0.35)');
-    vein(8, 'rgba(90,120,160,0.25)');
-    g.strokeStyle = '#9fc4e6'; g.lineWidth = 2; g.strokeRect(0, 0, 128, 128);
+    vein(5, 'rgba(130,160,195,0.22)');
+    vein(3, 'rgba(100,130,170,0.15)');
+    g.strokeStyle = '#cfe3f3'; g.lineWidth = 1; g.strokeRect(0, 0, 128, 128);
     g.beginPath(); g.moveTo(64, 0); g.lineTo(64, 128); g.moveTo(0, 64); g.lineTo(128, 64); g.stroke();
     noise(120, 0.05);
   } else if (name === 'plaster') {

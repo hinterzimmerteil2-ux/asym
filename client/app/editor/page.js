@@ -195,6 +195,7 @@ export default function MapEditorPage() {
   const [rampDir, setRampDir] = useState('-x');
   const [selectedTool, setSelectedTool] = useState('self_damage'); // 'self_damage' | 'block' | 'ramp' | tipo de collision
   const [draggingId, setDraggingId] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
   const [exportedJson, setExportedJson] = useState(null);
   const [mapName, setMapName] = useState('');
   const [mapId, setMapId] = useState('');
@@ -224,6 +225,7 @@ export default function MapEditorPage() {
   }
 
   function placeAt(xFrac, zFrac) {
+    if (selectedTool === 'edit') { setSelectedId(null); return; }
     xFrac = Math.max(-1, Math.min(1, xFrac));
     zFrac = Math.max(-1, Math.min(1, zFrac));
     if (selectedTool === 'pit' || selectedTool === 'pit_ramp' || selectedTool === 'gate' || selectedTool === 'slab') {
@@ -264,6 +266,7 @@ export default function MapEditorPage() {
   function handleMarkerPointerDown(e, id) {
     e.stopPropagation(); // no disparar handleCanvasClick al arrancar un drag sobre un marcador existente
     setDraggingId(id);
+    setSelectedId(id);
   }
 
   function handleCanvasPointerMove(e) {
@@ -385,7 +388,8 @@ export default function MapEditorPage() {
             <button style={styles.toolButton(selectedTool === 'block', '#6b7280')} onClick={() => setSelectedTool('block')}>Bloque</button>
             <button style={styles.toolButton(selectedTool === 'ramp', '#9ca3af')} onClick={() => setSelectedTool('ramp')}>Rampa</button>
             <button style={styles.toolButton(selectedTool === 'pit', '#3b6ea5')} onClick={() => setSelectedTool('pit')}>Sótano (foso)</button>
-            <button style={styles.toolButton(selectedTool === 'pit_ramp', '#5b8fb0')} onClick={() => setSelectedTool('pit_ramp')}>Rampa de descenso</button>
+            <button style={styles.toolButton(selectedTool === 'pit_ramp', '#5b8fb0')} onClick={() => setSelectedTool('pit_ramp')}>Rampa de sótano (bajada)</button>
+            <button style={styles.toolButton(selectedTool === 'edit', '#facc15')} onClick={() => setSelectedTool('edit')}>✎ Editar / altura / escalar</button>
             <button style={styles.toolButton(selectedTool === 'slab', '#8fc6ea')} onClick={() => setSelectedTool('slab')}>Entrepiso (pasable por debajo)</button>
             <button style={styles.toolButton(selectedTool === 'gate', '#f2a154')} onClick={() => setSelectedTool('gate')}>Puerta solo Curador</button>
             {COLLISION_TYPES.map((type) => (
@@ -422,6 +426,37 @@ export default function MapEditorPage() {
               )}
             </div>
           )}
+
+          {selectedTool === 'edit' && (() => {
+            const sp = platforms.find((q) => q.id === selectedId);
+            const upd = (patch) => setPlatforms((prev) => prev.map((q) => (q.id === selectedId ? { ...q, ...patch } : q)));
+            if (!sp) return <div style={styles.countsBox}><p style={styles.countLine}>Toca un bloque del mapa para editarlo (también puedes arrastrarlo).</p></div>;
+            const pitLike = sp.kind === 'pit';
+            return (
+              <div style={styles.countsBox}>
+                <p style={styles.countLine}>Editando: {sp.id}</p>
+                <label style={styles.countLine}>{pitLike ? 'Profundidad' : 'Altura'}: {sp.h.toFixed(1)}
+                  <input type="range" min="0.4" max={pitLike ? 6 : 12} step="0.1" value={sp.h} onChange={(e) => upd({ h: parseFloat(e.target.value) })} style={{ width: '100%' }} />
+                </label>
+                <label style={styles.countLine}>Largo (X): {(sp.hxFrac * REF_HALF * 2).toFixed(1)}
+                  <input type="range" min="0.6" max="40" step="0.2" value={sp.hxFrac * REF_HALF * 2} onChange={(e) => upd({ hxFrac: parseFloat(e.target.value) / 2 / REF_HALF })} style={{ width: '100%' }} />
+                </label>
+                <label style={styles.countLine}>Ancho (Z): {(sp.hzFrac * REF_HALF * 2).toFixed(1)}
+                  <input type="range" min="0.6" max="40" step="0.2" value={sp.hzFrac * REF_HALF * 2} onChange={(e) => upd({ hzFrac: parseFloat(e.target.value) / 2 / REF_HALF })} style={{ width: '100%' }} />
+                </label>
+                {sp.ramp && (
+                  <p style={styles.countLine}>
+                    Sube hacia:{' '}
+                    <button style={styles.toolButton(sp.ramp === '-x', '#5468ff')} onClick={() => upd({ ramp: '-x' })}>-X</button>{' '}
+                    <button style={styles.toolButton(sp.ramp === '+x', '#5468ff')} onClick={() => upd({ ramp: '+x' })}>+X</button>
+                  </p>
+                )}
+                <p style={styles.countLine}>
+                  <button style={styles.toolButton(false, '#e0555f')} onClick={() => { setPlatforms((prev) => prev.filter((q) => q.id !== sp.id)); setSelectedId(null); }}>Eliminar</button>
+                </p>
+              </div>
+            );
+          })()}
 
           {platforms.length > 0 && (
             <div style={styles.countsBox}>
@@ -564,7 +599,7 @@ export default function MapEditorPage() {
                   onContextMenu={(e) => { e.preventDefault(); handleRemove(p.id, e); }}
                   style={{ cursor: 'grab' }}
                 >
-                  <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.kind === 'gate' ? '#f2a154' : p.kind === 'pit' ? '#3b6ea5' : p.ramp ? '#9ca3af' : '#6b7280'} fillOpacity={0.55} stroke="#3d4a42" strokeWidth={2} />
+                  <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.kind === 'gate' ? '#f2a154' : p.kind === 'pit' ? '#3b6ea5' : p.ramp ? '#9ca3af' : '#6b7280'} fillOpacity={0.55} stroke={p.id === selectedId ? '#facc15' : '#3d4a42'} strokeWidth={p.id === selectedId ? 4 : 2} />
                   <text x={0} y={4} fontSize={10} fill="#111" textAnchor="middle">{p.ramp ? `${p.ramp === '+x' ? '→' : '←'} ${p.h.toFixed(1)}` : p.h.toFixed(1)}</text>
                 </g>
               );
