@@ -228,6 +228,8 @@ function registerMap(layout) {
     id: layout.id,
     name: typeof layout.name === 'string' && layout.name.trim() ? layout.name.trim() : layout.id,
     custom: true,
+    curatorSpawns: (Array.isArray(layout.curatorSpawns) ? layout.curatorSpawns : []).slice(0, 16).map((s) => ({ xFrac: clampFrac(s.xFrac), zFrac: clampFrac(s.zFrac) })),
+    patientSpawns: (Array.isArray(layout.patientSpawns) ? layout.patientSpawns : []).slice(0, 32).map((s) => ({ xFrac: clampFrac(s.xFrac), zFrac: clampFrac(s.zFrac) })),
     selfDamageObjects: layout.selfDamageObjects.map((o) => ({
       id: String(o.id),
       xFrac: clampFrac(o.xFrac),
@@ -303,6 +305,11 @@ function resolveCollisionObjects(mapId, area) {
  * sin necesitar cambios.
  */
 function getPatientSpawnPositions(count, area, mapId) {
+  const custom = resolveSpawns((MAPS[mapId] || {}).patientSpawns, area);
+  if (custom.length) {
+    const pool = custom.slice().sort(() => Math.random() - 0.5);
+    return Array.from({ length: count }, (_, i) => pool[i % pool.length]);
+  }
   if (mapId === HOSPITAL_ID) {
     const out = [];
     for (let i = 0; i < count; i++) {
@@ -340,8 +347,14 @@ function resolvePlatforms(mapId, area) {
   }));
 }
 
-function getCuratorSpawn() {
-  return { x: 0, z: 0 };
+function resolveSpawns(list, area) {
+  return (list || []).map((s) => ({ x: s.xFrac * area.halfSize, z: s.zFrac * area.halfSize }));
+}
+
+function getCuratorSpawn(mapId, pick) {
+  const spawns = resolveSpawns((MAPS[mapId] || {}).curatorSpawns, MATCH_AREA);
+  if (!spawns.length) return { x: 0, z: 0 };
+  return spawns[pick === undefined ? Math.floor(Math.random() * spawns.length) : pick % spawns.length];
 }
 
 module.exports = {

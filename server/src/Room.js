@@ -182,7 +182,7 @@ class Room {
     const area = GameMap.MATCH_AREA;
     const all = GameMap.resolveSelfDamagePositions(this.mapId, area);
     const grid = this.navigation();
-    if (!this.nav.seen) this.nav.seen = Pathfinding.reachableFrom(grid, GameMap.getCuratorSpawn());
+    if (!this.nav.seen) this.nav.seen = Pathfinding.reachableFrom(grid, GameMap.getCuratorSpawn(this.mapId, 0));
     const objects = GameMap.resolveCollisionObjects(this.mapId, area);
     const platforms = GameMap.resolvePlatforms(this.mapId, area);
     const ok = all
@@ -629,7 +629,7 @@ class Room {
       if (!player.isAsymRole) patientIds.push(playerId);
     }
     const patientSpawns = GameMap.getPatientSpawnPositions(patientIds.length, GameMap.MATCH_AREA, this.mapId);
-    const curatorSpawn = GameMap.getCuratorSpawn();
+    const curatorSpawn = GameMap.getCuratorSpawn(this.mapId);
 
     let patientIndex = 0;
     for (const [playerId, player] of this.players) {

@@ -24,12 +24,13 @@ const REF_HALF = 30;
 const MAP_HALF = 60;
 const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3, crate: 1.1, desk: 1, plant: 1.4, tank: 2 };
 
-function PlatformMesh({ p }) {
+function PlatformMesh({ p, onPick, selected }) {
   const hx = p.hxFrac * REF_HALF;
   const hz = p.hzFrac * REF_HALF;
   const x = p.xFrac * MAP_HALF;
   const z = p.zFrac * MAP_HALF;
-  const baseColor = p.tint || TEX_COLORS[p.tex] || (p.ramp ? '#9ca3af' : '#6b7280');
+  const pick = onPick ? (e) => { e.stopPropagation(); onPick(p.id); } : undefined;
+  const baseColor = selected ? '#facc15' : p.tint || TEX_COLORS[p.tex] || (p.ramp ? '#9ca3af' : '#6b7280');
   if (p.kind === 'mezzanine') {
     return (
       <mesh position={[x, p.h - 0.2, z]}>
@@ -66,7 +67,7 @@ function PlatformMesh({ p }) {
   }
   if (!p.ramp) {
     return (
-      <mesh position={[x, p.h / 2, z]}>
+      <mesh position={[x, p.h / 2, z]} onClick={pick}>
         <boxGeometry args={[hx * 2, p.h, hz * 2]} />
         <meshStandardMaterial color={baseColor} />
       </mesh>
@@ -75,14 +76,14 @@ function PlatformMesh({ p }) {
   const len = hx * 2;
   const angle = Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1);
   return (
-    <mesh position={[x, p.h / 2, z]} rotation={[0, 0, angle]}>
+    <mesh position={[x, p.h / 2, z]} rotation={[0, 0, angle]} onClick={pick}>
       <boxGeometry args={[Math.hypot(len, p.h), 0.2, hz * 2]} />
       <meshStandardMaterial color={baseColor} />
     </mesh>
   );
 }
 
-function Preview3D({ platforms, collisionObjects, selfDamageObjects, onGround }) {
+function Preview3D({ platforms, collisionObjects, selfDamageObjects, onGround, onPick, selectedId }) {
   return (
     <Canvas camera={{ position: [0, 70, 80], fov: 50 }} style={{ width: CANVAS_SIZE, height: 380, background: '#0b0d14', borderRadius: 8 }}>
       <ambientLight intensity={0.7} />
@@ -94,7 +95,7 @@ function Preview3D({ platforms, collisionObjects, selfDamageObjects, onGround })
       </mesh>
       <gridHelper args={[MAP_HALF * 2, 24, '#5468ff', '#b8b4a6']} position={[0, 0.02, 0]} />
       <mesh position={[0, 0.3, 0]}><cylinderGeometry args={[0.8, 0.8, 0.6, 12]} /><meshBasicMaterial color="#5468ff" /></mesh>
-      {platforms.map((p) => <PlatformMesh key={p.id} p={p} />)}
+      {platforms.map((p) => <PlatformMesh key={p.id} p={p} onPick={onPick} selected={p.id === selectedId} />)}
       {collisionObjects.map((o) => {
         const h = OBJECT_HEIGHTS[o.type] || 1.2;
         return (
@@ -187,6 +188,8 @@ function generateId(prefix) {
 export default function MapEditorPage() {
   const [selfDamageObjects, setSelfDamageObjects] = useState([]);
   const [collisionObjects, setCollisionObjects] = useState([]);
+  const [curatorSpawns, setCuratorSpawns] = useState([]);
+  const [patientSpawns, setPatientSpawns] = useState([]);
   const [platforms, setPlatforms] = useState([]);
   const [buildTex, setBuildTex] = useState('');
   const [buildTint, setBuildTint] = useState('#ffffff');
@@ -221,6 +224,12 @@ export default function MapEditorPage() {
   function handleCanvasClick(e) {
     if (draggingId) return; // un click que termina un drag no debe crear un objeto nuevo
     const { xFrac, zFrac } = pixelToFraction(e.clientX, e.clientY);
+    if (selectedTool === 'edit') {
+      const hits = platforms.filter((p) => Math.abs(xFrac - p.xFrac) * MAP_HALF <= p.hxFrac * REF_HALF && Math.abs(zFrac - p.zFrac) * MAP_HALF <= p.hzFrac * REF_HALF);
+      hits.sort((a, b) => a.hxFrac * a.hzFrac - b.hxFrac * b.hzFrac);
+      setSelectedId(hits.length ? hits[0].id : null);
+      return;
+    }
     placeAt(xFrac, zFrac);
   }
 
@@ -253,6 +262,10 @@ export default function MapEditorPage() {
         tex: buildTex || null,
         tint: buildTint !== '#ffffff' ? buildTint : null,
       }]);
+    } else if (selectedTool === 'curator_spawn') {
+      setCuratorSpawns((prev) => [...prev, { id: generateId('cs'), xFrac, zFrac }]);
+    } else if (selectedTool === 'patient_spawn') {
+      setPatientSpawns((prev) => [...prev, { id: generateId('ps'), xFrac, zFrac }]);
     } else if (selectedTool === 'self_damage') {
       setSelfDamageObjects((prev) => [...prev, { id: generateId('obj'), xFrac, zFrac }]);
     } else {
@@ -275,6 +288,8 @@ export default function MapEditorPage() {
     setSelfDamageObjects((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
     setCollisionObjects((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
     setPlatforms((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
+    setCuratorSpawns((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
+    setPatientSpawns((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
   }
 
   function handlePointerUp() {
@@ -286,6 +301,8 @@ export default function MapEditorPage() {
     setSelfDamageObjects((prev) => prev.filter((o) => o.id !== id));
     setCollisionObjects((prev) => prev.filter((o) => o.id !== id));
     setPlatforms((prev) => prev.filter((o) => o.id !== id));
+    setCuratorSpawns((prev) => prev.filter((o) => o.id !== id));
+    setPatientSpawns((prev) => prev.filter((o) => o.id !== id));
   }
 
   function handleRadiusChange(id, newRadiusFrac) {
@@ -299,6 +316,8 @@ export default function MapEditorPage() {
     return {
       id,
       name,
+      curatorSpawns: curatorSpawns.map((o) => ({ xFrac: round3(o.xFrac), zFrac: round3(o.zFrac) })),
+      patientSpawns: patientSpawns.map((o) => ({ xFrac: round3(o.xFrac), zFrac: round3(o.zFrac) })),
       selfDamageObjects: selfDamageObjects.map((o) => ({
         id: o.id,
         xFrac: round3(o.xFrac),
@@ -362,6 +381,8 @@ export default function MapEditorPage() {
     setSelfDamageObjects([]);
     setCollisionObjects([]);
     setPlatforms([]);
+    setCuratorSpawns([]);
+    setPatientSpawns([]);
     setExportedJson(null);
   }
 
@@ -382,7 +403,42 @@ export default function MapEditorPage() {
           <div style={{ ...styles.toolGroup, borderBottom: '1px solid #3a3d52', paddingBottom: 8, marginBottom: 8 }}>
             <button style={styles.toolButton(selectedTool === 'edit', '#facc15')} onClick={() => setSelectedTool('edit')}>✎ Editar (altura / escala)</button>
           </div>
+          {selectedTool === 'edit' && (() => {
+            const sp = platforms.find((q) => q.id === selectedId);
+            const upd = (patch) => setPlatforms((prev) => prev.map((q) => (q.id === selectedId ? { ...q, ...patch } : q)));
+            if (!sp) return <div style={styles.countsBox}><p style={styles.countLine}>Toca un bloque del mapa para editarlo (también puedes arrastrarlo).</p></div>;
+            const pitLike = sp.kind === 'pit';
+            return (
+              <div style={styles.countsBox}>
+                <p style={styles.countLine}>Editando: {sp.id}</p>
+                <label style={styles.countLine}>{pitLike ? 'Profundidad' : 'Altura'}: {sp.h.toFixed(1)}
+                  <input type="range" min="0.4" max={pitLike ? 6 : 12} step="0.1" value={sp.h} onChange={(e) => upd({ h: parseFloat(e.target.value) })} style={{ width: '100%' }} />
+                </label>
+                <label style={styles.countLine}>Largo (X): {(sp.hxFrac * REF_HALF * 2).toFixed(1)}
+                  <input type="range" min="0.6" max="40" step="0.2" value={sp.hxFrac * REF_HALF * 2} onChange={(e) => upd({ hxFrac: parseFloat(e.target.value) / 2 / REF_HALF })} style={{ width: '100%' }} />
+                </label>
+                <label style={styles.countLine}>Ancho (Z): {(sp.hzFrac * REF_HALF * 2).toFixed(1)}
+                  <input type="range" min="0.6" max="40" step="0.2" value={sp.hzFrac * REF_HALF * 2} onChange={(e) => upd({ hzFrac: parseFloat(e.target.value) / 2 / REF_HALF })} style={{ width: '100%' }} />
+                </label>
+                {sp.ramp && (
+                  <p style={styles.countLine}>
+                    Sube hacia:{' '}
+                    <button style={styles.toolButton(sp.ramp === '-x', '#5468ff')} onClick={() => upd({ ramp: '-x' })}>-X</button>{' '}
+                    <button style={styles.toolButton(sp.ramp === '+x', '#5468ff')} onClick={() => upd({ ramp: '+x' })}>+X</button>
+                  </p>
+                )}
+                <p style={styles.countLine}>
+                  <button style={styles.toolButton(false, '#e0555f')} onClick={() => { setPlatforms((prev) => prev.filter((q) => q.id !== sp.id)); setSelectedId(null); }}>Eliminar</button>
+                </p>
+              </div>
+            );
+          })()}
+
           <p style={styles.countLine}>Elementos para colocar</p>
+          <div style={styles.toolGroup}>
+            <button style={styles.toolButton(selectedTool === 'curator_spawn', '#f2a154')} onClick={() => setSelectedTool('curator_spawn')}>Spawn del Curador</button>
+            <button style={styles.toolButton(selectedTool === 'patient_spawn', '#5fd58c')} onClick={() => setSelectedTool('patient_spawn')}>Spawn de sobrevivientes</button>
+          </div>
           <div style={styles.toolGroup}>
             <button
               style={styles.toolButton(selectedTool === 'self_damage', '#e0555f')}
@@ -431,37 +487,6 @@ export default function MapEditorPage() {
             </div>
           )}
 
-          {selectedTool === 'edit' && (() => {
-            const sp = platforms.find((q) => q.id === selectedId);
-            const upd = (patch) => setPlatforms((prev) => prev.map((q) => (q.id === selectedId ? { ...q, ...patch } : q)));
-            if (!sp) return <div style={styles.countsBox}><p style={styles.countLine}>Toca un bloque del mapa para editarlo (también puedes arrastrarlo).</p></div>;
-            const pitLike = sp.kind === 'pit';
-            return (
-              <div style={styles.countsBox}>
-                <p style={styles.countLine}>Editando: {sp.id}</p>
-                <label style={styles.countLine}>{pitLike ? 'Profundidad' : 'Altura'}: {sp.h.toFixed(1)}
-                  <input type="range" min="0.4" max={pitLike ? 6 : 12} step="0.1" value={sp.h} onChange={(e) => upd({ h: parseFloat(e.target.value) })} style={{ width: '100%' }} />
-                </label>
-                <label style={styles.countLine}>Largo (X): {(sp.hxFrac * REF_HALF * 2).toFixed(1)}
-                  <input type="range" min="0.6" max="40" step="0.2" value={sp.hxFrac * REF_HALF * 2} onChange={(e) => upd({ hxFrac: parseFloat(e.target.value) / 2 / REF_HALF })} style={{ width: '100%' }} />
-                </label>
-                <label style={styles.countLine}>Ancho (Z): {(sp.hzFrac * REF_HALF * 2).toFixed(1)}
-                  <input type="range" min="0.6" max="40" step="0.2" value={sp.hzFrac * REF_HALF * 2} onChange={(e) => upd({ hzFrac: parseFloat(e.target.value) / 2 / REF_HALF })} style={{ width: '100%' }} />
-                </label>
-                {sp.ramp && (
-                  <p style={styles.countLine}>
-                    Sube hacia:{' '}
-                    <button style={styles.toolButton(sp.ramp === '-x', '#5468ff')} onClick={() => upd({ ramp: '-x' })}>-X</button>{' '}
-                    <button style={styles.toolButton(sp.ramp === '+x', '#5468ff')} onClick={() => upd({ ramp: '+x' })}>+X</button>
-                  </p>
-                )}
-                <p style={styles.countLine}>
-                  <button style={styles.toolButton(false, '#e0555f')} onClick={() => { setPlatforms((prev) => prev.filter((q) => q.id !== sp.id)); setSelectedId(null); }}>Eliminar</button>
-                </p>
-              </div>
-            );
-          })()}
-
           {platforms.length > 0 && (
             <div style={styles.countsBox}>
               <p style={styles.countLine}>Texturas de bloques</p>
@@ -481,6 +506,8 @@ export default function MapEditorPage() {
 
           <div style={styles.countsBox}>
             <p style={styles.countLine}>Bloques y rampas: {platforms.length}</p>
+            <p style={styles.countLine}>Spawns de Curador: {curatorSpawns.length} (al azar si hay varios; sin ninguno, el centro)</p>
+            <p style={styles.countLine}>Spawns de sobrevivientes: {patientSpawns.length}</p>
             <p style={styles.countLine}>Objetos de auto-daño: {selfDamageObjects.length}</p>
             <p style={styles.countLine}>Objetos de colisión: {collisionObjects.length}</p>
             {hasAnyConflict && (
@@ -609,6 +636,20 @@ export default function MapEditorPage() {
               );
             })}
 
+            {curatorSpawns.map((o) => (
+              <g key={o.id} transform={`translate(${o.xFrac * CANVAS_HALF + CANVAS_HALF}, ${o.zFrac * CANVAS_HALF + CANVAS_HALF})`}
+                onPointerDown={(e) => handleMarkerPointerDown(e, o.id)} onContextMenu={(e) => { e.preventDefault(); handleRemove(o.id, e); }} style={{ cursor: 'grab' }}>
+                <polygon points="0,-11 3,-3 11,-3 5,2 7,10 0,5 -7,10 -5,2 -11,-3 -3,-3" fill="#f2a154" stroke="#fff" strokeWidth={2} />
+              </g>
+            ))}
+            {patientSpawns.map((o) => (
+              <g key={o.id} transform={`translate(${o.xFrac * CANVAS_HALF + CANVAS_HALF}, ${o.zFrac * CANVAS_HALF + CANVAS_HALF})`}
+                onPointerDown={(e) => handleMarkerPointerDown(e, o.id)} onContextMenu={(e) => { e.preventDefault(); handleRemove(o.id, e); }} style={{ cursor: 'grab' }}>
+                <circle r={9} fill="#5fd58c" stroke="#fff" strokeWidth={2} />
+                <text x={0} y={4} fontSize={10} fill="#0b3b1f" textAnchor="middle">S</text>
+              </g>
+            ))}
+
             {/* Marcadores de objetos de auto-daño */}
             {selfDamageObjects.map((o) => {
               const inConflict = conflicts.has(o.id);
@@ -658,7 +699,7 @@ export default function MapEditorPage() {
             })}
           </svg>
           <p style={styles.canvasCaption}>Vista 3D: arrastra para girar, rueda para acercar y haz clic en el suelo para colocar la herramienta elegida.</p>
-          <Preview3D platforms={platforms} collisionObjects={collisionObjects} selfDamageObjects={selfDamageObjects} onGround={placeAt} />
+          <Preview3D platforms={platforms} collisionObjects={collisionObjects} selfDamageObjects={selfDamageObjects} onGround={placeAt} onPick={selectedTool === 'edit' ? setSelectedId : null} selectedId={selectedId} />
           <p style={styles.canvasCaption}>
             El lienzo representa el área de partida completa (MATCH_AREA). Las posiciones
             se guardan como fracción del centro, no en unidades fijas — el mismo layout
