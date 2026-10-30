@@ -17,10 +17,10 @@ const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001'
 const CANVAS_SIZE = 560;
 const CANVAS_HALF = CANVAS_SIZE / 2;
 
-const COLLISION_TYPES = ['gurney', 'shelf', 'cart', 'pillar'];
+const COLLISION_TYPES = ['gurney', 'shelf', 'cart', 'pillar', 'crate', 'desk', 'plant', 'tank'];
 const REF_HALF = 30;
 const MAP_HALF = 60;
-const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3 };
+const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3, crate: 1.1, desk: 1, plant: 1.4, tank: 2 };
 
 function PlatformMesh({ p }) {
   const hx = p.hxFrac * REF_HALF;
@@ -82,6 +82,10 @@ const TYPE_COLORS = {
   shelf: '#6b6659',
   cart: '#9a9584',
   pillar: '#3d4a42',
+  crate: '#a47c48',
+  desk: '#7a5a3a',
+  plant: '#4f9a5a',
+  tank: '#5b8fb0',
 };
 
 // Mismos criterios usados para verificar a mano el mapa 'default' en

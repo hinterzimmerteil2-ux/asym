@@ -265,7 +265,7 @@ function resolveSelfDamagePositions(mapId, area) {
   }));
 }
 
-const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3 };
+const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3, crate: 1.1, desk: 1, plant: 1.4, tank: 2 };
 
 function resolveCollisionObjects(mapId, area) {
   const layout = MAPS[mapId] || MAPS[DEFAULT_MAP_ID];

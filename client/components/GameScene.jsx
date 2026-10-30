@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useMemo, memo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { BoxGeometry, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace } from 'three';
+import { BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace } from 'three';
 import { itemOf } from '../lib/cosmetics';
 import { getTexture } from '../lib/textures';
 
@@ -517,6 +517,36 @@ function CollisionObjectMesh({ type, radius }) {
             <boxGeometry args={[radius * 1.2, 0.06, radius * 0.8]} />
             <meshStandardMaterial color="#c9c5b8" roughness={0.4} metalness={0.4} />
           </mesh>
+        </group>
+      );
+    case 'crate':
+      return (
+        <mesh position={[0, 0.55, 0]}>
+          <boxGeometry args={[radius * 1.6, 1.1, radius * 1.6]} />
+          <meshStandardMaterial color="#a47c48" roughness={0.9} />
+        </mesh>
+      );
+    case 'desk':
+      return (
+        <group>
+          <mesh position={[0, 0.9, 0]}><boxGeometry args={[radius * 2, 0.12, radius * 1.2]} /><meshStandardMaterial color="#7a5a3a" roughness={0.7} /></mesh>
+          {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => (
+            <mesh key={`${a}${b}`} position={[a * radius * 0.85, 0.45, b * radius * 0.45]}><boxGeometry args={[0.1, 0.9, 0.1]} /><meshStandardMaterial color="#5a4129" /></mesh>
+          ))}
+        </group>
+      );
+    case 'plant':
+      return (
+        <group>
+          <mesh position={[0, 0.25, 0]}><cylinderGeometry args={[radius * 0.5, radius * 0.4, 0.5, 10]} /><meshStandardMaterial color="#b0603c" roughness={0.9} /></mesh>
+          <mesh position={[0, 0.95, 0]}><sphereGeometry args={[radius * 0.9, 10, 8]} /><meshStandardMaterial color="#4f9a5a" roughness={0.9} /></mesh>
+        </group>
+      );
+    case 'tank':
+      return (
+        <group>
+          <mesh position={[0, 1, 0]}><cylinderGeometry args={[radius * 0.6, radius * 0.6, 2, 12]} /><meshStandardMaterial color="#5b8fb0" roughness={0.4} metalness={0.5} /></mesh>
+          <mesh position={[0, 2.05, 0]}><sphereGeometry args={[radius * 0.6, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#4a7a96" metalness={0.5} roughness={0.4} /></mesh>
         </group>
       );
     case 'pillar':
@@ -1299,6 +1329,30 @@ function Platform({ p }) {
   );
 }
 
+function RampFrame({ p, color, opacity }) {
+  const geo = useMemo(() => {
+    const s = p.ramp === '+x' ? 1 : -1;
+    const a = -p.hx * s, b = p.hx * s, z = p.hz;
+    const v = [[a, 0, -z], [b, 0, -z], [b, p.h, -z], [a, 0, z], [b, 0, z], [b, p.h, z]];
+    const idx = [0, 2, 1, 3, 4, 5, 0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4, 0, 3, 5, 0, 5, 2];
+    const g = new BufferGeometry();
+    g.setAttribute('position', new Float32BufferAttribute(v.flat(), 3));
+    g.setIndex(idx);
+    return g;
+  }, [p.ramp, p.hx, p.hz, p.h]);
+  const edges = useMemo(() => new EdgesGeometry(geo, 1), [geo]);
+  return (
+    <group position={[p.x, 0, p.z]}>
+      <lineSegments geometry={edges}>
+        <lineBasicMaterial color={color} transparent opacity={Math.min(1, opacity + 0.2)} depthWrite={false} />
+      </lineSegments>
+      <mesh geometry={geo}>
+        <meshBasicMaterial color={color} transparent opacity={0.16} depthWrite={false} side={DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
 function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, effects, opacity, cfg }) {
   return (
     <>
@@ -1308,7 +1362,9 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
       {(effects || []).filter((fx) => fx.radius && Date.now() - fx.startedAt < 900).map((fx) => (
         <SquareFrame key={fx.id} x={fx.x} z={fx.z} y={entities?.[fx.casterId]?.y ?? 0} half={fx.radius} color="#e0555f" opacity={opacity} />
       ))}
-      {(platforms || []).map((p) => (
+      {(platforms || []).map((p) => p.ramp ? (
+        <RampFrame key={p.id} p={p} color="#e0555f" opacity={opacity} />
+      ) : (
         <SquareFrame key={p.id} x={p.x} z={p.z} y={p.h / 2} half={p.hx} hy={p.h / 2} hz={p.hz} color="#e0555f" opacity={opacity} />
       ))}
       {Object.entries(entities || {}).filter(([, entity]) => !entity.corpse && !entity.gone).map(([id, entity]) => (
