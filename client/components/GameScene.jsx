@@ -1520,6 +1520,9 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
       {(effects || []).filter((fx) => fx.radius && Date.now() - fx.startedAt < 900).map((fx) => (
         <SquareFrame key={fx.id} x={fx.x} z={fx.z} y={entities?.[fx.casterId]?.y ?? 0} half={fx.radius} color="#e0555f" opacity={opacity} />
       ))}
+      {(platforms || []).filter((p) => p.kind === 'pit').map((p) => (
+        <SquareFrame key={p.id} x={p.x} z={p.z} y={-p.h / 2} half={p.hx} hy={p.h / 2} hz={p.hz} color="#e0555f" opacity={opacity} />
+      ))}
       {(platforms || []).filter((p) => p.kind !== 'pit').map((p) => p.ramp ? (
         <RampFrame key={p.id} p={p} color="#e0555f" opacity={opacity} />
       ) : (

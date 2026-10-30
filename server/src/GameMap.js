@@ -240,13 +240,13 @@ function registerMap(layout) {
       zFrac: clampFrac(o.zFrac),
       radiusFrac: Math.max(0.01, Math.min(0.2, Number(o.radiusFrac) || 0.04)),
     })),
-    platforms: (Array.isArray(layout.platforms) ? layout.platforms : []).slice(0, 60).map((p, i) => ({
+    platforms: (Array.isArray(layout.platforms) ? layout.platforms : []).slice(0, 200).map((p, i) => ({
       id: typeof p.id === 'string' ? p.id : `pl_${i}`,
       xFrac: clampFrac(p.xFrac),
       zFrac: clampFrac(p.zFrac),
-      hxFrac: Math.max(0.02, Math.min(0.3, Number(p.hxFrac) || 0.1)),
-      hzFrac: Math.max(0.02, Math.min(0.3, Number(p.hzFrac) || 0.1)),
-      h: Math.max(0.4, Math.min(4, Number(p.h) || 1.6)),
+      hxFrac: Math.max(0.02, Math.min(0.7, Number(p.hxFrac) || 0.1)),
+      hzFrac: Math.max(0.02, Math.min(0.7, Number(p.hzFrac) || 0.1)),
+      h: Math.max(0.4, Math.min(12, Number(p.h) || 1.6)),
       ramp: p.ramp === '+x' || p.ramp === '-x' ? p.ramp : null,
       kind: ['pit', 'gate', 'mezzanine'].includes(p.kind) ? p.kind : null,
       slab: p.kind === 'mezzanine' ? 0.4 : 0,
