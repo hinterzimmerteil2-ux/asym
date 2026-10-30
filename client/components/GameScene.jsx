@@ -14,9 +14,9 @@ const COLOR_CURADOR = '#f2a154';
 const COLOR_PACIENTE = '#5fd58c';
 const COLOR_UNASSIGNED = '#8a8da3';
 
-const COLOR_FLOOR_MATCH = '#e8e4d8';
+const COLOR_FLOOR_MATCH = '#f4f7fa';
 const COLOR_METAL = '#8a8674';
-const COLOR_WALL_TINT = '#3d4a42';
+const COLOR_WALL_TINT = '#bcd6ea';
 const COLOR_EMERGENCY_LIGHT = '#5468ff';
 
 const FACING = new Map();
@@ -1351,7 +1351,7 @@ function SquareFrame({ x, z, half, color, opacity, y = 0, hy, hz }) {
   );
 }
 
-const PLAT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', ramp: 'ramp' };
+const PLAT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', ramp: 'ramp', mezzanine: 'marble' };
 
 function WallDecor({ p }) {
   const alongX = p.hx >= p.hz;
@@ -1380,7 +1380,7 @@ function WallDecor({ p }) {
       )))}
       <mesh position={[0, p.h + 0.15, 0]}>
         <boxGeometry args={[alongX ? len + 0.2 : p.hx * 2 + 0.5, 0.3, alongX ? p.hz * 2 + 0.5 : len + 0.2]} />
-        <meshStandardMaterial color="#2b3144" roughness={0.9} />
+        <meshStandardMaterial color="#d4e6f5" roughness={0.8} />
       </mesh>
     </group>
   );
@@ -1446,15 +1446,37 @@ function GateMesh({ p }) {
 
 function Platform({ p }) {
   if (p.kind === 'gate') return <GateMesh p={p} />;
-  const name = p.ramp ? 'ramp' : PLAT_TEX[p.kind] || 'concrete';
+  const name = p.tex || (p.ramp ? 'ramp' : PLAT_TEX[p.kind] || 'concrete');
+  const tint = p.tint || '#ffffff';
   const len = p.hx * 2;
   const tops = useMemo(() => getTexture(name, Math.max(1, Math.round(len / 3)), Math.max(1, Math.round(p.hz * 2 / 3))), [name, len, p.hz]);
   const sides = useMemo(() => getTexture(name, Math.max(1, Math.round(Math.max(len, p.hz * 2) / 3)), Math.max(1, Math.round(p.h / 3))), [name, len, p.hz, p.h]);
+  if (p.slab) {
+    const legs = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+    return (
+      <group position={[p.x, 0, p.z]}>
+        <mesh position={[0, p.h - p.slab / 2, 0]}>
+          <boxGeometry args={[len, p.slab, p.hz * 2]} />
+          <meshStandardMaterial map={sides} color={tint} roughness={0.6} />
+        </mesh>
+        <mesh position={[0, p.h + 0.15, 0]}>
+          <boxGeometry args={[len + 0.1, 0.3, p.hz * 2 + 0.1]} />
+          <meshStandardMaterial color="#8fc6ea" roughness={0.7} transparent opacity={0.35} />
+        </mesh>
+        {legs.map(([a, b]) => (
+          <mesh key={`${a}${b}`} position={[a * (p.hx - 0.3), (p.h - p.slab) / 2, b * (p.hz - 0.3)]}>
+            <cylinderGeometry args={[0.18, 0.18, p.h - p.slab, 8]} />
+            <meshStandardMaterial color="#e8f1f8" roughness={0.5} />
+          </mesh>
+        ))}
+      </group>
+    );
+  }
   if (!p.ramp) {
     return (
       <mesh position={[p.x, p.h / 2, p.z]}>
         <boxGeometry args={[len, p.h, p.hz * 2]} />
-        <meshStandardMaterial map={sides} roughness={0.85} />
+        <meshStandardMaterial map={sides} color={tint} roughness={0.85} />
       </mesh>
     );
   }
@@ -1463,7 +1485,7 @@ function Platform({ p }) {
     <group position={[p.x, p.h / 2, p.z]} rotation={[0, 0, angle]}>
       <mesh position={[0, -0.2, 0]}>
         <boxGeometry args={[Math.hypot(len, p.h), 0.4, p.hz * 2]} />
-        <meshStandardMaterial map={tops} roughness={0.8} />
+        <meshStandardMaterial map={tops} color={tint} roughness={0.8} />
       </mesh>
     </group>
   );
@@ -1501,7 +1523,7 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
       {(platforms || []).filter((p) => p.kind !== 'pit').map((p) => p.ramp ? (
         <RampFrame key={p.id} p={p} color="#e0555f" opacity={opacity} />
       ) : (
-        <SquareFrame key={p.id} x={p.x} z={p.z} y={p.h / 2} half={p.hx} hy={p.h / 2} hz={p.hz} color="#e0555f" opacity={opacity} />
+        <SquareFrame key={p.id} x={p.x} z={p.z} y={p.slab ? p.h - p.slab / 2 : p.h / 2} half={p.hx} hy={p.slab ? p.slab / 2 : p.h / 2} hz={p.hz} color="#e0555f" opacity={opacity} />
       ))}
       {Object.entries(entities || {}).filter(([, entity]) => !entity.corpse && !entity.gone).map(([id, entity]) => (
         <group key={id}>
@@ -1566,9 +1588,9 @@ export default function GameScene({
 
   return (
     <Canvas dpr={[1, coarse ? 1.25 : 1.5]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
-      <ambientLight intensity={phase === 'action' ? 0.32 : 0.4} color={phase === 'action' ? '#8fa4d8' : '#ffffff'} />
-      <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? 0.55 : 1.1} color={phase === 'action' ? '#aab8ff' : '#ffffff'} />
-      <hemisphereLight args={phase === 'action' ? ['#4a5a9a', '#2a2430', 0.45] : ['#bcd4ff', '#8a7a68', 0.35]} />
+      <ambientLight intensity={phase === 'action' ? 0.62 : 0.4} color={phase === 'action' ? '#cfe0ff' : '#ffffff'} />
+      <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? 0.7 : 1.1} color={phase === 'action' ? '#d6e2ff' : '#ffffff'} />
+      <hemisphereLight args={phase === 'action' ? ['#8fb4e8', '#4a4f66', 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
       {phase === 'action' && <color attach="background" args={['#070b1c']} />}
       {phase === 'action' && <fog attach="fog" args={['#0a1024', 50, 140]} />}
       {phase === 'action' && <NightDecor />}

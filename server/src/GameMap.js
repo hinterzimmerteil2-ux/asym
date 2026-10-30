@@ -133,8 +133,8 @@ const DEFAULT_MAP_LAYOUT = {
 const HOSPITAL_LAYOUT = (() => {
   const half = MATCH_AREA.halfSize;
   const platforms = [];
-  const plat = (id, x, z, hx, hz, h, ramp, kind) =>
-    platforms.push({ id, xFrac: x / half, zFrac: z / half, hxFrac: hx / REF_HALF, hzFrac: hz / REF_HALF, h, ramp: ramp || null, kind });
+  const plat = (id, x, z, hx, hz, h, ramp, kind, extra) =>
+    platforms.push({ id, xFrac: x / half, zFrac: z / half, hxFrac: hx / REF_HALF, hzFrac: hz / REF_HALF, h, ramp: ramp || null, kind, ...(extra || {}) });
   const wall = (id, x, z, hx, hz) => plat(id, x, z, hx, hz, 9, null, 'wall');
   wall('w_n1', -22.75, -40, 17.75, 0.5);
   wall('w_n2', 22.75, -40, 17.75, 0.5);
@@ -172,7 +172,10 @@ const HOSPITAL_LAYOUT = (() => {
     col(`c_${q}_5`, 'shelf', 14 * sx, 37 * sz);
     col(`c_${q}_6`, 'pillar', 36 * sx, 12 * sz);
     col(`c_${q}_7`, 'cart', 36 * sx, 22 * sz);
-    sd(`sd_room_${q}`, 20 * sx, 17 * sz);
+    sd(`sd_room_${q}`, 32 * sx, 17 * sz);
+    plat(`mz_${q}`, 14 * sx, 20 * sz, 5, 3.5, 3.5, null, 'mezzanine', { slab: 0.4 });
+    plat(`mzr_${q}`, 24 * sx, 20 * sz, 5, 2.5, 3.5, sx > 0 ? '-x' : '+x', 'ramp');
+    sd(`sd_mez_${q}`, 14 * sx, 20 * sz);
     sd(`sd_top_${q}`, 30 * sx, 30 * sz);
   });
   [[0, 20], [0, -20]].forEach(([x, z], i) => {
@@ -245,7 +248,10 @@ function registerMap(layout) {
       hzFrac: Math.max(0.02, Math.min(0.3, Number(p.hzFrac) || 0.1)),
       h: Math.max(0.4, Math.min(4, Number(p.h) || 1.6)),
       ramp: p.ramp === '+x' || p.ramp === '-x' ? p.ramp : null,
-      kind: ['pit', 'gate'].includes(p.kind) ? p.kind : null,
+      kind: ['pit', 'gate', 'mezzanine'].includes(p.kind) ? p.kind : null,
+      slab: p.kind === 'mezzanine' ? 0.4 : 0,
+      tex: ['marble', 'tile', 'plaster', 'tower', 'roof', 'ramp', 'concrete', 'brick', 'wood', 'metal'].includes(p.tex) ? p.tex : null,
+      tint: /^#[0-9a-fA-F]{6}$/.test(p.tint || '') ? p.tint : null,
     })),
   };
   return MAPS[layout.id];
@@ -328,6 +334,9 @@ function resolvePlatforms(mapId, area) {
     h: p.h,
     ramp: p.ramp || null,
     kind: p.kind || null,
+    slab: p.slab || 0,
+    tex: p.tex || null,
+    tint: p.tint || null,
   }));
 }
 

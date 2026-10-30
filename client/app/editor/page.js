@@ -17,6 +17,8 @@ const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001'
 const CANVAS_SIZE = 560;
 const CANVAS_HALF = CANVAS_SIZE / 2;
 
+const TEXTURES = [['', 'Por defecto'], ['marble', 'Mármol'], ['tile', 'Azulejo'], ['plaster', 'Yeso celeste'], ['tower', 'Paneles'], ['roof', 'Teja celeste'], ['ramp', 'Franjas'], ['concrete', 'Concreto'], ['brick', 'Ladrillo'], ['wood', 'Madera'], ['metal', 'Metal']];
+const TEX_COLORS = { marble: '#e7eef5', tile: '#eef3f8', plaster: '#8fc6ea', tower: '#b9dcf3', roof: '#9fd0f0', ramp: '#6fb6e8', concrete: '#c8d6e2', brick: '#d8dfe6', wood: '#c99a62', metal: '#b4c3d0' };
 const COLLISION_TYPES = ['gurney', 'shelf', 'cart', 'pillar', 'crate', 'desk', 'plant', 'tank'];
 const REF_HALF = 30;
 const MAP_HALF = 60;
@@ -27,6 +29,15 @@ function PlatformMesh({ p }) {
   const hz = p.hzFrac * REF_HALF;
   const x = p.xFrac * MAP_HALF;
   const z = p.zFrac * MAP_HALF;
+  const baseColor = p.tint || TEX_COLORS[p.tex] || (p.ramp ? '#9ca3af' : '#6b7280');
+  if (p.kind === 'mezzanine') {
+    return (
+      <mesh position={[x, p.h - 0.2, z]}>
+        <boxGeometry args={[hx * 2, 0.4, hz * 2]} />
+        <meshStandardMaterial color={baseColor} />
+      </mesh>
+    );
+  }
   if (p.kind === 'pit') {
     if (!p.ramp) {
       return (
@@ -57,7 +68,7 @@ function PlatformMesh({ p }) {
     return (
       <mesh position={[x, p.h / 2, z]}>
         <boxGeometry args={[hx * 2, p.h, hz * 2]} />
-        <meshStandardMaterial color="#6b7280" />
+        <meshStandardMaterial color={baseColor} />
       </mesh>
     );
   }
@@ -66,7 +77,7 @@ function PlatformMesh({ p }) {
   return (
     <mesh position={[x, p.h / 2, z]} rotation={[0, 0, angle]}>
       <boxGeometry args={[Math.hypot(len, p.h), 0.2, hz * 2]} />
-      <meshStandardMaterial color="#9ca3af" />
+      <meshStandardMaterial color={baseColor} />
     </mesh>
   );
 }
@@ -177,6 +188,8 @@ export default function MapEditorPage() {
   const [selfDamageObjects, setSelfDamageObjects] = useState([]);
   const [collisionObjects, setCollisionObjects] = useState([]);
   const [platforms, setPlatforms] = useState([]);
+  const [buildTex, setBuildTex] = useState('');
+  const [buildTint, setBuildTint] = useState('#ffffff');
   const [buildH, setBuildH] = useState(1.6);
   const [buildSize, setBuildSize] = useState(3);
   const [rampDir, setRampDir] = useState('-x');
@@ -213,16 +226,18 @@ export default function MapEditorPage() {
   function placeAt(xFrac, zFrac) {
     xFrac = Math.max(-1, Math.min(1, xFrac));
     zFrac = Math.max(-1, Math.min(1, zFrac));
-    if (selectedTool === 'pit' || selectedTool === 'pit_ramp' || selectedTool === 'gate') {
-      const kind = selectedTool === 'gate' ? 'gate' : 'pit';
+    if (selectedTool === 'pit' || selectedTool === 'pit_ramp' || selectedTool === 'gate' || selectedTool === 'slab') {
+      const kind = selectedTool === 'gate' ? 'gate' : selectedTool === 'slab' ? 'mezzanine' : 'pit';
       setPlatforms((prev) => [...prev, {
         id: generateId(kind),
         xFrac, zFrac,
         hxFrac: (selectedTool === 'gate' ? 0.3 : buildSize) / REF_HALF,
-        hzFrac: (selectedTool === 'gate' ? buildSize : buildSize * 0.8) / REF_HALF,
+        hzFrac: (selectedTool === 'gate' ? buildSize : selectedTool === 'slab' ? buildSize : buildSize * 0.8) / REF_HALF,
         h: selectedTool === 'gate' ? 3 : buildH,
         ramp: selectedTool === 'pit_ramp' ? rampDir : null,
         kind,
+        tex: buildTex || null,
+        tint: buildTint !== '#ffffff' ? buildTint : null,
       }]);
     } else if (selectedTool === 'block' || selectedTool === 'ramp') {
       setPlatforms((prev) => [...prev, {
@@ -233,6 +248,8 @@ export default function MapEditorPage() {
         h: buildH,
         ramp: selectedTool === 'ramp' ? rampDir : null,
         kind: null,
+        tex: buildTex || null,
+        tint: buildTint !== '#ffffff' ? buildTint : null,
       }]);
     } else if (selectedTool === 'self_damage') {
       setSelfDamageObjects((prev) => [...prev, { id: generateId('obj'), xFrac, zFrac }]);
@@ -300,6 +317,8 @@ export default function MapEditorPage() {
         h: round3(p.h),
         ramp: p.ramp,
         kind: p.kind || null,
+        tex: p.tex || null,
+        tint: p.tint || null,
       })),
     };
   }
@@ -367,6 +386,7 @@ export default function MapEditorPage() {
             <button style={styles.toolButton(selectedTool === 'ramp', '#9ca3af')} onClick={() => setSelectedTool('ramp')}>Rampa</button>
             <button style={styles.toolButton(selectedTool === 'pit', '#3b6ea5')} onClick={() => setSelectedTool('pit')}>Sótano (foso)</button>
             <button style={styles.toolButton(selectedTool === 'pit_ramp', '#5b8fb0')} onClick={() => setSelectedTool('pit_ramp')}>Rampa de descenso</button>
+            <button style={styles.toolButton(selectedTool === 'slab', '#8fc6ea')} onClick={() => setSelectedTool('slab')}>Entrepiso (pasable por debajo)</button>
             <button style={styles.toolButton(selectedTool === 'gate', '#f2a154')} onClick={() => setSelectedTool('gate')}>Puerta solo Curador</button>
             {COLLISION_TYPES.map((type) => (
               <button
@@ -379,8 +399,14 @@ export default function MapEditorPage() {
             ))}
           </div>
 
-          {(selectedTool === 'block' || selectedTool === 'ramp' || selectedTool === 'pit' || selectedTool === 'pit_ramp' || selectedTool === 'gate') && (
+          {(selectedTool === 'block' || selectedTool === 'ramp' || selectedTool === 'pit' || selectedTool === 'pit_ramp' || selectedTool === 'gate' || selectedTool === 'slab') && (
             <div style={styles.countsBox}>
+              <label style={styles.countLine}>Textura:{' '}
+                <select value={buildTex} onChange={(e) => setBuildTex(e.target.value)}>
+                  {TEXTURES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>{' '}
+                <input type="color" value={buildTint} onChange={(e) => setBuildTint(e.target.value)} />
+              </label>
               <label style={styles.countLine}>Altura: {buildH.toFixed(1)}
                 <input type="range" min="0.4" max="4" step="0.2" value={buildH} onChange={(e) => setBuildH(parseFloat(e.target.value))} style={{ width: '100%' }} />
               </label>
@@ -394,6 +420,23 @@ export default function MapEditorPage() {
                   <button style={styles.toolButton(rampDir === '+x', '#5468ff')} onClick={() => setRampDir('+x')}>+X</button>
                 </p>
               )}
+            </div>
+          )}
+
+          {platforms.length > 0 && (
+            <div style={styles.countsBox}>
+              <p style={styles.countLine}>Texturas de bloques</p>
+              <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+                {platforms.map((p) => (
+                  <div key={p.id} style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 2 }}>
+                    <span style={{ fontSize: 10, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.id}</span>
+                    <select value={p.tex || ''} onChange={(e) => setPlatforms((prev) => prev.map((q) => (q.id === p.id ? { ...q, tex: e.target.value || null } : q)))}>
+                      {TEXTURES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                    <input type="color" value={p.tint || '#ffffff'} onChange={(e) => setPlatforms((prev) => prev.map((q) => (q.id === p.id ? { ...q, tint: e.target.value === '#ffffff' ? null : e.target.value } : q)))} />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
