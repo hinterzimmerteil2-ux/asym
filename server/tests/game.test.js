@@ -575,3 +575,20 @@ test('puerta solo Curador, sótano con rampa y paso bajo rampas altas', () => {
   assert.ok(up.y > -0.1);
   assert.ok(go('a', 20, 24, 0, 1, 30).z > 30);
 });
+
+test('roles: fuerzan una carta, ofrecen secundarias afines y ocultan al Curador hasta liberarlo', () => {
+  const { room, e, sent } = setup();
+  room.gameState.curatorReleaseAt = Date.now() + 5000;
+  room.selectRole('a', 'loquito');
+  assert.strictEqual(e.a.hand[0].chosen, 'agua_rimac');
+  assert.ok(e.a.hand[1].options.length === 3 && !e.a.hand[1].options.includes('grito_animo'));
+  room.selectRole('a', 'hincha');
+  assert.strictEqual(e.a.role, 'loquito');
+  room.selectRole('b', 'none');
+  assert.strictEqual(e.b.role, 'none');
+  assert.ok(!e.b.hand[0].chosen);
+  room.broadcastState && 0;
+  room.tick();
+  const snaps = sent.a.filter((m) => m.type === 'state_snapshot');
+  assert.ok(snaps.length && snaps[snaps.length - 1].payload.entities.c.gone === true);
+});

@@ -338,5 +338,13 @@ export const DE = [
 "Präziser Puls",
 "Präzise Fähigkeit",
 "Du hast einen Patienten betäubt",
-"Mehrstöckiges Krankenhaus"
+"Mehrstöckiges Krankenhaus",
+"Wähle deine Rolle",
+"Keine Rolle (Karten frei wählen)",
+"Verrückter von der Ecke",
+"Singender Nachbarschaftsfan",
+"Kleinbus-Schaffner",
+"Flaschenhiebe und Fallen",
+"Schreie und Teamlauf",
+"Hiebe und Fluchten"
 ];

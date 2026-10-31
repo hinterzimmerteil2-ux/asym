@@ -341,6 +341,14 @@ const PAIRS = [
 ["Habilidad certera", "Precise Skill"],
 ["Aturdiste a un Paciente", "You stunned a Patient"],
 ["Hospital de varios pisos", "Multi-storey hospital"],
+["Elige tu rol", "Choose your role"],
+["Sin rol (elegir cartas libremente)", "No role (pick cards freely)"],
+["Loquito de la Esquina", "Corner Loony"],
+["Hincha Cantarín del Barrio", "Neighbourhood Singing Fan"],
+["Cobrador de Combi", "Minibus Conductor"],
+["Botellazos y trampas", "Bottle blows and traps"],
+["Gritos y carrera en grupo", "Shouts and team running"],
+["Tajos y escapes", "Slashes and escapes"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

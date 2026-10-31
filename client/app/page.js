@@ -157,6 +157,8 @@ export default function LobbyPage() {
   const effectCounterRef = useRef(0);
   const [collisionObjects, setCollisionObjects] = useState([]);
   const [matchHalf, setMatchHalf] = useState(60);
+  const [roles, setRoles] = useState([]);
+  const [myRole, setMyRole] = useState(null);
   const [platforms, setPlatforms] = useState([]);
   const [patients, setPatients] = useState({});
   const [timeRemainingMs, setTimeRemainingMs] = useState(null);
@@ -321,6 +323,9 @@ export default function LobbyPage() {
             setDraftEndsAt(payload.draftEndsAt);
             setCardCooldowns({});
             break;
+          case 'role_selected':
+            setMyRole(payload.roleId);
+            break;
           case 'card_chosen':
             setHand((prev) => prev.map((slot, i) => (i === payload.slot ? { ...slot, chosen: payload.card } : slot)));
             break;
@@ -366,6 +371,8 @@ export default function LobbyPage() {
             setCollisionObjects(payload.collisionObjects || []);
             setPlatforms(payload.platforms || []);
             setMatchHalf(payload.halfSize || 60);
+            setRoles(payload.roles || []);
+            setMyRole(null);
             if (payload.hitbox) setHitboxCfg(payload.hitbox);
             break;
           case 'room_full':
@@ -718,6 +725,11 @@ export default function LobbyPage() {
     try { localStorage.setItem('asym_hitboxes', JSON.stringify(next)); } catch {}
   }
 
+  const handleSelectRole = useCallback((roleId) => {
+    if (isAsymRole || phase !== 'action') return;
+    connRef.current?.send('select_role', { roleId });
+  }, [isAsymRole, phase]);
+
   const handleChooseCard = useCallback((slot, cardId) => {
     if (isAsymRole || phase !== 'action') return;
     connRef.current?.send('choose_card_action', { slot, cardId });
@@ -1042,6 +1054,20 @@ export default function LobbyPage() {
             <div style={styles.flojeraBarTrack}>
               <div style={styles.flojeraBarFill(flojera.value, flojera.max, flojera.locked)} />
             </div>
+          </div>
+        )}
+
+        {phase === 'action' && !isAsymRole && roles.length > 0 && !myRole && hand[0] && !hand[0].chosen && (
+          <div style={{ position: 'absolute', top: 50, left: '50%', transform: 'translateX(-50%)', zIndex: 40, display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(20,24,40,0.92)', border: '1px solid #8fc6ea', borderRadius: 10, padding: 10, width: 'min(94vw, 460px)', maxHeight: 'calc(100% - 70px)', overflow: 'auto' }}>
+            <strong style={{ color: '#cfe8fa', fontSize: 14 }}>Elige tu rol</strong>
+            {roles.map((r) => (
+              <button key={r.id} type="button" onClick={() => handleSelectRole(r.id)} style={{ textAlign: 'left', background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 8, padding: 8, cursor: 'pointer' }}>
+                <div style={{ fontWeight: 700 }}>{r.name}</div>
+                <div style={{ fontSize: 12, opacity: 0.85 }}>{r.tagline} · {r.card?.displayName}</div>
+                <div style={{ fontSize: 11, opacity: 0.65 }}>{(r.pool || []).join(' · ')}</div>
+              </button>
+            ))}
+            <button type="button" onClick={() => handleSelectRole('none')} style={{ background: 'transparent', color: '#cfe8fa', border: '1px dashed #4a6a8a', borderRadius: 8, padding: 8, cursor: 'pointer' }}>Sin rol (elegir cartas libremente)</button>
           </div>
         )}
 

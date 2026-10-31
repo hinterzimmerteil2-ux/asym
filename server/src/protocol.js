@@ -50,6 +50,8 @@ const MessageType = {
   // --- Mano de cartas de los Pacientes ---
   CARD_OFFER: 'card_offer',                 // server -> Paciente: { slots[{options[]}], draftEndsAt }
   CHOOSE_CARD_ACTION: 'choose_card_action', // client(Paciente) -> server: { slot, cardId }
+  SELECT_ROLE: 'select_role',               // client(Paciente) -> server: { roleId }
+  ROLE_SELECTED: 'role_selected',           // server -> Paciente: { roleId }
   CARD_CHOSEN: 'card_chosen',               // server -> Paciente: { slot, card }
   USE_CARD_ACTION: 'use_card_action',       // client(Paciente) -> server: { slot }
   CARD_RESULT: 'card_result',               // server -> todos: { playerId, slot, cardId, cooldownUntil }

@@ -6,6 +6,7 @@ const { RoomManager } = require('./RoomManager');
 const GameMap = require('./GameMap');
 const Characters = require('./Characters');
 const Cards = require('./Cards');
+const Roles = require('./Roles');
 const { registerAuthRoutes } = require('./auth/routes');
 const { initSchema } = require('./auth/db');
 const { verifyToken } = require('./auth/jwt');
@@ -195,6 +196,7 @@ wss.on('connection', (ws) => {
           collisionObjects: GameMap.resolveCollisionObjects(room.mapId, GameMap.areaFor(room.mapId)),
           platforms: GameMap.resolvePlatforms(room.mapId, GameMap.areaFor(room.mapId)),
           halfSize: GameMap.areaFor(room.mapId).halfSize,
+          roles: Roles.list(Cards),
           hitbox: { half: Constants.PLAYER_HALF, height: Constants.PLAYER_HEIGHT, interact: Constants.INTERACTION_RADIUS },
         });
         break;
@@ -218,6 +220,13 @@ wss.on('connection', (ws) => {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
         room.useCard(playerId, msg.payload.slot);
+        break;
+      }
+
+      case MessageType.SELECT_ROLE: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.selectRole(playerId, msg.payload && msg.payload.roleId);
         break;
       }
 

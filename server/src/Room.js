@@ -3,6 +3,7 @@ const GameMap = require('./GameMap');
 const Cosmetics = require('./Cosmetics');
 const Characters = require('./Characters');
 const Cards = require('./Cards');
+const Roles = require('./Roles');
 const CardEffects = require('./CardEffects');
 const Hitbox = require('./Hitbox');
 const { groundAt, blockedAt, distanceBetween, euclid, reachPoint } = Hitbox;
@@ -105,6 +106,15 @@ const {
   FOOTPRINT
 } = require('./Constants');
 const Status = require('./Status');
+
+function ownHidden(playerId, player, publicEntities, room, now) {
+  if (player.isAsymRole || now >= (room.gameState.curatorReleaseAt || 0)) return publicEntities;
+  const out = { ...publicEntities };
+  for (const [id, p] of room.players) {
+    if (p.isAsymRole && out[id]) out[id] = { ...out[id], gone: true };
+  }
+  return out;
+}
 const RagdollBody = require('./RagdollBody');
 const Pathfinding = require('./Pathfinding');
 
@@ -284,6 +294,11 @@ class Room {
       if (!entity || !patient || patient.status !== 'alive') {
         if (entity) { entity.input.moveX = 0; entity.input.moveZ = 0; }
         continue;
+      }
+      if (!entity.role && entity.hand[0] && !entity.hand[0].chosen && now > (player.nextBotPick || 0)) {
+        const picks = ['none', 'loquito', 'hincha', 'cobrador'];
+        this.selectRole(botId, picks[Math.floor(Math.random() * picks.length)]);
+        player.nextBotPick = now + 800;
       }
       entity.hand.forEach((slot, index) => {
         if (!slot.chosen && slot.options.length && now > (player.nextBotPick || 0)) {
@@ -676,6 +691,7 @@ class Room {
       entity.gone = false;
       this.gameState.ghosts = {};
       entity.hand = player.isAsymRole ? [] : Cards.dealSlots();
+      entity.role = null;
       entity.draftEndsAt = player.isAsymRole ? 0 : Date.now() + Cards.DRAFT_DURATION_MS;
     }
 
@@ -763,7 +779,7 @@ class Room {
       this.sendTo(playerId, MessageType.STATE_SNAPSHOT, {
         flojera,
         tick: this.tickCount,
-        entities: publicEntities,
+        entities: ownHidden(playerId, player, publicEntities, this, now),
         ghosts: ghostsFor(playerId),
         timeRemainingMs: this.gameState.timeRemainingMs,
         patients: this.visiblePatients(playerId),
@@ -1562,6 +1578,29 @@ class Room {
     const chosenCard = Cards.getCard(cardId);
     if (chosenCard && chosenCard.maxMode !== 'use') this.applyMaxCosts(playerId, entity, chosenCard, false);
     this.sendTo(playerId, MessageType.CARD_CHOSEN, { slot: slotIndex, card: Cards.getCard(cardId) });
+  }
+
+  selectRole(playerId, roleId) {
+    if (this.phase !== 'action' || this.gameState.gameOver) return;
+    const player = this.players.get(playerId);
+    const entity = this.gameState.entities[playerId];
+    if (!player || player.isAsymRole || !entity || entity.role) return;
+    if (this.gameState.patients[playerId]?.status !== 'alive') return;
+    if (!entity.hand[0] || entity.hand[0].chosen) return;
+    if (roleId === 'none') {
+      entity.role = 'none';
+      this.sendTo(playerId, MessageType.ROLE_SELECTED, { roleId: 'none' });
+      return;
+    }
+    const role = Roles.getRole(roleId);
+    if (!role) return;
+    entity.role = role.id;
+    entity.hand[0] = { options: [role.card], chosen: null };
+    this.finalizeChoice(playerId, 0, role.card);
+    entity.hand[1] = { options: Roles.secondOptions(role, Cards.OPTIONS_PER_SLOT), chosen: null };
+    entity.draftEndsAt = Date.now() + Cards.DRAFT_DURATION_MS;
+    this.sendTo(playerId, MessageType.ROLE_SELECTED, { roleId: role.id });
+    this.sendCardOffer(playerId, entity);
   }
 
   chooseCard(playerId, slotIndex, cardId) {
