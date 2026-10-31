@@ -797,6 +797,8 @@ class Room {
       mode: p.ev.mode,
       phase: p.phase,
       ms: p.phase === 'warn' ? p.msTo : p.msLeft,
+      warnMs: p.ev.warnSec * 1000,
+      durMs: p.ev.durSec * 1000,
       x: p.ev.xFrac * GameMap.areaFor(this.mapId).halfSize,
       z: p.ev.zFrac * GameMap.areaFor(this.mapId).halfSize,
       r: p.ev.rFrac * GameMap.areaFor(this.mapId).halfSize,
