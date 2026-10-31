@@ -1,14 +1,15 @@
 import SkillIcon from './SkillIcon';
+import KeybindsEditor from './KeybindsEditor';
 import { KEYWORDS } from '../lib/keywords';
 
 const CONTROLS = [
   ['W A S D', 'Moverte'],
   ['Espacio', 'Saltar'],
   ['Shift', 'Paso normal (mantener), sin gastar Flojera'],
-  ['Click', 'Curar (Curador) / auto-dañarte en objeto rojo (Paciente)'],
+  ['Click', 'Curar (Curador) / auto-dañarte en un objeto de auto-daño, y pulsar durante el minijuego (Paciente)'],
   ['Q E R F', 'Habilidades del Curador'],
   ['G', 'Golpe Aturdidor (Curador)'],
-  ['E', 'Acertar el ritmo de Grito de Ánimo'],
+  ['E', 'Acertar el ritmo de Grito de Ánimo y pulsar en los minijuegos de auto-daño'],
   ['1 2', 'Usar carta (Paciente)'],
   ['H', 'Abrir o cerrar esta ayuda'],
   ['B', 'Mostrar u ocultar hitboxes'],
@@ -39,6 +40,9 @@ export default function HelpPanel({ characters, cards, onClose }) {
             </div>
           ))}
         </div>
+
+        <h3 style={styles.section}>Teclas (haz clic y pulsa la nueva tecla)</h3>
+        <KeybindsEditor />
 
         <h3 style={styles.section}>Habilidades del Curador</h3>
         {characters.map((character) => (

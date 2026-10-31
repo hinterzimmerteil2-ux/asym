@@ -1,13 +1,14 @@
 'use client';
 import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
+import { CosmeticPieces } from './GameScene';
 
 const PATIENT = '#5fd58c';
 const CURATOR = '#f2a154';
 const SKIN = '#f2d27a';
 const PANTS = '#3a3d52';
 
-function Fighter({ color, side, coat }) {
+function Fighter({ color, side, cosmetics }) {
   const root = useRef();
   const armL = useRef();
   const armR = useRef();
@@ -17,9 +18,9 @@ function Fighter({ color, side, coat }) {
     const t = clock.elapsedTime;
     const lunge = Math.max(0, Math.sin(t * 5 + (side > 0 ? 0 : Math.PI / 2)));
     if (root.current) {
-      root.current.position.x = side * (1.55 - lunge * 0.5);
+      root.current.position.x = side * (1.6 - lunge * 0.5);
       root.current.position.y = Math.abs(Math.sin(t * 6)) * 0.08;
-      root.current.rotation.z = -side * lunge * 0.12;
+      root.current.rotation.z = -side * lunge * 0.1;
     }
     const raise = -1.35 - lunge * 0.5;
     if (armL.current) armL.current.rotation.x = raise + Math.sin(t * 9) * 0.1;
@@ -29,18 +30,20 @@ function Fighter({ color, side, coat }) {
   });
   return (
     <group ref={root} rotation={[0, side > 0 ? -Math.PI / 2 : Math.PI / 2, 0]}>
-      <group rotation={[0, 0, 0]}>
-        <mesh position={[0, 0.2, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
-        {coat && <mesh position={[0, 0.25, 0.19]}><boxGeometry args={[0.34, 0.1, 0.02]} /><meshStandardMaterial color={color} /></mesh>}
-        {coat && <mesh position={[0, 0.25, 0.19]}><boxGeometry args={[0.1, 0.34, 0.02]} /><meshStandardMaterial color="#ffffff" /></mesh>}
-        <mesh position={[0, 0.75, 0]}><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
-        <mesh position={[0.07, 0.8, 0.17]}><boxGeometry args={[0.05, 0.05, 0.02]} /><meshStandardMaterial color="#222" /></mesh>
-        <mesh position={[-0.07, 0.8, 0.17]}><boxGeometry args={[0.05, 0.05, 0.02]} /><meshStandardMaterial color="#222" /></mesh>
-        <group ref={armL} position={[-0.54, 0.5, 0]}><mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh></group>
-        <group ref={armR} position={[0.54, 0.5, 0]}><mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh></group>
-        <group ref={legL} position={[-0.18, -0.16, 0]}><mesh position={[0, -0.36, 0]}><boxGeometry args={[0.34, 0.72, 0.36]} /><meshStandardMaterial color={PANTS} roughness={0.6} /></mesh></group>
-        <group ref={legR} position={[0.18, -0.16, 0]}><mesh position={[0, -0.36, 0]}><boxGeometry args={[0.34, 0.72, 0.36]} /><meshStandardMaterial color={PANTS} roughness={0.6} /></mesh></group>
+      <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+      <group position={[0, 1.62, 0]}>
+        <mesh><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
+        <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+        <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+        <mesh position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+        <CosmeticPieces slot="head" cosmetics={cosmetics} />
       </group>
+      <CosmeticPieces slot="torso" cosmetics={cosmetics} />
+      <CosmeticPieces slot="back" cosmetics={cosmetics} />
+      <group ref={armL} position={[-0.54, 1.44, 0]}><mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh></group>
+      <group ref={armR} position={[0.54, 1.44, 0]}><mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh></group>
+      <group ref={legL} position={[-0.18, 0.72, 0]}><mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={PANTS} roughness={0.6} /></mesh></group>
+      <group ref={legR} position={[0.18, 0.72, 0]}><mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={PANTS} roughness={0.6} /></mesh></group>
     </group>
   );
 }
@@ -56,7 +59,7 @@ function Spark() {
     ref.current.rotation.y = t * 4;
   });
   return (
-    <mesh ref={ref} position={[0, 0.65, 0.4]}>
+    <mesh ref={ref} position={[0, 1.2, 0.4]}>
       <octahedronGeometry args={[0.35, 0]} />
       <meshBasicMaterial color="#ffe27a" />
     </mesh>
@@ -66,7 +69,14 @@ function Spark() {
 const LINES = ['LAST', 'MORON', 'STANDING'];
 const TINTS = ['#ffd166', '#ff5d6c', '#5fd58c'];
 
-export default function LmsIntro() {
+const GIMMICK_TEXT = {
+  adrenalina: 'Adrenalina: velocidad extra',
+  reflejos: 'Reflejos: recargas más rápidas',
+  escudo: 'Escudo: las curas valen la mitad',
+  codicia: 'Codicia: Desgracias x2',
+};
+
+export default function LmsIntro({ patientCosmetics, curatorCosmetics, gimmick, survivorName }) {
   return (
     <div translate="no" style={{ position: 'absolute', inset: 0, zIndex: 8, pointerEvents: 'none', overflow: 'hidden', animation: 'lmsFade 5.5s forwards' }}>
       <style>{`
@@ -91,7 +101,7 @@ export default function LmsIntro() {
                     fontFamily: 'Impact, "Arial Black", sans-serif',
                     fontWeight: 900,
                     textTransform: 'uppercase',
-                    fontSize: li === 1 ? 'min(21vw, 128px)' : 'min(15vw, 92px)',
+                    fontSize: li === 1 ? 'min(18vw, 108px)' : 'min(13vw, 78px)',
                     color: TINTS[li],
                     WebkitTextStroke: '3px #12131a',
                     textShadow: '0 5px 0 #12131a, 0 10px 0 rgba(0,0,0,0.5), 0 0 28px ' + TINTS[li],
@@ -107,14 +117,19 @@ export default function LmsIntro() {
           </div>
         ))}
       </div>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '52%' }}>
-        <Canvas camera={{ position: [0, 0.9, 4.6], fov: 40 }} gl={{ alpha: true }} style={{ background: 'transparent' }}>
+      {gimmick && (
+        <div style={{ position: 'absolute', left: 0, right: 0, top: '45%', textAlign: 'center', color: '#fff', fontWeight: 800, fontSize: 'min(5vw, 22px)', textShadow: '0 2px 0 #12131a, 0 0 14px #ffd166', animation: 'lmsSlam .5s 1.2s both' }}>
+          {survivorName ? <span translate="no">{survivorName}: </span> : null}{GIMMICK_TEXT[gimmick]}
+        </div>
+      )}
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%' }}>
+        <Canvas camera={{ position: [0, 1.0, 6.4], fov: 38 }} gl={{ alpha: true }} style={{ background: 'transparent' }}>
           <ambientLight intensity={0.8} />
           <directionalLight position={[3, 5, 6]} intensity={1.3} />
           <pointLight position={[0, 1, 2]} intensity={2} color="#ffd166" />
-          <group position={[0, 0.05, 0]}>
-            <Fighter color={PATIENT} side={-1} />
-            <Fighter color={CURATOR} side={1} coat />
+          <group position={[0, -0.35, 0]}>
+            <Fighter color={PATIENT} side={-1} cosmetics={patientCosmetics} />
+            <Fighter color={CURATOR} side={1} cosmetics={curatorCosmetics} />
             <Spark />
           </group>
         </Canvas>

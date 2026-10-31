@@ -130,7 +130,7 @@ const DEFAULT_MAP_LAYOUT = {
   });
 })();
 
-const MINIGAMES = ['rhythm', 'needle', 'mash'];
+const MINIGAMES = ['rhythm', 'needle', 'mash', 'meter'];
 const EVENT_KINDS = ['blackout', 'gates', 'alarm', 'shuffle'];
 
 const HOSPITAL_LAYOUT = (() => {
@@ -196,9 +196,9 @@ const HOSPITAL_LAYOUT = (() => {
   sd('sd_base_3', 22, -1.5);
   sd('sd_plaza', 0, 8);
   const events = sanitizeEvents([
-    { id: 'ev_blackout_base', kind: 'blackout', startSec: 70, warnSec: 8, durSec: 18, repeatSec: 110, rFrac: 0, yMax: -0.5 },
-    { id: 'ev_gates_lock', kind: 'gates', mode: 'lock', startSec: 100, warnSec: 8, durSec: 15, repeatSec: 140 },
-    { id: 'ev_alarm', kind: 'alarm', startSec: 150, warnSec: 6, durSec: 6, repeatSec: 150 },
+    { id: 'ev_blackout_base', kind: 'blackout', startSec: 60, warnSec: 8, durSec: 40, repeatSec: 100, rFrac: 0, yMax: -0.5 },
+    { id: 'ev_gates_lock', kind: 'gates', mode: 'lock', startSec: 90, warnSec: 8, durSec: 35, repeatSec: 130 },
+    { id: 'ev_alarm', kind: 'alarm', startSec: 130, warnSec: 6, durSec: 15, repeatSec: 140 },
     { id: 'ev_shuffle', kind: 'shuffle', startSec: 120, warnSec: 5, durSec: 1, repeatSec: 120 },
   ]);
   return { id: 'hospital', name: 'Hospital de varios pisos', selfDamageObjects, collisionObjects, platforms, events };
@@ -285,7 +285,7 @@ function sanitizeEvents(list) {
     mode: e.mode === 'open' ? 'open' : 'lock',
     startSec: num(e.startSec, 0, 3600, 60),
     warnSec: num(e.warnSec, 0, 60, 8),
-    durSec: num(e.durSec, 1, 600, 20),
+    durSec: num(e.durSec, 1, 900, 40),
     repeatSec: num(e.repeatSec, 0, 3600, 0),
     xFrac: clampFrac(e.xFrac),
     zFrac: clampFrac(e.zFrac),

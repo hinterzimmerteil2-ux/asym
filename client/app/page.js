@@ -20,6 +20,7 @@ import SelfDamageBar from '../components/SelfDamageBar';
 import EventLayer from '../components/EventLayer';
 import CommunityMaps from '../components/CommunityMaps';
 import LmsIntro from '../components/LmsIntro';
+import { matches as keyMatches, getKey, keyLabel } from '../lib/keybinds';
 import TouchControls from '../components/TouchControls';
 import { KEYWORDS } from '../lib/keywords';
 import { ITEMS, COLORS, SLOT_LABELS } from '../lib/cosmetics';
@@ -169,6 +170,7 @@ export default function LobbyPage() {
   const [channelNow, setChannelNow] = useState(0);
   const channelRef = useRef(null);
   const sdRef = useRef(null);
+  const pressMinigameRef = useRef(() => {});
   const entitiesRef = useRef({});
   const effectCounterRef = useRef(0);
   const [collisionObjects, setCollisionObjects] = useState([]);
@@ -189,6 +191,7 @@ export default function LobbyPage() {
   const [mapEvents, setMapEvents] = useState([]);
   const [communityOpen, setCommunityOpen] = useState(false);
   const [lmsUntil, setLmsUntil] = useState(0);
+  const [lmsInfo, setLmsInfo] = useState(null);
   const [communityName, setCommunityName] = useState({});
   const myPosRef = useRef(null);
   const [hitboxes, setHitboxes] = useState({ on: false, opacity: 0.8 });
@@ -358,6 +361,7 @@ export default function LobbyPage() {
             setHand((prev) => prev.map((slot, i) => (i === payload.slot ? { ...slot, chosen: payload.card } : slot)));
             break;
           case 'last_standing':
+            setLmsInfo(payload);
             setLmsUntil(Date.now() + 5500);
             setTimeout(() => setLmsUntil(0), 5500);
             break;
@@ -404,6 +408,8 @@ export default function LobbyPage() {
             break;
           case 'game_started':
             setPhase(payload.phase);
+            setLmsInfo(null);
+            setLmsUntil(0);
             frameBuf.current = [];
             setCollisionObjects(payload.collisionObjects || []);
             setPlatforms(payload.platforms || []);
@@ -733,22 +739,34 @@ export default function LobbyPage() {
     function onKeyDown(e) {
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if (e.code === 'KeyH') setHelpOpen((open) => !open);
-      else if ((e.code === 'ControlLeft' || e.code === 'ControlRight') && !e.repeat) setShiftLock((on) => !on);
-      else if (e.code === 'KeyB') setHitboxes((prev) => ({ ...prev, on: !prev.on }));
+      if (keyMatches('help', e.code)) setHelpOpen((open) => !open);
+      else if (keyMatches('shiftlock', e.code) && !e.repeat) setShiftLock((on) => !on);
+      else if (keyMatches('hitboxes', e.code)) setHitboxes((prev) => ({ ...prev, on: !prev.on }));
       else if (e.code === 'Escape') setHelpOpen(false);
-      else if (e.code === 'KeyE') {
+      else if (keyMatches('minigame', e.code)) {
+        if (sdRef.current) { if (!e.repeat) pressMinigameRef.current(); return; }
         const ch = channelRef.current;
         if (ch) handleUseCard(ch.slot ?? 0);
       }
       else if (specRef.current.on && (e.code === 'ArrowRight' || e.code === 'BracketRight')) setSpecIndex((i) => i + 1);
       else if (specRef.current.on && (e.code === 'ArrowLeft' || e.code === 'BracketLeft')) setSpecIndex((i) => i - 1);
-      else if (e.code === 'Digit1') handleUseCard(0);
-      else if (e.code === 'Digit2') handleUseCard(1);
+      else if (keyMatches('card1', e.code)) handleUseCard(0);
+      else if (keyMatches('card2', e.code)) handleUseCard(1);
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [handleUseCard]);
+
+  useEffect(() => {
+    function onPointerDown(e) {
+      if (!sdRef.current || e.pointerType === 'touch' || e.button !== 0) return;
+      const t = e.target;
+      if (t && t.closest && t.closest('button,input,select,textarea,a,label')) return;
+      pressMinigameRef.current();
+    }
+    window.addEventListener('pointerdown', onPointerDown);
+    return () => window.removeEventListener('pointerdown', onPointerDown);
+  }, []);
 
   useEffect(() => {
     try {
@@ -791,6 +809,7 @@ export default function LobbyPage() {
   const sx = (base, extra) => (compact ? { ...base, ...extra } : base);
   const playersOpen = panelOpen ?? phase === 'lobby';
   const handleInteract = () => {
+    if (sdRef.current) { pressMinigameRef.current(); return; }
     const entities = entitiesRef.current;
     const me = entities[myPlayerId];
     if (!me) return;
@@ -810,6 +829,10 @@ export default function LobbyPage() {
       for (const [id, pos] of Object.entries(selfDamageObjects || {})) consider(id, pos);
       if (best) handleSendAction('self_damage_action', { objectId: best });
     }
+  };
+  pressMinigameRef.current = () => {
+    const g = sdRef.current;
+    if (g && g.objectId) handleSendAction('self_damage_action', { objectId: g.objectId });
   };
   const goFullscreen = () => {
     const el = document.documentElement;
@@ -904,7 +927,7 @@ export default function LobbyPage() {
               const patientInfo = patients[p.id];
               const characterTag =
                 p.isAsymRole && p.character
-                  ? `· ${p.character.displayName} (${p.character.weaponName})`
+                  ? `/ ${p.character.displayName} (${p.character.weaponName})`
                   : '';
               return (
                 <li key={p.id} style={styles.playerItem}>
@@ -913,7 +936,7 @@ export default function LobbyPage() {
                   </span>
                   <span style={styles.playerTag}>
                     {p.id === hostId ? 'Host' : ''} {characterTag}
-                    {phase === 'action' && patientInfo ? ` · HP ${fmtHp(patientInfo.hp)}/${fmtHp(patientInfo.maxHp || 120)}` : ''}
+                    {phase === 'action' && patientInfo ? ` / HP ${fmtHp(patientInfo.hp)}/${fmtHp(patientInfo.maxHp || 120)}` : ''}
                   </span>
                   {phase === 'lobby' && isHost && !p.isAsymRole && (
                     <button
@@ -1082,9 +1105,21 @@ export default function LobbyPage() {
 
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
-        {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} />}
+        {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} onPress={() => pressMinigameRef.current()} />}
         {phase === 'action' && <EventLayer events={mapEvents} posRef={myPosRef} />}
-        {phase === 'action' && lmsUntil > 0 && <LmsIntro />}
+        {phase === 'action' && lmsUntil > 0 && lmsInfo && (
+          <LmsIntro
+            patientCosmetics={players.find((p) => p.id === lmsInfo.survivorId)?.cosmetics}
+            curatorCosmetics={players.find((p) => p.id === lmsInfo.curatorId)?.cosmetics}
+            gimmick={lmsInfo.gimmick}
+            survivorName={players.find((p) => p.id === lmsInfo.survivorId)?.name}
+          />
+        )}
+        {phase === 'action' && lmsInfo && lmsUntil === 0 && (
+          <div style={{ position: 'absolute', top: 38, left: '50%', transform: 'translateX(-50%)', zIndex: 6, pointerEvents: 'none', padding: '3px 12px', borderRadius: 8, background: 'rgba(18,19,26,0.88)', border: '1px solid #ffd166', color: '#ffd166', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>
+            LAST MORON STANDING / <span translate="no">{players.find((p) => p.id === lmsInfo.survivorId)?.name}</span> / {({ adrenalina: 'Adrenalina', reflejos: 'Reflejos', escudo: 'Escudo', codicia: 'Codicia' })[lmsInfo.gimmick]}
+          </div>
+        )}
         {phase === 'action' && lmsUntil > 0 && (
           <div style={sx(styles.resolvedBanner(false), { top: 'auto', bottom: 14, fontSize: 16, maxWidth: '80%', zIndex: 9 })}>El tiempo pasa a 1:30</div>
         )}
@@ -1119,7 +1154,7 @@ export default function LobbyPage() {
             {roles.map((r) => (
               <button key={r.id} type="button" onClick={() => handleSelectRole(r.id)} style={{ textAlign: 'left', background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 8, padding: 8, cursor: 'pointer' }}>
                 <div style={{ fontWeight: 700 }}>{r.name}</div>
-                <div style={{ fontSize: 12, opacity: 0.85 }}>{r.tagline} · {r.card?.displayName}</div>
+                <div style={{ fontSize: 12, opacity: 0.85 }}>{r.tagline} / {r.card?.displayName}</div>
                 <div style={{ fontSize: 11, opacity: 0.65 }}>{(r.pool || []).join(' / ')}</div>
               </button>
             ))}
@@ -1266,6 +1301,19 @@ export default function LobbyPage() {
             <button type="button" onClick={() => { setChatOpen(!chatOpen); setPanelOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 140, width: 36, height: 36, zIndex: 30, borderColor: chatOpen ? '#54d1f2' : '#2a2d3d' })} aria-label="Chat">💬</button>
           </>
         )}
+        {spectating && specTargets.length > 1 && (
+          <div style={{ position: 'absolute', left: '50%', bottom: 58, transform: 'translateX(-50%)', zIndex: 30, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6, maxWidth: '92%' }}>
+            {specTargets.map((id, i) => {
+              const pl = players.find((p) => p.id === id);
+              const current = ((specIndex % specTargets.length) + specTargets.length) % specTargets.length === i;
+              return (
+                <button key={id} type="button" onClick={() => setSpecIndex(i)} style={{ ...styles.smallButton, width: 'auto', padding: '4px 10px', fontSize: 12, borderColor: current ? '#f2d154' : pl?.isAsymRole ? '#f2a154' : '#2a2d3d', background: current ? 'rgba(242,209,84,0.18)' : undefined }}>
+                  {id === myPlayerId ? 'Fantasma' : <><span>{pl?.isAsymRole ? '🩺 ' : ''}</span><span translate="no">{pl?.name || id}</span></>}
+                </button>
+              );
+            })}
+          </div>
+        )}
         {spectating && (
           <div style={{ position: 'absolute', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, background: 'rgba(27, 29, 41, 0.9)', border: '1px solid #2a2d3d', fontSize: 13 }}>
             <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i - 1)} aria-label="Anterior">{'<-'}</button>
@@ -1400,7 +1448,7 @@ export default function LobbyPage() {
                         {result.status === 'eliminated' && 'Eliminado'}
                         {result.status === 'self_won' && 'Ganó'}
                         {result.status === 'timeout' && 'Sobrevivió'}
-                        {' · '}{fmtHp(result.hp)}
+                        {' / '}{fmtHp(result.hp)}
                       </span>
                     </li>
                   );

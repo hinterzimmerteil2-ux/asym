@@ -5,6 +5,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace } from 'three';
 import { itemOf } from '../lib/cosmetics';
 import { getTexture } from '../lib/textures';
+import { matches } from '../lib/keybinds';
 
 const LOBBY_HALF_SIZE = 15;
 const MATCH_HALF_SIZE = 60;
@@ -167,7 +168,7 @@ function RagdollR6({ entityState, color }) {
   );
 }
 
-function CosmeticPieces({ slot, cosmetics }) {
+export function CosmeticPieces({ slot, cosmetics }) {
   const item = itemOf(slot, cosmetics);
   if (!item) return null;
   return (
@@ -491,8 +492,67 @@ function Ground({ halfSize, themed, pits }) {
   );
 }
 
-const SD_COLORS = { rhythm: '#ffd166', needle: '#54d1f2', mash: '#e07cf2' };
-const SD_LABELS = { rhythm: 'Ritmo', needle: 'Aguja', mash: 'Machacar' };
+const SD_COLORS = { rhythm: '#ffd166', needle: '#54d1f2', mash: '#e07cf2', meter: '#7dff8a' };
+
+function SdModel({ kind, active }) {
+  const spin = useRef();
+  const mover = useRef();
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    if (spin.current) spin.current.rotation.y = t * (active ? 3 : 1);
+    if (mover.current) {
+      if (kind === 'meter') mover.current.position.y = 0.35 + (0.5 + 0.5 * Math.sin(t * 2.4)) * 0.55;
+      else if (kind === 'mash') mover.current.position.y = 0.42 + Math.abs(Math.sin(t * 4)) * 0.07;
+      else if (kind === 'rhythm') mover.current.rotation.z = Math.sin(t * 8) * 0.35;
+    }
+  });
+  const c = SD_COLORS[kind] || '#ffd166';
+  const glow = active ? 0.9 : 0.35;
+  if (kind === 'needle') {
+    return (
+      <group ref={spin} position={[0, 0.55, 0]} rotation={[0, 0, 0.35]}>
+        <mesh><cylinderGeometry args={[0.13, 0.13, 0.62, 14]} /><meshStandardMaterial color="#cfeaf5" transparent opacity={0.75} roughness={0.15} /></mesh>
+        <mesh position={[0, -0.12, 0]}><cylinderGeometry args={[0.095, 0.095, 0.34, 12]} /><meshStandardMaterial color={c} emissive={c} emissiveIntensity={glow} /></mesh>
+        <mesh position={[0, 0.4, 0]}><cylinderGeometry args={[0.04, 0.04, 0.2, 8]} /><meshStandardMaterial color="#e8e8ee" /></mesh>
+        <mesh position={[0, 0.52, 0]}><boxGeometry args={[0.34, 0.05, 0.12]} /><meshStandardMaterial color="#e8e8ee" /></mesh>
+        <mesh position={[0, -0.5, 0]} rotation={[Math.PI, 0, 0]}><coneGeometry args={[0.035, 0.38, 8]} /><meshStandardMaterial color="#f2f2f6" metalness={0.6} roughness={0.2} /></mesh>
+        <mesh position={[0, 0.3, 0]}><boxGeometry args={[0.3, 0.04, 0.1]} /><meshStandardMaterial color="#f2f2f6" /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'mash') {
+    return (
+      <group>
+        <mesh position={[0, 0.16, 0]}><cylinderGeometry args={[0.5, 0.58, 0.32, 18]} /><meshStandardMaterial color="#3d3f55" roughness={0.5} /></mesh>
+        <mesh position={[0, 0.34, 0]}><torusGeometry args={[0.38, 0.04, 8, 24]} /><meshStandardMaterial color={c} emissive={c} emissiveIntensity={glow} /></mesh>
+        <mesh ref={mover} position={[0, 0.42, 0]}><sphereGeometry args={[0.34, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#e0555f" emissive="#e0555f" emissiveIntensity={glow} roughness={0.3} /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'meter') {
+    return (
+      <group>
+        <mesh position={[0, 0.06, 0]}><cylinderGeometry args={[0.38, 0.45, 0.12, 14]} /><meshStandardMaterial color="#3d3f55" /></mesh>
+        <mesh position={[0, 0.65, 0]}><boxGeometry args={[0.3, 1.25, 0.3]} /><meshStandardMaterial color="#2c3350" /></mesh>
+        {[['#e0555f', 0.2], ['#f2d154', 0.45], ['#7dff8a', 0.65], ['#f2d154', 0.85], ['#e0555f', 1.1]].map(([col, y], i) => (
+          <mesh key={i} position={[0, y, 0.16]}><boxGeometry args={[0.24, 0.2, 0.02]} /><meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.4} /></mesh>
+        ))}
+        <mesh ref={mover} position={[0, 0.6, 0.2]}><boxGeometry args={[0.5, 0.07, 0.1]} /><meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={glow} /></mesh>
+      </group>
+    );
+  }
+  return (
+    <group>
+      <mesh position={[0, 0.3, 0]}><cylinderGeometry args={[0.42, 0.42, 0.5, 20]} /><meshStandardMaterial color={c} roughness={0.55} /></mesh>
+      <mesh position={[0, 0.56, 0]}><cylinderGeometry args={[0.43, 0.43, 0.04, 20]} /><meshStandardMaterial color="#f4ecd8" roughness={0.8} /></mesh>
+      <mesh position={[0, 0.58, 0]}><torusGeometry args={[0.42, 0.03, 8, 24]} /><meshStandardMaterial color="#e0555f" emissive="#e0555f" emissiveIntensity={glow} /></mesh>
+      <group ref={mover} position={[0, 0.9, 0]}>
+        <mesh position={[-0.2, 0, 0]} rotation={[0, 0, 0.9]}><cylinderGeometry args={[0.025, 0.025, 0.5, 6]} /><meshStandardMaterial color="#8b5a2b" /></mesh>
+        <mesh position={[0.2, 0, 0]} rotation={[0, 0, -0.9]}><cylinderGeometry args={[0.025, 0.025, 0.5, 6]} /><meshStandardMaterial color="#8b5a2b" /></mesh>
+      </group>
+    </group>
+  );
+}
 
 function SelfDamageObject({ position, near, active, kind }) {
   const groupRef = useRef();
@@ -517,21 +577,19 @@ function SelfDamageObject({ position, near, active, kind }) {
 
   return (
     <group ref={groupRef} position={targetPos.current}>
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.7, 24]} />
+        <meshBasicMaterial color={SD_COLORS[kind] || '#ffd166'} transparent opacity={0.28} />
+      </mesh>
       {(near || active) && (
         <mesh ref={ringRef} position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.9, 1.1, 32]} />
           <meshBasicMaterial color={active ? '#ffffff' : SD_COLORS[kind] || '#ffd166'} transparent opacity={active ? 0.95 : 0.7} side={DoubleSide} />
         </mesh>
       )}
-      <mesh position={[0, 0.4, 0]} scale={active ? 1.3 : near ? 1.15 : 1}>
-        <octahedronGeometry args={[0.4, 0]} />
-        <meshStandardMaterial
-          color={COLOR_SELF_DAMAGE_OBJECT}
-          emissive={COLOR_SELF_DAMAGE_OBJECT}
-          emissiveIntensity={0.4}
-          roughness={0.3}
-        />
-      </mesh>
+      <group scale={active ? 1.2 : near ? 1.1 : 1}>
+        <SdModel kind={kind} active={active} />
+      </group>
     </group>
   );
 }
@@ -1252,7 +1310,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId }) {
   return null;
 }
 
-const SKILL_KEYS = ['KeyQ', 'KeyE', 'KeyR', 'KeyF', 'KeyG'];
+const SKILL_ACTIONS = ['skill1', 'skill2', 'skill3', 'skill4', 'melee'];
 
 const CAMERA_LOCK = { on: false, yaw: 0, fp: false, fpId: null };
 
@@ -1268,7 +1326,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       // parar y el servidor lo rechazaría todas las veces salvo la
       // primera (está en cooldown de todos modos, pero no tiene sentido
       // spamear mensajes).
-      const skillIndex = SKILL_KEYS.indexOf(e.code);
+      const skillIndex = SKILL_ACTIONS.findIndex((a) => matches(a, e.code));
       if (skillIndex !== -1 && !keysPressed.current.has(e.code)) {
         onPulse?.(skillIndex === 4 ? 'melee' : skillIndex);
       }
@@ -1292,12 +1350,13 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       // que es lo que hacía que moverse se sintiera desconectado de la
       // cámara libre anterior.
       let inputZ = 0, inputX = 0;
-      if (keys.has('KeyW') || keys.has('ArrowUp')) inputZ -= 1;
-      if (keys.has('KeyS') || keys.has('ArrowDown')) inputZ += 1;
-      if (keys.has('KeyA') || keys.has('ArrowLeft')) inputX -= 1;
-      if (keys.has('KeyD') || keys.has('ArrowRight')) inputX += 1;
-      const jump = keys.has('Space');
-      const slow = keys.has('ShiftLeft') || keys.has('ShiftRight');
+      const held = (action) => [...keys].some((c) => matches(action, c));
+      if (held('forward')) inputZ -= 1;
+      if (held('back')) inputZ += 1;
+      if (held('left')) inputX -= 1;
+      if (held('right')) inputX += 1;
+      const jump = held('jump');
+      const slow = held('slow');
 
       if (inputX !== 0 && inputZ !== 0) {
         const norm = Math.SQRT1_2;
@@ -1610,11 +1669,11 @@ export default function GameScene({
 
   return (
     <Canvas dpr={[1, coarse ? 1.25 : 1.5]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
-      <ambientLight intensity={phase === 'action' ? 0.62 : 0.4} color={phase === 'action' ? '#cfe0ff' : '#ffffff'} />
+      <ambientLight intensity={phase === 'action' ? 0.62 : 0.75} color="#cfe0ff" />
       <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? 0.7 : 1.1} color={phase === 'action' ? '#d6e2ff' : '#ffffff'} />
       <hemisphereLight args={phase === 'action' ? ['#8fb4e8', '#4a4f66', 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
-      {phase === 'action' && <color attach="background" args={['#070b1c']} />}
-      {phase === 'action' && <fog attach="fog" args={['#0a1024', 50, 140]} />}
+      <color attach="background" args={[phase === 'action' ? '#070b1c' : '#12162e']} />
+      <fog attach="fog" args={phase === 'action' ? ['#0a1024', 50, 140] : ['#12162e', 45, 130]} />
       {phase === 'action' && <NightDecor />}
 
       <FollowCamera focusId={followId || myPlayerId} myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
@@ -1653,6 +1712,7 @@ export default function GameScene({
             key={objectId}
             onClick={(e) => {
               e.stopPropagation();
+              if (sdActiveId) return;
               sendAction('self_damage_action', { objectId });
             }}
           >

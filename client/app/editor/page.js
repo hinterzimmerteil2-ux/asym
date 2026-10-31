@@ -575,6 +575,7 @@ export default function MapEditorPage() {
                       <option value="rhythm">Ritmo</option>
                       <option value="needle">Aguja</option>
                       <option value="mash">Machacar</option>
+                      <option value="meter">Medidor</option>
                     </select>
                   </div>
                 ))}
@@ -585,7 +586,7 @@ export default function MapEditorPage() {
           <div style={styles.countsBox}>
             <p style={styles.countLine}>Eventos del mapa vivo: {mapEvents.length}</p>
             <button style={styles.toolButton(false, '#9aa5ff')} onClick={() => {
-              const ev = { id: generateId('ev'), kind: 'blackout', mode: 'lock', startSec: 60, warnSec: 8, durSec: 20, repeatSec: 0, xFrac: 0, zFrac: 0, rFrac: 0, yMin: null, yMax: null };
+              const ev = { id: generateId('ev'), kind: 'blackout', mode: 'lock', startSec: 60, warnSec: 8, durSec: 40, repeatSec: 0, xFrac: 0, zFrac: 0, rFrac: 0, yMin: null, yMax: null };
               setMapEvents((prev) => [...prev, ev]);
               setSelEvent(ev.id);
             }}>+ Evento</button>
@@ -620,7 +621,7 @@ export default function MapEditorPage() {
                       )}
                       {num('Empieza (s)', 'startSec', 0, 900, 5)}
                       {num('Aviso previo (s)', 'warnSec', 0, 30, 1)}
-                      {e.kind !== 'shuffle' && num('Dura (s)', 'durSec', 1, 120, 1)}
+                      {e.kind !== 'shuffle' && num('Dura (s)', 'durSec', 1, 300, 1)}
                       {num('Se repite cada (s, 0 = una vez)', 'repeatSec', 0, 600, 5)}
                       {e.kind === 'blackout' && (
                         <>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { getKey, keyLabel } from '../lib/keybinds';
 
 function press(code, down) {
   window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, bubbles: true }));
@@ -15,10 +16,10 @@ function Stick() {
 
   function apply(dx, dy) {
     const want = new Set();
-    if (dy < -0.25) want.add('KeyW');
-    if (dy > 0.25) want.add('KeyS');
-    if (dx < -0.25) want.add('KeyA');
-    if (dx > 0.25) want.add('KeyD');
+    if (dy < -0.25) want.add(getKey('forward'));
+    if (dy > 0.25) want.add(getKey('back'));
+    if (dx < -0.25) want.add(getKey('left'));
+    if (dx > 0.25) want.add(getKey('right'));
     for (const code of active.current) if (!want.has(code)) press(code, false);
     for (const code of want) if (!active.current.has(code)) press(code, true);
     active.current = want;
@@ -62,7 +63,8 @@ function Stick() {
   );
 }
 
-function Btn({ label, code, size = 52, style, until = 0 }) {
+function Btn({ label, code, act, size = 52, style, until = 0 }) {
+  const real = act ? getKey(act) : code;
   const [, setTick] = useState(0);
   const remaining = until - Date.now();
   useEffect(() => {
@@ -75,9 +77,9 @@ function Btn({ label, code, size = 52, style, until = 0 }) {
     <button
       type="button"
       onContextMenu={(e) => e.preventDefault()}
-      onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); press(code, true); }}
-      onPointerUp={() => press(code, false)}
-      onPointerCancel={() => press(code, false)}
+      onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); press(real, true); }}
+      onPointerUp={() => press(real, false)}
+      onPointerCancel={() => press(real, false)}
       style={{ width: size, height: size, borderRadius: '50%', background: cooling ? 'rgba(20,22,30,0.35)' : 'rgba(20,22,30,0.7)', color: cooling ? 'rgba(255,255,255,0.45)' : '#fff', border: '2px solid rgba(255,255,255,0.3)', fontSize: 15, fontWeight: 700, touchAction: 'none', pointerEvents: 'auto', userSelect: 'none', WebkitUserSelect: 'none', ...style }}
     >
       {cooling ? Math.ceil(remaining / 1000) : label}
@@ -96,8 +98,8 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
         <Stick />
         <div style={{ position: 'absolute', right: 20, bottom: 24, display: 'flex', gap: 10 }}>
-          <Btn label="Lento" code="ShiftLeft" size={56} style={{ fontSize: 12 }} />
-          <Btn label="Salto" code="Space" size={64} style={{ fontSize: 13 }} />
+          <Btn label="Lento" act="slow" size={56} style={{ fontSize: 12 }} />
+          <Btn label="Salto" act="jump" size={64} style={{ fontSize: 13 }} />
         </div>
       </div>
     );
@@ -118,15 +120,15 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
       </div>
     );
   }
-  const skills = [['Q', 'KeyQ'], ['E', 'KeyE'], ['R', 'KeyR'], ['F', 'KeyF'], ['G', 'KeyG']];
+  const skills = [['skill1'], ['skill2'], ['skill3'], ['skill4'], ['melee']];
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
       <Stick />
       <div style={{ position: 'absolute', right: 20, bottom: 24, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
         <div style={{ display: 'flex', gap: 10 }}>
           {isAsymRole
-            ? skills.map(([label, code], i) => <Btn key={code} label={label} code={code} size={48} until={skillCooldowns[i === 4 ? 'melee' : i] || 0} />)
-            : [['1', 'Digit1', 0], ['2', 'Digit2', 1], ['E', 'KeyE', -1]].map(([label, code, slot]) => <Btn key={code} label={label} code={code} until={slot >= 0 ? cardCooldowns[slot] || 0 : 0} />)}
+            ? skills.map(([act], i) => <Btn key={act} label={keyLabel(getKey(act))} act={act} size={48} until={skillCooldowns[i === 4 ? 'melee' : i] || 0} />)
+            : [['card1', 0], ['card2', 1], ['minigame', -1]].map(([act, slot]) => <Btn key={act} label={keyLabel(getKey(act))} act={act} until={slot >= 0 ? cardCooldowns[slot] || 0 : 0} />)}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button
@@ -137,8 +139,8 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
           >
             {isAsymRole ? 'Curar' : 'Usar'}
           </button>
-          <Btn label="Lento" code="ShiftLeft" size={56} style={{ fontSize: 12 }} />
-          <Btn label="Salto" code="Space" size={64} style={{ fontSize: 13 }} />
+          <Btn label="Lento" act="slow" size={56} style={{ fontSize: 12 }} />
+          <Btn label="Salto" act="jump" size={64} style={{ fontSize: 13 }} />
         </div>
       </div>
     </div>

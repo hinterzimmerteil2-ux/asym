@@ -116,6 +116,7 @@ const {
   FOOTPRINT
 } = require('./Constants');
 const Status = require('./Status');
+const LMS_GIMMICKS = ['adrenalina', 'reflejos', 'escudo', 'codicia'];
 
 function ownHidden(playerId, player, publicEntities, room, now) {
   if (player.isAsymRole || now >= (room.gameState.curatorReleaseAt || 0)) return publicEntities;
@@ -168,8 +169,10 @@ class Room {
   }
 
   addBot(requesterId, tutorial) {
-    if (this.phase !== 'lobby' || requesterId !== this.hostId || this.isFull()) return;
+    if (this.phase !== 'lobby' || requesterId !== this.hostId) return;
     this.tutorial = tutorial === true;
+    if (tutorial === true && [...this.players.values()].some((p) => p.isBot)) return;
+    if (this.isFull()) return;
     this.botCounter = (this.botCounter || 0) + 1;
     const botId = `bot-${this.botCounter}`;
     this.addPlayer(botId, { readyState: 0, send() {} }, `Bot ${this.botCounter}`);
@@ -347,6 +350,8 @@ class Room {
           const t = now - sg.startedAt;
           if (sg.type === 'rhythm') {
             if (sg.beats.some((b, i) => !sg.scored.includes(i) && Math.abs(t - b) <= 60) && Math.random() < 0.92) this.applySelfDamage(botId, best.objectId);
+          } else if (sg.type === 'meter') {
+            if (Math.abs(this.needlePos(sg, now) - 0.5) <= 0.1 && Math.random() < 0.5) this.applySelfDamage(botId, best.objectId);
           } else if (sg.type === 'needle') {
             if (Math.abs(this.needlePos(sg, now) - sg.zones[sg.stage]) <= 0.12 && Math.random() < 0.6) this.applySelfDamage(botId, best.objectId);
           } else if (now > (player.nextBotAct || 0)) {
@@ -734,6 +739,7 @@ class Room {
     this.gameState.gameOver = false;
     this.gameState.desgracias = {};
     this.gameState.lastStanding = false;
+    this.gameState.lms = null;
 
     this.lastRelocateAt = Date.now();
     this.gameState.zones = [];
@@ -820,7 +826,7 @@ class Room {
   randomMinigame(objectId) {
     const fixed = objectId && this.fixedMinigames && this.fixedMinigames[objectId];
     if (fixed) return fixed;
-    const kinds = ['rhythm', 'needle', 'mash'];
+    const kinds = ['rhythm', 'needle', 'mash', 'meter'];
     return kinds[Math.floor(Math.random() * kinds.length)];
   }
 
@@ -1665,7 +1671,9 @@ class Room {
     }
   }
 
-  scaleCure(targetEntity, amount, now) {
+  scaleCure(targetEntity, rawAmount, now) {
+    const lms = this.gameState.lms;
+    const amount = lms && lms.gimmick === 'escudo' && this.gameState.entities[lms.survivorId] === targetEntity ? rawAmount * 0.5 : rawAmount;
     if (targetEntity.exacerbacionUntil <= now || !targetEntity.exacerbacionLevel) return amount;
     return amount * Math.max(0.4, 1 - EXACERBACION_STEP * targetEntity.exacerbacionLevel);
   }
@@ -1845,6 +1853,8 @@ class Room {
   award(playerId, amount, reason) {
     const player = this.players.get(playerId);
     if (!player || player.isBot || !this.gameState.desgracias || this.isPractice()) return;
+    const lms = this.gameState.lms;
+    if (lms && lms.gimmick === 'codicia' && lms.survivorId === playerId) amount *= 2;
     const book = this.gameState.desgracias[playerId] || (this.gameState.desgracias[playerId] = {});
     book[reason] = (book[reason] || 0) + amount;
   }
@@ -1990,12 +2000,16 @@ class Room {
     const type = this.gameState.selfDamageTypes[objectId] || 'rhythm';
     if (type === 'rhythm') {
       const beats = [];
+      const double = Math.random() < 0.35;
+      const count = double ? SD_BEATS + 1 : SD_BEATS;
       let at = 1000 + Math.random() * 200;
-      for (let i = 0; i < SD_BEATS; i++) {
+      for (let i = 0; i < count; i++) {
         beats.push(Math.round(at));
-        at += 850 + Math.random() * 400;
+        at += (double ? 750 : 850) + Math.random() * 400;
       }
-      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + beats[beats.length - 1] + SD_TOLERANCE_MS + 150, beats, scored: [], hits: 0 };
+      playerEntity.selfDmg = { type, objectId, variant: double ? 'doble' : 'normal', startedAt: now, endsAt: now + beats[beats.length - 1] + SD_TOLERANCE_MS + 150, beats, scored: [], hits: 0 };
+    } else if (type === 'meter') {
+      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 7000, period: 2200, score: 0, hits: 0 };
     } else if (type === 'needle') {
       playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 10000, period: 2600, stage: 0, hits: 0, zones: [0, 1, 2].map(() => 0.2 + Math.random() * 0.6), width: 0.27 };
     } else {
@@ -2010,8 +2024,9 @@ class Room {
 
   sdView(game, now) {
     const base = { type: game.type, objectId: game.objectId, elapsed: now - game.startedAt, total: game.endsAt - game.startedAt };
-    if (game.type === 'rhythm') return { ...base, beats: game.beats, scored: game.scored, tolerance: SD_TOLERANCE_MS };
+    if (game.type === 'rhythm') return { ...base, variant: game.variant, beats: game.beats, scored: game.scored, tolerance: SD_TOLERANCE_MS };
     if (game.type === 'needle') return { ...base, period: game.period, zone: game.zones[game.stage], width: game.width, stage: game.stage, stages: game.zones.length };
+    if (game.type === 'meter') return { ...base, period: game.period };
     return { ...base, count: game.count, target: game.target };
   }
 
@@ -2023,6 +2038,13 @@ class Room {
       if (game.count >= game.target) this.finishSelfDamage(playerId, entity, now);
       return;
     }
+    if (game.type === 'meter') {
+      const pos = this.needlePos(game, now);
+      game.score = Math.max(0, 1 - Math.abs(pos - 0.5) / 0.35);
+      if (game.score > 0.85) this.award(playerId, 1, 'Auto-daño');
+      this.finishSelfDamage(playerId, entity, now);
+      return;
+    }
     if (game.type === 'needle') {
       const pos = this.needlePos(game, now);
       if (Math.abs(pos - game.zones[game.stage]) <= game.width) {
@@ -2030,8 +2052,6 @@ class Room {
         game.stage += 1;
         this.award(playerId, 1, 'Auto-daño');
         if (game.stage >= game.zones.length) this.finishSelfDamage(playerId, entity, now);
-      } else {
-        this.finishSelfDamage(playerId, entity, now, true);
       }
       return;
     }
@@ -2048,10 +2068,6 @@ class Room {
       game.hits += 1;
       this.award(playerId, 1, 'Auto-daño');
       if (game.hits >= game.beats.length) this.finishSelfDamage(playerId, entity, now);
-    } else {
-      entity.selfDmg = null;
-      this.endlag(playerId, entity, now, SD_FUMBLE_ENDLAG_MS);
-      this.sendTo(playerId, MessageType.SELF_DAMAGE_RESULT, { playerId, newHp: patient.hp, status: patient.status, objectId: game.objectId, damage: 0, hits: game.hits, failed: true });
     }
   }
 
@@ -2075,7 +2091,8 @@ class Room {
   sdDamage(game) {
     if (game.type === 'mash') return Math.min(SD_MAX_DAMAGE, Math.round((game.count / game.target) * SD_MAX_DAMAGE));
     if (game.type === 'needle') return Math.round((game.hits / game.zones.length) * SD_MAX_DAMAGE);
-    return game.hits * SD_HIT_DAMAGE + (game.hits >= game.beats.length ? SD_PERFECT_BONUS : 0);
+    if (game.type === 'meter') return Math.round(game.score * SD_MAX_DAMAGE);
+    return Math.round((game.hits / game.beats.length) * SD_MAX_DAMAGE);
   }
 
   finishSelfDamage(playerId, entity, now, failed = false) {
@@ -2112,12 +2129,26 @@ class Room {
 
   checkLastStanding() {
     const gs = this.gameState;
-    if (gs.lastStanding || gs.patientsInitialCount < 2) return;
-    const alive = Object.values(gs.patients).filter((p) => p.status === 'alive').length;
-    if (alive !== 1) return;
+    if (gs.lastStanding || this.tutorial) return;
+    const alive = Object.entries(gs.patients).filter(([, p]) => p.status === 'alive');
+    if (alive.length !== 1) return;
+    const survivorId = alive[0][0];
     gs.lastStanding = true;
     gs.timeRemainingMs = LMS_TIMER_RESET_MS;
-    this.broadcast(MessageType.LAST_STANDING, { timeRemainingMs: gs.timeRemainingMs });
+    const gimmick = LMS_GIMMICKS[Math.floor(Math.random() * LMS_GIMMICKS.length)];
+    gs.lms = { survivorId, gimmick };
+    const entity = gs.entities[survivorId];
+    const now = Date.now();
+    if (entity && gimmick === 'adrenalina') {
+      entity.allyBoostUntil = now + LMS_TIMER_RESET_MS + 5000;
+      entity.allyBoostLevel = 3;
+    }
+    if (entity && gimmick === 'reflejos') {
+      entity.perezaUntil = now + LMS_TIMER_RESET_MS + 5000;
+      entity.perezaLevel = 3;
+    }
+    const curatorId = [...this.players.entries()].find(([, p]) => p.isAsymRole)?.[0] || null;
+    this.broadcast(MessageType.LAST_STANDING, { timeRemainingMs: gs.timeRemainingMs, survivorId, curatorId, gimmick });
   }
 
   onPatientFullyCured() {

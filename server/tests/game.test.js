@@ -746,17 +746,50 @@ test('vida gigante solo en tutorial; partidas reales con vida normal', () => {
   assert.strictEqual(real.gameState.patients.a.maxHp, 120);
 });
 
-test('último en pie: al quedar un Paciente el tiempo pasa a 1:30, suba o baje', () => {
+test('último en pie: con un solo Paciente ocurre al iniciar; tiempo 1:30; no en tutorial', () => {
   const { room, p } = setup();
   const { LMS_TIMER_RESET_MS } = require('../src/Constants');
-  room.gameState.patientsInitialCount = 2;
+  delete p.b;
+  room.gameState.patients = { a: p.a };
   room.gameState.lastStanding = false;
   room.gameState.timeRemainingMs = 5 * 60 * 1000;
-  p.a.status = 'self_won';
   room.checkLastStanding();
   assert.strictEqual(room.gameState.timeRemainingMs, LMS_TIMER_RESET_MS);
+  assert.strictEqual(room.gameState.lms.survivorId, 'a');
   room.gameState.timeRemainingMs = 20000;
   room.gameState.lastStanding = false;
   room.checkLastStanding();
   assert.strictEqual(room.gameState.timeRemainingMs, LMS_TIMER_RESET_MS);
+  room.gameState.lastStanding = false;
+  room.gameState.timeRemainingMs = 300000;
+  room.tutorial = true;
+  room.checkLastStanding();
+  assert.strictEqual(room.gameState.timeRemainingMs, 300000);
+});
+
+test('minijuegos: clic suelto no penaliza en ritmo y el medidor da daño según cercanía', () => {
+  const { room, clock, e, p } = setup();
+  const reset = (type) => {
+    room.gameState.selfDamageObjectPositions = { o1: { x: 0, y: 0, z: 0 } };
+    room.gameState.selfDamageTypes = { o1: type };
+    e.a.x = 0; e.a.z = 0; e.a.y = 0;
+    p.a.hp = 60; p.a.status = 'alive';
+    e.a.selfDmg = null;
+  };
+  reset('rhythm');
+  room.applySelfDamage('a', 'o1');
+  room.applySelfDamage('a', 'o1');
+  assert.ok(e.a.selfDmg, 'un clic lejos de las marcas no cierra el juego');
+  reset('meter');
+  room.applySelfDamage('a', 'o1');
+  const g = e.a.selfDmg;
+  clock.t = g.startedAt + Math.round(g.period * 0.25);
+  room.applySelfDamage('a', 'o1');
+  assert.strictEqual(p.a.hp, 48);
+  reset('meter');
+  room.applySelfDamage('a', 'o1');
+  const g2 = e.a.selfDmg;
+  clock.t = g2.startedAt + 1;
+  room.applySelfDamage('a', 'o1');
+  assert.ok(p.a.hp > 55);
 });
