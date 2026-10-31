@@ -149,6 +149,7 @@ export default function LobbyPage() {
   const frameBuf = useRef([]);
   const [replay, setReplay] = useState(null);
   const [selfDamageObjects, setSelfDamageObjects] = useState({});
+  const [sdTypes, setSdTypes] = useState({});
   const [zones, setZones] = useState([]);
   const [curatorHp, setCuratorHp] = useState(null);
   const [effects, setEffects] = useState([]);
@@ -265,6 +266,7 @@ export default function LobbyPage() {
             frameBuf.current.push({ entities: payload.entities || {}, ghosts: payload.ghosts || {} });
             if (frameBuf.current.length > 100) frameBuf.current.shift();
             setSelfDamageObjects((prev) => (sameValue(prev, payload.selfDamageObjects || {}) ? prev : payload.selfDamageObjects || {}));
+            setSdTypes((prev) => (sameValue(prev, payload.selfDamageTypes || {}) ? prev : payload.selfDamageTypes || {}));
             setZones((prev) => (sameValue(prev, payload.zones || []) ? prev : payload.zones || []));
             setCuratorHp(payload.curator || null);
             setSpawnMs(payload.spawnMs || 0);
@@ -811,6 +813,7 @@ export default function LobbyPage() {
             collisionObjects={phase === 'action' && isAsymRole && spawnMs > 0 ? [] : collisionObjects}
             matchHalf={matchHalf}
             sdActiveId={flojera?.sdGame?.objectId || null}
+            sdTypes={sdTypes}
             platforms={phase === 'action' && !(isAsymRole && spawnMs > 0) ? platforms : lobbyPlatforms}
             sendInput={handleSendInput}
             sendAction={handleSendAction}

@@ -601,8 +601,10 @@ test('auto-daño: minijuego de ritmo, perfecto hace más daño y fallar corta', 
   const { room, clock, e, p } = setup();
   room.mapId = 'hospital';
   room.gameState.selfDamageObjectPositions = { o1: { x: 0, y: 0, z: 0 } };
+  room.gameState.selfDamageTypes = { o1: 'rhythm' };
   const run = (hitAll) => {
     room.gameState.selfDamageObjectPositions = { o1: { x: 0, y: 0, z: 0 } };
+    room.gameState.selfDamageTypes = { o1: 'rhythm' };
     e.a.x = 0; e.a.z = 0; e.a.y = 0;
     p.a.hp = 60; p.a.status = 'alive';
     room.applySelfDamage('a', 'o1');
@@ -645,4 +647,36 @@ test('M1 del Curador: la caja sale de la mano, cura si el Paciente cae dentro y 
   room.applyCure('c');
   room.tickHitWindows(clock.t);
   assert.ok(p.a.hp > 30);
+});
+
+test('auto-daño: aguja y machacar dan hasta 12 de daño', () => {
+  const { room, clock, e, p } = setup();
+  const reset = (type) => {
+    room.gameState.selfDamageObjectPositions = { o1: { x: 0, y: 0, z: 0 } };
+    room.gameState.selfDamageTypes = { o1: type };
+    e.a.x = 0; e.a.z = 0; e.a.y = 0;
+    p.a.hp = 60; p.a.status = 'alive';
+    e.a.selfDmg = null;
+  };
+  reset('mash');
+  room.applySelfDamage('a', 'o1');
+  const target = e.a.selfDmg.target;
+  for (let i = 0; i < target; i++) room.applySelfDamage('a', 'o1');
+  assert.strictEqual(p.a.hp, 48);
+  reset('needle');
+  room.applySelfDamage('a', 'o1');
+  const g = e.a.selfDmg;
+  for (let k = 0; k < 3; k++) {
+    const zone = g.zones[g.stage];
+    const phase = zone / 2;
+    clock.t = g.startedAt + Math.round((phase + Math.floor((clock.t - g.startedAt) / g.period + 1)) * g.period);
+    room.applySelfDamage('a', 'o1');
+  }
+  assert.strictEqual(p.a.hp, 48);
+  reset('needle');
+  room.applySelfDamage('a', 'o1');
+  const g2 = e.a.selfDmg;
+  clock.t = g2.startedAt + Math.round((g2.zones[0] > 0.5 ? 0 : 0.5) * g2.period);
+  room.applySelfDamage('a', 'o1');
+  assert.ok(p.a.hp >= 48);
 });

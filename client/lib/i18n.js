@@ -351,6 +351,8 @@ const PAIRS = [
 ["Tajos y escapes", "Slashes and escapes"],
 ["Fallaste el ritmo", "You missed the rhythm"],
 ["Pulsa [E] / clic en cada marca", "Press [E] / click on each mark"],
+["Aguja: pulsa [E] / clic cuando esté en la zona", "Needle: press [E] / click when it is in the zone"],
+["¡Machaca [E] / clic!", "Mash [E] / click!"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

@@ -348,5 +348,7 @@ export const DE = [
 "Schreie und Teamlauf",
 "Hiebe und Fluchten",
 "Du hast den Rhythmus verpasst",
-"Drücke [E] / klicke auf jede Markierung"
+"Drücke [E] / klicke auf jede Markierung",
+"Nadel: drücke [E] / klicke, wenn sie in der Zone ist",
+"Hämmere [E] / klicke!"
 ];

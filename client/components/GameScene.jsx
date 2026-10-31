@@ -491,7 +491,10 @@ function Ground({ halfSize, themed, pits }) {
   );
 }
 
-function SelfDamageObject({ position, near, active }) {
+const SD_COLORS = { rhythm: '#ffd166', needle: '#54d1f2', mash: '#e07cf2' };
+const SD_LABELS = { rhythm: 'Ritmo', needle: 'Aguja', mash: 'Machacar' };
+
+function SelfDamageObject({ position, near, active, kind }) {
   const groupRef = useRef();
   const ringRef = useRef();
   const targetPos = useRef([position.x, position.y, position.z]);
@@ -517,7 +520,7 @@ function SelfDamageObject({ position, near, active }) {
       {(near || active) && (
         <mesh ref={ringRef} position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.9, 1.1, 32]} />
-          <meshBasicMaterial color={active ? '#ffffff' : '#ffd166'} transparent opacity={active ? 0.95 : 0.7} side={DoubleSide} />
+          <meshBasicMaterial color={active ? '#ffffff' : SD_COLORS[kind] || '#ffd166'} transparent opacity={active ? 0.95 : 0.7} side={DoubleSide} />
         </mesh>
       )}
       <mesh position={[0, 0.4, 0]} scale={active ? 1.3 : near ? 1.15 : 1}>
@@ -1565,7 +1568,7 @@ const MPlatform = memo(Platform);
 const MPit = memo(PitMesh);
 const MWallDecor = memo(WallDecor);
 const MCollisionObject = memo(CollisionObject);
-const MSelfDamageObject = memo(SelfDamageObject, (a, b) => a.position.x === b.position.x && a.position.y === b.position.y && a.position.z === b.position.z && a.near === b.near && a.active === b.active);
+const MSelfDamageObject = memo(SelfDamageObject, (a, b) => a.position.x === b.position.x && a.position.y === b.position.y && a.position.z === b.position.z && a.near === b.near && a.active === b.active && a.kind === b.kind);
 
 export default function GameScene({
   entities,
@@ -1581,6 +1584,7 @@ export default function GameScene({
   platforms,
   matchHalf,
   sdActiveId,
+  sdTypes,
   revealedIds,
   sendInput,
   sendAction,
@@ -1652,7 +1656,7 @@ export default function GameScene({
               sendAction('self_damage_action', { objectId });
             }}
           >
-            <MSelfDamageObject position={pos} near={Boolean(myEntity) && Math.abs(myEntity.x - pos.x) < 2.2 && Math.abs(myEntity.z - pos.z) < 2.2 && Math.abs((myEntity.y || 0) - pos.y) < 2.5} active={sdActiveId === objectId} />
+            <MSelfDamageObject position={pos} near={Boolean(myEntity) && Math.abs(myEntity.x - pos.x) < 2.2 && Math.abs(myEntity.z - pos.z) < 2.2 && Math.abs((myEntity.y || 0) - pos.y) < 2.5} active={sdActiveId === objectId} kind={sdTypes?.[objectId]} />
           </group>
         ))}
 

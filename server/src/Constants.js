@@ -8,6 +8,7 @@ const SELF_DAMAGE_AMOUNT = 6;
 const M1_REACH = 1.2;
 const M1_RADIUS = 0.85;
 const M1_WINDOW_MS = 260;
+const SD_MAX_DAMAGE = 12;
 const SD_BEATS = 4;
 const SD_HIT_DAMAGE = 3;
 const SD_PERFECT_BONUS = 0;
@@ -131,6 +132,7 @@ module.exports = {
   M1_REACH,
   M1_RADIUS,
   M1_WINDOW_MS,
+  SD_MAX_DAMAGE,
   SD_BEATS,
   SD_HIT_DAMAGE,
   SD_PERFECT_BONUS,

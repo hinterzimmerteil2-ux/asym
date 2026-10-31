@@ -18,6 +18,7 @@ const {
   M1_REACH,
   M1_RADIUS,
   M1_WINDOW_MS,
+  SD_MAX_DAMAGE,
   SD_BEATS,
   SD_HIT_DAMAGE,
   SD_PERFECT_BONUS,
@@ -338,9 +339,17 @@ class Room {
       if (bestDist <= INTERACTION_RADIUS - 0.3) {
         entity.input.moveX = 0;
         entity.input.moveZ = 0;
-        if (entity.selfDmg) {
-          const t = now - entity.selfDmg.startedAt;
-          if (entity.selfDmg.beats.some((b, i) => !entity.selfDmg.scored.includes(i) && Math.abs(t - b) <= 45) && Math.random() < 0.92) this.applySelfDamage(botId, best.objectId);
+        const sg = entity.selfDmg;
+        if (sg) {
+          const t = now - sg.startedAt;
+          if (sg.type === 'rhythm') {
+            if (sg.beats.some((b, i) => !sg.scored.includes(i) && Math.abs(t - b) <= 60) && Math.random() < 0.92) this.applySelfDamage(botId, best.objectId);
+          } else if (sg.type === 'needle') {
+            if (Math.abs(this.needlePos(sg, now) - sg.zones[sg.stage]) <= 0.07 && Math.random() < 0.6) this.applySelfDamage(botId, best.objectId);
+          } else if (now > (player.nextBotAct || 0)) {
+            this.applySelfDamage(botId, best.objectId);
+            player.nextBotAct = now + 200;
+          }
         } else if (now > (player.nextBotAct || 0)) {
           this.applySelfDamage(botId, best.objectId);
           player.nextBotAct = now + 700;
@@ -720,10 +729,17 @@ class Room {
     this.gameState.zones = [];
     this.gameState.curator = { hp: CURATOR_HP_START, max: CURATOR_HP_MAX };
     this.gameState.selfDamageObjectPositions = {};
+    this.gameState.selfDamageTypes = {};
     const selfDamagePositions = this.selfDamageCandidates();
     for (const obj of selfDamagePositions) {
       this.gameState.selfDamageObjectPositions[obj.id] = { x: obj.x, y: obj.y, z: obj.z };
+      this.gameState.selfDamageTypes[obj.id] = this.randomMinigame();
     }
+  }
+
+  randomMinigame() {
+    const kinds = ['rhythm', 'needle', 'mash'];
+    return kinds[Math.floor(Math.random() * kinds.length)];
   }
 
   tick() {
@@ -789,7 +805,7 @@ class Room {
           ragdoll: Status.active(own, 'ragdoll', now),
           statuses: this.buildStatuses(own, now),
           channel: own.channel ? { elapsed: now - own.channel.startedAt, total: CHANNEL_MS, beatMs: CHANNEL_BEAT_MS, beats: CHANNEL_BEATS, hits: own.channel.hits, scored: Object.keys(own.channel.scored).map(Number), slot: own.channel.slot } : null,
-          sdGame: own.selfDmg ? { objectId: own.selfDmg.objectId, elapsed: now - own.selfDmg.startedAt, total: own.selfDmg.endsAt - own.selfDmg.startedAt, beats: own.selfDmg.beats, scored: own.selfDmg.scored, tolerance: SD_TOLERANCE_MS } : null,
+          sdGame: own.selfDmg ? this.sdView(own.selfDmg, now) : null,
           cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
         };
       }
@@ -801,6 +817,7 @@ class Room {
         timeRemainingMs: this.gameState.timeRemainingMs,
         patients: this.visiblePatients(playerId),
         selfDamageObjects: this.gameState.selfDamageObjectPositions,
+        selfDamageTypes: this.gameState.selfDamageTypes,
         curator: player.isAsymRole ? this.gameState.curator : null,
         spawnMs: player.isAsymRole ? Math.max(0, (this.gameState.curatorReleaseAt || 0) - now) : 0,
         zones,
@@ -1862,24 +1879,7 @@ class Room {
     const now = Date.now();
     const game = playerEntity.selfDmg;
     if (game) {
-      const t = now - game.startedAt;
-      let bestIdx = -1;
-      let bestGap = Infinity;
-      game.beats.forEach((b, i) => {
-        if (game.scored.includes(i)) return;
-        const gap = Math.abs(t - b);
-        if (gap < bestGap) { bestGap = gap; bestIdx = i; }
-      });
-      if (bestIdx >= 0 && bestGap <= SD_TOLERANCE_MS) {
-        game.scored.push(bestIdx);
-        game.hits += 1;
-        this.award(playerId, 1, 'Auto-daño');
-        if (game.hits >= game.beats.length) this.finishSelfDamage(playerId, playerEntity, now);
-      } else {
-        playerEntity.selfDmg = null;
-        this.endlag(playerId, playerEntity, now, SD_FUMBLE_ENDLAG_MS);
-        this.sendTo(playerId, MessageType.SELF_DAMAGE_RESULT, { playerId, newHp: patient.hp, status: patient.status, objectId: game.objectId, damage: 0, hits: game.hits, failed: true });
-      }
+      this.pressSelfDamage(playerId, playerEntity, patient, game, now);
       return;
     }
 
@@ -1893,13 +1893,72 @@ class Room {
       return;
     }
     if (Status.blocksSkills(playerEntity, now)) return;
-    const beats = [];
-    let at = 800 + Math.random() * 200;
-    for (let i = 0; i < SD_BEATS; i++) {
-      beats.push(Math.round(at));
-      at += 620 + Math.random() * 380;
+    const type = this.gameState.selfDamageTypes[objectId] || 'rhythm';
+    if (type === 'rhythm') {
+      const beats = [];
+      let at = 800 + Math.random() * 200;
+      for (let i = 0; i < SD_BEATS; i++) {
+        beats.push(Math.round(at));
+        at += 620 + Math.random() * 380;
+      }
+      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + beats[beats.length - 1] + SD_TOLERANCE_MS + 150, beats, scored: [], hits: 0 };
+    } else if (type === 'needle') {
+      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 7000, period: 1500, stage: 0, hits: 0, zones: [0, 1, 2].map(() => 0.2 + Math.random() * 0.6), width: 0.16 };
+    } else {
+      playerEntity.selfDmg = { type: 'mash', objectId, startedAt: now, endsAt: now + 2600, count: 0, target: 9, hits: 0 };
     }
-    playerEntity.selfDmg = { objectId, startedAt: now, endsAt: now + beats[beats.length - 1] + SD_TOLERANCE_MS + 150, beats, scored: [], hits: 0 };
+  }
+
+  needlePos(game, now) {
+    const ph = (((now - game.startedAt) / game.period) % 1 + 1) % 1;
+    return ph < 0.5 ? ph * 2 : 2 - ph * 2;
+  }
+
+  sdView(game, now) {
+    const base = { type: game.type, objectId: game.objectId, elapsed: now - game.startedAt, total: game.endsAt - game.startedAt };
+    if (game.type === 'rhythm') return { ...base, beats: game.beats, scored: game.scored, tolerance: SD_TOLERANCE_MS };
+    if (game.type === 'needle') return { ...base, period: game.period, zone: game.zones[game.stage], width: game.width, stage: game.stage, stages: game.zones.length };
+    return { ...base, count: game.count, target: game.target };
+  }
+
+  pressSelfDamage(playerId, entity, patient, game, now) {
+    if (game.type === 'mash') {
+      game.count += 1;
+      game.hits = game.count;
+      this.award(playerId, 0, 'Auto-daño');
+      if (game.count >= game.target) this.finishSelfDamage(playerId, entity, now);
+      return;
+    }
+    if (game.type === 'needle') {
+      const pos = this.needlePos(game, now);
+      if (Math.abs(pos - game.zones[game.stage]) <= game.width) {
+        game.hits += 1;
+        game.stage += 1;
+        this.award(playerId, 1, 'Auto-daño');
+        if (game.stage >= game.zones.length) this.finishSelfDamage(playerId, entity, now);
+      } else {
+        this.finishSelfDamage(playerId, entity, now, true);
+      }
+      return;
+    }
+    const t = now - game.startedAt;
+    let bestIdx = -1;
+    let bestGap = Infinity;
+    game.beats.forEach((b, i) => {
+      if (game.scored.includes(i)) return;
+      const gap = Math.abs(t - b);
+      if (gap < bestGap) { bestGap = gap; bestIdx = i; }
+    });
+    if (bestIdx >= 0 && bestGap <= SD_TOLERANCE_MS) {
+      game.scored.push(bestIdx);
+      game.hits += 1;
+      this.award(playerId, 1, 'Auto-daño');
+      if (game.hits >= game.beats.length) this.finishSelfDamage(playerId, entity, now);
+    } else {
+      entity.selfDmg = null;
+      this.endlag(playerId, entity, now, SD_FUMBLE_ENDLAG_MS);
+      this.sendTo(playerId, MessageType.SELF_DAMAGE_RESULT, { playerId, newHp: patient.hp, status: patient.status, objectId: game.objectId, damage: 0, hits: game.hits, failed: true });
+    }
   }
 
   tickSelfDamage(playerId, entity, now) {
@@ -1910,18 +1969,28 @@ class Room {
       entity.selfDmg = null;
       return;
     }
-    const t = now - game.startedAt;
-    const missed = game.beats.some((b, i) => !game.scored.includes(i) && t > b + SD_TOLERANCE_MS);
-    if (missed || now >= game.endsAt) this.finishSelfDamage(playerId, entity, now);
+    if (game.type === 'rhythm') {
+      const t = now - game.startedAt;
+      const missed = game.beats.some((b, i) => !game.scored.includes(i) && t > b + SD_TOLERANCE_MS);
+      if (missed || now >= game.endsAt) this.finishSelfDamage(playerId, entity, now);
+    } else if (now >= game.endsAt) {
+      this.finishSelfDamage(playerId, entity, now);
+    }
   }
 
-  finishSelfDamage(playerId, entity, now) {
+  sdDamage(game) {
+    if (game.type === 'mash') return Math.min(SD_MAX_DAMAGE, Math.round((game.count / game.target) * SD_MAX_DAMAGE));
+    if (game.type === 'needle') return Math.round((game.hits / game.zones.length) * SD_MAX_DAMAGE);
+    return game.hits * SD_HIT_DAMAGE + (game.hits >= game.beats.length ? SD_PERFECT_BONUS : 0);
+  }
+
+  finishSelfDamage(playerId, entity, now, failed = false) {
     const game = entity.selfDmg;
     entity.selfDmg = null;
     const patient = this.gameState.patients[playerId];
     if (!game || !patient || patient.status !== 'alive') return;
-    const perfect = game.hits >= game.beats.length;
-    const damage = game.hits * SD_HIT_DAMAGE + (perfect ? SD_PERFECT_BONUS : 0);
+    const damage = this.sdDamage(game);
+    const perfect = damage >= SD_MAX_DAMAGE;
     if (perfect) this.award(playerId, 4, 'Auto-daño perfecto');
     if (damage > 0) {
       patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - damage);
@@ -1931,6 +2000,7 @@ class Room {
       const pool = otherPositions.length ? otherPositions : allPositions;
       const newPos = pool[Math.floor(Math.random() * pool.length)];
       this.gameState.selfDamageObjectPositions[game.objectId] = { x: newPos.x, y: newPos.y, z: newPos.z };
+      this.gameState.selfDamageTypes[game.objectId] = this.randomMinigame();
     }
     this.sendTo(playerId, MessageType.SELF_DAMAGE_RESULT, {
       playerId,
@@ -1941,6 +2011,7 @@ class Room {
       damage,
       hits: game.hits,
       perfect,
+      failed: failed && damage === 0,
     });
     this.checkGameEndConditions();
   }
