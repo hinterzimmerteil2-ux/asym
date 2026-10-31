@@ -226,14 +226,14 @@ const DEFAULT_MAP_ID = 'default';
  * requieren Postgres; se pierden si el servidor se reinicia, que es
  * una limitación aceptable para un modo constructor de este alcance.
  */
-function registerMap(layout) {
+function registerMap(layout, dryRun) {
   if (!layout || typeof layout.id !== 'string' || !layout.id.trim()) {
     throw new Error('El mapa necesita un id');
   }
   if (!Array.isArray(layout.selfDamageObjects) || !Array.isArray(layout.collisionObjects)) {
     throw new Error('El mapa necesita selfDamageObjects y collisionObjects');
   }
-  MAPS[layout.id] = {
+  const norm = {
     id: layout.id,
     name: typeof layout.name === 'string' && layout.name.trim() ? layout.name.trim() : layout.id,
     custom: true,
@@ -269,7 +269,8 @@ function registerMap(layout) {
       tint: /^#[0-9a-fA-F]{6}$/.test(p.tint || '') ? p.tint : null,
     })),
   };
-  return MAPS[layout.id];
+  if (!dryRun) MAPS[layout.id] = norm;
+  return norm;
 }
 
 

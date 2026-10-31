@@ -18,6 +18,7 @@ import StatusColumn from '../components/StatusColumn';
 import RhythmBar from '../components/RhythmBar';
 import SelfDamageBar from '../components/SelfDamageBar';
 import EventLayer from '../components/EventLayer';
+import CommunityMaps from '../components/CommunityMaps';
 import TouchControls from '../components/TouchControls';
 import { KEYWORDS } from '../lib/keywords';
 import { ITEMS, COLORS, SLOT_LABELS } from '../lib/cosmetics';
@@ -177,6 +178,8 @@ export default function LobbyPage() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [spawnMs, setSpawnMs] = useState(0);
   const [mapEvents, setMapEvents] = useState([]);
+  const [communityOpen, setCommunityOpen] = useState(false);
+  const [communityName, setCommunityName] = useState({});
   const myPosRef = useRef(null);
   const [hitboxes, setHitboxes] = useState({ on: false, opacity: 0.8 });
   const [maps, setMaps] = useState([]);
@@ -951,7 +954,7 @@ export default function LobbyPage() {
                   value={mapId}
                   onChange={(e) => handleSetMap(e.target.value)}
                 >
-                  {maps.map((m) => (
+                  {maps.filter((m) => !m.id.startsWith('c_')).map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}{m.custom ? ' (personalizado)' : ''}
                     </option>
@@ -959,9 +962,11 @@ export default function LobbyPage() {
                 </select>
               ) : (
                 <p style={styles.mapReadOnly}>
-                  {maps.find((m) => m.id === mapId)?.name || mapId}
+                  {maps.find((m) => m.id === mapId)?.name || communityName[mapId] || mapId}
                 </p>
               )}
+              {mapId.startsWith('c_') && <p style={styles.mapReadOnly}>Mapa de la comunidad: <span translate="no">{communityName[mapId] || maps.find((m) => m.id === mapId)?.name || ''}</span></p>}
+              <button type="button" style={{ ...styles.smallButton, width: '100%', marginTop: 4 }} onClick={() => setCommunityOpen(true)}>Mapas de la comunidad</button>
               <Link href="/editor" style={styles.editorLink}>Crear mapa nuevo →</Link>
             </div>
           )}
@@ -1065,6 +1070,14 @@ export default function LobbyPage() {
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
         {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} />}
         {phase === 'action' && <EventLayer events={mapEvents} posRef={myPosRef} />}
+        {phase === 'lobby' && communityOpen && (
+          <CommunityMaps
+            isHost={isHost}
+            currentMapId={mapId}
+            onClose={() => setCommunityOpen(false)}
+            onUse={(m) => { setCommunityName((prev) => ({ ...prev, [m.id]: m.name })); handleSetMap(m.id); }}
+          />
+        )}
         {phase === 'lobby' && <TouchControls lobby />}
         {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
 

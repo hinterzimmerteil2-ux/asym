@@ -363,6 +363,18 @@ const PAIRS = [
 ["Alarma: se ve a todos los Pacientes", "Alarm: every Patient is visible"],
 ["¡Reubicación de objetos en", "Objects relocating in"],
 ["Objetos reubicados", "Objects relocated"],
+["Mapas de la comunidad", "Community maps"],
+["Más votados", "Most voted"],
+["Nuevos", "New"],
+["Cargando…", "Loading…"],
+["Aún no hay mapas publicados. Crea el primero en el editor.", "No maps published yet. Create the first one in the editor."],
+["Solo el host puede elegir el mapa.", "Only the host can choose the map."],
+["En uso", "In use"],
+["Borrar", "Delete"],
+["Mapa de la comunidad:", "Community map:"],
+["Publicar en la comunidad", "Publish to the community"],
+["Publicando...", "Publishing..."],
+["✓ Publicado. Ya aparece en \"Mapas de la comunidad\" del lobby.", "✓ Published. It now shows under \"Community maps\" in the lobby."],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

@@ -699,3 +699,13 @@ test('eventos del mapa: avisan, se activan y repiten; minijuego fijo por objeto'
   assert.strictEqual(at(88)[0].phase, 'warn');
   assert.strictEqual(at(95)[0].phase, 'active');
 });
+
+test('mapas de comunidad: normalizar sin registrar, y cargar un mapa ya registrado', async () => {
+  const GameMap = require('../src/GameMap');
+  const community = require('../src/community');
+  const norm = GameMap.registerMap({ id: 'tmp', name: 'x', selfDamageObjects: [{ id: 'a', xFrac: 0.2, zFrac: 0.2, minigame: 'mash' }], collisionObjects: [] }, true);
+  assert.strictEqual(norm.selfDamageObjects[0].minigame, 'mash');
+  assert.strictEqual(GameMap.MAPS.tmp, undefined);
+  assert.strictEqual(await community.ensureMap('default'), true);
+  assert.strictEqual(await community.ensureMap('c_00000000-0000-0000-0000-000000000000'), false);
+});

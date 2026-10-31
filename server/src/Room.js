@@ -575,7 +575,11 @@ class Room {
    * lobby. mapId debe existir en el catálogo de GameMap (incluye los
    * mapas guardados desde el editor visual).
    */
-  setMap(requesterId, mapId) {
+  setMap(requesterId, mapId, loaded) {
+    if (!loaded && !GameMap.MAPS[mapId] && typeof mapId === 'string' && mapId.startsWith('c_')) {
+      require('./community').ensureMap(mapId).then(() => this.setMap(requesterId, mapId, true)).catch(() => this.sendTo(requesterId, MessageType.ERROR, { message: 'Ese mapa no existe' }));
+      return;
+    }
     if (this.phase !== 'lobby') {
       this.sendTo(requesterId, MessageType.ERROR, { message: 'Solo se puede cambiar el mapa antes de iniciar la partida' });
       return;

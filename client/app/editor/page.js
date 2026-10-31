@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo } from 'react';
 import { getTexture } from '../../lib/textures';
+import { publishCommunityMap } from '../../lib/community';
 import Link from 'next/link';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
@@ -213,6 +214,7 @@ export default function MapEditorPage() {
   const [exportedJson, setExportedJson] = useState(null);
   const [mapName, setMapName] = useState('');
   const [mapId, setMapId] = useState('');
+  const [pubStatus, setPubStatus] = useState(null);
   const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | { error }
   const canvasRef = useRef(null);
 
@@ -365,6 +367,25 @@ export default function MapEditorPage() {
   function handleExport() {
     const layout = buildLayout(mapId.trim() || 'custom', mapName.trim() || 'Mapa personalizado');
     setExportedJson(JSON.stringify(layout, null, 2));
+  }
+
+  async function handlePublish() {
+    if (selfDamageObjects.length === 0) {
+      setPubStatus({ error: 'Coloca al menos un objeto de auto-daño antes de publicar.' });
+      return;
+    }
+    const name = (mapName.trim() || mapId.trim()).slice(0, 40);
+    if (!name) {
+      setPubStatus({ error: 'Ponle un nombre al mapa.' });
+      return;
+    }
+    setPubStatus('saving');
+    try {
+      await publishCommunityMap(buildLayout('tmp', name), name);
+      setPubStatus('done');
+    } catch (err) {
+      setPubStatus({ error: err.message });
+    }
   }
 
   async function handleSaveToServer() {
@@ -690,6 +711,11 @@ export default function MapEditorPage() {
             {saveStatus && saveStatus.error && (
               <p style={styles.saveError}>{saveStatus.error}</p>
             )}
+            <button style={styles.saveButton(pubStatus === 'saving')} onClick={handlePublish} disabled={pubStatus === 'saving'}>
+              {pubStatus === 'saving' ? 'Publicando...' : 'Publicar en la comunidad'}
+            </button>
+            {pubStatus === 'done' && <p style={styles.saveSuccess}>✓ Publicado. Ya aparece en "Mapas de la comunidad" del lobby.</p>}
+            {pubStatus && pubStatus.error && <p style={styles.saveError}>{pubStatus.error}</p>}
           </div>
 
           <div style={styles.actionsRow}>

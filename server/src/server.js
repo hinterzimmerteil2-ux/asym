@@ -9,6 +9,7 @@ const Cards = require('./Cards');
 const Roles = require('./Roles');
 const { registerAuthRoutes } = require('./auth/routes');
 const { initSchema } = require('./auth/db');
+const { registerCommunityRoutes } = require('./community');
 const { verifyToken } = require('./auth/jwt');
 
 const PORT = process.env.PORT || 3001;
@@ -16,6 +17,7 @@ const roomManager = new RoomManager();
 
 const httpRoutes = new Map();
 registerAuthRoutes(httpRoutes);
+registerCommunityRoutes(httpRoutes);
 
 // El cliente (Vercel) y el servidor (Render) viven en dominios distintos,
 // así que el navegador exige CORS en toda respuesta HTTP (incluido el
@@ -28,7 +30,7 @@ function applyCors(req, res) {
   res.setHeader('Access-Control-Allow-Origin', origin || CLIENT_URL);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
 const httpServer = http.createServer((req, res) => {

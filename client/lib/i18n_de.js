@@ -360,5 +360,17 @@ export const DE = [
 "Alarm in",
 "Alarm: alle Patienten sind sichtbar",
 "Objekte werden verlegt in",
-"Objekte verlegt"
+"Objekte verlegt",
+"Community-Karten",
+"Meistgewählt",
+"Neu",
+"Lädt…",
+"Noch keine Karten veröffentlicht. Erstelle die erste im Editor.",
+"Nur der Host kann die Karte wählen.",
+"In Benutzung",
+"Löschen",
+"Community-Karte:",
+"In der Community veröffentlichen",
+"Veröffentliche...",
+"✓ Veröffentlicht. Sie erscheint jetzt unter \"Community-Karten\" in der Lobby."
 ];
