@@ -1828,9 +1828,14 @@ class Room {
     return false;
   }
 
+  isPractice() {
+    for (const p of this.players.values()) if (p.isBot) return true;
+    return false;
+  }
+
   award(playerId, amount, reason) {
     const player = this.players.get(playerId);
-    if (!player || player.isBot || !this.gameState.desgracias) return;
+    if (!player || player.isBot || !this.gameState.desgracias || this.isPractice()) return;
     const book = this.gameState.desgracias[playerId] || (this.gameState.desgracias[playerId] = {});
     book[reason] = (book[reason] || 0) + amount;
   }

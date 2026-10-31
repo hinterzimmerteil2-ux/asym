@@ -709,3 +709,16 @@ test('mapas de comunidad: normalizar sin registrar, y cargar un mapa ya registra
   assert.strictEqual(await community.ensureMap('default'), true);
   assert.strictEqual(await community.ensureMap('c_00000000-0000-0000-0000-000000000000'), false);
 });
+
+test('tutorial (sala con bot): vida normal y sin Desgracias', () => {
+  const { room, p } = setup();
+  assert.strictEqual(p.a.hp, 60);
+  assert.strictEqual(p.a.maxHp, 120);
+  room.award('a', 10, 'Antes');
+  assert.strictEqual(room.gameState.desgracias.a.Antes, 10);
+  room.phase = 'lobby';
+  room.addBot(room.hostId);
+  room.phase = 'action';
+  room.award('a', 10, 'Con bot');
+  assert.strictEqual(room.gameState.desgracias.a['Con bot'], undefined);
+});
