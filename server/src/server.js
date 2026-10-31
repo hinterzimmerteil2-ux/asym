@@ -56,6 +56,16 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
 
+  if (url.pathname === '/maps/layout' && req.method === 'GET') {
+    const wanted = url.searchParams.get('id') || '';
+    require('./community').ensureMap(wanted).catch(() => false).then(() => {
+      const layout = GameMap.getLayoutCopy(wanted);
+      res.writeHead(layout ? 200 : 404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(layout ? { layout } : { error: 'Ese mapa no existe' }));
+    });
+    return;
+  }
+
   if (url.pathname === '/maps' && req.method === 'POST') {
     let body = '';
     req.on('data', (chunk) => { body += chunk; });

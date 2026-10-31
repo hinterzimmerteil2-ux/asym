@@ -1866,7 +1866,7 @@ class Room {
 
   isPractice() {
     for (const p of this.players.values()) if (p.isBot) return true;
-    return false;
+    return Boolean(GameMap.MAPS[this.mapId] && GameMap.MAPS[this.mapId].custom);
   }
 
   award(playerId, amount, reason) {

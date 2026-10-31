@@ -812,3 +812,17 @@ test('mapa vivo: una rampa se cae durante el evento y vuelve; permanente no vuel
   assert.deepStrictEqual(at(110), ['b1']);
   assert.deepStrictEqual(at(500), ['b1']);
 });
+
+test('mapas personalizados no dan Desgracias; el layout de un mapa se puede copiar', () => {
+  const GameMap = require('../src/GameMap');
+  GameMap.registerMap({ id: 'cust1', name: 'c', selfDamageObjects: [{ id: 's', xFrac: 0, zFrac: 0 }], collisionObjects: [] });
+  const { room } = setup();
+  room.award('a', 5, 'Normal');
+  assert.strictEqual(room.gameState.desgracias.a.Normal, 5);
+  room.mapId = 'cust1';
+  room.award('a', 5, 'Custom');
+  assert.strictEqual(room.gameState.desgracias.a.Custom, undefined);
+  const copy = GameMap.getLayoutCopy('hospital');
+  assert.ok(copy.platforms.length > 50 && copy.events.length >= 4 && copy.patientSpawns.length > 0);
+  assert.strictEqual(GameMap.getLayoutCopy('nope'), null);
+});

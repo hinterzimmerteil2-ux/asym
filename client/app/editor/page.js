@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { getTexture } from '../../lib/textures';
-import { publishCommunityMap } from '../../lib/community';
+import { publishCommunityMap, listCommunityMaps } from '../../lib/community';
 import Link from 'next/link';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
@@ -215,6 +215,9 @@ export default function MapEditorPage() {
   const [mapName, setMapName] = useState('');
   const [mapId, setMapId] = useState('');
   const [pubStatus, setPubStatus] = useState(null);
+  const [loadList, setLoadList] = useState([]);
+  const [loadId, setLoadId] = useState('');
+  const [loadStatus, setLoadStatus] = useState(null);
   const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | { error }
   const canvasRef = useRef(null);
 
@@ -369,6 +372,51 @@ export default function MapEditorPage() {
     setExportedJson(JSON.stringify(layout, null, 2));
   }
 
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      const out = [];
+      try {
+        const res = await fetch(`${SERVER_URL}/maps`);
+        const data = await res.json();
+        for (const m of data.maps || []) if (!m.id.startsWith('c_')) out.push({ id: m.id, name: m.name, group: m.custom ? 'Guardados' : 'Del juego' });
+      } catch {}
+      try {
+        const d = await listCommunityMaps('top');
+        for (const m of d.maps || []) out.push({ id: m.id, name: `${m.name} (${m.author})`, group: 'Comunidad' });
+      } catch {}
+      if (live) setLoadList(out);
+    })();
+    return () => { live = false; };
+  }, []);
+
+  async function handleLoad() {
+    if (!loadId) return;
+    if ((platforms.length || selfDamageObjects.length || collisionObjects.length) && !window.confirm('Esto reemplaza lo que tienes ahora en el editor. ¿Continuar?')) return;
+    setLoadStatus('loading');
+    try {
+      const res = await fetch(`${SERVER_URL}/maps/layout?id=${encodeURIComponent(loadId)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo cargar el mapa.');
+      const l = data.layout;
+      setMapHalf(l.halfSize || 60);
+      setSelfDamageObjects((l.selfDamageObjects || []).map((o) => ({ ...o })));
+      setCollisionObjects((l.collisionObjects || []).map((o) => ({ ...o })));
+      setPlatforms((l.platforms || []).map((o) => ({ ...o })));
+      setCuratorSpawns((l.curatorSpawns || []).map((o) => ({ ...o, id: generateId('cs') })));
+      setPatientSpawns((l.patientSpawns || []).map((o) => ({ ...o, id: generateId('ps') })));
+      setMapEvents((l.events || []).map((o) => ({ ...o })));
+      setMapName(`${l.name} (copia)`);
+      setMapId(`${l.id.replace(/^c_/, 'com_').slice(0, 24)}_copia`);
+      setSelectedId(null);
+      setSelEvent(null);
+      setExportedJson(null);
+      setLoadStatus('done');
+    } catch (err) {
+      setLoadStatus({ error: err.message });
+    }
+  }
+
   async function handlePublish() {
     if (selfDamageObjects.length === 0) {
       setPubStatus({ error: 'Coloca al menos un objeto de auto-daño antes de publicar.' });
@@ -491,6 +539,19 @@ export default function MapEditorPage() {
           })()}
 
           <p style={styles.countLine}>Elementos para colocar</p>
+          <div style={styles.countsBox}>
+            <p style={styles.countLine}>Cargar un mapa para editarlo</p>
+            <select value={loadId} onChange={(e) => setLoadId(e.target.value)} style={{ width: '100%' }}>
+              <option value="">(elige un mapa)</option>
+              {['Del juego', 'Guardados', 'Comunidad'].map((g) => {
+                const items = loadList.filter((m) => m.group === g);
+                return items.length ? <optgroup key={g} label={g}>{items.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</optgroup> : null;
+              })}
+            </select>
+            <button style={styles.toolButton(false, '#5fd58c')} onClick={handleLoad} disabled={!loadId || loadStatus === 'loading'}>{loadStatus === 'loading' ? 'Cargando...' : 'Cargar en el editor'}</button>
+            {loadStatus === 'done' && <p style={styles.saveSuccess}>✓ Cargado como copia: puedes cambiarlo y guardarlo con otro nombre.</p>}
+            {loadStatus && loadStatus.error && <p style={styles.saveError}>{loadStatus.error}</p>}
+          </div>
           <div style={styles.toolGroup}>
             <button style={styles.toolButton(selectedTool === 'curator_spawn', '#f2a154')} onClick={() => setSelectedTool('curator_spawn')}>Spawn del Curador</button>
             <button style={styles.toolButton(selectedTool === 'patient_spawn', '#5fd58c')} onClick={() => setSelectedTool('patient_spawn')}>Spawn de sobrevivientes</button>

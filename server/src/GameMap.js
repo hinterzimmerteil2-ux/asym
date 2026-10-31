@@ -261,11 +261,11 @@ function registerMap(layout, dryRun) {
       id: typeof p.id === 'string' ? p.id : `pl_${i}`,
       xFrac: clampFrac(p.xFrac),
       zFrac: clampFrac(p.zFrac),
-      hxFrac: Math.max(0.02, Math.min(4, Number(p.hxFrac) || 0.1)),
-      hzFrac: Math.max(0.02, Math.min(4, Number(p.hzFrac) || 0.1)),
+      hxFrac: Math.max(0.005, Math.min(4, Number(p.hxFrac) || 0.1)),
+      hzFrac: Math.max(0.005, Math.min(4, Number(p.hzFrac) || 0.1)),
       h: Math.max(0.4, Math.min(40, Number(p.h) || 1.6)),
       ramp: p.ramp === '+x' || p.ramp === '-x' ? p.ramp : null,
-      kind: ['pit', 'gate', 'mezzanine'].includes(p.kind) ? p.kind : null,
+      kind: ['pit', 'gate', 'mezzanine', 'wall', 'partition', 'tower', 'roof', 'ramp'].includes(p.kind) ? p.kind : null,
       slab: p.kind === 'mezzanine' ? 0.4 : 0,
       y0: Math.max(0, Math.min(80, Number(p.y0) || 0)),
       tex: ['marble', 'tile', 'plaster', 'tower', 'roof', 'ramp', 'concrete', 'brick', 'wood', 'metal'].includes(p.tex) ? p.tex : null,
@@ -309,6 +309,26 @@ function clampFrac(n) {
   const v = Number(n);
   if (Number.isNaN(v)) return 0;
   return Math.max(-1, Math.min(1, v));
+}
+
+function getLayoutCopy(mapId) {
+  const m = MAPS[mapId];
+  if (!m) return null;
+  const half = m.halfSize || MATCH_AREA.halfSize;
+  const patientSpawns = m.patientSpawns && m.patientSpawns.length
+    ? m.patientSpawns
+    : mapId === HOSPITAL_ID ? HOSPITAL_SPAWNS.map(([x, z]) => ({ xFrac: x / half, zFrac: z / half })) : [];
+  return JSON.parse(JSON.stringify({
+    id: m.id,
+    name: m.name,
+    halfSize: half,
+    curatorSpawns: m.curatorSpawns || [],
+    patientSpawns,
+    selfDamageObjects: m.selfDamageObjects || [],
+    collisionObjects: m.collisionObjects || [],
+    platforms: m.platforms || [],
+    events: m.events || [],
+  }));
 }
 
 function listMaps() {
@@ -411,6 +431,7 @@ function getCuratorSpawn(mapId, pick) {
 }
 
 module.exports = {
+  getLayoutCopy,
   getEvents,
   sanitizeEvents,
   LOBBY_AREA,
