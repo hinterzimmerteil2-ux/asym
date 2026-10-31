@@ -722,3 +722,26 @@ test('tutorial (sala con bot): vida normal y sin Desgracias', () => {
   room.award('a', 10, 'Con bot');
   assert.strictEqual(room.gameState.desgracias.a['Con bot'], undefined);
 });
+
+test('vida gigante solo en tutorial; partidas reales con vida normal', () => {
+  const { TUTORIAL_PATIENT_HP_MAX } = require('../src/Constants');
+  assert.ok(TUTORIAL_PATIENT_HP_MAX > 3.5e22 && TUTORIAL_PATIENT_HP_MAX < 3.6e22);
+  const mk = (tut) => {
+    const room = new Room('t' + tut);
+    const sock = { readyState: 1, send() {} };
+    room.addPlayer('c', sock, 'C');
+    room.addPlayer('a', sock, 'A');
+    room.addBot('c', tut);
+    room.players.get('c').isAsymRole = true;
+    room.switchPhase('action', 'test');
+    return room.gameState.patients.a;
+  };
+  assert.strictEqual(mk(true).maxHp, TUTORIAL_PATIENT_HP_MAX);
+  assert.strictEqual(mk(false).maxHp, 120);
+  const real = new Room('r');
+  real.addPlayer('c', { readyState: 1, send() {} }, 'C');
+  real.addPlayer('a', { readyState: 1, send() {} }, 'A');
+  real.players.get('c').isAsymRole = true;
+  real.switchPhase('action', 'test');
+  assert.strictEqual(real.gameState.patients.a.maxHp, 120);
+});

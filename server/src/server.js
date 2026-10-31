@@ -162,7 +162,7 @@ wss.on('connection', (ws) => {
       case MessageType.ADD_BOT: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
-        room.addBot(playerId);
+        room.addBot(playerId, msg.payload && msg.payload.tutorial === true);
         break;
       }
 

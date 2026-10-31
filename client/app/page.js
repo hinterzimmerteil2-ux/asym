@@ -60,6 +60,14 @@ function KeywordChip({ id }) {
   );
 }
 
+function fmtHp(n) {
+  const v = Number(n) || 0;
+  if (Math.abs(v) < 1e6) return String(Math.round(v));
+  const [m, e] = v.toExponential(1).split('e+');
+  const sup = String(e).split('').map((d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]).join('');
+  return `${m}×10${sup}`;
+}
+
 export default function LobbyPage() {
   const connRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -540,7 +548,7 @@ export default function LobbyPage() {
     tutSentRef.current = { role: false, start: false };
     tutStartRef.current = null;
     setTutorial({ launching: true, active: false, minimized: false, flags: {} });
-    if (!players.some((pl) => pl.isBot)) connRef.current?.send('add_bot', {});
+    if (!players.some((pl) => pl.isBot)) connRef.current?.send('add_bot', { tutorial: true });
   }
 
   useEffect(() => {
@@ -899,7 +907,7 @@ export default function LobbyPage() {
                   </span>
                   <span style={styles.playerTag}>
                     {p.id === hostId ? 'Host' : ''} {characterTag}
-                    {phase === 'action' && patientInfo ? ` · HP ${Math.round(patientInfo.hp)}/${patientInfo.maxHp || 120}` : ''}
+                    {phase === 'action' && patientInfo ? ` · HP ${fmtHp(patientInfo.hp)}/${fmtHp(patientInfo.maxHp || 120)}` : ''}
                   </span>
                   {phase === 'lobby' && isHost && !p.isAsymRole && (
                     <button
@@ -1010,7 +1018,7 @@ export default function LobbyPage() {
         {phase === 'action' && !isAsymRole && myPlayerId && patients[myPlayerId] && (
           <div style={sx(styles.hpBarContainer, { ...bar, bottom: 'auto', top: compact ? 40 : 80 })}>
             <div style={sx(styles.hpBarLabel, { fontSize: 10, marginBottom: 3 })}>
-              Tu HP: {Math.round(patients[myPlayerId].hp)}/{patients[myPlayerId].maxHp || 120}
+              Tu HP: {fmtHp(patients[myPlayerId].hp)}/{fmtHp(patients[myPlayerId].maxHp || 120)}
               {patients[myPlayerId].hp <= 20 && ' (¡cerca de ganar!)'}
               {patients[myPlayerId].hp >= (patients[myPlayerId].maxHp || 120) - 20 && ' (¡cerca de ser curado del todo!)'}
             </div>
@@ -1382,7 +1390,7 @@ export default function LobbyPage() {
                         {result.status === 'eliminated' && 'Eliminado'}
                         {result.status === 'self_won' && 'Ganó'}
                         {result.status === 'timeout' && 'Sobrevivió'}
-                        {' · '}{Math.round(result.hp)}
+                        {' · '}{fmtHp(result.hp)}
                       </span>
                     </li>
                   );

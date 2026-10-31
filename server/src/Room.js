@@ -13,6 +13,7 @@ const {
   PATIENT_HP_START,
   PATIENT_HP_MAX,
   PATIENT_HP_MIN,
+  TUTORIAL_PATIENT_HP_MAX,
   CURE_AMOUNT,
   SELF_DAMAGE_AMOUNT,
   M1_REACH,
@@ -166,8 +167,9 @@ class Room {
     };
   }
 
-  addBot(requesterId) {
+  addBot(requesterId, tutorial) {
     if (this.phase !== 'lobby' || requesterId !== this.hostId || this.isFull()) return;
+    this.tutorial = tutorial === true;
     this.botCounter = (this.botCounter || 0) + 1;
     const botId = `bot-${this.botCounter}`;
     this.addPlayer(botId, { readyState: 0, send() {} }, `Bot ${this.botCounter}`);
@@ -179,6 +181,7 @@ class Room {
     if (this.phase !== 'lobby' || requesterId !== this.hostId) return;
     const botIds = [...this.players.entries()].filter(([, p]) => p.isBot).map(([id]) => id);
     if (!botIds.length) return;
+    this.tutorial = false;
     this.removePlayer(botIds[botIds.length - 1]);
     this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
   }
@@ -687,7 +690,9 @@ class Room {
         entity.x = spawn.x;
         entity.z = spawn.z;
         patientIndex++;
-        this.gameState.patients[playerId] = { hp: PATIENT_HP_START, status: 'alive', maxHp: PATIENT_HP_MAX };
+        this.gameState.patients[playerId] = this.tutorial
+          ? { hp: TUTORIAL_PATIENT_HP_MAX / 2, status: 'alive', maxHp: TUTORIAL_PATIENT_HP_MAX }
+          : { hp: PATIENT_HP_START, status: 'alive', maxHp: PATIENT_HP_MAX };
       }
       entity.y = GROUND_Y;
       entity.velocityY = 0;
@@ -2179,6 +2184,7 @@ class Room {
     this.gameState.frozen = false;
     this.gameState.patients = {};
     this.gameState.zones = [];
+    this.tutorial = false;
     this.switchPhase('lobby', 'vuelta al lobby');
   }
 
