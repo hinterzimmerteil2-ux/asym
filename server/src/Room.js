@@ -345,7 +345,7 @@ class Room {
           if (sg.type === 'rhythm') {
             if (sg.beats.some((b, i) => !sg.scored.includes(i) && Math.abs(t - b) <= 60) && Math.random() < 0.92) this.applySelfDamage(botId, best.objectId);
           } else if (sg.type === 'needle') {
-            if (Math.abs(this.needlePos(sg, now) - sg.zones[sg.stage]) <= 0.07 && Math.random() < 0.6) this.applySelfDamage(botId, best.objectId);
+            if (Math.abs(this.needlePos(sg, now) - sg.zones[sg.stage]) <= 0.12 && Math.random() < 0.6) this.applySelfDamage(botId, best.objectId);
           } else if (now > (player.nextBotAct || 0)) {
             this.applySelfDamage(botId, best.objectId);
             player.nextBotAct = now + 200;
@@ -1896,16 +1896,16 @@ class Room {
     const type = this.gameState.selfDamageTypes[objectId] || 'rhythm';
     if (type === 'rhythm') {
       const beats = [];
-      let at = 800 + Math.random() * 200;
+      let at = 1000 + Math.random() * 200;
       for (let i = 0; i < SD_BEATS; i++) {
         beats.push(Math.round(at));
-        at += 620 + Math.random() * 380;
+        at += 850 + Math.random() * 400;
       }
       playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + beats[beats.length - 1] + SD_TOLERANCE_MS + 150, beats, scored: [], hits: 0 };
     } else if (type === 'needle') {
-      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 7000, period: 1500, stage: 0, hits: 0, zones: [0, 1, 2].map(() => 0.2 + Math.random() * 0.6), width: 0.16 };
+      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 10000, period: 2600, stage: 0, hits: 0, zones: [0, 1, 2].map(() => 0.2 + Math.random() * 0.6), width: 0.27 };
     } else {
-      playerEntity.selfDmg = { type: 'mash', objectId, startedAt: now, endsAt: now + 2600, count: 0, target: 9, hits: 0 };
+      playerEntity.selfDmg = { type: 'mash', objectId, startedAt: now, endsAt: now + 3600, count: 0, target: 6, hits: 0 };
     }
   }
 
