@@ -2005,15 +2005,15 @@ class Room {
       let at = 1000 + Math.random() * 200;
       for (let i = 0; i < count; i++) {
         beats.push(Math.round(at));
-        at += (double ? 750 : 850) + Math.random() * 400;
+        at += (double ? 675 : 765) + Math.random() * 360;
       }
       playerEntity.selfDmg = { type, objectId, variant: double ? 'doble' : 'normal', startedAt: now, endsAt: now + beats[beats.length - 1] + SD_TOLERANCE_MS + 150, beats, scored: [], hits: 0 };
     } else if (type === 'meter') {
-      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 7000, period: 2200, score: 0, hits: 0 };
+      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 7000, period: 2000, score: 0, hits: 0 };
     } else if (type === 'needle') {
-      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 10000, period: 2600, stage: 0, hits: 0, zones: [0, 1, 2].map(() => 0.2 + Math.random() * 0.6), width: 0.27 };
+      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 10000, period: 2340, stage: 0, hits: 0, zones: [0, 1, 2].map(() => 0.2 + Math.random() * 0.6), width: 0.243 };
     } else {
-      playerEntity.selfDmg = { type: 'mash', objectId, startedAt: now, endsAt: now + 3600, count: 0, target: 6, hits: 0 };
+      playerEntity.selfDmg = { type: 'mash', objectId, startedAt: now, endsAt: now + 3600, count: 0, target: 7, hits: 0 };
     }
   }
 
@@ -2040,7 +2040,7 @@ class Room {
     }
     if (game.type === 'meter') {
       const pos = this.needlePos(game, now);
-      game.score = Math.max(0, 1 - Math.abs(pos - 0.5) / 0.35);
+      game.score = Math.max(0, 1 - Math.abs(pos - 0.5) / 0.315);
       if (game.score > 0.85) this.award(playerId, 1, 'Auto-daño');
       this.finishSelfDamage(playerId, entity, now);
       return;
