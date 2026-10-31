@@ -23,13 +23,15 @@ import { loadDesgracias, saveDesgracias, priceOf, FREE_ITEMS, emptyQ, addQ, norm
 
 const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-function LiveScene({ store, replay, ...props }) {
+function LiveScene({ store, replay, waiting, ...props }) {
   const [, bump] = useReducer((n) => n + 1, 0);
   useEffect(() => {
     store.subs.add(bump);
     return () => { store.subs.delete(bump); };
   }, [store]);
   const frame = replay ? replay.frames[replay.i] : null;
+  const own = waiting ? store.entities[props.myPlayerId] : null;
+  if (waiting) return <GameScene {...props} entities={own ? { [props.myPlayerId]: { ...own, x: 0, y: 0, z: 0 } } : {}} ghosts={{}} revealedIds={undefined} />;
   return <GameScene {...props} entities={frame ? frame.entities : store.entities} ghosts={frame ? frame.ghosts : store.ghosts} revealedIds={frame ? undefined : store.revealed} />;
 }
 
@@ -791,15 +793,16 @@ export default function LobbyPage() {
             replay={replay}
             players={players}
             myPlayerId={myPlayerId}
-            phase={phase}
-            selfDamageObjects={selfDamageObjects}
-            zones={zones}
+            waiting={phase === 'action' && isAsymRole && spawnMs > 0}
+            phase={phase === 'action' && isAsymRole && spawnMs > 0 ? 'lobby' : phase}
+            selfDamageObjects={phase === 'action' && isAsymRole && spawnMs > 0 ? {} : selfDamageObjects}
+            zones={phase === 'action' && isAsymRole && spawnMs > 0 ? [] : zones}
             effects={effects}
             stunnedIds={stunnedIds}
             ragdollIds={ragdollIds}
-            collisionObjects={collisionObjects}
+            collisionObjects={phase === 'action' && isAsymRole && spawnMs > 0 ? [] : collisionObjects}
             matchHalf={matchHalf}
-            platforms={phase === 'action' ? platforms : lobbyPlatforms}
+            platforms={phase === 'action' && !(isAsymRole && spawnMs > 0) ? platforms : lobbyPlatforms}
             sendInput={handleSendInput}
             sendAction={handleSendAction}
             onPulse={handlePulse}
