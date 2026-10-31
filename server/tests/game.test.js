@@ -746,7 +746,7 @@ test('vida gigante solo en tutorial; partidas reales con vida normal', () => {
   assert.strictEqual(real.gameState.patients.a.maxHp, 120);
 });
 
-test('último en pie: al quedar un Paciente el tiempo baja a 1:30 y nunca sube', () => {
+test('último en pie: al quedar un Paciente el tiempo pasa a 1:30, suba o baje', () => {
   const { room, p } = setup();
   const { LMS_TIMER_RESET_MS } = require('../src/Constants');
   room.gameState.patientsInitialCount = 2;
@@ -756,6 +756,7 @@ test('último en pie: al quedar un Paciente el tiempo baja a 1:30 y nunca sube',
   room.checkLastStanding();
   assert.strictEqual(room.gameState.timeRemainingMs, LMS_TIMER_RESET_MS);
   room.gameState.timeRemainingMs = 20000;
+  room.gameState.lastStanding = false;
   room.checkLastStanding();
-  assert.strictEqual(room.gameState.timeRemainingMs, 20000);
+  assert.strictEqual(room.gameState.timeRemainingMs, LMS_TIMER_RESET_MS);
 });

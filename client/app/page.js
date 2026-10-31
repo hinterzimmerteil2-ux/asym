@@ -1084,7 +1084,7 @@ export default function LobbyPage() {
         {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} />}
         {phase === 'action' && <EventLayer events={mapEvents} posRef={myPosRef} />}
         {phase === 'action' && lmsUntil > 0 && (
-          <div style={sx(styles.resolvedBanner(false), { top: 200, fontSize: 18, maxWidth: '80%' })}>¡Último en pie! El tiempo baja a 1:30</div>
+          <div style={sx(styles.resolvedBanner(false), { top: 200, fontSize: 18, maxWidth: '80%' })}>¡Último en pie! El tiempo pasa a 1:30</div>
         )}
         {phase === 'lobby' && communityOpen && (
           <CommunityMaps

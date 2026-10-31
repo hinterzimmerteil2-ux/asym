@@ -2116,7 +2116,7 @@ class Room {
     const alive = Object.values(gs.patients).filter((p) => p.status === 'alive').length;
     if (alive !== 1) return;
     gs.lastStanding = true;
-    gs.timeRemainingMs = Math.min(gs.timeRemainingMs, LMS_TIMER_RESET_MS);
+    gs.timeRemainingMs = LMS_TIMER_RESET_MS;
     this.broadcast(MessageType.LAST_STANDING, { timeRemainingMs: gs.timeRemainingMs });
   }
 
