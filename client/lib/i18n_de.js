@@ -346,5 +346,7 @@ export const DE = [
 "Kleinbus-Schaffner",
 "Flaschenhiebe und Fallen",
 "Schreie und Teamlauf",
-"Hiebe und Fluchten"
+"Hiebe und Fluchten",
+"Du hast den Rhythmus verpasst",
+"Drücke [E] / klicke auf jede Markierung"
 ];

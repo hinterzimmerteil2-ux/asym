@@ -592,3 +592,29 @@ test('roles: fuerzan una carta, ofrecen secundarias afines y ocultan al Curador 
   const snaps = sent.a.filter((m) => m.type === 'state_snapshot');
   assert.ok(snaps.length && snaps[snaps.length - 1].payload.entities.c.gone === true);
 });
+
+test('auto-daño: minijuego de ritmo, perfecto hace más daño y fallar corta', () => {
+  const { room, clock, e, p } = setup();
+  room.mapId = 'hospital';
+  room.gameState.selfDamageObjectPositions = { o1: { x: 0, y: 0, z: 0 } };
+  const run = (hitAll) => {
+    room.gameState.selfDamageObjectPositions = { o1: { x: 0, y: 0, z: 0 } };
+    e.a.x = 0; e.a.z = 0; e.a.y = 0;
+    p.a.hp = 60; p.a.status = 'alive';
+    room.applySelfDamage('a', 'o1');
+    const game = e.a.selfDmg;
+    assert.ok(game);
+    const start = game.startedAt;
+    for (const b of game.beats.slice()) {
+      clock.t = start + b;
+      if (hitAll) room.applySelfDamage('a', 'o1');
+    }
+    clock.t = start + game.beats[game.beats.length - 1] + 400;
+    room.stepPhysics(0.05);
+  };
+  run(true);
+  assert.strictEqual(p.a.hp, 60 - (5 * 2 + 2));
+  run(false);
+  assert.strictEqual(p.a.hp, 60);
+  assert.strictEqual(e.a.selfDmg, null);
+});

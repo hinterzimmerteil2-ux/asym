@@ -16,6 +16,7 @@ import SkillIcon from '../components/SkillIcon';
 import HelpPanel from '../components/HelpPanel';
 import StatusColumn from '../components/StatusColumn';
 import RhythmBar from '../components/RhythmBar';
+import SelfDamageBar from '../components/SelfDamageBar';
 import TouchControls from '../components/TouchControls';
 import { KEYWORDS } from '../lib/keywords';
 import { ITEMS, COLORS, SLOT_LABELS } from '../lib/cosmetics';
@@ -155,6 +156,7 @@ export default function LobbyPage() {
   const [ragdollIds, setRagdollIds] = useState([]);
   const [channelNow, setChannelNow] = useState(0);
   const channelRef = useRef(null);
+  const sdRef = useRef(null);
   const entitiesRef = useRef({});
   const effectCounterRef = useRef(0);
   const [collisionObjects, setCollisionObjects] = useState([]);
@@ -274,6 +276,7 @@ export default function LobbyPage() {
               setRagdollIds((prev) => (sameValue(prev, rag) ? prev : rag));
             }
             channelRef.current = payload.flojera?.[myPlayerIdRef.current]?.channel ? { ...payload.flojera[myPlayerIdRef.current].channel, at: performance.now() } : null;
+            sdRef.current = payload.flojera?.[myPlayerIdRef.current]?.sdGame ? { ...payload.flojera[myPlayerIdRef.current].sdGame, at: performance.now() } : null;
             setPatients(payload.patients || {});
             setTimeRemainingMs(payload.timeRemainingMs ?? null);
             if (payload.flojera && myPlayerIdRef.current) {
@@ -291,7 +294,7 @@ export default function LobbyPage() {
             setLastActionFeedback(
               type === 'cure_result'
                 ? `Curaste a un Paciente (HP: ${payload.newHp})`
-                : `Te hiciste daño (HP: ${payload.newHp})`
+                : payload.failed ? 'Fallaste el ritmo' : payload.damage ? `Te hiciste ${payload.damage} de daño${payload.perfect ? ' (¡perfecto!)' : ''} (HP: ${payload.newHp})` : `Te hiciste daño (HP: ${payload.newHp})`
             );
             break;
           case 'curator_pulse_result': {
@@ -802,6 +805,7 @@ export default function LobbyPage() {
             ragdollIds={ragdollIds}
             collisionObjects={phase === 'action' && isAsymRole && spawnMs > 0 ? [] : collisionObjects}
             matchHalf={matchHalf}
+            sdActiveId={flojera?.sdGame?.objectId || null}
             platforms={phase === 'action' && !(isAsymRole && spawnMs > 0) ? platforms : lobbyPlatforms}
             sendInput={handleSendInput}
             sendAction={handleSendAction}
@@ -1043,6 +1047,7 @@ export default function LobbyPage() {
 
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
+        {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} />}
         {phase === 'lobby' && <TouchControls lobby />}
         {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
 

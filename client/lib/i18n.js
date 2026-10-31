@@ -349,6 +349,8 @@ const PAIRS = [
 ["Botellazos y trampas", "Bottle blows and traps"],
 ["Gritos y carrera en grupo", "Shouts and team running"],
 ["Tajos y escapes", "Slashes and escapes"],
+["Fallaste el ritmo", "You missed the rhythm"],
+["Pulsa [E] / clic en cada marca", "Press [E] / click on each mark"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

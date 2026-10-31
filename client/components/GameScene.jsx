@@ -491,8 +491,9 @@ function Ground({ halfSize, themed, pits }) {
   );
 }
 
-function SelfDamageObject({ position }) {
+function SelfDamageObject({ position, near, active }) {
   const groupRef = useRef();
+  const ringRef = useRef();
   const targetPos = useRef([position.x, position.y, position.z]);
 
   useEffect(() => {
@@ -505,11 +506,21 @@ function SelfDamageObject({ position }) {
     groupRef.current.position.x += (targetPos.current[0] - groupRef.current.position.x) * t;
     groupRef.current.position.y += (targetPos.current[1] - groupRef.current.position.y) * t;
     groupRef.current.position.z += (targetPos.current[2] - groupRef.current.position.z) * t;
+    if (ringRef.current) {
+      const k = 1 + 0.12 * Math.sin(performance.now() / 120);
+      ringRef.current.scale.set(k, k, k);
+    }
   });
 
   return (
     <group ref={groupRef} position={targetPos.current}>
-      <mesh position={[0, 0.4, 0]}>
+      {(near || active) && (
+        <mesh ref={ringRef} position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.9, 1.1, 32]} />
+          <meshBasicMaterial color={active ? '#ffffff' : '#ffd166'} transparent opacity={active ? 0.95 : 0.7} side={DoubleSide} />
+        </mesh>
+      )}
+      <mesh position={[0, 0.4, 0]} scale={active ? 1.3 : near ? 1.15 : 1}>
         <octahedronGeometry args={[0.4, 0]} />
         <meshStandardMaterial
           color={COLOR_SELF_DAMAGE_OBJECT}
@@ -1513,7 +1524,7 @@ function RampFrame({ p, color, opacity }) {
   );
 }
 
-function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, effects, opacity, cfg }) {
+function Hitboxes({ curatorIds, entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, effects, opacity, cfg }) {
   return (
     <>
       {(effects || []).filter((fx) => fx.boxes && Date.now() - fx.startedAt < 900).flatMap((fx) => fx.boxes.map((b, i) => (
@@ -1533,6 +1544,7 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
       {Object.entries(entities || {}).filter(([, entity]) => !entity.corpse && !entity.gone).map(([id, entity]) => (
         <group key={id}>
           <SquareFrame x={entity.x} z={entity.z} y={entity.y + cfg.height / 2} half={cfg.half} hy={cfg.height / 2} color="#e0555f" opacity={opacity} />
+          {curatorIds?.has(id) && <SquareFrame x={entity.x} z={entity.z} y={entity.y + cfg.height / 2} half={cfg.interact + cfg.half} hy={cfg.height / 2 + 1.5} color="#f2a154" opacity={opacity} />}
         </group>
       ))}
       {(collisionObjects || []).map((obj) => (
@@ -1554,7 +1566,7 @@ const MPlatform = memo(Platform);
 const MPit = memo(PitMesh);
 const MWallDecor = memo(WallDecor);
 const MCollisionObject = memo(CollisionObject);
-const MSelfDamageObject = memo(SelfDamageObject, (a, b) => a.position.x === b.position.x && a.position.y === b.position.y && a.position.z === b.position.z);
+const MSelfDamageObject = memo(SelfDamageObject, (a, b) => a.position.x === b.position.x && a.position.y === b.position.y && a.position.z === b.position.z && a.near === b.near && a.active === b.active);
 
 export default function GameScene({
   entities,
@@ -1569,6 +1581,7 @@ export default function GameScene({
   collisionObjects,
   platforms,
   matchHalf,
+  sdActiveId,
   revealedIds,
   sendInput,
   sendAction,
@@ -1590,6 +1603,7 @@ export default function GameScene({
   const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const areaHalfSize = phase === 'action' ? matchHalf || MATCH_HALF_SIZE : LOBBY_HALF_SIZE;
   const myEntity = ghostMode && ghosts?.[myPlayerId] ? ghosts[myPlayerId] : entities[followId || myPlayerId];
+  const curatorIds = useMemo(() => new Set(players.filter((p) => p.isAsymRole).map((p) => p.id)), [players]);
   const pits = useMemo(() => (phase === 'action' ? (platforms || []).filter((p) => p.kind === 'pit') : []), [platforms, phase]);
 
   return (
@@ -1613,6 +1627,7 @@ export default function GameScene({
 
       {hitboxes?.on && (
         <Hitboxes
+          curatorIds={curatorIds}
           entities={entities}
           myPlayerId={myPlayerId}
           collisionObjects={phase === 'action' ? collisionObjects : []}
@@ -1640,7 +1655,7 @@ export default function GameScene({
               sendAction('self_damage_action', { objectId });
             }}
           >
-            <MSelfDamageObject position={pos} />
+            <MSelfDamageObject position={pos} near={Boolean(myEntity) && Math.abs(myEntity.x - pos.x) < 2.2 && Math.abs(myEntity.z - pos.z) < 2.2 && Math.abs((myEntity.y || 0) - pos.y) < 2.5} active={sdActiveId === objectId} />
           </group>
         ))}
 

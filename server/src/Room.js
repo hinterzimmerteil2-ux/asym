@@ -15,6 +15,11 @@ const {
   PATIENT_HP_MIN,
   CURE_AMOUNT,
   SELF_DAMAGE_AMOUNT,
+  SD_BEATS,
+  SD_HIT_DAMAGE,
+  SD_PERFECT_BONUS,
+  SD_TOLERANCE_MS,
+  SD_FUMBLE_ENDLAG_MS,
   GAME_DURATION_MS,
   TIME_BONUS_MAX_MS,
   LMS_TIMER_RESET_MS,
@@ -327,7 +332,10 @@ class Room {
       if (bestDist <= INTERACTION_RADIUS - 0.3) {
         entity.input.moveX = 0;
         entity.input.moveZ = 0;
-        if (now > (player.nextBotAct || 0)) {
+        if (entity.selfDmg) {
+          const t = now - entity.selfDmg.startedAt;
+          if (entity.selfDmg.beats.some((b, i) => !entity.selfDmg.scored.includes(i) && Math.abs(t - b) <= 45) && Math.random() < 0.92) this.applySelfDamage(botId, best.objectId);
+        } else if (now > (player.nextBotAct || 0)) {
           this.applySelfDamage(botId, best.objectId);
           player.nextBotAct = now + 700;
         }
@@ -410,6 +418,7 @@ class Room {
       kbX: 0,
       kbZ: 0,
       channel: null,
+      selfDmg: null,
       faceX: 0,
       faceZ: 1,
       perezaLevel: 0,
@@ -680,6 +689,7 @@ class Room {
       entity.dashUntil = 0;
       entity.kbUntil = 0;
       entity.channel = null;
+      entity.selfDmg = null;
       entity.perezaLevel = 0;
       entity.acetilUntil = 0;
       entity.regenBlockedUntil = 0;
@@ -773,6 +783,7 @@ class Room {
           ragdoll: Status.active(own, 'ragdoll', now),
           statuses: this.buildStatuses(own, now),
           channel: own.channel ? { elapsed: now - own.channel.startedAt, total: CHANNEL_MS, beatMs: CHANNEL_BEAT_MS, beats: CHANNEL_BEATS, hits: own.channel.hits, scored: Object.keys(own.channel.scored).map(Number), slot: own.channel.slot } : null,
+          sdGame: own.selfDmg ? { objectId: own.selfDmg.objectId, elapsed: now - own.selfDmg.startedAt, total: own.selfDmg.endsAt - own.selfDmg.startedAt, beats: own.selfDmg.beats, scored: own.selfDmg.scored, tolerance: SD_TOLERANCE_MS } : null,
           cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
         };
       }
@@ -923,6 +934,7 @@ class Room {
         this.gameState.ghosts[entityPlayerId] = { x: entity.x, y: entity.y || 0, z: entity.z, faceX: entity.faceX || 0, faceZ: entity.faceZ || 1, visibleUntil: 0, uses: 0, cooldownUntil: 0, vy: 0, onGround: true };
       }
       if (entity.channel && entity.channel.endsAt <= now) entity.channel = null;
+      if (entity.selfDmg) this.tickSelfDamage(entityPlayerId, entity, now);
       if (Status.active(entity, 'ragdoll', now)) {
         if (!entity.rag) entity.rag = RagdollBody.create(entity, now);
         if (!RagdollBody.step(entity.rag, entity, entity.y || 0, dt)) entity.rag = RagdollBody.create(entity, now);
@@ -950,7 +962,7 @@ class Room {
         speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
       }
       speedMultiplier *= Status.speedFactor(entity, now);
-      if (entity.channel) speedMultiplier *= CHANNEL_SLOW;
+      if (entity.channel || entity.selfDmg) speedMultiplier *= CHANNEL_SLOW;
       if (entity.acetilUntil <= now && entity.fatigueUntil > now) speedMultiplier *= ACETIL_FATIGUE_FACTOR;
       if (allyCounts[entityPlayerId]) {
         entity.allyBoostUntil = now + 2000;
@@ -1825,39 +1837,93 @@ class Room {
       this.sendTo(playerId, MessageType.ERROR, { message: 'No eres un Paciente activo' });
       return;
     }
+    const playerEntity = this.gameState.entities[playerId];
+    if (!playerEntity) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'No se pudo validar la posición' });
+      return;
+    }
+    const now = Date.now();
+    const game = playerEntity.selfDmg;
+    if (game) {
+      const t = now - game.startedAt;
+      let bestIdx = -1;
+      let bestGap = Infinity;
+      game.beats.forEach((b, i) => {
+        if (game.scored.includes(i)) return;
+        const gap = Math.abs(t - b);
+        if (gap < bestGap) { bestGap = gap; bestIdx = i; }
+      });
+      if (bestIdx >= 0 && bestGap <= SD_TOLERANCE_MS) {
+        game.scored.push(bestIdx);
+        game.hits += 1;
+        this.award(playerId, 1, 'Auto-daño');
+        if (game.hits >= game.beats.length) this.finishSelfDamage(playerId, playerEntity, now);
+      } else {
+        playerEntity.selfDmg = null;
+        this.endlag(playerId, playerEntity, now, SD_FUMBLE_ENDLAG_MS);
+        this.sendTo(playerId, MessageType.SELF_DAMAGE_RESULT, { playerId, newHp: patient.hp, status: patient.status, objectId: game.objectId, damage: 0, hits: game.hits, failed: true });
+      }
+      return;
+    }
 
     const objectPos = this.gameState.selfDamageObjectPositions[objectId];
     if (!objectPos) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Ese objeto no existe' });
       return;
     }
-
-    const playerEntity = this.gameState.entities[playerId];
-    if (!playerEntity) {
-      this.sendTo(playerId, MessageType.ERROR, { message: 'No se pudo validar la posición' });
-      return;
-    }
     if (distanceBetween(playerEntity, objectPos) > INTERACTION_RADIUS) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Estás demasiado lejos de ese objeto' });
       return;
     }
+    if (Status.blocksSkills(playerEntity, now)) return;
+    const beats = [];
+    let at = 650 + Math.random() * 150;
+    for (let i = 0; i < SD_BEATS; i++) {
+      beats.push(Math.round(at));
+      at += 480 + Math.random() * 300;
+    }
+    playerEntity.selfDmg = { objectId, startedAt: now, endsAt: now + beats[beats.length - 1] + SD_TOLERANCE_MS + 150, beats, scored: [], hits: 0 };
+  }
 
-    patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - SELF_DAMAGE_AMOUNT);
-    this.award(playerId, 2, 'Auto-daño');
-    if (patient.hp <= PATIENT_HP_MIN) patient.status = 'self_won';
+  tickSelfDamage(playerId, entity, now) {
+    const game = entity.selfDmg;
+    const pos = this.gameState.selfDamageObjectPositions[game.objectId];
+    const patient = this.gameState.patients[playerId];
+    if (!pos || !patient || patient.status !== 'alive' || Status.blocksMove(entity, now) || distanceBetween(entity, pos) > INTERACTION_RADIUS + 0.4) {
+      entity.selfDmg = null;
+      return;
+    }
+    const t = now - game.startedAt;
+    const missed = game.beats.some((b, i) => !game.scored.includes(i) && t > b + SD_TOLERANCE_MS);
+    if (missed || now >= game.endsAt) this.finishSelfDamage(playerId, entity, now);
+  }
 
-    const allPositions = this.selfDamageCandidates();
-    const otherPositions = allPositions.filter((p) => p.id !== objectId);
-    const pool = otherPositions.length ? otherPositions : allPositions;
-    const newPos = pool[Math.floor(Math.random() * pool.length)];
-    this.gameState.selfDamageObjectPositions[objectId] = { x: newPos.x, y: newPos.y, z: newPos.z };
-
+  finishSelfDamage(playerId, entity, now) {
+    const game = entity.selfDmg;
+    entity.selfDmg = null;
+    const patient = this.gameState.patients[playerId];
+    if (!game || !patient || patient.status !== 'alive') return;
+    const perfect = game.hits >= game.beats.length;
+    const damage = game.hits * SD_HIT_DAMAGE + (perfect ? SD_PERFECT_BONUS : 0);
+    if (perfect) this.award(playerId, 4, 'Auto-daño perfecto');
+    if (damage > 0) {
+      patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - damage);
+      if (patient.hp <= PATIENT_HP_MIN) patient.status = 'self_won';
+      const allPositions = this.selfDamageCandidates();
+      const otherPositions = allPositions.filter((p) => p.id !== game.objectId);
+      const pool = otherPositions.length ? otherPositions : allPositions;
+      const newPos = pool[Math.floor(Math.random() * pool.length)];
+      this.gameState.selfDamageObjectPositions[game.objectId] = { x: newPos.x, y: newPos.y, z: newPos.z };
+    }
     this.sendTo(playerId, MessageType.SELF_DAMAGE_RESULT, {
       playerId,
       newHp: patient.hp,
       status: patient.status,
-      objectId,
-      objectNewPosition: this.gameState.selfDamageObjectPositions[objectId],
+      objectId: game.objectId,
+      objectNewPosition: this.gameState.selfDamageObjectPositions[game.objectId],
+      damage,
+      hits: game.hits,
+      perfect,
     });
     this.checkGameEndConditions();
   }
