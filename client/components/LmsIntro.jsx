@@ -1,0 +1,124 @@
+'use client';
+import { useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+
+const PATIENT = '#5fd58c';
+const CURATOR = '#f2a154';
+const SKIN = '#f2d27a';
+const PANTS = '#3a3d52';
+
+function Fighter({ color, side, coat }) {
+  const root = useRef();
+  const armL = useRef();
+  const armR = useRef();
+  const legL = useRef();
+  const legR = useRef();
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    const lunge = Math.max(0, Math.sin(t * 5 + (side > 0 ? 0 : Math.PI / 2)));
+    if (root.current) {
+      root.current.position.x = side * (1.55 - lunge * 0.5);
+      root.current.position.y = Math.abs(Math.sin(t * 6)) * 0.08;
+      root.current.rotation.z = -side * lunge * 0.12;
+    }
+    const raise = -1.35 - lunge * 0.5;
+    if (armL.current) armL.current.rotation.x = raise + Math.sin(t * 9) * 0.1;
+    if (armR.current) armR.current.rotation.x = raise - Math.sin(t * 9) * 0.1;
+    if (legL.current) legL.current.rotation.x = Math.sin(t * 6) * 0.35;
+    if (legR.current) legR.current.rotation.x = -Math.sin(t * 6) * 0.35;
+  });
+  return (
+    <group ref={root} rotation={[0, side > 0 ? -Math.PI / 2 : Math.PI / 2, 0]}>
+      <group rotation={[0, 0, 0]}>
+        <mesh position={[0, 0.2, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+        {coat && <mesh position={[0, 0.25, 0.19]}><boxGeometry args={[0.34, 0.1, 0.02]} /><meshStandardMaterial color={color} /></mesh>}
+        {coat && <mesh position={[0, 0.25, 0.19]}><boxGeometry args={[0.1, 0.34, 0.02]} /><meshStandardMaterial color="#ffffff" /></mesh>}
+        <mesh position={[0, 0.75, 0]}><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
+        <mesh position={[0.07, 0.8, 0.17]}><boxGeometry args={[0.05, 0.05, 0.02]} /><meshStandardMaterial color="#222" /></mesh>
+        <mesh position={[-0.07, 0.8, 0.17]}><boxGeometry args={[0.05, 0.05, 0.02]} /><meshStandardMaterial color="#222" /></mesh>
+        <group ref={armL} position={[-0.54, 0.5, 0]}><mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh></group>
+        <group ref={armR} position={[0.54, 0.5, 0]}><mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh></group>
+        <group ref={legL} position={[-0.18, -0.16, 0]}><mesh position={[0, -0.36, 0]}><boxGeometry args={[0.34, 0.72, 0.36]} /><meshStandardMaterial color={PANTS} roughness={0.6} /></mesh></group>
+        <group ref={legR} position={[0.18, -0.16, 0]}><mesh position={[0, -0.36, 0]}><boxGeometry args={[0.34, 0.72, 0.36]} /><meshStandardMaterial color={PANTS} roughness={0.6} /></mesh></group>
+      </group>
+    </group>
+  );
+}
+
+function Spark() {
+  const ref = useRef();
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    if (!ref.current) return;
+    const s = 0.5 + Math.abs(Math.sin(t * 5)) * 0.7;
+    ref.current.scale.setScalar(s);
+    ref.current.rotation.z = t * 6;
+    ref.current.rotation.y = t * 4;
+  });
+  return (
+    <mesh ref={ref} position={[0, 0.65, 0.4]}>
+      <octahedronGeometry args={[0.35, 0]} />
+      <meshBasicMaterial color="#ffe27a" />
+    </mesh>
+  );
+}
+
+const LINES = ['LAST', 'MORON', 'STANDING'];
+const TINTS = ['#ffd166', '#ff5d6c', '#5fd58c'];
+
+export default function LmsIntro() {
+  return (
+    <div translate="no" style={{ position: 'absolute', inset: 0, zIndex: 8, pointerEvents: 'none', overflow: 'hidden', animation: 'lmsFade 5.5s forwards' }}>
+      <style>{`
+@keyframes lmsFade{0%{opacity:0}8%{opacity:1}85%{opacity:1}100%{opacity:0}}
+@keyframes lmsSlam{0%{transform:translateY(-140px) scale(3) rotate(var(--r));opacity:0}55%{transform:translateY(8px) scale(0.94) rotate(var(--r));opacity:1}75%{transform:translateY(-4px) scale(1.04) rotate(var(--r))}100%{transform:translateY(0) scale(1) rotate(var(--r))}}
+@keyframes lmsShake{0%,100%{transform:translate(0,0)}20%{transform:translate(-3px,2px)}40%{transform:translate(3px,-2px)}60%{transform:translate(-2px,-3px)}80%{transform:translate(2px,3px)}}
+@keyframes lmsFlash{0%{opacity:.85}100%{opacity:0}}
+`}</style>
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 50%, rgba(10,6,20,0.55) 0, rgba(4,2,10,0.88) 100%)' }} />
+      <div style={{ position: 'absolute', inset: 0, background: '#fff', animation: 'lmsFlash .5s forwards' }} />
+      <div style={{ position: 'absolute', top: '5%', left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', animation: 'lmsShake .35s 6' }}>
+        {LINES.map((word, li) => (
+          <div key={word} style={{ display: 'flex', justifyContent: 'center', lineHeight: 0.9 }}>
+            {word.split('').map((ch, i) => {
+              const r = ((i * 7 + li * 5) % 9) - 4;
+              return (
+                <span
+                  key={i}
+                  style={{
+                    '--r': `${r * 2.2}deg`,
+                    display: 'inline-block',
+                    fontFamily: 'Impact, "Arial Black", sans-serif',
+                    fontWeight: 900,
+                    textTransform: 'uppercase',
+                    fontSize: li === 1 ? 'min(21vw, 128px)' : 'min(15vw, 92px)',
+                    color: TINTS[li],
+                    WebkitTextStroke: '3px #12131a',
+                    textShadow: '0 5px 0 #12131a, 0 10px 0 rgba(0,0,0,0.5), 0 0 28px ' + TINTS[li],
+                    letterSpacing: 2,
+                    transform: `rotate(${r * 2.2}deg)`,
+                    animation: `lmsSlam .6s ${li * 0.35 + i * 0.05}s both cubic-bezier(.2,1.4,.4,1)`,
+                  }}
+                >
+                  {ch}
+                </span>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '52%' }}>
+        <Canvas camera={{ position: [0, 0.9, 4.6], fov: 40 }} gl={{ alpha: true }} style={{ background: 'transparent' }}>
+          <ambientLight intensity={0.8} />
+          <directionalLight position={[3, 5, 6]} intensity={1.3} />
+          <pointLight position={[0, 1, 2]} intensity={2} color="#ffd166" />
+          <group position={[0, 0.05, 0]}>
+            <Fighter color={PATIENT} side={-1} />
+            <Fighter color={CURATOR} side={1} coat />
+            <Spark />
+          </group>
+        </Canvas>
+      </div>
+    </div>
+  );
+}

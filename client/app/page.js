@@ -19,6 +19,7 @@ import RhythmBar from '../components/RhythmBar';
 import SelfDamageBar from '../components/SelfDamageBar';
 import EventLayer from '../components/EventLayer';
 import CommunityMaps from '../components/CommunityMaps';
+import LmsIntro from '../components/LmsIntro';
 import TouchControls from '../components/TouchControls';
 import { KEYWORDS } from '../lib/keywords';
 import { ITEMS, COLORS, SLOT_LABELS } from '../lib/cosmetics';
@@ -357,8 +358,8 @@ export default function LobbyPage() {
             setHand((prev) => prev.map((slot, i) => (i === payload.slot ? { ...slot, chosen: payload.card } : slot)));
             break;
           case 'last_standing':
-            setLmsUntil(Date.now() + 5000);
-            setTimeout(() => setLmsUntil(0), 5000);
+            setLmsUntil(Date.now() + 5500);
+            setTimeout(() => setLmsUntil(0), 5500);
             break;
           case 'hit_fx': {
             const effect = { id: `fx${++effectCounterRef.current}`, casterId: payload.playerId, kind: 'hit', boxes: payload.boxes, startedAt: Date.now() };
@@ -1083,8 +1084,9 @@ export default function LobbyPage() {
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
         {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} />}
         {phase === 'action' && <EventLayer events={mapEvents} posRef={myPosRef} />}
+        {phase === 'action' && lmsUntil > 0 && <LmsIntro />}
         {phase === 'action' && lmsUntil > 0 && (
-          <div style={sx(styles.resolvedBanner(false), { top: 200, fontSize: 18, maxWidth: '80%' })}>¡Último en pie! El tiempo pasa a 1:30</div>
+          <div style={sx(styles.resolvedBanner(false), { top: 'auto', bottom: 14, fontSize: 16, maxWidth: '80%', zIndex: 9 })}>El tiempo pasa a 1:30</div>
         )}
         {phase === 'lobby' && communityOpen && (
           <CommunityMaps
