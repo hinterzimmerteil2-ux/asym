@@ -350,5 +350,15 @@ export const DE = [
 "Du hast den Rhythmus verpasst",
 "Drücke [E] / klicke auf jede Markierung",
 "Nadel: drücke [E] / klicke, wenn sie in der Zone ist",
-"Hämmere [E] / klicke!"
+"Hämmere [E] / klicke!",
+"Stromausfall in",
+"Stromausfall",
+"Türen schließen in",
+"Türen verriegelt",
+"Türen öffnen in",
+"Türen offen",
+"Alarm in",
+"Alarm: alle Patienten sind sichtbar",
+"Objekte werden verlegt in",
+"Objekte verlegt"
 ];

@@ -17,6 +17,7 @@ import HelpPanel from '../components/HelpPanel';
 import StatusColumn from '../components/StatusColumn';
 import RhythmBar from '../components/RhythmBar';
 import SelfDamageBar from '../components/SelfDamageBar';
+import EventLayer from '../components/EventLayer';
 import TouchControls from '../components/TouchControls';
 import { KEYWORDS } from '../lib/keywords';
 import { ITEMS, COLORS, SLOT_LABELS } from '../lib/cosmetics';
@@ -175,6 +176,8 @@ export default function LobbyPage() {
   const [cardCatalog, setCardCatalog] = useState([]);
   const [helpOpen, setHelpOpen] = useState(false);
   const [spawnMs, setSpawnMs] = useState(0);
+  const [mapEvents, setMapEvents] = useState([]);
+  const myPosRef = useRef(null);
   const [hitboxes, setHitboxes] = useState({ on: false, opacity: 0.8 });
   const [maps, setMaps] = useState([]);
   const [mapId, setMapId] = useState('default');
@@ -270,6 +273,11 @@ export default function LobbyPage() {
             setZones((prev) => (sameValue(prev, payload.zones || []) ? prev : payload.zones || []));
             setCuratorHp(payload.curator || null);
             setSpawnMs(payload.spawnMs || 0);
+            setMapEvents((prev) => (sameValue(prev, payload.events || []) ? prev : payload.events || []));
+            {
+              const me = (payload.entities || {})[myPlayerIdRef.current];
+              myPosRef.current = me ? { x: me.x, y: me.y || 0, z: me.z } : null;
+            }
             entitiesRef.current = payload.entities || {};
             {
               const stun = Object.entries(payload.flojera || {}).filter(([, v]) => v.stunned).map(([id]) => id);
@@ -1056,6 +1064,7 @@ export default function LobbyPage() {
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
         {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} />}
+        {phase === 'action' && <EventLayer events={mapEvents} posRef={myPosRef} />}
         {phase === 'lobby' && <TouchControls lobby />}
         {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
 

@@ -130,6 +130,9 @@ const DEFAULT_MAP_LAYOUT = {
   });
 })();
 
+const MINIGAMES = ['rhythm', 'needle', 'mash'];
+const EVENT_KINDS = ['blackout', 'gates', 'alarm', 'shuffle'];
+
 const HOSPITAL_LAYOUT = (() => {
   const half = MATCH_AREA.halfSize;
   const platforms = [];
@@ -192,7 +195,13 @@ const HOSPITAL_LAYOUT = (() => {
   sd('sd_base_2', -22, 1.5);
   sd('sd_base_3', 22, -1.5);
   sd('sd_plaza', 0, 8);
-  return { id: 'hospital', name: 'Hospital de varios pisos', selfDamageObjects, collisionObjects, platforms };
+  const events = sanitizeEvents([
+    { id: 'ev_blackout_base', kind: 'blackout', startSec: 70, warnSec: 8, durSec: 18, repeatSec: 110, rFrac: 0, yMax: -0.5 },
+    { id: 'ev_gates_lock', kind: 'gates', mode: 'lock', startSec: 100, warnSec: 8, durSec: 15, repeatSec: 140 },
+    { id: 'ev_alarm', kind: 'alarm', startSec: 150, warnSec: 6, durSec: 6, repeatSec: 150 },
+    { id: 'ev_shuffle', kind: 'shuffle', startSec: 120, warnSec: 5, durSec: 1, repeatSec: 120 },
+  ]);
+  return { id: 'hospital', name: 'Hospital de varios pisos', selfDamageObjects, collisionObjects, platforms, events };
 })();
 
 const HOSPITAL_SPAWNS = [
@@ -235,7 +244,9 @@ function registerMap(layout) {
       id: String(o.id),
       xFrac: clampFrac(o.xFrac),
       zFrac: clampFrac(o.zFrac),
+      minigame: MINIGAMES.includes(o.minigame) ? o.minigame : null,
     })),
+    events: sanitizeEvents(layout.events),
     collisionObjects: layout.collisionObjects.map((o) => ({
       id: String(o.id),
       type: typeof o.type === 'string' ? o.type : 'gurney',
@@ -261,6 +272,33 @@ function registerMap(layout) {
   return MAPS[layout.id];
 }
 
+
+function sanitizeEvents(list) {
+  const num = (v, lo, hi, d) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : d;
+  };
+  return (Array.isArray(list) ? list : []).slice(0, 24).filter((e) => e && EVENT_KINDS.includes(e.kind)).map((e, i) => ({
+    id: typeof e.id === 'string' ? e.id.slice(0, 40) : `ev_${i}`,
+    kind: e.kind,
+    mode: e.mode === 'open' ? 'open' : 'lock',
+    startSec: num(e.startSec, 0, 3600, 60),
+    warnSec: num(e.warnSec, 0, 60, 8),
+    durSec: num(e.durSec, 1, 600, 20),
+    repeatSec: num(e.repeatSec, 0, 3600, 0),
+    xFrac: clampFrac(e.xFrac),
+    zFrac: clampFrac(e.zFrac),
+    rFrac: num(e.rFrac, 0, 2, 0),
+    yMin: e.yMin === null || e.yMin === undefined || e.yMin === '' ? null : num(e.yMin, -40, 80, null),
+    yMax: e.yMax === null || e.yMax === undefined || e.yMax === '' ? null : num(e.yMax, -40, 80, null),
+  }));
+}
+
+function getEvents(mapId) {
+  const layout = MAPS[mapId] || MAPS[DEFAULT_MAP_ID];
+  return layout.events || [];
+}
+
 function clampFrac(n) {
   const v = Number(n);
   if (Number.isNaN(v)) return 0;
@@ -283,6 +321,7 @@ function resolveSelfDamagePositions(mapId, area) {
     id: obj.id,
     x: obj.xFrac * area.halfSize,
     z: obj.zFrac * area.halfSize,
+    minigame: obj.minigame || null,
   }));
 }
 
@@ -366,6 +405,8 @@ function getCuratorSpawn(mapId, pick) {
 }
 
 module.exports = {
+  getEvents,
+  sanitizeEvents,
   LOBBY_AREA,
   LOBBY_PLATFORMS,
   MATCH_AREA,

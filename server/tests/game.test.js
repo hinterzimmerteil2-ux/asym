@@ -680,3 +680,22 @@ test('auto-daño: aguja y machacar dan hasta 12 de daño', () => {
   room.applySelfDamage('a', 'o1');
   assert.ok(p.a.hp >= 48);
 });
+
+test('eventos del mapa: avisan, se activan y repiten; minijuego fijo por objeto', () => {
+  const GameMap = require('../src/GameMap');
+  GameMap.registerMap({
+    id: 'evtest', name: 'ev', selfDamageObjects: [{ id: 's1', xFrac: 0, zFrac: 0, minigame: 'needle' }], collisionObjects: [],
+    events: [{ id: 'g', kind: 'gates', mode: 'lock', startSec: 30, warnSec: 5, durSec: 10, repeatSec: 60 }],
+  });
+  assert.strictEqual(GameMap.getEvents('evtest')[0].durSec, 10);
+  assert.strictEqual(GameMap.resolveSelfDamagePositions('evtest', GameMap.areaFor('evtest'))[0].minigame, 'needle');
+  const { room } = setup();
+  room.mapId = 'evtest';
+  const at = (sec) => { room.gameState.timeRemainingMs = require('../src/Constants').GAME_DURATION_MS - sec * 1000; return room.eventPhases(); };
+  assert.strictEqual(at(10).length, 0);
+  assert.strictEqual(at(26)[0].phase, 'warn');
+  assert.strictEqual(at(32)[0].phase, 'active');
+  assert.strictEqual(at(45).length, 0);
+  assert.strictEqual(at(88)[0].phase, 'warn');
+  assert.strictEqual(at(95)[0].phase, 'active');
+});

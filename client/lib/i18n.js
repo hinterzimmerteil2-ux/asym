@@ -353,6 +353,16 @@ const PAIRS = [
 ["Pulsa [E] / clic en cada marca", "Press [E] / click on each mark"],
 ["Aguja: pulsa [E] / clic cuando esté en la zona", "Needle: press [E] / click when it is in the zone"],
 ["¡Machaca [E] / clic!", "Mash [E] / click!"],
+["¡Apagón en", "Blackout in"],
+["Apagón", "Blackout"],
+["¡Puertas cerradas en", "Doors locking in"],
+["Puertas cerradas", "Doors locked"],
+["¡Puertas abiertas en", "Doors opening in"],
+["Puertas abiertas", "Doors open"],
+["¡Alarma en", "Alarm in"],
+["Alarma: se ve a todos los Pacientes", "Alarm: every Patient is visible"],
+["¡Reubicación de objetos en", "Objects relocating in"],
+["Objetos reubicados", "Objects relocated"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

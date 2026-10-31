@@ -199,6 +199,8 @@ export default function MapEditorPage() {
   const [curatorSpawns, setCuratorSpawns] = useState([]);
   const [patientSpawns, setPatientSpawns] = useState([]);
   const [platforms, setPlatforms] = useState([]);
+  const [mapEvents, setMapEvents] = useState([]);
+  const [selEvent, setSelEvent] = useState(null);
   const [buildTex, setBuildTex] = useState('');
   const [buildY0, setBuildY0] = useState(0);
   const [buildTint, setBuildTint] = useState('#ffffff');
@@ -334,7 +336,9 @@ export default function MapEditorPage() {
         id: o.id,
         xFrac: round3(o.xFrac),
         zFrac: round3(o.zFrac),
+        minigame: o.minigame || null,
       })),
+      events: mapEvents.map((e) => ({ ...e })),
       collisionObjects: collisionObjects.map((o) => ({
         id: o.id,
         type: o.type,
@@ -391,6 +395,8 @@ export default function MapEditorPage() {
   }
 
   function handleClear() {
+    setMapEvents([]);
+    setSelEvent(null);
     setSelfDamageObjects([]);
     setCollisionObjects([]);
     setPlatforms([]);
@@ -536,6 +542,84 @@ export default function MapEditorPage() {
             </div>
           )}
 
+          {selfDamageObjects.length > 0 && (
+            <div style={styles.countsBox}>
+              <p style={styles.countLine}>Minijuego por bloque de auto-daño</p>
+              <div style={{ maxHeight: 150, overflowY: 'auto' }}>
+                {selfDamageObjects.map((o) => (
+                  <div key={o.id} style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 2 }}>
+                    <span style={{ fontSize: 10, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.id}</span>
+                    <select value={o.minigame || ''} onChange={(e) => setSelfDamageObjects((prev) => prev.map((q) => (q.id === o.id ? { ...q, minigame: e.target.value || null } : q)))}>
+                      <option value="">Al azar</option>
+                      <option value="rhythm">Ritmo</option>
+                      <option value="needle">Aguja</option>
+                      <option value="mash">Machacar</option>
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={styles.countsBox}>
+            <p style={styles.countLine}>Eventos del mapa vivo: {mapEvents.length}</p>
+            <button style={styles.toolButton(false, '#9aa5ff')} onClick={() => {
+              const ev = { id: generateId('ev'), kind: 'blackout', mode: 'lock', startSec: 60, warnSec: 8, durSec: 20, repeatSec: 0, xFrac: 0, zFrac: 0, rFrac: 0, yMin: null, yMax: null };
+              setMapEvents((prev) => [...prev, ev]);
+              setSelEvent(ev.id);
+            }}>+ Evento</button>
+            {mapEvents.map((e) => (
+              <div key={e.id} style={{ marginTop: 4, padding: 4, border: `1px solid ${e.id === selEvent ? '#facc15' : '#3d4a42'}`, borderRadius: 6 }}>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <button style={{ fontSize: 11 }} onClick={() => setSelEvent(e.id === selEvent ? null : e.id)}>{e.id === selEvent ? '▾' : '▸'}</button>
+                  <select value={e.kind} onChange={(ev) => setMapEvents((prev) => prev.map((q) => (q.id === e.id ? { ...q, kind: ev.target.value } : q)))}>
+                    <option value="blackout">Apagón</option>
+                    <option value="gates">Puertas del Curador</option>
+                    <option value="alarm">Alarma (revela Pacientes)</option>
+                    <option value="shuffle">Reubicar auto-daño</option>
+                  </select>
+                  <span style={{ fontSize: 11 }}>a los {e.startSec}s</span>
+                  <button style={{ fontSize: 11, marginLeft: 'auto' }} onClick={() => setMapEvents((prev) => prev.filter((q) => q.id !== e.id))}>✕</button>
+                </div>
+                {e.id === selEvent && (() => {
+                  const upd = (patch) => setMapEvents((prev) => prev.map((q) => (q.id === e.id ? { ...q, ...patch } : q)));
+                  const num = (label, key, min, max, step) => (
+                    <label style={styles.countLine}>{label}: {e[key]}
+                      <input type="range" min={min} max={max} step={step} value={e[key]} onChange={(ev) => upd({ [key]: parseFloat(ev.target.value) })} style={{ width: '100%' }} />
+                    </label>
+                  );
+                  return (
+                    <div>
+                      {e.kind === 'gates' && (
+                        <p style={styles.countLine}>
+                          Modo:{' '}
+                          <button style={styles.toolButton(e.mode === 'lock', '#ffb454')} onClick={() => upd({ mode: 'lock' })}>Cierra al Curador</button>{' '}
+                          <button style={styles.toolButton(e.mode === 'open', '#5fd58c')} onClick={() => upd({ mode: 'open' })}>Abre a Pacientes</button>
+                        </p>
+                      )}
+                      {num('Empieza (s)', 'startSec', 0, 900, 5)}
+                      {num('Aviso previo (s)', 'warnSec', 0, 30, 1)}
+                      {e.kind !== 'shuffle' && num('Dura (s)', 'durSec', 1, 120, 1)}
+                      {num('Se repite cada (s, 0 = una vez)', 'repeatSec', 0, 600, 5)}
+                      {e.kind === 'blackout' && (
+                        <>
+                          {num('Centro X', 'xFrac', -1, 1, 0.05)}
+                          {num('Centro Z', 'zFrac', -1, 1, 0.05)}
+                          {num('Radio (0 = todo el mapa)', 'rFrac', 0, 2, 0.05)}
+                          <label style={styles.countLine}>Altura mínima:{' '}
+                            <input type="number" style={{ width: 60 }} value={e.yMin ?? ''} placeholder="—" onChange={(ev) => upd({ yMin: ev.target.value === '' ? null : parseFloat(ev.target.value) })} />
+                            {' '}máxima:{' '}
+                            <input type="number" style={{ width: 60 }} value={e.yMax ?? ''} placeholder="—" onChange={(ev) => upd({ yMax: ev.target.value === '' ? null : parseFloat(ev.target.value) })} />
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            ))}
+          </div>
+
           <div style={styles.countsBox}>
             <p style={styles.countLine}>Bloques y rampas: {platforms.length}</p>
             <p style={styles.countLine}>Spawns de Curador: {curatorSpawns.length} (al azar si hay varios; sin ninguno, el centro)</p>
@@ -650,6 +734,10 @@ export default function MapEditorPage() {
             <text x={CANVAS_HALF + 8} y={CANVAS_HALF - 8} fontSize={11} fill="#5468ff">
               Centro (spawn Curador)
             </text>
+
+            {mapEvents.filter((e) => e.id === selEvent && e.kind === 'blackout' && e.rFrac > 0).map((e) => (
+              <circle key={e.id} cx={e.xFrac * CANVAS_HALF + CANVAS_HALF} cy={e.zFrac * CANVAS_HALF + CANVAS_HALF} r={e.rFrac * CANVAS_HALF} fill="#1b1f4a" fillOpacity={0.22} stroke="#5468ff" strokeDasharray="6 4" />
+            ))}
 
             {platforms.map((p) => {
               const w = p.hxFrac * REF_HALF / MAP_HALF * CANVAS_HALF;

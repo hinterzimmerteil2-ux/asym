@@ -731,13 +731,83 @@ class Room {
     this.gameState.selfDamageObjectPositions = {};
     this.gameState.selfDamageTypes = {};
     const selfDamagePositions = this.selfDamageCandidates();
+    this.fixedMinigames = {};
+    for (const o of GameMap.resolveSelfDamagePositions(this.mapId, GameMap.areaFor(this.mapId))) if (o.minigame) this.fixedMinigames[o.id] = o.minigame;
+    this.gameState.eventsFired = {};
+    this.gameState.eventsView = [];
     for (const obj of selfDamagePositions) {
       this.gameState.selfDamageObjectPositions[obj.id] = { x: obj.x, y: obj.y, z: obj.z };
-      this.gameState.selfDamageTypes[obj.id] = this.randomMinigame();
+      this.gameState.selfDamageTypes[obj.id] = this.randomMinigame(obj.id);
     }
   }
 
-  randomMinigame() {
+  eventPhases() {
+    const elapsed = GAME_DURATION_MS - this.gameState.timeRemainingMs;
+    const out = [];
+    for (const ev of GameMap.getEvents(this.mapId)) {
+      let n = 0;
+      if (ev.repeatSec > 0 && elapsed > ev.startSec * 1000 + ev.durSec * 1000) {
+        n = Math.floor((elapsed - ev.startSec * 1000) / (ev.repeatSec * 1000));
+      }
+      let found = null;
+      for (const k of [n, n + 1]) {
+        if (k > 0 && ev.repeatSec <= 0) continue;
+        const t0 = ev.startSec * 1000 + k * ev.repeatSec * 1000;
+        if (elapsed >= t0 && elapsed < t0 + ev.durSec * 1000) found = { ev, phase: 'active', k, msLeft: t0 + ev.durSec * 1000 - elapsed };
+        else if (elapsed < t0 && elapsed >= t0 - ev.warnSec * 1000) found = found || { ev, phase: 'warn', k, msTo: t0 - elapsed };
+      }
+      if (found) out.push(found);
+    }
+    return out;
+  }
+
+  tickEvents(now) {
+    const phases = this.eventPhases();
+    this.gameState.eventsView = phases;
+    this.gameState.eventsFired = this.gameState.eventsFired || {};
+    for (const p of phases) {
+      if (p.phase !== 'active') continue;
+      const key = `${p.ev.id}:${p.k}`;
+      if (p.ev.kind === 'alarm') {
+        for (const [id, patient] of Object.entries(this.gameState.patients)) {
+          const ent = this.gameState.entities[id];
+          if (patient.status === 'alive' && ent) Status.apply(ent, 'reveal', 400, now);
+        }
+      }
+      if (p.ev.kind === 'shuffle' && !this.gameState.eventsFired[key]) {
+        this.gameState.eventsFired[key] = true;
+        this.relocateSelfDamageObjects(now);
+        for (const id of Object.keys(this.gameState.selfDamageObjectPositions)) this.gameState.selfDamageTypes[id] = this.randomMinigame(id);
+      }
+    }
+  }
+
+  gatesState() {
+    let mode = null;
+    for (const p of this.gameState.eventsView || []) {
+      if (p.phase === 'active' && p.ev.kind === 'gates') mode = p.ev.mode;
+    }
+    return mode;
+  }
+
+  eventsFor() {
+    return (this.gameState.eventsView || []).map((p) => ({
+      id: p.ev.id,
+      kind: p.ev.kind,
+      mode: p.ev.mode,
+      phase: p.phase,
+      ms: p.phase === 'warn' ? p.msTo : p.msLeft,
+      x: p.ev.xFrac * GameMap.areaFor(this.mapId).halfSize,
+      z: p.ev.zFrac * GameMap.areaFor(this.mapId).halfSize,
+      r: p.ev.rFrac * GameMap.areaFor(this.mapId).halfSize,
+      yMin: p.ev.yMin,
+      yMax: p.ev.yMax,
+    }));
+  }
+
+  randomMinigame(objectId) {
+    const fixed = objectId && this.fixedMinigames && this.fixedMinigames[objectId];
+    if (fixed) return fixed;
     const kinds = ['rhythm', 'needle', 'mash'];
     return kinds[Math.floor(Math.random() * kinds.length)];
   }
@@ -754,6 +824,7 @@ class Room {
       if (this.gameState.timeRemainingMs === 0) this.endGame('timeout');
     }
 
+    if (this.phase === 'action' && !this.gameState.gameOver) this.tickEvents(now);
     this.stepPhysics(dt);
     this.tickGhosts(dt);
     this.tickPereza(now, dt);
@@ -819,6 +890,7 @@ class Room {
         selfDamageObjects: this.gameState.selfDamageObjectPositions,
         selfDamageTypes: this.gameState.selfDamageTypes,
         curator: player.isAsymRole ? this.gameState.curator : null,
+        events: this.eventsFor(),
         spawnMs: player.isAsymRole ? Math.max(0, (this.gameState.curatorReleaseAt || 0) - now) : 0,
         zones,
         revealed: player.isAsymRole ? Object.entries(this.gameState.entities).filter(([, e]) => Status.active(e, 'reveal', now)).map(([id]) => id) : [],
@@ -911,7 +983,9 @@ class Room {
       this.phase === 'action' ? GameMap.resolveCollisionObjects(this.mapId, GameMap.areaFor(this.mapId)) : [];
     const allPlatforms =
       this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)) : this.phase === 'lobby' ? GameMap.LOBBY_PLATFORMS : [];
-    const curPlatforms = allPlatforms.filter((p) => p.kind !== 'gate');
+    const gates = this.gatesState();
+    const curPlatforms = gates === 'lock' ? allPlatforms : allPlatforms.filter((p) => p.kind !== 'gate');
+    const patPlatforms = gates === 'open' ? curPlatforms : allPlatforms;
 
     const now = Date.now();
     const allyCounts = {};
@@ -946,7 +1020,7 @@ class Room {
     }
     for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
       const { input } = entity;
-      const platforms = this.players.get(entityPlayerId)?.isAsymRole ? curPlatforms : allPlatforms;
+      const platforms = this.players.get(entityPlayerId)?.isAsymRole ? curPlatforms : patPlatforms;
       const inAction = this.phase === 'action';
       const resolved = this.gameState.patients[entityPlayerId] && this.gameState.patients[entityPlayerId].status !== 'alive';
       const heldAtSpawn = this.players.get(entityPlayerId)?.isAsymRole && inAction && now < (this.gameState.curatorReleaseAt || 0);
@@ -2000,7 +2074,7 @@ class Room {
       const pool = otherPositions.length ? otherPositions : allPositions;
       const newPos = pool[Math.floor(Math.random() * pool.length)];
       this.gameState.selfDamageObjectPositions[game.objectId] = { x: newPos.x, y: newPos.y, z: newPos.z };
-      this.gameState.selfDamageTypes[game.objectId] = this.randomMinigame();
+      this.gameState.selfDamageTypes[game.objectId] = this.randomMinigame(game.objectId);
     }
     this.sendTo(playerId, MessageType.SELF_DAMAGE_RESULT, {
       playerId,
