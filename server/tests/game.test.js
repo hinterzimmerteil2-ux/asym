@@ -793,3 +793,22 @@ test('minijuegos: clic suelto no penaliza en ritmo y el medidor da daño según 
   room.applySelfDamage('a', 'o1');
   assert.ok(p.a.hp > 55);
 });
+
+test('mapa vivo: una rampa se cae durante el evento y vuelve; permanente no vuelve', () => {
+  const GameMap = require('../src/GameMap');
+  const { GAME_DURATION_MS } = require('../src/Constants');
+  GameMap.registerMap({
+    id: 'evcol', name: 'c', selfDamageObjects: [{ id: 's', xFrac: 0, zFrac: 0 }], collisionObjects: [],
+    platforms: [{ id: 'r1', xFrac: 0.2, zFrac: 0, hxFrac: 0.1, hzFrac: 0.1, h: 2, ramp: '+x' }, { id: 'b1', xFrac: -0.2, zFrac: 0, hxFrac: 0.1, hzFrac: 0.1, h: 2 }],
+    events: [{ id: 'c', kind: 'collapse', targetId: 'r1', startSec: 20, warnSec: 5, durSec: 10, repeatSec: 0 }, { id: 'a', kind: 'appear', targetId: 'b1', startSec: 40, warnSec: 5, durSec: 10, repeatSec: 0 }, { id: 'p', kind: 'collapse', targetId: 'b1', startSec: 100, warnSec: 5, durSec: 10, permanent: true }],
+  });
+  const { room } = setup();
+  room.mapId = 'evcol';
+  const at = (sec) => { room.gameState.timeRemainingMs = GAME_DURATION_MS - sec * 1000; room.tickEvents(Date.now()); return room.gameState.hiddenPlatforms; };
+  assert.deepStrictEqual(at(10), ['b1']);
+  assert.deepStrictEqual(at(25), ['r1', 'b1']);
+  assert.deepStrictEqual(at(35), ['b1']);
+  assert.deepStrictEqual(at(45), []);
+  assert.deepStrictEqual(at(110), ['b1']);
+  assert.deepStrictEqual(at(500), ['b1']);
+});

@@ -192,6 +192,7 @@ export default function LobbyPage() {
   const [communityOpen, setCommunityOpen] = useState(false);
   const [lmsUntil, setLmsUntil] = useState(0);
   const [lmsInfo, setLmsInfo] = useState(null);
+  const [hiddenPlatforms, setHiddenPlatforms] = useState([]);
   const [communityName, setCommunityName] = useState({});
   const myPosRef = useRef(null);
   const [hitboxes, setHitboxes] = useState({ on: false, opacity: 0.8 });
@@ -289,6 +290,7 @@ export default function LobbyPage() {
             setZones((prev) => (sameValue(prev, payload.zones || []) ? prev : payload.zones || []));
             setCuratorHp(payload.curator || null);
             setSpawnMs(payload.spawnMs || 0);
+            setHiddenPlatforms((prev) => (sameValue(prev, payload.hiddenPlatforms || []) ? prev : payload.hiddenPlatforms || []));
             setMapEvents((prev) => (sameValue(prev, payload.events || []) ? prev : payload.events || []));
             {
               const me = (payload.entities || {})[myPlayerIdRef.current];
@@ -806,6 +808,8 @@ export default function LobbyPage() {
   const ghostMode = spectating && Boolean(myGhost) && specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] === myPlayerId;
   const specId = spectating && specTargets.length ? specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] : null;
   specRef.current.on = spectating;
+  const visiblePlatforms = hiddenPlatforms.length ? platforms.filter((p) => !hiddenPlatforms.includes(p.id)) : platforms;
+  const shakeIds = mapEvents.filter((e) => e.target && e.phase === 'warn').map((e) => e.target);
   const sx = (base, extra) => (compact ? { ...base, ...extra } : base);
   const playersOpen = panelOpen ?? phase === 'lobby';
   const handleInteract = () => {
@@ -862,7 +866,8 @@ export default function LobbyPage() {
             matchHalf={matchHalf}
             sdActiveId={flojera?.sdGame?.objectId || null}
             sdTypes={sdTypes}
-            platforms={phase === 'action' && !(isAsymRole && spawnMs > 0) ? platforms : lobbyPlatforms}
+            platforms={phase === 'action' && !(isAsymRole && spawnMs > 0) ? visiblePlatforms : lobbyPlatforms}
+            shakeIds={shakeIds}
             sendInput={handleSendInput}
             sendAction={handleSendAction}
             onPulse={handlePulse}

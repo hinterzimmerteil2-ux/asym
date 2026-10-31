@@ -751,6 +751,7 @@ class Room {
     for (const o of GameMap.resolveSelfDamagePositions(this.mapId, GameMap.areaFor(this.mapId))) if (o.minigame) this.fixedMinigames[o.id] = o.minigame;
     this.gameState.eventsFired = {};
     this.gameState.eventsView = [];
+    this.gameState.hiddenPlatforms = [];
     for (const obj of selfDamagePositions) {
       this.gameState.selfDamageObjectPositions[obj.id] = { x: obj.x, y: obj.y, z: obj.z };
       this.gameState.selfDamageTypes[obj.id] = this.randomMinigame(obj.id);
@@ -761,6 +762,12 @@ class Room {
     const elapsed = GAME_DURATION_MS - this.gameState.timeRemainingMs;
     const out = [];
     for (const ev of GameMap.getEvents(this.mapId)) {
+      if (ev.permanent) {
+        const t0 = ev.startSec * 1000;
+        if (elapsed >= t0) out.push({ ev, phase: 'active', k: 0, msLeft: 0 });
+        else if (elapsed >= t0 - ev.warnSec * 1000) out.push({ ev, phase: 'warn', k: 0, msTo: t0 - elapsed });
+        continue;
+      }
       let n = 0;
       if (ev.repeatSec > 0 && elapsed > ev.startSec * 1000 + ev.durSec * 1000) {
         n = Math.floor((elapsed - ev.startSec * 1000) / (ev.repeatSec * 1000));
@@ -780,6 +787,13 @@ class Room {
   tickEvents(now) {
     const phases = this.eventPhases();
     this.gameState.eventsView = phases;
+    const hidden = [];
+    for (const ev of GameMap.getEvents(this.mapId)) {
+      if (!ev.targetId) continue;
+      const active = phases.some((p) => p.ev === ev && p.phase === 'active');
+      if ((ev.kind === 'collapse' && active) || (ev.kind === 'appear' && !active)) hidden.push(ev.targetId);
+    }
+    this.gameState.hiddenPlatforms = [...new Set(hidden)];
     this.gameState.eventsFired = this.gameState.eventsFired || {};
     for (const p of phases) {
       if (p.phase !== 'active') continue;
@@ -809,6 +823,8 @@ class Room {
   eventsFor() {
     return (this.gameState.eventsView || []).map((p) => ({
       id: p.ev.id,
+      target: p.ev.targetId || null,
+      permanent: Boolean(p.ev.permanent),
       kind: p.ev.kind,
       mode: p.ev.mode,
       phase: p.phase,
@@ -912,6 +928,7 @@ class Room {
         selfDamageTypes: this.gameState.selfDamageTypes,
         curator: player.isAsymRole ? this.gameState.curator : null,
         events: this.eventsFor(),
+        hiddenPlatforms: this.gameState.hiddenPlatforms || [],
         spawnMs: player.isAsymRole ? Math.max(0, (this.gameState.curatorReleaseAt || 0) - now) : 0,
         zones,
         revealed: player.isAsymRole ? Object.entries(this.gameState.entities).filter(([, e]) => Status.active(e, 'reveal', now)).map(([id]) => id) : [],
@@ -921,7 +938,8 @@ class Room {
 
   tickGhosts(dt) {
     const half = this.getCurrentArea().halfSize;
-    const platforms = this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)) : [];
+    const hiddenIds = this.gameState.hiddenPlatforms || [];
+    const platforms = this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)).filter((p) => !hiddenIds.includes(p.id)) : [];
     for (const [ghostId, ghost] of Object.entries(this.gameState.ghosts)) {
       const owner = this.gameState.entities[ghostId];
       if (!owner) continue;
@@ -1002,8 +1020,9 @@ class Room {
     const area = this.getCurrentArea();
     const collisionObjects =
       this.phase === 'action' ? GameMap.resolveCollisionObjects(this.mapId, GameMap.areaFor(this.mapId)) : [];
+    const hiddenIds = this.gameState.hiddenPlatforms || [];
     const allPlatforms =
-      this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)) : this.phase === 'lobby' ? GameMap.LOBBY_PLATFORMS : [];
+      this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)).filter((p) => !hiddenIds.includes(p.id)) : this.phase === 'lobby' ? GameMap.LOBBY_PLATFORMS : [];
     const gates = this.gatesState();
     const curPlatforms = gates === 'lock' ? allPlatforms : allPlatforms.filter((p) => p.kind !== 'gate');
     const patPlatforms = gates === 'open' ? curPlatforms : allPlatforms;

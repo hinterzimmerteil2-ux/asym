@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-const COLORS = { blackout: '#9aa5ff', alarm: '#ff6b6b', shuffle: '#ffd166', gatesLock: '#ffb454', gatesOpen: '#5fd58c' };
+const COLORS = { blackout: '#9aa5ff', alarm: '#ff6b6b', shuffle: '#ffd166', gatesLock: '#ffb454', gatesOpen: '#5fd58c', collapse: '#ff8a4c', appear: '#8ad7ff' };
 
 const CRACKS = [
   'M32 8 L29 18 L34 24 L30 33',
@@ -23,6 +23,8 @@ function Glyph({ ev, color }) {
       : <g {...c}><rect x="25" y="29" width="14" height="10" rx="2" /><path d="M28 29 v-4 a4 4 0 0 1 8 0 v4" /></g>;
   }
   if (ev.kind === 'alarm') return <g {...c}><path d="M26 40 v-8 a6 6 0 0 1 12 0 v8 z" /><path d="M24 44 h16" /><path d="M32 21 v-3" /></g>;
+  if (ev.kind === 'collapse') return <g {...c}><path d="M22 36 L42 28 V34 L22 42 Z" /><path d="M32 44 v-4 M29 42 l3 3 l3 -3" /></g>;
+  if (ev.kind === 'appear') return <g {...c}><rect x="24" y="34" width="16" height="7" /><path d="M32 31 v-6 M29 28 l3 -3 l3 3" /></g>;
   if (ev.kind === 'shuffle') return <g {...c}><path d="M24 29 h14 l-4 -4 M38 29" /><path d="M40 37 h-14 l4 4" /></g>;
   return <g {...c}><path d="M28 40 h8 M29 44 h6" /><path d="M32 22 v6" /></g>;
 }
@@ -80,7 +82,7 @@ export default function EventLayer({ events, posRef }) {
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 4, background: 'radial-gradient(circle at 50% 55%, rgba(2,3,12,0.25) 0, rgba(2,3,12,0.9) 140px, rgba(2,3,12,0.96) 100%)' }} />
       )}
       <div style={{ position: 'absolute', top: 72, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 6, pointerEvents: 'none' }}>
-        {events.map((ev) => <Lamp key={ev.id} ev={ev} />)}
+        {events.filter((ev) => !(ev.permanent && ev.phase === 'active')).map((ev) => <Lamp key={ev.id} ev={ev} />)}
       </div>
     </>
   );

@@ -1517,6 +1517,20 @@ function GateMesh({ p }) {
   );
 }
 
+function ShakeGroup({ on, children }) {
+  const ref = useRef();
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    if (on) {
+      const t = clock.elapsedTime * 38;
+      ref.current.position.set(Math.sin(t) * 0.06, Math.abs(Math.sin(t * 0.7)) * 0.05, Math.cos(t * 1.3) * 0.06);
+    } else if (ref.current.position.x !== 0 || ref.current.position.y !== 0) {
+      ref.current.position.set(0, 0, 0);
+    }
+  });
+  return <group ref={ref}>{children}</group>;
+}
+
 function Platform({ p }) {
   if (p.kind === 'gate') return <GateMesh p={p} />;
   const name = p.tex || (p.ramp ? 'ramp' : PLAT_TEX[p.kind] || 'concrete');
@@ -1655,6 +1669,7 @@ export default function GameScene({
   ghostMode,
   shiftLock,
   onShiftLockLost,
+  shakeIds,
 }) {
   const yawRef = useRef(Math.PI);
   const shiftRef = useRef(false);
@@ -1700,7 +1715,7 @@ export default function GameScene({
         />
       )}
 
-      {(platforms || []).filter((p) => p.kind !== 'pit').map((p) => <MPlatform key={p.id} p={p} />)}
+      {(platforms || []).filter((p) => p.kind !== 'pit').map((p) => <ShakeGroup key={p.id} on={Boolean(shakeIds && shakeIds.includes(p.id))}><MPlatform p={p} /></ShakeGroup>)}
       {(platforms || []).filter((p) => p.kind === 'wall').map((p) => <MWallDecor key={`d${p.id}`} p={p} />)}
 
       {phase === 'action' &&

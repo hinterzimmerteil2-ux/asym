@@ -599,6 +599,8 @@ export default function MapEditorPage() {
                     <option value="gates">Puertas del Curador</option>
                     <option value="alarm">Alarma (revela Pacientes)</option>
                     <option value="shuffle">Reubicar auto-daño</option>
+                    <option value="collapse">Se cae un bloque o rampa</option>
+                    <option value="appear">Aparece un bloque o rampa</option>
                   </select>
                   <span style={{ fontSize: 11 }}>a los {e.startSec}s</span>
                   <button style={{ fontSize: 11, marginLeft: 'auto' }} onClick={() => setMapEvents((prev) => prev.filter((q) => q.id !== e.id))}>✕</button>
@@ -612,6 +614,21 @@ export default function MapEditorPage() {
                   );
                   return (
                     <div>
+                      {(e.kind === 'collapse' || e.kind === 'appear') && (
+                        <>
+                          <label style={styles.countLine}>Bloque o rampa:{' '}
+                            <select value={e.targetId || ''} onChange={(ev) => upd({ targetId: ev.target.value })}>
+                              <option value="">(elige uno)</option>
+                              {platforms.map((p) => <option key={p.id} value={p.id}>{p.id} ({p.ramp ? 'rampa' : p.kind === 'pit' ? 'sótano' : p.kind === 'gate' ? 'puerta' : p.kind === 'mezzanine' ? 'entrepiso' : 'bloque'})</option>)}
+                            </select>
+                          </label>
+                          {e.kind === 'collapse' && (
+                            <label style={styles.countLine}>
+                              <input type="checkbox" checked={Boolean(e.permanent)} onChange={(ev) => upd({ permanent: ev.target.checked })} /> Se cae para siempre
+                            </label>
+                          )}
+                        </>
+                      )}
                       {e.kind === 'gates' && (
                         <p style={styles.countLine}>
                           Modo:{' '}
@@ -621,8 +638,8 @@ export default function MapEditorPage() {
                       )}
                       {num('Empieza (s)', 'startSec', 0, 900, 5)}
                       {num('Aviso previo (s)', 'warnSec', 0, 30, 1)}
-                      {e.kind !== 'shuffle' && num('Dura (s)', 'durSec', 1, 300, 1)}
-                      {num('Se repite cada (s, 0 = una vez)', 'repeatSec', 0, 600, 5)}
+                      {e.kind !== 'shuffle' && !e.permanent && num('Dura (s)', 'durSec', 1, 300, 1)}
+                      {!e.permanent && num('Se repite cada (s, 0 = una vez)', 'repeatSec', 0, 600, 5)}
                       {e.kind === 'blackout' && (
                         <>
                           {num('Centro X', 'xFrac', -1, 1, 0.05)}
@@ -777,7 +794,7 @@ export default function MapEditorPage() {
                   onContextMenu={(e) => { e.preventDefault(); handleRemove(p.id, e); }}
                   style={{ cursor: 'grab' }}
                 >
-                  <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.kind === 'gate' ? '#f2a154' : p.kind === 'pit' ? '#3b6ea5' : p.ramp ? '#9ca3af' : '#6b7280'} fillOpacity={0.55} stroke={p.id === selectedId ? '#facc15' : '#3d4a42'} strokeWidth={p.id === selectedId ? 4 : 2} />
+                  <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.kind === 'gate' ? '#f2a154' : p.kind === 'pit' ? '#3b6ea5' : p.ramp ? '#9ca3af' : '#6b7280'} fillOpacity={0.55} stroke={p.id === selectedId ? '#facc15' : mapEvents.some((q) => q.targetId === p.id) ? '#ff7a45' : '#3d4a42'} strokeWidth={p.id === selectedId ? 4 : mapEvents.some((q) => q.targetId === p.id) ? 4 : 2} />
                   <text x={0} y={4} fontSize={10} fill="#111" textAnchor="middle">{p.ramp ? `${p.ramp === '+x' ? '→' : '←'} ${p.h.toFixed(1)}` : p.h.toFixed(1)}</text>
                 </g>
               );

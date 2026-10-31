@@ -131,7 +131,7 @@ const DEFAULT_MAP_LAYOUT = {
 })();
 
 const MINIGAMES = ['rhythm', 'needle', 'mash', 'meter'];
-const EVENT_KINDS = ['blackout', 'gates', 'alarm', 'shuffle'];
+const EVENT_KINDS = ['blackout', 'gates', 'alarm', 'shuffle', 'collapse', 'appear'];
 
 const HOSPITAL_LAYOUT = (() => {
   const half = MATCH_AREA.halfSize;
@@ -200,6 +200,9 @@ const HOSPITAL_LAYOUT = (() => {
     { id: 'ev_gates_lock', kind: 'gates', mode: 'lock', startSec: 90, warnSec: 8, durSec: 35, repeatSec: 130 },
     { id: 'ev_alarm', kind: 'alarm', startSec: 130, warnSec: 6, durSec: 15, repeatSec: 140 },
     { id: 'ev_shuffle', kind: 'shuffle', startSec: 120, warnSec: 5, durSec: 1, repeatSec: 120 },
+    { id: 'ev_collapse_1', kind: 'collapse', targetId: 'mzr_1', startSec: 75, warnSec: 8, durSec: 40, repeatSec: 130 },
+    { id: 'ev_collapse_2', kind: 'collapse', targetId: 'rr_1', startSec: 150, warnSec: 8, durSec: 45, repeatSec: 120 },
+    { id: 'ev_collapse_3', kind: 'collapse', targetId: 'tr_3', startSec: 240, warnSec: 10, durSec: 60, repeatSec: 0, permanent: true },
   ]);
   return { id: 'hospital', name: 'Hospital de varios pisos', selfDamageObjects, collisionObjects, platforms, events };
 })();
@@ -287,6 +290,8 @@ function sanitizeEvents(list) {
     warnSec: num(e.warnSec, 0, 60, 8),
     durSec: num(e.durSec, 1, 900, 40),
     repeatSec: num(e.repeatSec, 0, 3600, 0),
+    targetId: typeof e.targetId === 'string' ? e.targetId.slice(0, 60) : '',
+    permanent: e.permanent === true && e.kind === 'collapse',
     xFrac: clampFrac(e.xFrac),
     zFrac: clampFrac(e.zFrac),
     rFrac: num(e.rFrac, 0, 2, 0),
