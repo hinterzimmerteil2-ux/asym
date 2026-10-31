@@ -374,6 +374,7 @@ const PAIRS = [
 ["Mapa de la comunidad:", "Community map:"],
 ["Publicar en la comunidad", "Publish to the community"],
 ["Publicando...", "Publishing..."],
+["¡Último en pie! El tiempo baja a 1:30", "Last one standing! Time drops to 1:30"],
 ["✓ Publicado. Ya aparece en \"Mapas de la comunidad\" del lobby.", "✓ Published. It now shows under \"Community maps\" in the lobby."],
 ];
 

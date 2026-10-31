@@ -733,6 +733,7 @@ class Room {
     this.gameState.timeRemainingMs = GAME_DURATION_MS;
     this.gameState.gameOver = false;
     this.gameState.desgracias = {};
+    this.gameState.lastStanding = false;
 
     this.lastRelocateAt = Date.now();
     this.gameState.zones = [];
@@ -835,7 +836,10 @@ class Room {
       if (this.gameState.timeRemainingMs === 0) this.endGame('timeout');
     }
 
-    if (this.phase === 'action' && !this.gameState.gameOver) this.tickEvents(now);
+    if (this.phase === 'action' && !this.gameState.gameOver) {
+      this.tickEvents(now);
+      this.checkLastStanding();
+    }
     this.stepPhysics(dt);
     this.tickGhosts(dt);
     this.tickPereza(now, dt);
@@ -2106,13 +2110,22 @@ class Room {
     this.checkGameEndConditions();
   }
 
+  checkLastStanding() {
+    const gs = this.gameState;
+    if (gs.lastStanding || gs.patientsInitialCount < 2) return;
+    const alive = Object.values(gs.patients).filter((p) => p.status === 'alive').length;
+    if (alive !== 1) return;
+    gs.lastStanding = true;
+    gs.timeRemainingMs = Math.min(gs.timeRemainingMs, LMS_TIMER_RESET_MS);
+    this.broadcast(MessageType.LAST_STANDING, { timeRemainingMs: gs.timeRemainingMs });
+  }
+
   onPatientFullyCured() {
     const patientsAlive = Object.values(this.gameState.patients).filter((p) => p.status === 'alive').length;
     const factor = (1 - (10 * patientsAlive) / 100) / 3;
     const rawBonusMs = this.gameState.patientsInitialCount * factor * 60 * 1000;
     const clampedBonusMs = Math.max(0, Math.min(TIME_BONUS_MAX_MS, rawBonusMs));
     this.gameState.timeRemainingMs += clampedBonusMs;
-    if (patientsAlive === 1) this.gameState.timeRemainingMs = LMS_TIMER_RESET_MS;
   }
 
   checkGameEndConditions() {

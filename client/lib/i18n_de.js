@@ -372,5 +372,6 @@ export const DE = [
 "Community-Karte:",
 "In der Community veröffentlichen",
 "Veröffentliche...",
+"Letzter Überlebender! Die Zeit sinkt auf 1:30",
 "✓ Veröffentlicht. Sie erscheint jetzt unter \"Community-Karten\" in der Lobby."
 ];

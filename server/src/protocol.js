@@ -42,6 +42,7 @@ const MessageType = {
   CURE_RESULT: 'cure_result',
   SELF_DAMAGE_ACTION: 'self_damage_action',
   SELF_DAMAGE_RESULT: 'self_damage_result',
+  LAST_STANDING: 'last_standing',
   DESGRACIAS_AWARD: 'desgracias_award',
 
   // --- Habilidad especial del Curador: "Pulso de Curación" (AoE, cooldown) ---

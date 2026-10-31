@@ -187,6 +187,7 @@ export default function LobbyPage() {
   const [spawnMs, setSpawnMs] = useState(0);
   const [mapEvents, setMapEvents] = useState([]);
   const [communityOpen, setCommunityOpen] = useState(false);
+  const [lmsUntil, setLmsUntil] = useState(0);
   const [communityName, setCommunityName] = useState({});
   const myPosRef = useRef(null);
   const [hitboxes, setHitboxes] = useState({ on: false, opacity: 0.8 });
@@ -354,6 +355,10 @@ export default function LobbyPage() {
             break;
           case 'card_chosen':
             setHand((prev) => prev.map((slot, i) => (i === payload.slot ? { ...slot, chosen: payload.card } : slot)));
+            break;
+          case 'last_standing':
+            setLmsUntil(Date.now() + 5000);
+            setTimeout(() => setLmsUntil(0), 5000);
             break;
           case 'hit_fx': {
             const effect = { id: `fx${++effectCounterRef.current}`, casterId: payload.playerId, kind: 'hit', boxes: payload.boxes, startedAt: Date.now() };
@@ -1078,6 +1083,9 @@ export default function LobbyPage() {
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
         {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} />}
         {phase === 'action' && <EventLayer events={mapEvents} posRef={myPosRef} />}
+        {phase === 'action' && lmsUntil > 0 && (
+          <div style={sx(styles.resolvedBanner(false), { top: 200, fontSize: 18, maxWidth: '80%' })}>¡Último en pie! El tiempo baja a 1:30</div>
+        )}
         {phase === 'lobby' && communityOpen && (
           <CommunityMaps
             isHost={isHost}
