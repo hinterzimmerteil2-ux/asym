@@ -269,7 +269,7 @@ wss.on('connection', (ws) => {
       case MessageType.CURE_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room || room.phase !== 'action') return;
-        room.applyCure(playerId, msg.payload.targetPlayerId);
+        room.applyCure(playerId);
         break;
       }
 

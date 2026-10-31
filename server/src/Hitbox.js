@@ -71,8 +71,23 @@ function distanceBetween(a, b) {
   );
 }
 
+const HAND_Y = 0.95;
+
+function handBox(owner, reach, radius) {
+  const p = reachPoint(owner, reach);
+  return { x: p.x, z: p.z, y: (owner.y || 0) + HAND_Y, half: radius };
+}
+
+function handHit(owner, target, reach, radius) {
+  const b = handBox(owner, reach, radius);
+  const half = target.input && !target.corpse ? PLAYER_HALF : 0;
+  const height = target.input && !target.corpse ? PLAYER_HEIGHT : 0;
+  const ty = target.y || 0;
+  return Math.abs(b.x - target.x) <= b.half + half && Math.abs(b.z - target.z) <= b.half + half && b.y + b.half >= ty && b.y - b.half <= ty + height;
+}
+
 function reachPoint(entity, reach) {
   return { x: entity.x + (entity.faceX || 0) * reach, y: entity.y || 0, z: entity.z + (entity.faceZ || 0) * reach };
 }
 
-module.exports = { baseAt, reachPoint, platformTop, groundAt, blockedAt, extentOf, distanceBetween, euclid, FOOTPRINT };
+module.exports = { HAND_Y, handBox, handHit, baseAt, reachPoint, platformTop, groundAt, blockedAt, extentOf, distanceBetween, euclid, FOOTPRINT };

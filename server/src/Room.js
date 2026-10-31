@@ -6,7 +6,7 @@ const Cards = require('./Cards');
 const Roles = require('./Roles');
 const CardEffects = require('./CardEffects');
 const Hitbox = require('./Hitbox');
-const { groundAt, blockedAt, distanceBetween, euclid, reachPoint } = Hitbox;
+const { groundAt, blockedAt, distanceBetween, euclid, reachPoint, handBox, handHit } = Hitbox;
 const {
   MAX_PLAYERS,
   TICK_RATE_MS,
@@ -15,6 +15,9 @@ const {
   PATIENT_HP_MIN,
   CURE_AMOUNT,
   SELF_DAMAGE_AMOUNT,
+  M1_REACH,
+  M1_RADIUS,
+  M1_WINDOW_MS,
   SD_BEATS,
   SD_HIT_DAMAGE,
   SD_PERFECT_BONUS,
@@ -277,7 +280,10 @@ class Room {
       entity.input.moveZ = 0;
     }
     if (now > (player.nextBotAct || 0) && targetDist <= INTERACTION_RADIUS) {
-      this.applyCure(botId, target.id);
+      const fl = Math.hypot(target.entity.x - entity.x, target.entity.z - entity.z) || 1;
+      entity.faceX = (target.entity.x - entity.x) / fl;
+      entity.faceZ = (target.entity.z - entity.z) / fl;
+      this.applyCure(botId);
       player.nextBotAct = now + 550;
     }
     if (now > (player.nextBotCard || 0)) {
@@ -1211,6 +1217,7 @@ class Room {
       this.hitWindows.push({ kind: 'area', playerId, skill, index, endsAt: now + (skill.windowMs || HIT_WINDOW_MS) });
     } else if (skill.type === 'melee_stun') {
       this.hitWindows.push({ kind: 'melee', playerId, skill, index, endsAt: now + (skill.windowMs || HIT_WINDOW_MS) });
+      this.broadcast(MessageType.HIT_FX, { playerId, boxes: [handBox(curadorEntity, skill.reach || 0, skill.radius)] });
     } else {
       for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
         if (patient.status !== 'alive') continue;
@@ -1285,7 +1292,22 @@ class Room {
     for (const win of this.hitWindows) {
       const owner = this.gameState.entities[win.playerId];
       if (!owner || this.phase !== 'action' || this.gameState.gameOver || Status.blocksSkills(owner, now)) continue;
-      if (win.kind === 'area') {
+      if (win.kind === 'm1') {
+        let hitId = null;
+        let hitDist = Infinity;
+        for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
+          if (patient.status !== 'alive') continue;
+          const targetEntity = this.gameState.entities[targetPlayerId];
+          if (!targetEntity || !handHit(owner, targetEntity, M1_REACH, M1_RADIUS)) continue;
+          const dist = euclid(owner, targetEntity);
+          if (dist < hitDist) { hitDist = dist; hitId = targetPlayerId; }
+        }
+        if (hitId) {
+          this.resolveCure(win.playerId, owner, hitId, now);
+          continue;
+        }
+        if (win.endsAt <= now) continue;
+      } else if (win.kind === 'area') {
         const skill = win.skill;
         const ids = [];
         for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
@@ -1327,13 +1349,12 @@ class Room {
       } else if (win.kind === 'melee') {
         const skill = win.skill;
         let nearestId = null;
-        let nearestDist = skill.radius;
-        const origin = reachPoint(owner, skill.reach || 0);
+        let nearestDist = Infinity;
         for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
           if (patient.status !== 'alive') continue;
           const targetEntity = this.gameState.entities[targetPlayerId];
-          if (!targetEntity) continue;
-          const dist = distanceBetween(origin, targetEntity);
+          if (!targetEntity || !handHit(owner, targetEntity, skill.reach || 0, skill.radius)) continue;
+          const dist = euclid(owner, targetEntity);
           if (dist <= nearestDist) {
             nearestDist = dist;
             nearestId = targetPlayerId;
@@ -1686,7 +1707,7 @@ class Room {
       cooldownUntil: entity.cardCooldowns[slotIndex],
       hitRadius: card.hitRadius || null,
       center: card.reach ? (({ x, z }) => ({ x, z }))(reachPoint(entity, card.reach)) : null,
-      boxes: CardEffects.areaOf(card, entity),
+      boxes: card.reach ? [handBox(entity, card.reach, card.hitRadius)] : CardEffects.areaOf(card, entity),
     });
   }
 
@@ -1701,11 +1722,11 @@ class Room {
   }
 
   curatorInRange(entity, radius, reach = 0) {
-    const origin = reach ? reachPoint(entity, reach) : entity;
     for (const [otherId, other] of this.players) {
       if (!other.isAsymRole) continue;
       const otherEntity = this.gameState.entities[otherId];
-      if (otherEntity && distanceBetween(origin, otherEntity) <= radius) return true;
+      if (!otherEntity) continue;
+      if (reach ? handHit(entity, otherEntity, reach, radius) : distanceBetween(entity, otherEntity) <= radius) return true;
     }
     return false;
   }
@@ -1777,49 +1798,45 @@ class Room {
    * click (confirmado explícitamente que es lo que se quería, no algo
    * nuevo tipo trigger automático).
    */
-  applyCure(curadorId, targetPlayerId) {
+  applyCure(curadorId) {
     if (this.gameState.gameOver) return;
-
     const curador = this.players.get(curadorId);
     if (!curador || !curador.isAsymRole) {
       this.sendTo(curadorId, MessageType.ERROR, { message: 'Solo el Curador puede curar' });
       return;
     }
-    if (Date.now() < (this.gameState.curatorReleaseAt || 0)) return;
-    const baseEntity = this.gameState.entities[curadorId];
-    if (!baseEntity || baseEntity.baseCooldownUntil > Date.now() || Status.blocksSkills(baseEntity, Date.now())) return;
+    const now = Date.now();
+    if (now < (this.gameState.curatorReleaseAt || 0)) return;
+    const entity = this.gameState.entities[curadorId];
+    if (!entity || entity.baseCooldownUntil > now || Status.blocksSkills(entity, now)) return;
+    entity.baseCooldownUntil = now + (Characters.getCharacter(curador.characterId).baseCooldownMs || 900);
+    let near = null;
+    let nearDist = 2.6;
+    for (const [pid, pat] of Object.entries(this.gameState.patients)) {
+      const pe = this.gameState.entities[pid];
+      if (pat.status !== 'alive' || !pe) continue;
+      const d = euclid(entity, pe);
+      if (d < nearDist) { nearDist = d; near = pe; }
+    }
+    if (near && nearDist > 0.05) {
+      entity.faceX = (near.x - entity.x) / nearDist;
+      entity.faceZ = (near.z - entity.z) / nearDist;
+    }
+    this.hitWindows.push({ kind: 'm1', playerId: curadorId, endsAt: now + M1_WINDOW_MS });
+    this.broadcast(MessageType.HIT_FX, { playerId: curadorId, boxes: [handBox(entity, M1_REACH, M1_RADIUS)] });
+  }
 
+  resolveCure(curadorId, curadorEntity, targetPlayerId, now) {
     const patient = this.gameState.patients[targetPlayerId];
-    if (!patient || patient.status !== 'alive') {
-      this.sendTo(curadorId, MessageType.ERROR, { message: 'Ese Paciente no es un objetivo válido' });
-      return;
-    }
-
-    const curadorEntity = this.gameState.entities[curadorId];
     const targetEntity = this.gameState.entities[targetPlayerId];
-    if (!curadorEntity || !targetEntity) {
-      this.sendTo(curadorId, MessageType.ERROR, { message: 'No se pudo validar la posición' });
-      return;
-    }
-    if (distanceBetween(curadorEntity, targetEntity) > INTERACTION_RADIUS) {
-      this.sendTo(curadorId, MessageType.ERROR, { message: 'Estás demasiado lejos para curar a ese Paciente' });
-      return;
-    }
-
-    curadorEntity.baseCooldownUntil = Date.now() + (Characters.getCharacter(curador.characterId).baseCooldownMs || 900);
-    const boost = curadorEntity.cureBoostUntil > Date.now() ? curadorEntity.cureBoostFactor : 1;
-    patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, CURE_AMOUNT * boost, Date.now()));
-    this.award(curadorId, 3, 'Cura'); 
+    const boost = curadorEntity.cureBoostUntil > now ? curadorEntity.cureBoostFactor : 1;
+    patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, CURE_AMOUNT * boost, now));
+    this.award(curadorId, 3, 'Cura');
     if (patient.hp >= patient.maxHp) {
       patient.status = 'eliminated';
       this.onPatientFullyCured();
     }
-
-    this.sendTo(curadorId, MessageType.CURE_RESULT, {
-      targetPlayerId,
-      newHp: patient.hp,
-      status: patient.status,
-    });
+    this.sendTo(curadorId, MessageType.CURE_RESULT, { targetPlayerId, newHp: patient.hp, status: patient.status });
     this.checkGameEndConditions();
   }
 
@@ -1877,10 +1894,10 @@ class Room {
     }
     if (Status.blocksSkills(playerEntity, now)) return;
     const beats = [];
-    let at = 650 + Math.random() * 150;
+    let at = 800 + Math.random() * 200;
     for (let i = 0; i < SD_BEATS; i++) {
       beats.push(Math.round(at));
-      at += 480 + Math.random() * 300;
+      at += 620 + Math.random() * 380;
     }
     playerEntity.selfDmg = { objectId, startedAt: now, endsAt: now + beats[beats.length - 1] + SD_TOLERANCE_MS + 150, beats, scored: [], hits: 0 };
   }

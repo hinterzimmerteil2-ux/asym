@@ -1524,14 +1524,14 @@ function RampFrame({ p, color, opacity }) {
   );
 }
 
-function Hitboxes({ curatorIds, entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, effects, opacity, cfg }) {
+function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, effects, opacity, cfg }) {
   return (
     <>
       {(effects || []).filter((fx) => fx.boxes && Date.now() - fx.startedAt < 900).flatMap((fx) => fx.boxes.map((b, i) => (
-        <SquareFrame key={`${fx.id}_${i}`} x={b.x} z={b.z} y={entities?.[fx.casterId]?.y ?? 0} half={b.half} color="#e0555f" opacity={opacity} />
+        <SquareFrame key={`${fx.id}_${i}`} x={b.x} z={b.z} y={b.y ?? (entities?.[fx.casterId]?.y ?? 0) + 0.95} half={b.half} color="#e0555f" opacity={opacity} />
       )))}
       {(effects || []).filter((fx) => fx.radius && Date.now() - fx.startedAt < 900).map((fx) => (
-        <SquareFrame key={fx.id} x={fx.x} z={fx.z} y={entities?.[fx.casterId]?.y ?? 0} half={fx.radius} color="#e0555f" opacity={opacity} />
+        <SquareFrame key={fx.id} x={fx.x} z={fx.z} y={(entities?.[fx.casterId]?.y ?? 0) + 0.95} half={fx.radius} color="#e0555f" opacity={opacity} />
       ))}
       {(platforms || []).filter((p) => p.kind === 'pit').map((p) => (
         <SquareFrame key={p.id} x={p.x} z={p.z} y={-p.h / 2} half={p.hx} hy={p.h / 2} hz={p.hz} color="#e0555f" opacity={opacity} />
@@ -1544,7 +1544,6 @@ function Hitboxes({ curatorIds, entities, myPlayerId, collisionObjects, selfDama
       {Object.entries(entities || {}).filter(([, entity]) => !entity.corpse && !entity.gone).map(([id, entity]) => (
         <group key={id}>
           <SquareFrame x={entity.x} z={entity.z} y={entity.y + cfg.height / 2} half={cfg.half} hy={cfg.height / 2} color="#e0555f" opacity={opacity} />
-          {curatorIds?.has(id) && <SquareFrame x={entity.x} z={entity.z} y={entity.y + cfg.height / 2} half={cfg.interact + cfg.half} hy={cfg.height / 2 + 1.5} color="#f2a154" opacity={opacity} />}
         </group>
       ))}
       {(collisionObjects || []).map((obj) => (
@@ -1603,7 +1602,6 @@ export default function GameScene({
   const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const areaHalfSize = phase === 'action' ? matchHalf || MATCH_HALF_SIZE : LOBBY_HALF_SIZE;
   const myEntity = ghostMode && ghosts?.[myPlayerId] ? ghosts[myPlayerId] : entities[followId || myPlayerId];
-  const curatorIds = useMemo(() => new Set(players.filter((p) => p.isAsymRole).map((p) => p.id)), [players]);
   const pits = useMemo(() => (phase === 'action' ? (platforms || []).filter((p) => p.kind === 'pit') : []), [platforms, phase]);
 
   return (
@@ -1627,7 +1625,6 @@ export default function GameScene({
 
       {hitboxes?.on && (
         <Hitboxes
-          curatorIds={curatorIds}
           entities={entities}
           myPlayerId={myPlayerId}
           collisionObjects={phase === 'action' ? collisionObjects : []}

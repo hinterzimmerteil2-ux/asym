@@ -72,8 +72,8 @@ const CARDS = {
   red_mist: {
     id: 'red_mist',
     window: 300,
-    hitRadius: 0.7,
-    reach: 1.0,
+    hitRadius: 0.85,
+    reach: 1.2,
     corrupt: true,
     corruptOf: 'golpe_aturdidor',
     keywords: ['ofensiva'],
@@ -87,8 +87,8 @@ const CARDS = {
   tajo_carmesi: {
     id: 'tajo_carmesi',
     window: 420,
-    hitRadius: 0.65,
-    reach: 0.95,
+    hitRadius: 0.85,
+    reach: 1.2,
     keywords: ['ofensiva'],
     displayName: 'Espada del UTTVM al (10^-30)%',
     description: 'Un tajo normal: aturde 1.8s al Curador frente a ti (cubo corto desde la mano). Sin efectos secundarios.',

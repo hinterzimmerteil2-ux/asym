@@ -334,6 +334,11 @@ export default function LobbyPage() {
           case 'card_chosen':
             setHand((prev) => prev.map((slot, i) => (i === payload.slot ? { ...slot, chosen: payload.card } : slot)));
             break;
+          case 'hit_fx': {
+            const effect = { id: `fx${++effectCounterRef.current}`, casterId: payload.playerId, kind: 'hit', boxes: payload.boxes, startedAt: Date.now() };
+            setEffects((prev) => [...prev.filter((e) => Date.now() - e.startedAt < 1500), effect]);
+            break;
+          }
           case 'card_result': {
             const caster = entitiesRef.current[payload.playerId];
             if (caster) {
@@ -773,7 +778,7 @@ export default function LobbyPage() {
         const pl = players.find((p) => p.id === id);
         if (id !== myPlayerId && pl && !pl.isAsymRole) consider(id, e);
       }
-      if (best) handleSendAction('cure_action', { targetPlayerId: best });
+      handleSendAction('cure_action', {});
     } else {
       for (const [id, pos] of Object.entries(selfDamageObjects || {})) consider(id, pos);
       if (best) handleSendAction('self_damage_action', { objectId: best });
@@ -1072,7 +1077,7 @@ export default function LobbyPage() {
               <button key={r.id} type="button" onClick={() => handleSelectRole(r.id)} style={{ textAlign: 'left', background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 8, padding: 8, cursor: 'pointer' }}>
                 <div style={{ fontWeight: 700 }}>{r.name}</div>
                 <div style={{ fontSize: 12, opacity: 0.85 }}>{r.tagline} · {r.card?.displayName}</div>
-                <div style={{ fontSize: 11, opacity: 0.65 }}>{(r.pool || []).join(' · ')}</div>
+                <div style={{ fontSize: 11, opacity: 0.65 }}>{(r.pool || []).join(' / ')}</div>
               </button>
             ))}
             <button type="button" onClick={() => handleSelectRole('none')} style={{ background: 'transparent', color: '#cfe8fa', border: '1px dashed #4a6a8a', borderRadius: 8, padding: 8, cursor: 'pointer' }}>Sin rol (elegir cartas libremente)</button>

@@ -37,6 +37,7 @@ const MessageType = {
   STATE_SNAPSHOT: 'state_snapshot', // { tick, entities, timeRemainingMs, patients, selfDamageObjects }
 
   // --- Interacciones de curación/daño ---
+  HIT_FX: 'hit_fx',                         // server -> todos: { playerId, boxes[{x,y,z,half}] }
   CURE_ACTION: 'cure_action',
   CURE_RESULT: 'cure_result',
   SELF_DAMAGE_ACTION: 'self_damage_action',

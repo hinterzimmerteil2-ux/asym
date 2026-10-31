@@ -117,8 +117,10 @@ test('Diligencia bloquea cartas y la M1 del Curador', () => {
   room.useCard('a', 0);
   assert.strictEqual(room.gameState.patients.a.hp, hp);
   e.c.x = 0; e.c.z = 0; e.a.x = 1; e.a.z = 0;
+  e.c.faceX = 1; e.c.faceZ = 0;
   Status.apply(e.c, 'stun', 5000, Date.now());
-  room.applyCure('c', 'a');
+  room.applyCure('c');
+  room.tickHitWindows(Date.now());
   assert.strictEqual(room.gameState.patients.a.hp, hp);
 });
 
@@ -176,8 +178,10 @@ test('Rodar sube hasta la plataforma baja', () => {
 
 test('los resultados de curar y auto-dañarse solo llegan a su dueño', () => {
   const { room, e, sent } = setup();
-  e.c.x = 0; e.c.z = 0; e.a.x = 1; e.a.z = 0;
-  room.applyCure('c', 'a');
+  e.c.x = 0; e.c.z = 0; e.a.x = 1.2; e.a.z = 0;
+  e.c.faceX = 1; e.c.faceZ = 0;
+  room.applyCure('c');
+  room.tickHitWindows(Date.now());
   assert.ok(sent.c.some((m) => m.type === 'cure_result'));
   assert.ok(!sent.a.some((m) => m.type === 'cure_result'));
   assert.ok(!sent.b.some((m) => m.type === 'cure_result'));
@@ -613,8 +617,32 @@ test('auto-daño: minijuego de ritmo, perfecto hace más daño y fallar corta', 
     room.stepPhysics(0.05);
   };
   run(true);
-  assert.strictEqual(p.a.hp, 60 - (5 * 2 + 2));
+  assert.strictEqual(p.a.hp, 60 - 12);
   run(false);
   assert.strictEqual(p.a.hp, 60);
   assert.strictEqual(e.a.selfDmg, null);
+});
+
+test('M1 del Curador: la caja sale de la mano, cura si el Paciente cae dentro y no deja endlag al fallar', () => {
+  const { room, e, p, clock } = setup();
+  e.c.x = 0; e.c.z = 0; e.c.faceX = 1; e.c.faceZ = 0; e.c.y = 0;
+  e.a.x = 6; e.a.z = 0; e.a.y = 0;
+  p.a.hp = 30;
+  room.applyCure('c');
+  room.tickHitWindows(clock.t);
+  assert.strictEqual(p.a.hp, 30);
+  clock.t += 400;
+  room.tickHitWindows(clock.t);
+  assert.strictEqual(e.c.input && require('../src/Status').active(e.c, 'slow', clock.t), false);
+  clock.t += 1500;
+  e.a.x = 1.5;
+  e.a.y = 4;
+  room.applyCure('c');
+  room.tickHitWindows(clock.t);
+  assert.strictEqual(p.a.hp, 30);
+  e.a.y = 0;
+  clock.t += 1500;
+  room.applyCure('c');
+  room.tickHitWindows(clock.t);
+  assert.ok(p.a.hp > 30);
 });
