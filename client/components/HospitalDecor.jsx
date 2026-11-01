@@ -162,17 +162,17 @@ function Litter({ half, seed }) {
   );
 }
 
-function Dust({ half }) {
+function Dust({ half, count }) {
   const ref = useRef();
   const pos = useMemo(() => {
-    const a = new Float32Array(260 * 3);
-    for (let i = 0; i < 260; i++) {
+    const a = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
       a[i * 3] = (Math.random() * 2 - 1) * half * 0.7;
       a[i * 3 + 1] = 0.4 + Math.random() * 8;
       a[i * 3 + 2] = (Math.random() * 2 - 1) * half * 0.7;
     }
     return a;
-  }, [half]);
+  }, [half, count]);
   useFrame(({ clock }) => {
     if (!ref.current) return;
     const t = clock.elapsedTime;
@@ -186,7 +186,7 @@ function Dust({ half }) {
   );
 }
 
-export default function HospitalDecor({ half, platforms }) {
+export default function HospitalDecor({ half, platforms, level = 'full', dust = 260 }) {
   const mats = useMemo(() => ({
     steady: new MeshBasicMaterial({ color: '#d6efd9' }),
     flicker: new MeshBasicMaterial({ color: '#d6efd9' }),
@@ -205,10 +205,10 @@ export default function HospitalDecor({ half, platforms }) {
         if (len < 7) return null;
         return [-1, 1].map((side) => <WallFace key={`${p.id}${side}`} p={p} side={side} mats={mats} seed={i * 31 + (side > 0 ? 7 : 3)} />);
       })}
-      <Beams half={half * 0.667} />
-      <Litter half={half} seed={77} />
-      <Dust half={half} />
-      <pointLight position={[0, 6, 0]} intensity={2.5} distance={40} color="#b7d9c9" />
+      {level === 'full' && <Beams half={half * 0.667} />}
+      {level === 'full' && <Litter half={half} seed={77} />}
+      {level === 'full' && dust > 0 && <Dust half={half} count={dust} />}
+      {level === 'full' && <pointLight position={[0, 6, 0]} intensity={2.5} distance={40} color="#b7d9c9" />}
     </group>
   );
 }

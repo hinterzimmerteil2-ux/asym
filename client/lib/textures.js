@@ -1,6 +1,12 @@
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three';
 
 const base = new Map();
+const opts = { off: false, aniso: 4 };
+
+export function setTextureQuality(off, aniso) {
+  opts.off = off;
+  opts.aniso = aniso;
+}
 
 function draw(name) {
   const S = 256;
@@ -148,12 +154,12 @@ function draw(name) {
 }
 
 export function getTexture(name, rx = 1, ry = 1) {
-  if (typeof document === 'undefined') return null;
+  if (typeof document === 'undefined' || opts.off) return null;
   if (!base.has(name)) base.set(name, draw(name));
   const t = new CanvasTexture(base.get(name));
   t.wrapS = t.wrapT = RepeatWrapping;
   t.colorSpace = SRGBColorSpace;
   t.repeat.set(rx, ry);
-  t.anisotropy = 4;
+  t.anisotropy = opts.aniso;
   return t;
 }

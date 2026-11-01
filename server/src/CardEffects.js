@@ -155,6 +155,19 @@ function fxOn(room, id, ent, f, now) {
   else if (f.type === 'slow') Status.apply(ent, 'slow', ms, now, { level: f.level });
   else if (f.type === 'endlag') Status.apply(ent, 'slow', ms, now, { tag: 'endlag', level: f.level });
   else if (f.type === 'reveal') { if (!room.isInvisible(ent, now)) Status.apply(ent, 'reveal', ms, now); }
+  else if (f.type === 'exacerbacion') { ent.exacerbacionLevel = f.level; ent.exacerbacionUntil = now + ms; }
+  else if (f.type === 'pereza') { ent.perezaLevel = f.level; ent.perezaUntil = now + ms; }
+  else if (f.type === 'acetilcolina') {
+    ent.sprintUntil = now + ms;
+    ent.sprintFactor = C.ACETIL_FACTOR;
+    ent.acetilUntil = now + ms;
+    ent.regenBlockedUntil = ent.acetilUntil + C.ACETIL_REGEN_DELAY_MS;
+    ent.fatigueUntil = ent.acetilUntil + C.ACETIL_FATIGUE_MS;
+  } else if (f.type === 'fatiga') ent.fatigueUntil = now + ms;
+  else if (f.type === 'impulso') { ent.allyBoostUntil = now + ms; ent.allyBoostLevel = f.level; }
+  else if (f.type === 'respiro') ent.respiroUntil = now + ms;
+  else if (f.type === 'ayuno') ent.regenBlockedUntil = now + ms;
+  else if (f.type === 'paraguayizador') { ent.paraFrom = now; ent.paraUntil = now + ms; ent.paraOn = false; }
   else if (f.type === 'flojera') ent.flojera = Math.max(0, Math.min(ent.flojeraMax, ent.flojera + f.amount));
   else if (f.type === 'speed') {
     if (!isHealer) { ent.sprintUntil = now + ms; ent.sprintFactor = f.amount; }

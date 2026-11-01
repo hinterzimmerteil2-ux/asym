@@ -27,13 +27,15 @@ const DEFAULTS_PATIENT = { kind: 'strike', cooldownSec: 30, windowMs: 380, reach
 const DEFAULTS_HEALER = { kind: 'pulse', cooldownSec: 30, windowMs: 700, radius: 6, cureAmount: 8, revealSec: 0, selfHeal: 0, durationSec: 3, strength: 4, factor: 2, flojeraDrain: 30, stunSec: 0, slowSec: 0, slowLevel: 2 };
 
 const FX_WHEN = [['use', 'Al usarla'], ['hit', 'Si acierta'], ['miss', 'Si falla']];
-const FX_TYPES = [['stun', 'Aturdir'], ['ragdoll', 'Derribar'], ['slow', 'Ralentizar'], ['endlag', 'Endlag'], ['reveal', 'Revelar'], ['hp', 'HP (+cura / −daño)'], ['flojera', 'Flojera (+/−)'], ['speed', 'Velocidad']];
+const FX_TYPES = [['stun', 'Aturdir'], ['ragdoll', 'Derribar'], ['slow', 'Ralentizar'], ['endlag', 'Endlag'], ['reveal', 'Revelar'], ['hp', 'HP (+cura / −daño)'], ['flojera', 'Flojera (+/−)'], ['speed', 'Velocidad'], ['exacerbacion', 'Exacerbación'], ['pereza', 'Pereza'], ['acetilcolina', 'Acetilcolina'], ['fatiga', 'Fatiga'], ['impulso', 'Impulso'], ['respiro', 'Respiro'], ['ayuno', 'Ayuno'], ['paraguayizador', 'Paraguayizador (invisible)']];
+const LEVEL_TYPES = ['slow', 'endlag', 'exacerbacion', 'pereza', 'impulso'];
+const NO_TIME = ['hp', 'flojera'];
 const NEW_FX = { when: 'hit', target: 'enemy', type: 'stun', amount: 10, durationSec: 2, level: 2 };
 
 function FxList({ side, s, upd }) {
   const list = s.fx || [];
   const set = (i, patch) => upd({ fx: list.map((f, k) => (k === i ? { ...f, ...patch } : f)) });
-  const targets = side === 'healer' ? [['self', 'Yo'], ['enemy', 'Pacientes']] : [['self', 'Yo'], ['enemy', 'Healer'], ['allies', 'Aliados']];
+  const targets = side === 'healer' ? [['self', 'Yo'], ['enemy', 'Pacientes']] : [['self', 'Yo'], ['enemy', 'Curador'], ['allies', 'Aliados']];
   return (
     <div style={{ marginTop: 6, borderTop: '1px dashed #3d4a42', paddingTop: 4 }}>
       <p style={style.line}>Efectos extra ({list.length}/8)</p>
@@ -44,8 +46,8 @@ function FxList({ side, s, upd }) {
           <select value={f.type} onChange={(ev) => set(i, { type: ev.target.value })}>{FX_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
           {['hp', 'flojera'].includes(f.type) && <input type="number" value={f.amount} min={-500} max={500} onChange={(ev) => set(i, { amount: parseFloat(ev.target.value) || 0 })} style={{ width: 56 }} />}
           {f.type === 'speed' && <input type="number" value={f.amount} min={1} max={10} step={0.1} title="Multiplicador" onChange={(ev) => set(i, { amount: parseFloat(ev.target.value) || 1 })} style={{ width: 50 }} />}
-          {f.type !== 'hp' && f.type !== 'flojera' && <input type="number" value={f.durationSec} min={0} max={60} step={0.5} title="Segundos" onChange={(ev) => set(i, { durationSec: parseFloat(ev.target.value) || 0 })} style={{ width: 50 }} />}
-          {(f.type === 'slow' || f.type === 'endlag') && <input type="number" value={f.level} min={1} max={3} title="Nivel" onChange={(ev) => set(i, { level: Math.max(1, Math.min(3, parseInt(ev.target.value, 10) || 1)) })} style={{ width: 36 }} />}
+          {!NO_TIME.includes(f.type) && <input type="number" value={f.durationSec} min={0} max={60} step={0.5} title="Segundos" onChange={(ev) => set(i, { durationSec: parseFloat(ev.target.value) || 0 })} style={{ width: 50 }} />}
+          {LEVEL_TYPES.includes(f.type) && <input type="number" value={f.level} min={1} max={3} title="Nivel" onChange={(ev) => set(i, { level: Math.max(1, Math.min(3, parseInt(ev.target.value, 10) || 1)) })} style={{ width: 36 }} />}
           <button style={{ fontSize: 11 }} onClick={() => upd({ fx: list.filter((_, k) => k !== i) })}>✕</button>
         </div>
       ))}

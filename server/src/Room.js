@@ -466,6 +466,7 @@ class Room {
       paraFrom: 0,
       paraUntil: 0,
       paraOn: false,
+      respiroUntil: 0,
       regenBlockedUntil: 0,
       fatigueUntil: 0,
       allyBoostUntil: 0,
@@ -744,6 +745,7 @@ class Room {
       entity.paraFrom = 0;
       entity.paraUntil = 0;
       entity.paraOn = false;
+      entity.respiroUntil = 0;
       entity.regenBlockedUntil = 0;
       entity.fatigueUntil = 0;
       entity.allyBoostUntil = 0;
@@ -1186,7 +1188,7 @@ class Room {
       } else {
         entity.idleSince = 0;
       }
-      entity.respiro = resting && now - entity.idleSince >= REST_DELAY_MS;
+      entity.respiro = (resting && now - entity.idleSince >= REST_DELAY_MS) || entity.respiroUntil > now;
       if (entity.respiro && entity.flojeraLockedUntil > now) entity.flojeraLockedUntil -= dt * 1000;
 
       if (inAction && entity.acetilUntil > now) {

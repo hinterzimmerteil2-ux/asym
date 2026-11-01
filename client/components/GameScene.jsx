@@ -4,9 +4,10 @@ import { useRef, useEffect, useState, useMemo, memo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace } from 'three';
 import { itemOf } from '../lib/cosmetics';
-import { getTexture } from '../lib/textures';
+import { getTexture, setTextureQuality } from '../lib/textures';
 import { matches } from '../lib/keybinds';
 import HospitalDecor from './HospitalDecor';
+import { useSettings, gfx } from '../lib/settings';
 
 const LOBBY_HALF_SIZE = 15;
 const MATCH_HALF_SIZE = 60;
@@ -16,7 +17,7 @@ const COLOR_CURADOR = '#f2a154';
 const COLOR_PACIENTE = '#5fd58c';
 const COLOR_UNASSIGNED = '#8a8da3';
 
-const COLOR_FLOOR_MATCH = '#f4f7fa';
+const COLOR_FLOOR_MATCH = '#4f5a56';
 const COLOR_METAL = '#8a8674';
 const COLOR_WALL_TINT = '#bcd6ea';
 const COLOR_EMERGENCY_LIGHT = '#5468ff';
@@ -1428,7 +1429,7 @@ function SquareFrame({ x, z, half, color, opacity, y = 0, hy, hz }) {
 
 const PLAT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', ramp: 'ramp', mezzanine: 'concrete' };
 
-function NightDecor() {
+function NightDecor({ showStars = true, lights = true }) {
   const stars = useMemo(() => {
     const pts = [];
     for (let i = 0; i < 400; i++) {
@@ -1440,19 +1441,23 @@ function NightDecor() {
   }, []);
   return (
     <group>
-      <points>
+      {showStars && <points>
         <bufferGeometry><bufferAttribute attach="attributes-position" array={stars} count={stars.length / 3} itemSize={3} /></bufferGeometry>
         <pointsMaterial color="#ffffff" size={1.6} sizeAttenuation={false} fog={false} />
-      </points>
-      <mesh position={[-90, 120, -140]}>
+      </points>}
+      {showStars && <mesh position={[-90, 120, -140]}>
         <sphereGeometry args={[9, 20, 14]} />
         <meshBasicMaterial color="#f3f0d8" fog={false} />
-      </mesh>
-      <pointLight position={[0, 4, 0]} intensity={7} distance={30} color="#fff3e0" />
-      <pointLight position={[20, 4, 20]} intensity={5} distance={26} color="#fff3e0" />
-      <pointLight position={[-20, 4, -20]} intensity={5} distance={26} color="#fff3e0" />
-      <pointLight position={[-20, 4, 20]} intensity={5} distance={26} color="#fff3e0" />
-      <pointLight position={[20, 4, -20]} intensity={5} distance={26} color="#fff3e0" />
+      </mesh>}
+      {lights && (
+        <>
+          <pointLight position={[0, 4, 0]} intensity={7} distance={30} color="#fff3e0" />
+          <pointLight position={[20, 4, 20]} intensity={5} distance={26} color="#fff3e0" />
+          <pointLight position={[-20, 4, -20]} intensity={5} distance={26} color="#fff3e0" />
+          <pointLight position={[-20, 4, 20]} intensity={5} distance={26} color="#fff3e0" />
+          <pointLight position={[20, 4, -20]} intensity={5} distance={26} color="#fff3e0" />
+        </>
+      )}
     </group>
   );
 }
@@ -1495,11 +1500,11 @@ function ShakeGroup({ on, children }) {
 function Platform({ p }) {
   if (p.kind === 'gate') return <GateMesh p={p} />;
   const name = p.tex || (p.ramp ? 'ramp' : PLAT_TEX[p.kind] || 'concrete');
-  const tint = p.tint || '#ffffff';
   const y0 = p.y0 || 0;
   const len = p.hx * 2;
   const tops = useMemo(() => getTexture(name, Math.max(1, Math.round(len / 3)), Math.max(1, Math.round(p.hz * 2 / 3))), [name, len, p.hz]);
   const sides = useMemo(() => getTexture(name, Math.max(1, Math.round(Math.max(len, p.hz * 2) / 3)), Math.max(1, Math.round(p.h / 3))), [name, len, p.hz, p.h]);
+  const tint = p.tint || (tops ? '#ffffff' : p.ramp ? '#9a8f3a' : '#76817b');
   if (p.slab) {
     const legs = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
     return (
@@ -1631,6 +1636,9 @@ export default function GameScene({
   onShiftLockLost,
   shakeIds,
 }) {
+  const settings = useSettings();
+  const g = gfx(settings.quality);
+  setTextureQuality(!g.textures, g.aniso);
   const yawRef = useRef(Math.PI);
   const shiftRef = useRef(false);
   shiftRef.current = Boolean(shiftLock);
@@ -1643,14 +1651,14 @@ export default function GameScene({
   const pits = useMemo(() => (phase === 'action' ? (platforms || []).filter((p) => p.kind === 'pit') : []), [platforms, phase]);
 
   return (
-    <Canvas dpr={[1, coarse ? 1.25 : 1.5]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
-      <ambientLight intensity={phase === 'action' ? 0.55 : 0.75} color={phase === 'action' ? '#c4dcd2' : '#cfe0ff'} />
+    <Canvas key={`${g.antialias}-${g.textures}`} dpr={coarse ? Math.min(g.dpr, 2) : g.dpr} gl={{ antialias: g.antialias, powerPreference: g.minimal ? 'low-power' : 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
+      <ambientLight intensity={phase === 'action' ? (g.lights ? 0.55 : 0.95) : 0.75} color={phase === 'action' ? '#c4dcd2' : '#cfe0ff'} />
       <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? 0.7 : 1.1} color={phase === 'action' ? '#d6e2ff' : '#ffffff'} />
       <hemisphereLight args={phase === 'action' ? ['#8fb4e8', '#4a4f66', 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
       <color attach="background" args={[phase === 'action' ? '#060a0c' : '#12162e']} />
-      <fog attach="fog" args={phase === 'action' ? ['#0a1214', 45, 130] : ['#12162e', 45, 130]} />
-      {phase === 'action' && <NightDecor />}
-      {phase === 'action' && <HospitalDecor half={areaHalfSize} platforms={platforms} />}
+      <fog attach="fog" args={phase === 'action' ? ['#0a1214', 45, g.fogFar] : ['#12162e', 45, 130]} />
+      {phase === 'action' && <NightDecor showStars={g.stars} lights={g.lights} />}
+      {phase === 'action' && g.decor !== 'none' && <HospitalDecor half={areaHalfSize} platforms={platforms} level={g.decor} dust={g.dust} />}
 
       <FollowCamera focusId={followId || myPlayerId} myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
 
