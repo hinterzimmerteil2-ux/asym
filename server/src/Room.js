@@ -191,17 +191,26 @@ class Room {
   }
 
   navigation(curator = false) {
-    if (!this.nav || this.nav.key !== this.mapId) {
+    const hidden = [...(this.gameState.hiddenPlatforms || [])].sort();
+    const gates = this.phase === 'action' ? this.gatesState() : null;
+    const key = `${this.mapId}|${hidden.join(',')}|${gates || ''}`;
+    if (!this.navCache) this.navCache = new Map();
+    let entry = this.navCache.get(key);
+    if (!entry) {
+      if (this.navCache.size > 24) this.navCache.clear();
       const area = GameMap.areaFor(this.mapId);
       const objects = GameMap.resolveCollisionObjects(this.mapId, area);
-      const platforms = GameMap.resolvePlatforms(this.mapId, area);
-      this.nav = {
-        key: this.mapId,
-        grid: Pathfinding.buildGrid(area.halfSize, objects, platforms),
-        gridCur: Pathfinding.buildGrid(area.halfSize, objects, platforms.filter((p) => p.kind !== 'gate')),
+      const all = GameMap.resolvePlatforms(this.mapId, area).filter((p) => !hidden.includes(p.id));
+      const cur = gates === 'lock' ? all : all.filter((p) => p.kind !== 'gate');
+      const pat = gates === 'open' ? cur : all;
+      entry = {
+        grid: Pathfinding.buildGrid(area.halfSize, objects, pat),
+        gridCur: Pathfinding.buildGrid(area.halfSize, objects, cur),
       };
+      this.navCache.set(key, entry);
     }
-    return curator ? this.nav.gridCur : this.nav.grid;
+    this.nav = entry;
+    return curator ? entry.gridCur : entry.grid;
   }
 
   selfDamageCandidates() {
@@ -794,7 +803,10 @@ class Room {
       const active = phases.some((p) => p.ev === ev && p.phase === 'active');
       if ((ev.kind === 'collapse' && active) || (ev.kind === 'appear' && !active)) hidden.push(ev.targetId);
     }
+    const prev = this.gameState.hiddenPlatforms || [];
     this.gameState.hiddenPlatforms = [...new Set(hidden)];
+    const appeared = prev.filter((id) => !this.gameState.hiddenPlatforms.includes(id));
+    if (appeared.length) this.liftFromAppeared(appeared);
     this.gameState.eventsFired = this.gameState.eventsFired || {};
     for (const p of phases) {
       if (p.phase !== 'active') continue;
@@ -809,6 +821,20 @@ class Room {
         this.gameState.eventsFired[key] = true;
         this.relocateSelfDamageObjects(now);
         for (const id of Object.keys(this.gameState.selfDamageObjectPositions)) this.gameState.selfDamageTypes[id] = this.randomMinigame(id);
+      }
+    }
+  }
+
+  liftFromAppeared(ids) {
+    const plats = GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)).filter((p) => ids.includes(p.id));
+    for (const ent of Object.values(this.gameState.entities)) {
+      for (const pl of plats) {
+        const top = Hitbox.platformTop(pl, ent.x, ent.z);
+        if (top !== null && ent.y < top - 0.05) {
+          ent.y = top;
+          ent.vy = 0;
+          ent.onGround = true;
+        }
       }
     }
   }

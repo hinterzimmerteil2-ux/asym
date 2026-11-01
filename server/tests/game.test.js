@@ -870,3 +870,20 @@ test('skills de Healer personalizadas reemplazan la ranura y funcionan', () => {
   assert.strictEqual(merged[0].name, 'Superpulso');
   assert.strictEqual(merged[1].id, 'somnifero_valeriana');
 });
+
+test('bloque que aparece levanta a quien estaba dentro; bots recalculan navegación', () => {
+  const { room, e } = setup();
+  const GameMap = require('../src/GameMap');
+  const { GAME_DURATION_MS } = require('../src/Constants');
+  room.mapId = 'evcol';
+  const at = (sec) => { room.gameState.timeRemainingMs = GAME_DURATION_MS - sec * 1000; room.tickEvents(Date.now()); };
+  at(10);
+  const area = GameMap.areaFor('evcol');
+  e.a.x = -0.2 * area.halfSize; e.a.z = 0; e.a.y = 0;
+  const gridBefore = room.navigation(false);
+  at(45);
+  assert.ok(e.a.y >= 2 - 0.01, 'quedó sobre el bloque');
+  assert.notStrictEqual(room.navigation(false), gridBefore);
+  at(10);
+  assert.strictEqual(room.navigation(false), gridBefore);
+});

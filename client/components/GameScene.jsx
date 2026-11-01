@@ -6,6 +6,7 @@ import { Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferA
 import { itemOf } from '../lib/cosmetics';
 import { getTexture } from '../lib/textures';
 import { matches } from '../lib/keybinds';
+import HospitalDecor from './HospitalDecor';
 
 const LOBBY_HALF_SIZE = 15;
 const MATCH_HALF_SIZE = 60;
@@ -1424,42 +1425,7 @@ function SquareFrame({ x, z, half, color, opacity, y = 0, hy, hz }) {
   );
 }
 
-const PLAT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', ramp: 'ramp', mezzanine: 'marble' };
-
-function WallDecor({ p }) {
-  const alongX = p.hx >= p.hz;
-  const len = (alongX ? p.hx : p.hz) * 2;
-  const thick = alongX ? p.hz : p.hx;
-  const items = useMemo(() => {
-    const out = [];
-    const n = Math.floor(len / 4.5);
-    for (let i = 0; i < n; i++) {
-      const t = -len / 2 + (i + 0.5) * (len / n);
-      for (const y of [3.2, 6.4]) {
-        const seed = Math.sin((p.x * 13 + p.z * 7 + i * 3 + y) * 12.9898) * 43758.5453;
-        out.push({ t, y, lit: seed - Math.floor(seed) > 0.35 });
-      }
-    }
-    return out;
-  }, [len, p.x, p.z]);
-  if (len < 6) return null;
-  return (
-    <group position={[p.x, 0, p.z]}>
-      {items.map((w, i) => [-1, 1].map((s) => (
-        <mesh key={`${i}${s}`} position={alongX ? [w.t, w.y, s * (thick + 0.02)] : [s * (thick + 0.02), w.y, w.t]} rotation={alongX ? [0, s > 0 ? 0 : Math.PI, 0] : [0, s > 0 ? Math.PI / 2 : -Math.PI / 2, 0]}>
-          <planeGeometry args={[1.6, 1.4]} />
-          <meshBasicMaterial color={w.lit ? '#ffd98a' : '#1d2740'} />
-        </mesh>
-      )))}
-      <mesh position={[0, p.h + 0.15, 0]}>
-        <boxGeometry args={[alongX ? len + 0.2 : p.hx * 2 + 0.5, 0.3, alongX ? p.hz * 2 + 0.5 : len + 0.2]} />
-        <meshStandardMaterial color="#d4e6f5" roughness={0.8} />
-      </mesh>
-    </group>
-  );
-}
-
-const LAMPS = [[8, 8], [-8, 8], [8, -8], [-8, -8], [0, 30], [0, -30], [20, 20], [-20, 20], [20, -20], [-20, -20], [0, 0], [30, 12], [-30, 12], [30, -12], [-30, -12]];
+const PLAT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', ramp: 'ramp', mezzanine: 'concrete' };
 
 function NightDecor() {
   const stars = useMemo(() => {
@@ -1481,12 +1447,6 @@ function NightDecor() {
         <sphereGeometry args={[9, 20, 14]} />
         <meshBasicMaterial color="#f3f0d8" fog={false} />
       </mesh>
-      {LAMPS.map(([x, z]) => (
-        <group key={`${x}_${z}`} position={[x, 0, z]}>
-          <mesh position={[0, 1.6, 0]}><cylinderGeometry args={[0.07, 0.09, 3.2, 6]} /><meshStandardMaterial color="#e8f1f8" /></mesh>
-          <mesh position={[0, 3.3, 0]}><sphereGeometry args={[0.28, 10, 8]} /><meshBasicMaterial color="#ffe6a8" /></mesh>
-        </group>
-      ))}
       <pointLight position={[0, 4, 0]} intensity={7} distance={30} color="#fff3e0" />
       <pointLight position={[20, 4, 20]} intensity={5} distance={26} color="#fff3e0" />
       <pointLight position={[-20, 4, -20]} intensity={5} distance={26} color="#fff3e0" />
@@ -1549,7 +1509,7 @@ function Platform({ p }) {
         </mesh>
         <mesh position={[0, p.h + 0.15, 0]}>
           <boxGeometry args={[len + 0.1, 0.3, p.hz * 2 + 0.1]} />
-          <meshStandardMaterial color="#8fc6ea" roughness={0.7} transparent opacity={0.35} />
+          <meshStandardMaterial color="#6f9a94" roughness={0.7} transparent opacity={0.3} />
         </mesh>
         {legs.map(([a, b]) => (
           <mesh key={`${a}${b}`} position={[a * (p.hx - 0.3), (p.h - p.slab) / 2, b * (p.hz - 0.3)]}>
@@ -1639,7 +1599,6 @@ const MGround = memo(Ground);
 const MLobbyDecor = memo(LobbyDecor);
 const MPlatform = memo(Platform);
 const MPit = memo(PitMesh);
-const MWallDecor = memo(WallDecor);
 const MCollisionObject = memo(CollisionObject);
 const MSelfDamageObject = memo(SelfDamageObject, (a, b) => a.position.x === b.position.x && a.position.y === b.position.y && a.position.z === b.position.z && a.near === b.near && a.active === b.active && a.kind === b.kind);
 
@@ -1684,12 +1643,13 @@ export default function GameScene({
 
   return (
     <Canvas dpr={[1, coarse ? 1.25 : 1.5]} gl={{ antialias: !coarse, powerPreference: 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
-      <ambientLight intensity={phase === 'action' ? 0.62 : 0.75} color="#cfe0ff" />
+      <ambientLight intensity={phase === 'action' ? 0.55 : 0.75} color={phase === 'action' ? '#c4dcd2' : '#cfe0ff'} />
       <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? 0.7 : 1.1} color={phase === 'action' ? '#d6e2ff' : '#ffffff'} />
       <hemisphereLight args={phase === 'action' ? ['#8fb4e8', '#4a4f66', 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
-      <color attach="background" args={[phase === 'action' ? '#070b1c' : '#12162e']} />
-      <fog attach="fog" args={phase === 'action' ? ['#0a1024', 50, 140] : ['#12162e', 45, 130]} />
+      <color attach="background" args={[phase === 'action' ? '#060a0c' : '#12162e']} />
+      <fog attach="fog" args={phase === 'action' ? ['#0a1214', 45, 130] : ['#12162e', 45, 130]} />
       {phase === 'action' && <NightDecor />}
+      {phase === 'action' && <HospitalDecor half={areaHalfSize} platforms={platforms} />}
 
       <FollowCamera focusId={followId || myPlayerId} myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
 
@@ -1716,7 +1676,7 @@ export default function GameScene({
       )}
 
       {(platforms || []).filter((p) => p.kind !== 'pit').map((p) => <ShakeGroup key={p.id} on={Boolean(shakeIds && shakeIds.includes(p.id))}><MPlatform p={p} /></ShakeGroup>)}
-      {(platforms || []).filter((p) => p.kind === 'wall').map((p) => <MWallDecor key={`d${p.id}`} p={p} />)}
+      
 
       {phase === 'action' &&
         (collisionObjects || []).map((obj) => <MCollisionObject key={obj.id} obj={obj} />)}
