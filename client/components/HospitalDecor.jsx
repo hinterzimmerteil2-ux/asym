@@ -80,6 +80,16 @@ function WallFace({ p, side, mats, seed }) {
             <boxGeometry args={[0.28, 0.9, 0.16]} />
           </mesh>
         ))}
+        {p.h > 7 && <mesh position={[0, 4.75, 0.12]}><boxGeometry args={[len, 0.35, 0.3]} /><meshStandardMaterial color="#232b28" roughness={0.9} /></mesh>}
+        {p.h > 7 && <mesh position={[0, 4.95, 0.04]}><boxGeometry args={[len, 0.04, 0.06]} /><meshStandardMaterial color="#6f3a36" /></mesh>}
+        {items.pil.map((u, i) => (i % 2 === 0 ? (
+          <group key={`d${i}`} position={[(alongX ? (u + 3.2) * (side > 0 ? 1 : -1) : (u + 3.2) * (side > 0 ? -1 : 1)), 0, 0.07]}>
+            <mesh position={[0, 1.15, 0]}><boxGeometry args={[1.5, 2.3, 0.1]} /><meshStandardMaterial color="#10171a" roughness={1} /></mesh>
+            <mesh position={[0, 1.15, 0.06]}><boxGeometry args={[1.25, 2.1, 0.05]} /><meshStandardMaterial color="#3a2f27" roughness={1} /></mesh>
+            <mesh position={[0.45, 1.1, 0.12]}><sphereGeometry args={[0.06, 6, 6]} /><meshStandardMaterial color="#9a8f6a" /></mesh>
+            <mesh position={[0, 2.6, 0.05]}><boxGeometry args={[0.7, 0.3, 0.04]} /><meshBasicMaterial color="#2f6a52" /></mesh>
+          </group>
+        ) : null))}
         <mesh position={[0, 0.6, 0.06]}><boxGeometry args={[len, 0.14, 0.12]} /><meshStandardMaterial color="#1b2220" /></mesh>
         <mesh position={[0, 1.75, 0.05]}><boxGeometry args={[len, 0.1, 0.1]} /><meshStandardMaterial color="#18201e" /></mesh>
         <mesh position={[0, p.h - 0.2, 0.2]}><boxGeometry args={[len + 0.2, 0.4, 0.45]} /><meshStandardMaterial color="#222a28" roughness={0.9} /></mesh>
@@ -100,6 +110,13 @@ function Beams({ half }) {
       {list.map((x, i) => (
         <group key={i}>
           <mesh position={[x, 9.7, 0]}><boxGeometry args={[0.5, 0.7, half * 2]} /><meshStandardMaterial color="#1a201e" roughness={0.9} /></mesh>
+          {[-0.3, 0.3].map((f) => (
+            <group key={f} position={[x + 1.2, 0, half * f]}>
+              <mesh position={[0, 8.6, 0]}><cylinderGeometry args={[0.015, 0.015, 1.8, 4]} /><meshBasicMaterial color="#0d1110" /></mesh>
+              <mesh position={[0, 7.6, 0]}><boxGeometry args={[0.2, 0.9, 0.2]} /><meshStandardMaterial color="#8fb7a0" emissive="#6fa08a" emissiveIntensity={i % 3 === 0 ? 0 : 0.6} /></mesh>
+            </group>
+          ))}
+          {i % 3 === 1 && <mesh position={[x - 1.5, 8.4, half * 0.1]} rotation={[0.4, 0.3, 0.2]}><dodecahedronGeometry args={[0.6, 0]} /><meshStandardMaterial color="#444b47" flatShading roughness={1} /></mesh>}
           {i % 2 === 0 && (
             <mesh position={[x, 4.8, 0]} rotation={[0, 0, 0]}>
               <boxGeometry args={[2.6, 9, half * 1.8]} />
