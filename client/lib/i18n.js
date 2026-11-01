@@ -398,6 +398,11 @@ const PAIRS = [
 ["Paraguayizador", "Paraguayizador"],
 ["Endlag al empezar y luego 8s invisible: el Curador no te ve y las habilidades de detección no te revelan. Gastas el doble de Flojera y no se regenera. Si el Curador te golpea, se cancela y quedas en endlag más largo. Al terminar, endlag.", "Endlag on start, then 8s invisible: the Healer can't see you and detection skills can't reveal you. You spend double Laziness and it doesn't regenerate. If the Healer hits you, it's cancelled and you suffer a longer endlag. Endlag when it ends."],
 ["Invisible: el Curador no te ve ni te revelan las habilidades de detección. Gastas el doble de Flojera y no se regenera. Si te golpean, se cancela y sufres más endlag.", "Invisible: the Healer can't see you and detection skills can't reveal you. You spend double Laziness and it doesn't regenerate. If you're hit, it's cancelled and you suffer more endlag."]
+["Efectos extra", "Extra effects"],
+["Al usarla", "On use"],
+["Si acierta", "On hit"],
+["Si falla", "On miss"],
+["+ Efecto", "+ Effect"]
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

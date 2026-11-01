@@ -909,3 +909,32 @@ test('Paraguayizador: invisible tras endlag, doble gasto sin regeneración, se c
   assert.ok(Status.active(e.a, 'slow', t1 + C.PARAGUAY_HIT_END_MS - 100), 'endlag mayor al cancelarse');
   assert.ok(cur);
 });
+
+test('skills personalizadas: efectos a sí mismo/enemigo/aliados al usar, acertar o fallar', () => {
+  const GameMap = require('../src/GameMap');
+  const CardEffects = require('../src/CardEffects');
+  GameMap.registerMap({ id: 'fxm', name: 'x', selfDamageObjects: [{ id: 's', xFrac: 0, zFrac: 0 }], collisionObjects: [], cards: [
+    { name: 'Fx', kind: 'burst', radius: 2, stunSec: 0, fx: [
+      { when: 'use', target: 'self', type: 'flojera', amount: -30 },
+      { when: 'hit', target: 'enemy', type: 'slow', durationSec: 3, level: 3 },
+      { when: 'miss', target: 'self', type: 'stun', durationSec: 2 },
+      { when: 'hit', target: 'self', type: 'speed', amount: 2, durationSec: 4 },
+    ] },
+  ] });
+  const card = GameMap.getCustomCards('fxm')[0];
+  assert.strictEqual(card.fx.length, 4);
+  const { room, clock, e } = setup();
+  const cur = Object.keys(e).find((id) => room.players.get(id).isAsymRole);
+  e.a.flojera = 80;
+  e[cur].x = 50; e[cur].z = 50;
+  room.applyCardEffect('a', e.a, card, clock.t);
+  assert.strictEqual(e.a.flojera, 50);
+  assert.ok(Status.active(e.a, 'stun', clock.t), 'falla: se aturde a sí mismo');
+  assert.ok(!Status.active(e[cur], 'slow', clock.t));
+  Status.clear(e.a, 'stun');
+  e.a.x = 0; e.a.z = 0; e[cur].x = 1; e[cur].z = 0;
+  room.applyCardEffect('a', e.a, card, clock.t);
+  assert.ok(Status.active(e[cur], 'slow', clock.t), 'acierta: ralentiza al Healer');
+  assert.strictEqual(e.a.sprintFactor, 2);
+  assert.strictEqual(typeof CardEffects.runFx, 'function');
+});

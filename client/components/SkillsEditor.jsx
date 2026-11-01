@@ -26,6 +26,34 @@ const HEALER_PARAMS = {
 const DEFAULTS_PATIENT = { kind: 'strike', cooldownSec: 30, windowMs: 380, reach: 1.2, radius: 0.85, stunSec: 1.5, ragdollSec: 0, slowSec: 0, slowLevel: 2, revealHealerSec: 0, knockback: 0, hpLoss: 0, factor: 1.4, durationSec: 3, hpCost: 0, endlagSec: 0 };
 const DEFAULTS_HEALER = { kind: 'pulse', cooldownSec: 30, windowMs: 700, radius: 6, cureAmount: 8, revealSec: 0, selfHeal: 0, durationSec: 3, strength: 4, factor: 2, flojeraDrain: 30, stunSec: 0, slowSec: 0, slowLevel: 2 };
 
+const FX_WHEN = [['use', 'Al usarla'], ['hit', 'Si acierta'], ['miss', 'Si falla']];
+const FX_TYPES = [['stun', 'Aturdir'], ['ragdoll', 'Derribar'], ['slow', 'Ralentizar'], ['endlag', 'Endlag'], ['reveal', 'Revelar'], ['hp', 'HP (+cura / −daño)'], ['flojera', 'Flojera (+/−)'], ['speed', 'Velocidad']];
+const NEW_FX = { when: 'hit', target: 'enemy', type: 'stun', amount: 10, durationSec: 2, level: 2 };
+
+function FxList({ side, s, upd }) {
+  const list = s.fx || [];
+  const set = (i, patch) => upd({ fx: list.map((f, k) => (k === i ? { ...f, ...patch } : f)) });
+  const targets = side === 'healer' ? [['self', 'Yo'], ['enemy', 'Pacientes']] : [['self', 'Yo'], ['enemy', 'Healer'], ['allies', 'Aliados']];
+  return (
+    <div style={{ marginTop: 6, borderTop: '1px dashed #3d4a42', paddingTop: 4 }}>
+      <p style={style.line}>Efectos extra ({list.length}/8)</p>
+      {list.map((f, i) => (
+        <div key={i} style={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center', marginBottom: 4, fontSize: 11 }}>
+          <select value={f.when} onChange={(ev) => set(i, { when: ev.target.value })}>{FX_WHEN.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          <select value={f.target} onChange={(ev) => set(i, { target: ev.target.value })}>{targets.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          <select value={f.type} onChange={(ev) => set(i, { type: ev.target.value })}>{FX_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          {['hp', 'flojera'].includes(f.type) && <input type="number" value={f.amount} min={-500} max={500} onChange={(ev) => set(i, { amount: parseFloat(ev.target.value) || 0 })} style={{ width: 56 }} />}
+          {f.type === 'speed' && <input type="number" value={f.amount} min={1} max={10} step={0.1} title="Multiplicador" onChange={(ev) => set(i, { amount: parseFloat(ev.target.value) || 1 })} style={{ width: 50 }} />}
+          {f.type !== 'hp' && f.type !== 'flojera' && <input type="number" value={f.durationSec} min={0} max={60} step={0.5} title="Segundos" onChange={(ev) => set(i, { durationSec: parseFloat(ev.target.value) || 0 })} style={{ width: 50 }} />}
+          {(f.type === 'slow' || f.type === 'endlag') && <input type="number" value={f.level} min={1} max={3} title="Nivel" onChange={(ev) => set(i, { level: Math.max(1, Math.min(3, parseInt(ev.target.value, 10) || 1)) })} style={{ width: 36 }} />}
+          <button style={{ fontSize: 11 }} onClick={() => upd({ fx: list.filter((_, k) => k !== i) })}>✕</button>
+        </div>
+      ))}
+      <button disabled={list.length >= 8} style={{ fontSize: 11 }} onClick={() => upd({ fx: [...list, { ...NEW_FX }] })}>+ Efecto</button>
+    </div>
+  );
+}
+
 function paramsFor(side, s) {
   const spec = side === 'healer' ? HEALER_PARAMS : PATIENT_PARAMS;
   const list = [...spec.common, ...(spec[s.kind] || [])];
@@ -109,6 +137,7 @@ function SideEditor({ side, list, setList, max, library }) {
                 <input type="range" min={min} max={max2} step={step} value={s[key] ?? defaults[key]} onChange={(ev) => upd({ [key]: parseFloat(ev.target.value) })} style={{ width: '100%' }} />
               </label>
             ))}
+            <FxList side={side} s={s} upd={upd} />
           </div>
         );
       })}

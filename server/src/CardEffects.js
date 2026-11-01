@@ -147,6 +147,49 @@ function customHandler({ room, playerId, entity, card, now }) {
   room.checkGameEndConditions();
 }
 
+function fxOn(room, id, ent, f, now) {
+  const ms = Math.round(f.durationSec * 1000);
+  const isHealer = Boolean(room.players.get(id)?.isAsymRole);
+  if (f.type === 'stun') room.stun(id, ent, ms, now, 0);
+  else if (f.type === 'ragdoll') room.ragdoll(id, ent, ms, now);
+  else if (f.type === 'slow') Status.apply(ent, 'slow', ms, now, { level: f.level });
+  else if (f.type === 'endlag') Status.apply(ent, 'slow', ms, now, { tag: 'endlag', level: f.level });
+  else if (f.type === 'reveal') { if (!room.isInvisible(ent, now)) Status.apply(ent, 'reveal', ms, now); }
+  else if (f.type === 'flojera') ent.flojera = Math.max(0, Math.min(ent.flojeraMax, ent.flojera + f.amount));
+  else if (f.type === 'speed') {
+    if (!isHealer) { ent.sprintUntil = now + ms; ent.sprintFactor = f.amount; }
+  } else if (f.type === 'hp') {
+    if (isHealer) room.adjustCuratorHp(f.amount);
+    else if (f.amount < 0) room.damagePatient(id, -f.amount, 1);
+    else room.healPatient(id, f.amount);
+  }
+}
+
+function runFx(room, ownerId, ownerEntity, list, trigger, ctx, now) {
+  if (!list || !list.length) return;
+  const ownerIsHealer = Boolean(room.players.get(ownerId)?.isAsymRole);
+  for (const f of list) {
+    if (f.when !== trigger) continue;
+    const targets = [];
+    if (f.target === 'self') targets.push([ownerId, ownerEntity]);
+    else if (f.target === 'allies') {
+      if (!ownerIsHealer) for (const id of room.alliesNear(ownerId, ownerEntity, 8)) targets.push([id, room.gameState.entities[id]]);
+    } else if (ctx && ctx.enemyIds) {
+      for (const id of ctx.enemyIds) targets.push([id, room.gameState.entities[id]]);
+    } else {
+      for (const [id, p] of room.players) {
+        if (Boolean(p.isAsymRole) === ownerIsHealer) continue;
+        const e = room.gameState.entities[id];
+        if (!e) continue;
+        if (ownerIsHealer && room.gameState.patients[id]?.status !== 'alive') continue;
+        targets.push([id, e]);
+      }
+    }
+    for (const [id, ent] of targets) if (ent) fxOn(room, id, ent, f, now);
+  }
+  room.checkGameEndConditions();
+}
+
 function apply(room, playerId, entity, card, now) {
   const handler = handlers[card.id] || (card.custom ? customHandler : null);
   if (handler) handler({ room, playerId, entity, card, now });
@@ -165,4 +208,4 @@ function areaOf(card, entity) {
   return [];
 }
 
-module.exports = { apply, handlers, areaOf };
+module.exports = { apply, handlers, areaOf, runFx };

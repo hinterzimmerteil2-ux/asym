@@ -395,5 +395,10 @@ export const DE = [
 "✓ Veröffentlicht. Sie erscheint jetzt unter \"Community-Karten\" in der Lobby.",
 "Paraguayizador",
 "Endlag beim Start, dann 8 s unsichtbar: Der Heiler sieht dich nicht und Aufdeckfähigkeiten enthüllen dich nicht. Du verbrauchst doppelt so viel Faulheit, die sich nicht regeneriert. Trifft dich der Heiler, wird er abgebrochen und du hast einen längeren Endlag. Am Ende gibt es einen Endlag.",
-"Unsichtbar: Der Heiler sieht dich nicht und Aufdeckfähigkeiten enthüllen dich nicht. Du verbrauchst doppelt so viel Faulheit, die sich nicht regeneriert. Wirst du getroffen, wird der Effekt abgebrochen und du hast mehr Endlag."
+"Unsichtbar: Der Heiler sieht dich nicht und Aufdeckfähigkeiten enthüllen dich nicht. Du verbrauchst doppelt so viel Faulheit, die sich nicht regeneriert. Wirst du getroffen, wird der Effekt abgebrochen und du hast mehr Endlag.",
+"Zusatzeffekte",
+"Beim Einsatz",
+"Bei Treffer",
+"Bei Fehlschlag",
+"+ Effekt"
 ];

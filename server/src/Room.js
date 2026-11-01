@@ -1403,6 +1403,7 @@ class Room {
       return;
     }
     curadorEntity.skillCooldowns[index] = now + skill.cooldownMs;
+    if (skill.fx) CardEffects.runFx(this, playerId, curadorEntity, skill.fx, 'use', null, now);
 
     const affectedPlayerIds = [];
     let healedAny = false;
@@ -1445,6 +1446,9 @@ class Room {
       }
     }
 
+    if (skill.fx && (skill.type === 'pulse' || skill.type === 'purge')) {
+      CardEffects.runFx(this, playerId, curadorEntity, skill.fx, affectedPlayerIds.length ? 'hit' : 'miss', { enemyIds: affectedPlayerIds }, now);
+    }
     if (affectedPlayerIds.length >= 2) this.award(playerId, 4, 'Pulso certero');
     else if (affectedPlayerIds.length === 1) this.award(playerId, 2, 'Habilidad certera');
     if (skill.revealMs) {
@@ -1530,6 +1534,7 @@ class Room {
           ids.push(targetPlayerId);
         }
         if (ids.length) {
+          if (skill.fx) CardEffects.runFx(this, win.playerId, owner, skill.fx, 'hit', { enemyIds: ids }, now);
           this.broadcastPulse({
             playerId: win.playerId,
             skillIndex: win.index,
@@ -1546,6 +1551,7 @@ class Room {
         }
         if (win.endsAt <= now) {
           this.endlag(win.playerId, owner, now);
+          if (skill.fx) CardEffects.runFx(this, win.playerId, owner, skill.fx, 'miss', { enemyIds: [] }, now);
           continue;
         }
       } else if (win.kind === 'melee') {
@@ -1589,10 +1595,12 @@ class Room {
         if (this.curatorInRange(owner, card.hitRadius, card.reach || 0)) {
           CardEffects.apply(this, win.playerId, owner, card, now);
           this.gainExacerbacion(owner, now);
+          if (card.fx) CardEffects.runFx(this, win.playerId, owner, card.fx, 'hit', null, now);
           continue;
         }
         if (win.endsAt <= now) {
           this.endlag(win.playerId, owner, now);
+          if (card.fx) CardEffects.runFx(this, win.playerId, owner, card.fx, 'miss', null, now);
           continue;
         }
       }
@@ -1965,6 +1973,7 @@ class Room {
   }
 
   applyCardEffect(playerId, entity, card, now) {
+    if (card.fx) CardEffects.runFx(this, playerId, entity, card.fx, 'use', null, now);
     if (card.window) {
       this.hitWindows.push({ kind: 'card', playerId, card, endsAt: now + card.window });
       if (card.maxMode === 'use') this.applyMaxCosts(playerId, entity, card, true);
@@ -1975,8 +1984,10 @@ class Room {
     CardEffects.apply(this, playerId, entity, card, now);
     if (hit === true) {
       this.gainExacerbacion(entity, now);
+      if (card.fx) CardEffects.runFx(this, playerId, entity, card.fx, 'hit', null, now);
     } else if (hit === false) {
       this.endlag(playerId, entity, now);
+      if (card.fx) CardEffects.runFx(this, playerId, entity, card.fx, 'miss', null, now);
     }
     if (card.maxMode === 'use') this.applyMaxCosts(playerId, entity, card, true);
   }

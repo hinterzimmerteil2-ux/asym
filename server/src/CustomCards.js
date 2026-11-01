@@ -2,6 +2,10 @@ const MAX_CARDS = 12;
 const MAX_HEALER = 4;
 const KINDS = ['strike', 'burst', 'sprint'];
 const HEALER_KINDS = ['pulse', 'stun', 'pull', 'boost', 'purge'];
+const FX_WHEN = ['use', 'hit', 'miss'];
+const FX_TARGET = ['self', 'enemy', 'allies'];
+const FX_TYPES = ['stun', 'ragdoll', 'slow', 'endlag', 'reveal', 'hp', 'flojera', 'speed'];
+const MAX_FX = 8;
 const registry = new Map();
 const healerRegistry = new Map();
 
@@ -12,6 +16,21 @@ function num(v, lo, hi, d) {
 
 function r1(n) {
   return Math.round(n * 10) / 10;
+}
+
+function sanitizeFx(list) {
+  return (Array.isArray(list) ? list : []).slice(0, MAX_FX).map((f) => {
+    const type = FX_TYPES.includes(f && f.type) ? f.type : 'stun';
+    const out = {
+      when: FX_WHEN.includes(f && f.when) ? f.when : 'hit',
+      target: FX_TARGET.includes(f && f.target) ? f.target : 'enemy',
+      type,
+      amount: r1(num(f && f.amount, type === 'speed' ? 1 : -500, type === 'speed' ? 10 : 500, type === 'speed' ? 1.5 : 10)),
+      durationSec: r1(num(f && f.durationSec, 0, 60, 2)),
+      level: Math.round(num(f && f.level, 1, 3, 2)),
+    };
+    return out;
+  });
 }
 
 function name(raw, fallback) {
@@ -40,6 +59,7 @@ function sanitize(raw, i) {
     durationSec: g('durationSec', 0.5, 90, 3),
     hpCost: g('hpCost', 0, 100, 0),
     endlagSec: g('endlagSec', 0, 10, 0),
+    fx: sanitizeFx(raw && raw.fx),
   };
 }
 
@@ -73,6 +93,7 @@ function build(p, id) {
     cooldownMs: Math.round(p.cooldownSec * 1000),
     corrupt: false,
     endlagMs: Math.round(p.endlagSec * 1000),
+    fx: p.fx,
   };
   if (p.kind === 'strike') {
     card.window = p.windowMs;
@@ -131,6 +152,7 @@ function sanitizeHealer(raw, i) {
     strength: g('strength', 0.5, 40, 4),
     factor: g('factor', 1, 12, 2),
     flojeraDrain: g('flojeraDrain', 0, 500, 30),
+    fx: sanitizeFx(raw && raw.fx).filter((f) => f.target !== 'allies'),
     stunSec: g('stunSec', 0, 30, 0),
     slowSec: g('slowSec', 0, 60, 0),
     slowLevel: Math.round(num(raw && raw.slowLevel, 1, 3, 2)),
@@ -158,6 +180,7 @@ function buildHealer(p, id) {
     keywords: [p.kind === 'pulse' || p.kind === 'boost' || p.kind === 'purge' ? 'bonificadora' : 'ofensiva'],
     cooldownMs: Math.round(p.cooldownSec * 1000),
     radius: p.radius,
+    fx: p.fx,
   };
   if (p.kind === 'pulse' || p.kind === 'purge') {
     s.stunMs = Math.round(p.stunSec * 1000);
@@ -197,7 +220,7 @@ function healerSkills(mapId) {
 }
 
 module.exports = {
-  MAX_CARDS, MAX_HEALER, KINDS, HEALER_KINDS,
+  MAX_CARDS, MAX_HEALER, FX_WHEN, FX_TARGET, FX_TYPES, MAX_FX, KINDS, HEALER_KINDS,
   sanitize, describe, normalizeList, registerAll, get,
   sanitizeHealer, normalizeHealer, registerHealer, healerSkills,
 };
