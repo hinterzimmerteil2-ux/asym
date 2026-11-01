@@ -123,9 +123,17 @@ function customHandler({ room, playerId, entity, card, now }) {
     room.checkGameEndConditions();
     return;
   }
+  if (card.endlagMs) room.endlag(playerId, entity, now, card.endlagMs, 1);
   forEachCurator(room, entity, card.hitRadius, (id, target) => {
     if (card.ragdollMs) room.ragdoll(id, target, card.ragdollMs, now);
     if (card.stunMs) room.stun(id, target, card.stunMs, now, 0);
+    if (card.slowMs) Status.apply(target, 'slow', card.slowMs, now, { level: 2 });
+    if (card.knockback) {
+      const dx = target.x - entity.x;
+      const dz = target.z - entity.z;
+      const len = Math.hypot(dx, dz) || 1;
+      Status.push(target, dx / len, dz / len, card.knockback, 400, now);
+    }
     if (card.curatorHpLoss) room.adjustCuratorHp(-card.curatorHpLoss);
   }, card.reach || 0);
   room.checkGameEndConditions();

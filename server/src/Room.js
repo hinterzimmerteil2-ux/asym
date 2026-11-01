@@ -2,6 +2,7 @@ const { MessageType, encode } = require('./protocol');
 const GameMap = require('./GameMap');
 const Cosmetics = require('./Cosmetics');
 const Characters = require('./Characters');
+const CustomCards = require('./CustomCards');
 const Cards = require('./Cards');
 const Roles = require('./Roles');
 const CardEffects = require('./CardEffects');
@@ -497,7 +498,7 @@ class Room {
         cosmetics: p.cosmetics || {},
         characterId: p.isAsymRole ? (p.characterId || Characters.DEFAULT_CHARACTER_ID) : null,
         character: characterData
-          ? { displayName: characterData.displayName, weaponName: characterData.weaponName, skills: Characters.publicSkills(characterData) }
+          ? { displayName: characterData.displayName, weaponName: characterData.weaponName, skills: Characters.publicSkills(characterData, CustomCards.healerSkills(this.mapId)) }
           : null,
       };
     });
@@ -696,7 +697,7 @@ class Room {
         entity.z = spawn.z;
         patientIndex++;
         this.gameState.patients[playerId] = this.tutorial
-          ? { hp: TUTORIAL_PATIENT_HP_MAX / 2, status: 'alive', maxHp: TUTORIAL_PATIENT_HP_MAX }
+          ? { hp: PATIENT_HP_START, status: 'alive', maxHp: TUTORIAL_PATIENT_HP_MAX }
           : { hp: PATIENT_HP_START, status: 'alive', maxHp: PATIENT_HP_MAX };
       }
       entity.y = GROUND_Y;
@@ -1320,7 +1321,7 @@ class Room {
       return;
     }
 
-    const skills = Characters.getCharacter(curador.characterId).skills;
+    const skills = Characters.withOverride(Characters.getCharacter(curador.characterId), CustomCards.healerSkills(this.mapId));
     const index = skillIndex === 'melee' ? 'melee' : Number.isInteger(skillIndex) ? skillIndex : 0;
     const skill = index === 'melee' ? Characters.GENERIC_MELEE : skills[index];
     if (!skill) {

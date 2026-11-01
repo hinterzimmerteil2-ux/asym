@@ -1,38 +1,44 @@
-const BUDGET = 60;
 const MAX_CARDS = 6;
+const MAX_HEALER = 4;
 const KINDS = ['strike', 'burst', 'sprint'];
+const HEALER_KINDS = ['pulse', 'stun', 'pull', 'boost', 'purge'];
 const registry = new Map();
+const healerRegistry = new Map();
 
 function num(v, lo, hi, d) {
   const n = Number(v);
   return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : d;
 }
 
-function sanitize(raw, i) {
-  const kind = KINDS.includes(raw && raw.kind) ? raw.kind : 'strike';
-  const p = {
-    id: typeof (raw && raw.id) === 'string' ? raw.id.slice(0, 40) : `sk_${i}`,
-    name: String((raw && raw.name) || `Skill ${i + 1}`).trim().slice(0, 28) || `Skill ${i + 1}`,
-    kind,
-    cooldownSec: num(raw && raw.cooldownSec, 8, 60, 30),
-    reach: num(raw && raw.reach, 0.6, 2.4, 1.2),
-    radius: kind === 'burst' ? num(raw && raw.radius, 1.2, 3, 2) : num(raw && raw.radius, 0.5, 1.6, 0.85),
-    stunSec: num(raw && raw.stunSec, 0, 3, kind === 'sprint' ? 0 : 1.5),
-    ragdollSec: num(raw && raw.ragdollSec, 0, 3, 0),
-    hpLoss: num(raw && raw.hpLoss, 0, 40, 0),
-    factor: num(raw && raw.factor, 1.1, 2, 1.4),
-    durationSec: num(raw && raw.durationSec, 1, 6, 3),
-    hpCost: num(raw && raw.hpCost, 0, 30, 0),
-  };
-  for (const k of ['cooldownSec', 'reach', 'radius', 'stunSec', 'ragdollSec', 'hpLoss', 'factor', 'durationSec', 'hpCost']) p[k] = Math.round(p[k] * 10) / 10;
-  return p;
+function r1(n) {
+  return Math.round(n * 10) / 10;
 }
 
-function power(p) {
-  const scale = 30 / p.cooldownSec;
-  if (p.kind === 'sprint') return Math.max(5, (p.factor - 1) * 10 * p.durationSec - p.hpCost * 0.2) * scale;
-  const area = p.kind === 'burst' ? p.radius * 5 : p.reach * 4 + p.radius * 6;
-  return (p.stunSec * 10 + p.ragdollSec * 12 + p.hpLoss * 0.8 + area) * scale;
+function name(raw, fallback) {
+  return String((raw && raw.name) || fallback).trim().slice(0, 28) || fallback;
+}
+
+function sanitize(raw, i) {
+  const kind = KINDS.includes(raw && raw.kind) ? raw.kind : 'strike';
+  const g = (k, lo, hi, d) => r1(num(raw && raw[k], lo, hi, d));
+  return {
+    id: typeof (raw && raw.id) === 'string' ? raw.id.slice(0, 40) : `sk_${i}`,
+    name: name(raw, `Skill ${i + 1}`),
+    kind,
+    cooldownSec: g('cooldownSec', 2, 180, 30),
+    windowMs: Math.round(num(raw && raw.windowMs, 100, 1500, 380)),
+    reach: g('reach', 0, 8, 1.2),
+    radius: g('radius', 0.3, 10, kind === 'burst' ? 2 : 0.85),
+    stunSec: g('stunSec', 0, 12, kind === 'sprint' ? 0 : 1.5),
+    ragdollSec: g('ragdollSec', 0, 12, 0),
+    slowSec: g('slowSec', 0, 20, 0),
+    knockback: g('knockback', 0, 20, 0),
+    hpLoss: g('hpLoss', 0, 300, 0),
+    factor: g('factor', 1, 5, 1.4),
+    durationSec: g('durationSec', 0.5, 30, 3),
+    hpCost: g('hpCost', 0, 60, 0),
+    endlagSec: g('endlagSec', 0, 5, 0),
+  };
 }
 
 function describe(p) {
@@ -43,8 +49,10 @@ function describe(p) {
     return parts.join(' ');
   }
   parts.push(p.kind === 'burst' ? `Golpe en área de ${p.radius} a tu alrededor.` : `Golpe corto desde la mano (alcance ${p.reach}).`);
-  if (p.stunSec) parts.push(`Aturde ${p.stunSec}s al Curador.`);
+  if (p.stunSec) parts.push(`Aturde ${p.stunSec}s al Healer.`);
   if (p.ragdollSec) parts.push(`Lo derriba ${p.ragdollSec}s.`);
+  if (p.slowSec) parts.push(`Lo ralentiza ${p.slowSec}s.`);
+  if (p.knockback) parts.push(`Lo empuja (${p.knockback}).`);
   if (p.hpLoss) parts.push(`Le quita ${p.hpLoss} HP.`);
   parts.push('Si fallas, quedas en endlag.');
   return parts.join(' ');
@@ -62,9 +70,10 @@ function build(p, id) {
     keywords: [p.kind === 'sprint' ? 'bonificadora' : 'ofensiva'],
     cooldownMs: Math.round(p.cooldownSec * 1000),
     corrupt: false,
+    endlagMs: Math.round(p.endlagSec * 1000),
   };
   if (p.kind === 'strike') {
-    card.window = 380;
+    card.window = p.windowMs;
     card.reach = p.reach;
     card.hitRadius = p.radius;
   } else if (p.kind === 'burst') {
@@ -77,18 +86,15 @@ function build(p, id) {
   if (p.kind !== 'sprint') {
     card.stunMs = Math.round(p.stunSec * 1000);
     card.ragdollMs = Math.round(p.ragdollSec * 1000);
+    card.slowMs = Math.round(p.slowSec * 1000);
+    card.knockback = p.knockback;
     card.curatorHpLoss = p.hpLoss;
   }
   return card;
 }
 
 function normalizeList(list) {
-  const out = (Array.isArray(list) ? list : []).slice(0, MAX_CARDS).map((raw, i) => sanitize(raw, i));
-  for (const p of out) {
-    const pw = power(p);
-    if (pw > BUDGET + 0.001) throw new Error(`La skill "${p.name}" es demasiado fuerte (poder ${Math.round(pw)}/${BUDGET}). Sube la recarga o baja sus efectos.`);
-  }
-  return out;
+  return (Array.isArray(list) ? list : []).slice(0, MAX_CARDS).map((raw, i) => sanitize(raw, i));
 }
 
 function registerAll(mapId, list) {
@@ -104,4 +110,82 @@ function get(id) {
   return registry.get(id) || null;
 }
 
-module.exports = { BUDGET, MAX_CARDS, KINDS, sanitize, power, describe, normalizeList, registerAll, get };
+function sanitizeHealer(raw, i) {
+  const kind = HEALER_KINDS.includes(raw && raw.kind) ? raw.kind : 'pulse';
+  const g = (k, lo, hi, d) => r1(num(raw && raw[k], lo, hi, d));
+  return {
+    name: name(raw, `Skill ${i + 1}`),
+    kind,
+    cooldownSec: g('cooldownSec', 2, 180, 30),
+    windowMs: Math.round(num(raw && raw.windowMs, 100, 1500, 700)),
+    radius: g('radius', 0.5, 25, 6),
+    reach: g('reach', 0, 8, 0),
+    cureAmount: g('cureAmount', 0, 100, 8),
+    revealSec: g('revealSec', 0, 40, 0),
+    selfHeal: g('selfHeal', 0, 200, 0),
+    durationSec: g('durationSec', 0.5, 30, 3),
+    strength: g('strength', 0.5, 15, 4),
+    factor: g('factor', 1, 6, 2),
+    flojeraDrain: g('flojeraDrain', 0, 100, 30),
+  };
+}
+
+function describeHealer(p) {
+  const t = {
+    pulse: `Cura ${p.cureAmount} a los Pacientes en radio ${p.radius}.${p.revealSec ? ` Los revela ${p.revealSec}s.` : ''}${p.selfHeal ? ` Te curas ${p.selfHeal} por Paciente.` : ''}`,
+    stun: `Aturde ${p.durationSec}s a los Pacientes en radio ${p.radius}.`,
+    pull: `Arrastra a los Pacientes en radio ${p.radius} hacia ti.`,
+    boost: `Tus curaciones valen x${p.factor} por ${p.durationSec}s.${p.selfHeal ? ` Te curas ${p.selfHeal} HP.` : ''}`,
+    purge: `Purga a los Pacientes en radio ${p.radius} y baja su flojera ${p.flojeraDrain}.`,
+  };
+  return t[p.kind];
+}
+
+function buildHealer(p, id) {
+  const s = {
+    id,
+    type: p.kind,
+    custom: true,
+    name: p.name,
+    description: describeHealer(p),
+    keywords: [p.kind === 'pulse' || p.kind === 'boost' || p.kind === 'purge' ? 'bonificadora' : 'ofensiva'],
+    cooldownMs: Math.round(p.cooldownSec * 1000),
+    radius: p.radius,
+  };
+  if (p.kind === 'pulse') {
+    s.cureAmount = p.cureAmount;
+    s.revealMs = Math.round(p.revealSec * 1000);
+    s.selfHeal = p.selfHeal;
+  } else if (p.kind === 'stun') {
+    s.windowMs = p.windowMs;
+    s.durationMs = Math.round(p.durationSec * 1000);
+  } else if (p.kind === 'pull') {
+    s.windowMs = p.windowMs;
+    s.strength = p.strength;
+  } else if (p.kind === 'boost') {
+    s.factor = p.factor;
+    s.durationMs = Math.round(p.durationSec * 1000);
+    s.selfHeal = p.selfHeal;
+  } else {
+    s.flojeraDrain = p.flojeraDrain;
+  }
+  return s;
+}
+
+function normalizeHealer(list) {
+  return (Array.isArray(list) ? list : []).slice(0, MAX_HEALER).map((raw, i) => sanitizeHealer(raw, i));
+}
+
+function registerHealer(mapId, list) {
+  healerRegistry.set(mapId, list.map((p, i) => buildHealer(p, `mh|${p.kind}|${mapId}|${i}`)));
+}
+
+function healerSkills(mapId) {
+  return healerRegistry.get(mapId) || null;
+}
+
+module.exports = {
+  MAX_CARDS, MAX_HEALER, KINDS, HEALER_KINDS,
+  sanitize, describe, normalizeList, registerAll, get,
+  sanitizeHealer, normalizeHealer, registerHealer, healerSkills,
+};

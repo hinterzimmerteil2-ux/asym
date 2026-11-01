@@ -33,3 +33,15 @@ CREATE TABLE IF NOT EXISTS community_votes (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (map_id, user_id)
 );
+
+CREATE TABLE IF NOT EXISTS community_skills (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id TEXT NOT NULL,
+  author_name TEXT NOT NULL,
+  side TEXT NOT NULL,
+  name TEXT NOT NULL,
+  skill JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_community_skills_author ON community_skills(author_id);

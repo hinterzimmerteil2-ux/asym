@@ -1054,7 +1054,7 @@ export default function LobbyPage() {
             <div style={sx(styles.hpBarLabel, { fontSize: 10, marginBottom: 3 })}>
               Tu HP: {fmtHp(patients[myPlayerId].hp)}/{fmtHp(patients[myPlayerId].maxHp || 120)}
               {patients[myPlayerId].hp <= 20 && ' (¡cerca de ganar!)'}
-              {patients[myPlayerId].hp >= (patients[myPlayerId].maxHp || 120) - 20 && ' (¡cerca de ser curado del todo!)'}
+              {(patients[myPlayerId].maxHp || 120) < 1e6 && patients[myPlayerId].hp >= (patients[myPlayerId].maxHp || 120) - 20 && ' (¡cerca de ser curado del todo!)'}
             </div>
             <div style={styles.hpBarTrack}>
               <div style={styles.hpBarFill(patients[myPlayerId].hp, patients[myPlayerId].maxHp || 120)} />
@@ -2131,6 +2131,7 @@ const styles = {
   pulseHudCooldown: { fontSize: 13, fontWeight: 600, color: '#8a8da3', fontVariantNumeric: 'tabular-nums' },
   hpBarTrack: { height: 8, borderRadius: 4, background: '#12131a', overflow: 'hidden' },
   hpBarFill: (hp, maxHp = 120) => {
+    if (maxHp > 1e6) return { height: '100%', width: '100%', background: '#54a8f2' };
     const ratio = Math.max(0, Math.min(1, hp / maxHp));
     const color = ratio < 0.5 ? '#5fd58c' : ratio < 0.85 ? '#f2a154' : '#e0555f';
     return { height: '100%', width: `${ratio * 100}%`, background: color, transition: 'width 0.2s ease, background 0.3s ease' };

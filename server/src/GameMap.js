@@ -252,6 +252,7 @@ function registerMap(layout, dryRun) {
     })),
     events: sanitizeEvents(layout.events),
     cards: CustomCards.normalizeList(layout.cards),
+    healerSkills: CustomCards.normalizeHealer(layout.healerSkills),
     collisionObjects: layout.collisionObjects.map((o) => ({
       id: String(o.id),
       type: typeof o.type === 'string' ? o.type : 'gurney',
@@ -276,6 +277,7 @@ function registerMap(layout, dryRun) {
   };
   if (!dryRun) {
     norm._cardObjs = CustomCards.registerAll(layout.id, norm.cards);
+    CustomCards.registerHealer(layout.id, norm.healerSkills);
     MAPS[layout.id] = norm;
   }
   return norm;

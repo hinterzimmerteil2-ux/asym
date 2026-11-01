@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { getTexture } from '../../lib/textures';
 import { publishCommunityMap, listCommunityMaps } from '../../lib/community';
 import Link from 'next/link';
+import SkillsEditor from '../../components/SkillsEditor';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 
@@ -188,18 +189,6 @@ function computeConflicts(selfDamageObjects, collisionObjects) {
 }
 
 let nextIdCounter = 1;
-const SKILL_BUDGET = 60;
-
-function skillPower(p) {
-  const scale = 30 / p.cooldownSec;
-  if (p.kind === 'sprint') return Math.max(5, (p.factor - 1) * 10 * p.durationSec - p.hpCost * 0.2) * scale;
-  const area = p.kind === 'burst' ? p.radius * 5 : p.reach * 4 + p.radius * 6;
-  return (p.stunSec * 10 + p.ragdollSec * 12 + p.hpLoss * 0.8 + area) * scale;
-}
-
-function newSkill(n) {
-  return { id: `sk_${Date.now().toString(36)}${n}`, name: `Skill ${n + 1}`, kind: 'strike', cooldownSec: 30, reach: 1.2, radius: 0.85, stunSec: 1.5, ragdollSec: 0, hpLoss: 0, factor: 1.4, durationSec: 3, hpCost: 0 };
-}
 
 function generateId(prefix) {
   return `${prefix}_${nextIdCounter++}`;
@@ -216,6 +205,7 @@ export default function MapEditorPage() {
   const [mapEvents, setMapEvents] = useState([]);
   const [selEvent, setSelEvent] = useState(null);
   const [skills, setSkills] = useState([]);
+  const [healerSkills, setHealerSkills] = useState([]);
   const [buildTex, setBuildTex] = useState('');
   const [buildY0, setBuildY0] = useState(0);
   const [buildTint, setBuildTint] = useState('#ffffff');
@@ -359,6 +349,7 @@ export default function MapEditorPage() {
       })),
       events: mapEvents.map((e) => ({ ...e })),
       cards: skills.map((s) => ({ ...s })),
+      healerSkills: healerSkills.map((s) => ({ ...s })),
       collisionObjects: collisionObjects.map((o) => ({
         id: o.id,
         type: o.type,
@@ -421,7 +412,8 @@ export default function MapEditorPage() {
       setCuratorSpawns((l.curatorSpawns || []).map((o) => ({ ...o, id: generateId('cs') })));
       setPatientSpawns((l.patientSpawns || []).map((o) => ({ ...o, id: generateId('ps') })));
       setMapEvents((l.events || []).map((o) => ({ ...o })));
-      setSkills((l.cards || []).map((o) => ({ ...o })));
+      setSkills((l.cards || []).map((o, i) => ({ ...o, id: o.id || `sk_l${i}` })));
+      setHealerSkills((l.healerSkills || []).map((o, i) => ({ ...o, id: `hk_l${i}` })));
       setMapName(`${l.name} (copia)`);
       setMapId(`${l.id.replace(/^c_/, 'com_').slice(0, 24)}_copia`);
       setSelectedId(null);
@@ -482,6 +474,7 @@ export default function MapEditorPage() {
   function handleClear() {
     setMapEvents([]);
     setSkills([]);
+    setHealerSkills([]);
     setSelEvent(null);
     setSelfDamageObjects([]);
     setCollisionObjects([]);
@@ -662,50 +655,7 @@ export default function MapEditorPage() {
           )}
 
           <div style={styles.countsBox}>
-            <p style={styles.countLine}>Skills de este mapa (cartas de Pacientes): {skills.length}/6</p>
-            <button style={styles.toolButton(false, '#f2d154')} disabled={skills.length >= 6} onClick={() => setSkills((prev) => [...prev, newSkill(prev.length)])}>+ Skill</button>
-            {skills.map((s, idx) => {
-              const upd = (patch) => setSkills((prev) => prev.map((q, i) => (i === idx ? { ...q, ...patch } : q)));
-              const pw = skillPower(s);
-              const over = pw > SKILL_BUDGET;
-              const slider = (label, key, min, max, step) => (
-                <label style={styles.countLine}>{label}: {s[key]}
-                  <input type="range" min={min} max={max} step={step} value={s[key]} onChange={(ev) => upd({ [key]: parseFloat(ev.target.value) })} style={{ width: '100%' }} />
-                </label>
-              );
-              return (
-                <div key={s.id} style={{ marginTop: 6, padding: 6, border: `1px solid ${over ? '#e0555f' : '#3d4a42'}`, borderRadius: 6 }}>
-                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                    <input value={s.name} maxLength={28} onChange={(ev) => upd({ name: ev.target.value })} style={{ flex: 1, minWidth: 0 }} />
-                    <select value={s.kind} onChange={(ev) => upd({ kind: ev.target.value, radius: ev.target.value === 'burst' ? 2 : 0.85 })}>
-                      <option value="strike">Golpe corto</option>
-                      <option value="burst">Golpe en área</option>
-                      <option value="sprint">Impulso</option>
-                    </select>
-                    <button style={{ fontSize: 11 }} onClick={() => setSkills((prev) => prev.filter((_, i) => i !== idx))}>✕</button>
-                  </div>
-                  <p style={{ ...styles.countLine, color: over ? '#e0555f' : '#5fd58c', fontWeight: 700 }}>Poder {Math.round(pw)}/{SKILL_BUDGET}{over ? ' (demasiado fuerte: sube la recarga o baja efectos)' : ''}</p>
-                  {slider('Recarga (s)', 'cooldownSec', 8, 60, 1)}
-                  {s.kind !== 'sprint' && (
-                    <>
-                      {s.kind === 'strike' && slider('Alcance', 'reach', 0.6, 2.4, 0.1)}
-                      {slider(s.kind === 'burst' ? 'Radio del área' : 'Tamaño de la caja', 'radius', s.kind === 'burst' ? 1.2 : 0.5, s.kind === 'burst' ? 3 : 1.6, 0.1)}
-                      {slider('Aturdimiento al Curador (s)', 'stunSec', 0, 3, 0.1)}
-                      {slider('Derribo (s)', 'ragdollSec', 0, 3, 0.1)}
-                      {slider('Daño al Curador (HP)', 'hpLoss', 0, 40, 1)}
-                    </>
-                  )}
-                  {s.kind === 'sprint' && (
-                    <>
-                      {slider('Velocidad (x)', 'factor', 1.1, 2, 0.05)}
-                      {slider('Dura (s)', 'durationSec', 1, 6, 0.5)}
-                      {slider('Coste de HP', 'hpCost', 0, 30, 1)}
-                    </>
-                  )}
-                </div>
-              );
-            })}
-            {skills.length > 0 && <p style={styles.countLine}>Aparecen como opciones de carta para los Pacientes solo en este mapa.</p>}
+            <SkillsEditor skills={skills} setSkills={setSkills} healerSkills={healerSkills} setHealerSkills={setHealerSkills} />
           </div>
 
           <div style={styles.countsBox}>

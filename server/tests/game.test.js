@@ -827,10 +827,11 @@ test('mapas personalizados no dan Desgracias; el layout de un mapa se puede copi
   assert.strictEqual(GameMap.getLayoutCopy('nope'), null);
 });
 
-test('skills personalizadas: se validan por presupuesto, entran al mazo y funcionan', () => {
+test('skills personalizadas: sin límite de poder, entran al mazo y funcionan', () => {
   const GameMap = require('../src/GameMap');
   const Cards = require('../src/Cards');
-  assert.throws(() => GameMap.registerMap({ id: 'skbad', name: 'x', selfDamageObjects: [], collisionObjects: [], cards: [{ name: 'Rota', kind: 'strike', stunSec: 3, ragdollSec: 3, hpLoss: 40, cooldownSec: 8 }] }), /demasiado fuerte/);
+  GameMap.registerMap({ id: 'skbad', name: 'x', selfDamageObjects: [], collisionObjects: [], cards: [{ name: 'Rota', kind: 'strike', stunSec: 3, ragdollSec: 3, hpLoss: 40, cooldownSec: 8 }] });
+  assert.strictEqual(GameMap.getCustomCards('skbad')[0].curatorHpLoss, 40);
   GameMap.registerMap({ id: 'skok', name: 'x', selfDamageObjects: [{ id: 's', xFrac: 0, zFrac: 0 }], collisionObjects: [], cards: [
     { name: 'Tajo propio', kind: 'burst', radius: 2, stunSec: 1.5, hpLoss: 10, cooldownSec: 20 },
     { name: 'Carrera', kind: 'sprint', factor: 1.5, durationSec: 3, cooldownSec: 20 },
@@ -853,4 +854,19 @@ test('skills personalizadas: se validan por presupuesto, entran al mazo y funcio
   assert.strictEqual(room.gameState.curator.hp, hp0 - 10);
   room.applyCardEffect('a', e.a, custom[1], clock.t);
   assert.strictEqual(e.a.sprintFactor, 1.5);
+});
+
+test('skills de Healer personalizadas reemplazan la ranura y funcionan', () => {
+  const GameMap = require('../src/GameMap');
+  const Characters = require('../src/Characters');
+  const CustomCards = require('../src/CustomCards');
+  GameMap.registerMap({ id: 'hsk', name: 'x', selfDamageObjects: [], collisionObjects: [], healerSkills: [
+    { name: 'Superpulso', kind: 'pulse', radius: 30, cureAmount: 50, cooldownSec: 2 },
+  ] });
+  const list = CustomCards.healerSkills('hsk');
+  assert.strictEqual(list.length, 1);
+  assert.strictEqual(list[0].type, 'pulse');
+  const merged = Characters.withOverride(Characters.getCharacter('vorhees_jason'), list);
+  assert.strictEqual(merged[0].name, 'Superpulso');
+  assert.strictEqual(merged[1].id, 'somnifero_valeriana');
 });

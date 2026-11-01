@@ -31,3 +31,15 @@ export async function voteCommunityMap(id) {
 export async function deleteCommunityMap(id) {
   return parse(await fetch(`${SERVER_URL}/community/delete`, { method: 'POST', headers: headers(true), body: JSON.stringify({ token: getStoredToken(), id }) }));
 }
+
+export async function listCommunitySkills(side) {
+  return parse(await fetch(`${SERVER_URL}/community/skills?side=${side}`, { headers: headers(false) }));
+}
+
+export async function publishCommunitySkill(side, skill) {
+  return parse(await fetch(`${SERVER_URL}/community/skills`, { method: 'POST', headers: headers(true), body: JSON.stringify({ token: getStoredToken(), side, skill }) }));
+}
+
+export async function deleteCommunitySkill(id) {
+  return parse(await fetch(`${SERVER_URL}/community/skills/delete`, { method: 'POST', headers: headers(true), body: JSON.stringify({ token: getStoredToken(), id }) }));
+}

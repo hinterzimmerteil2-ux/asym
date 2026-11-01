@@ -1,4 +1,5 @@
 const GameMap = require('./GameMap');
+const CustomCards = require('./CustomCards');
 const { verifyToken } = require('./auth/jwt');
 
 const MAX_BODY = 400 * 1024;
@@ -128,6 +129,47 @@ async function ensureMap(mapId) {
   return true;
 }
 
+const MAX_SKILLS_PER_AUTHOR = 30;
+
+async function listSkills(req, res, url) {
+  const db = pool();
+  if (!db) return send(res, 503, { error: 'La comunidad no está disponible en este servidor.' });
+  const me = account((req.headers.authorization || '').replace(/^Bearer /, ''));
+  const side = url.searchParams.get('side') === 'healer' ? 'healer' : 'patient';
+  const { rows } = await db.query(
+    'SELECT id, name, author_name, author_id, skill, created_at FROM community_skills WHERE side = $1 ORDER BY created_at DESC LIMIT 100',
+    [side]
+  );
+  send(res, 200, { skills: rows.map((r) => ({ id: r.id, name: r.name, author: r.author_name, mine: Boolean(me) && r.author_id === me.userId, skill: r.skill })) });
+}
+
+async function publishSkill(body, res) {
+  const db = pool();
+  if (!db) return send(res, 503, { error: 'La comunidad no está disponible en este servidor.' });
+  const me = account(body.token);
+  if (!me) return send(res, 401, { error: 'Inicia sesión con tu cuenta para publicar.' });
+  const side = body.side === 'healer' ? 'healer' : 'patient';
+  const skill = side === 'healer' ? CustomCards.sanitizeHealer(body.skill, 0) : CustomCards.sanitize(body.skill, 0);
+  delete skill.id;
+  const count = await db.query('SELECT COUNT(*)::int AS n FROM community_skills WHERE author_id = $1', [me.userId]);
+  if (count.rows[0].n >= MAX_SKILLS_PER_AUTHOR) return send(res, 429, { error: `Máximo ${MAX_SKILLS_PER_AUTHOR} skills publicadas. Borra alguna.` });
+  const { rows } = await db.query(
+    'INSERT INTO community_skills (author_id, author_name, side, name, skill) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+    [me.userId, String(me.displayName || 'Anónimo').slice(0, 40), side, skill.name, JSON.stringify(skill)]
+  );
+  send(res, 201, { id: rows[0].id });
+}
+
+async function removeSkill(body, res) {
+  const db = pool();
+  if (!db) return send(res, 503, { error: 'La comunidad no está disponible en este servidor.' });
+  const me = account(body.token);
+  if (!me) return send(res, 401, { error: 'Inicia sesión.' });
+  if (!UUID.test(String(body.id || ''))) return send(res, 400, { error: 'Skill inválida.' });
+  const r = await db.query('DELETE FROM community_skills WHERE id = $1 AND author_id = $2', [body.id, me.userId]);
+  send(res, r.rowCount ? 200 : 404, r.rowCount ? { ok: true } : { error: 'No es tu skill.' });
+}
+
 function wrap(fn) {
   return (req, res, url) => {
     if (req.method !== 'POST') return send(res, 405, { error: 'Método no permitido.' });
@@ -140,6 +182,11 @@ function registerCommunityRoutes(routes) {
     if (req.method === 'GET') return listMaps(req, res, url).catch(() => send(res, 500, { error: 'Error del servidor.' }));
     return wrap(publish)(req, res, url);
   });
+  routes.set('/community/skills', (req, res, url) => {
+    if (req.method === 'GET') return listSkills(req, res, url).catch(() => send(res, 500, { error: 'Error del servidor.' }));
+    return wrap(publishSkill)(req, res, url);
+  });
+  routes.set('/community/skills/delete', wrap(removeSkill));
   routes.set('/community/vote', wrap(vote));
   routes.set('/community/delete', wrap(remove));
 }

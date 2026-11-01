@@ -131,8 +131,13 @@ function getUnlockedCharacterIds() {
     .map((c) => c.id);
 }
 
-function publicSkills(character) {
-  return character.skills.map((s) => ({
+function withOverride(character, override) {
+  if (!override || !override.length) return character.skills;
+  return character.skills.map((s, i) => override[i] || s);
+}
+
+function publicSkills(character, override) {
+  return withOverride(character, override).map((s) => ({
     id: s.id,
     name: s.name,
     description: s.description,
@@ -158,4 +163,5 @@ module.exports = {
   getUnlockedCharacterIds,
   listCharacters,
   publicSkills,
+  withOverride,
 };
