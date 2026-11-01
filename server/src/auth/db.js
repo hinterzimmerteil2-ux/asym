@@ -1,11 +1,50 @@
 const { Pool } = require('pg');
 
+const url = process.env.DATABASE_URL || '';
+const local = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(url) || /sslmode=disable/.test(url);
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('render.com')
-    ? { rejectUnauthorized: false }
-    : false,
+  ssl: local ? false : { rejectUnauthorized: false },
+  connectionTimeoutMillis: 15000,
 });
+
+pool.on('error', () => {});
+
+let ready = null;
+
+function dbHost() {
+  try {
+    return new URL(url).host;
+  } catch {
+    return '(DATABASE_URL inválida)';
+  }
+}
+
+function ensureReady() {
+  if (!ready) {
+    ready = initSchemaRetry().catch((err) => {
+      ready = null;
+      throw err;
+    });
+  }
+  return ready;
+}
+
+async function initSchemaRetry() {
+  let last;
+  for (let i = 0; i < 3; i++) {
+    try {
+      await initSchema();
+      return;
+    } catch (err) {
+      last = err;
+      console.warn(`BD intento ${i + 1}/3 falló (${dbHost()}): ${err.code || ''} ${err.message}`);
+      await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
+    }
+  }
+  throw last;
+}
 
 async function initSchema() {
   const fs = require('fs');
@@ -51,6 +90,7 @@ async function createUserWithOAuth(provider, providerUserId, email, displayName)
 }
 
 async function findOrCreateUser(provider, providerUserId, email, displayName) {
+  await ensureReady();
   const existing = await findUserByOAuth(provider, providerUserId);
   if (existing) return existing;
   return createUserWithOAuth(provider, providerUserId, email, displayName);
@@ -69,4 +109,4 @@ async function updateDisplayName(userId, displayName) {
   return result.rows[0] || null;
 }
 
-module.exports = { pool, initSchema, findOrCreateUser, getUserById, updateDisplayName };
+module.exports = { pool, initSchema, ensureReady, findOrCreateUser, getUserById, updateDisplayName };

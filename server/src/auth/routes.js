@@ -6,7 +6,7 @@ const { signAccountToken, signGuestToken, verifyToken } = require('./jwt');
 const DISPLAY_NAME_MAX_LENGTH = 30;
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
-const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3001';
+const SERVER_URL = process.env.SERVER_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3001';
 
 const pendingStates = new Map();
 const STATE_TTL_MS = 5 * 60 * 1000;
@@ -67,7 +67,7 @@ async function handleOAuthCallback(provider, req, res, url) {
     res.writeHead(302, { Location: `${CLIENT_URL}/auth/success#token=${token}` });
     res.end();
   } catch (err) {
-    console.error(`Error en callback de ${provider}:`, err.message);
+    console.error(`Error en callback de ${provider}:`, err.code || '', err.message);
     res.writeHead(302, { Location: `${CLIENT_URL}/auth/error?message=${encodeURIComponent(err.message)}` });
     res.end();
   }

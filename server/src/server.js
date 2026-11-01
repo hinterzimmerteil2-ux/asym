@@ -8,7 +8,7 @@ const Characters = require('./Characters');
 const Cards = require('./Cards');
 const Roles = require('./Roles');
 const { registerAuthRoutes } = require('./auth/routes');
-const { initSchema } = require('./auth/db');
+const { ensureReady } = require('./auth/db');
 const { registerCommunityRoutes } = require('./community');
 const { verifyToken } = require('./auth/jwt');
 
@@ -342,7 +342,7 @@ wss.on('close', () => clearInterval(heartbeatInterval));
 // Postgres: solo lo necesita el login con cuenta (Google/Discord). Si la DB
 // no está configurada o no responde, el servidor sigue arriba igual —
 // simplemente el login con cuenta no va a funcionar hasta que se resuelva.
-initSchema()
+ensureReady()
   .then(() => {
     console.log('Base de datos lista (auth con cuenta habilitado).');
   })
