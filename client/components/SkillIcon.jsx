@@ -15,6 +15,7 @@ const ICONS = {
   acetilcolina: <><circle cx="16" cy="16" r="4" fill={B} /><circle cx="6" cy="9" r="3" fill={B} /><circle cx="26" cy="9" r="3" fill={B} /><circle cx="16" cy="28" r="3" fill={B} /><path d="M16 16 L6 9 M16 16 L26 9 M16 16 L16 28" stroke={B} strokeWidth="2" /></>,
   pereza: <><path d="M9 4 H23 M9 28 H23 M10 4 C10 14 22 14 22 28 M22 4 C22 14 10 14 10 28" stroke={G} strokeWidth="2" fill="none" /><path d="M13 26 H19 L16 21 Z" fill={G} /></>,
   fatiga: <><path d="M5 20 Q16 4 27 20 Z" fill="#8a8da3" /><path d="M8 26 H24" stroke="#8a8da3" strokeWidth="3" strokeLinecap="round" /></>,
+  paraguayizador: <><path d="M16 4 C8 4 6 12 6 18 V28 L10 25 L13 28 L16 25 L19 28 L22 25 L26 28 V18 C26 12 24 4 16 4 Z" fill="none" stroke={P} strokeWidth="2" strokeDasharray="3 2" /><circle cx="12" cy="14" r="2" fill={P} opacity=".6" /><circle cx="20" cy="14" r="2" fill={P} opacity=".6" /></>,
   impulso: <><path d="M4 16 H22 M16 8 L26 16 L16 24" stroke={Y} strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /></>,
   endlag: <><circle cx="16" cy="16" r="11" fill="none" stroke={O} strokeWidth="2.5" /><path d="M16 9 V16 L21 19" stroke={O} strokeWidth="2.5" fill="none" strokeLinecap="round" /></>,
   aturdido: <><circle cx="16" cy="16" r="5" fill={P} /><path d="M16 3 V8 M16 24 V29 M3 16 H8 M24 16 H29" stroke={P} strokeWidth="2.5" strokeLinecap="round" /></>,

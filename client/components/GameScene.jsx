@@ -220,13 +220,14 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
-    if (ghost && groupRef.current.userData.ghostOp !== ghostOpacity) {
-      groupRef.current.userData.ghostOp = ghostOpacity;
+    const wantOp = ghost ? ghostOpacity : entityState.invis ? 0.28 : 1;
+    if (groupRef.current.userData.ghostOp !== wantOp && (wantOp !== 1 || groupRef.current.userData.ghostOp !== undefined)) {
+      groupRef.current.userData.ghostOp = wantOp;
       groupRef.current.traverse((o) => {
         const m = o.material;
         if (m) {
           if (!m.userData.ghosted) { m.transparent = true; m.depthWrite = false; m.userData.ghosted = true; m.needsUpdate = true; }
-          m.opacity = ghostOpacity;
+          m.opacity = wantOp;
         }
       });
     }

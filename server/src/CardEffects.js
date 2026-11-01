@@ -12,6 +12,13 @@ function forEachCurator(room, entity, radius, fn, reach = 0) {
 }
 
 const handlers = {
+  paraguayizador({ room, entity, now }) {
+    entity.paraFrom = now + C.PARAGUAY_START_MS;
+    entity.paraUntil = entity.paraFrom + C.PARAGUAY_DURATION_MS;
+    entity.paraOn = false;
+    Status.apply(entity, 'slow', C.PARAGUAY_START_MS, now, { tag: 'endlag', level: 2 });
+  },
+
   rodar({ entity, now }) {
     const inputLength = Math.hypot(entity.input.moveX, entity.input.moveZ);
     const dirX = inputLength > 0 ? entity.input.moveX / inputLength : entity.faceX;

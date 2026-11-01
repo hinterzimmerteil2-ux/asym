@@ -887,3 +887,25 @@ test('bloque que aparece levanta a quien estaba dentro; bots recalculan navegaci
   at(10);
   assert.strictEqual(room.navigation(false), gridBefore);
 });
+
+test('Paraguayizador: invisible tras endlag, doble gasto sin regeneración, se cancela al ser golpeado', () => {
+  const { room, clock, e } = setup();
+  const Cards = require('../src/Cards');
+  const C = require('../src/Constants');
+  const card = Cards.getCard('paraguayizador');
+  assert.ok(card);
+  const t0 = clock.t;
+  room.applyCardEffect('a', e.a, card, t0);
+  assert.ok(Status.active(e.a, 'slow', t0), 'endlag al empezar');
+  assert.ok(!room.isInvisible(e.a, t0));
+  const t1 = t0 + C.PARAGUAY_START_MS + 10;
+  assert.ok(room.isInvisible(e.a, t1));
+  const cur = Object.keys(e).find((id) => room.players.get(id).isAsymRole);
+  Status.apply(e.a, 'reveal', 5000, t1);
+  room.breakParaguay('b', t1);
+  assert.ok(room.isInvisible(e.a, t1), 'golpear a otro no afecta');
+  room.breakParaguay('a', t1);
+  assert.ok(!room.isInvisible(e.a, t1));
+  assert.ok(Status.active(e.a, 'slow', t1 + C.PARAGUAY_HIT_END_MS - 100), 'endlag mayor al cancelarse');
+  assert.ok(cur);
+});

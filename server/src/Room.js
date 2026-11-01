@@ -114,16 +114,23 @@ const {
   FLOJERA_EXHAUST_LOCKOUT_MS,
   PLAYER_HALF,
   PLAYER_HEIGHT,
-  FOOTPRINT
+  FOOTPRINT,
+  PARAGUAY_HIT_END_MS,
+  PARAGUAY_END_MS,
+  PARAGUAY_DRAIN_FACTOR,
 } = require('./Constants');
 const Status = require('./Status');
 const LMS_GIMMICKS = ['adrenalina', 'reflejos', 'escudo', 'codicia'];
 
 function ownHidden(playerId, player, publicEntities, room, now) {
-  if (player.isAsymRole || now >= (room.gameState.curatorReleaseAt || 0)) return publicEntities;
-  const out = { ...publicEntities };
-  for (const [id, p] of room.players) {
-    if (p.isAsymRole && out[id]) out[id] = { ...out[id], gone: true };
+  let out = publicEntities;
+  const edit = () => (out === publicEntities ? (out = { ...publicEntities }) : out);
+  if (player.isAsymRole) {
+    for (const [id, e] of Object.entries(publicEntities)) if (e.invis) edit()[id] = { ...e, gone: true };
+  } else if (now < (room.gameState.curatorReleaseAt || 0)) {
+    for (const [id, p] of room.players) {
+      if (p.isAsymRole && publicEntities[id]) edit()[id] = { ...publicEntities[id], gone: true };
+    }
   }
   return out;
 }
@@ -456,6 +463,9 @@ class Room {
       faceZ: 1,
       perezaLevel: 0,
       acetilUntil: 0,
+      paraFrom: 0,
+      paraUntil: 0,
+      paraOn: false,
       regenBlockedUntil: 0,
       fatigueUntil: 0,
       allyBoostUntil: 0,
@@ -731,6 +741,9 @@ class Room {
       entity.selfDmg = null;
       entity.perezaLevel = 0;
       entity.acetilUntil = 0;
+      entity.paraFrom = 0;
+      entity.paraUntil = 0;
+      entity.paraOn = false;
       entity.regenBlockedUntil = 0;
       entity.fatigueUntil = 0;
       entity.allyBoostUntil = 0;
@@ -794,6 +807,19 @@ class Room {
     return out;
   }
 
+  isInvisible(entity, now) {
+    return Boolean(entity) && entity.paraUntil > now && entity.paraFrom <= now;
+  }
+
+  breakParaguay(playerId, now) {
+    const entity = this.gameState.entities[playerId];
+    if (!entity || !this.isInvisible(entity, now)) return;
+    entity.paraUntil = 0;
+    entity.paraFrom = 0;
+    entity.paraOn = false;
+    Status.apply(entity, 'slow', PARAGUAY_HIT_END_MS, now, { tag: 'endlag', level: 3 });
+  }
+
   tickEvents(now) {
     const phases = this.eventPhases();
     this.gameState.eventsView = phases;
@@ -814,7 +840,7 @@ class Room {
       if (p.ev.kind === 'alarm') {
         for (const [id, patient] of Object.entries(this.gameState.patients)) {
           const ent = this.gameState.entities[id];
-          if (patient.status === 'alive' && ent) Status.apply(ent, 'reveal', 400, now);
+          if (patient.status === 'alive' && ent && !this.isInvisible(ent, now)) Status.apply(ent, 'reveal', 400, now);
         }
       }
       if (p.ev.kind === 'shuffle' && !this.gameState.eventsFired[key]) {
@@ -907,6 +933,7 @@ class Room {
         z: Math.round(entity.z * 100) / 100,
         corpse: Boolean(entity.corpse),
         gone: Boolean(entity.gone),
+        invis: this.isInvisible(entity, now),
         rag: entity.rag ? { p: RagdollBody.serialize(entity.rag, entity) } : null,
       };
     }
@@ -958,7 +985,7 @@ class Room {
         hiddenPlatforms: this.gameState.hiddenPlatforms || [],
         spawnMs: player.isAsymRole ? Math.max(0, (this.gameState.curatorReleaseAt || 0) - now) : 0,
         zones,
-        revealed: player.isAsymRole ? Object.entries(this.gameState.entities).filter(([, e]) => Status.active(e, 'reveal', now)).map(([id]) => id) : [],
+        revealed: player.isAsymRole ? Object.entries(this.gameState.entities).filter(([, e]) => Status.active(e, 'reveal', now) && !this.isInvisible(e, now)).map(([id]) => id) : [],
       });
     }
   }
@@ -1033,6 +1060,7 @@ class Room {
     if (entity.exacerbacionLevel) add('exacerbacion', entity.exacerbacionLevel, entity.exacerbacionUntil);
     add('pereza', entity.perezaLevel || 1, entity.perezaUntil);
     if (entity.respiro) add('respiro', 1, now + 300);
+    if (this.isInvisible(entity, now)) add('paraguayizador', 1, entity.paraUntil);
     add('acetilcolina', 1, entity.acetilUntil);
     if (entity.acetilUntil <= now) add('fatiga', 1, entity.fatigueUntil);
     add('impulso', entity.allyBoostLevel || 1, entity.allyBoostUntil);
@@ -1105,6 +1133,18 @@ class Room {
       } else {
         entity.rag = null;
       }
+      if (entity.paraUntil) {
+        if (now >= entity.paraUntil) {
+          entity.paraUntil = 0;
+          entity.paraFrom = 0;
+          entity.paraOn = false;
+          Status.apply(entity, 'slow', PARAGUAY_END_MS, now, { tag: 'endlag', level: 2 });
+        } else if (now >= entity.paraFrom && !entity.paraOn) {
+          entity.paraOn = true;
+          Status.clear(entity, 'reveal');
+        }
+      }
+      const invisible = this.isInvisible(entity, now);
       if (entity.acetilUntil > now) entity.acetilOn = true;
       else if (entity.acetilOn) {
         entity.acetilOn = false;
@@ -1157,13 +1197,13 @@ class Room {
       } else if (inAction && !rolling) {
         if (sprinting || wantsSlow || !isMoving) {
           entity.runStreak = Math.max(0, (entity.runStreak || 0) - dt * 1.5);
-          if (!sprinting && entity.regenBlockedUntil <= now) {
+          if (!sprinting && !invisible && entity.regenBlockedUntil <= now) {
             entity.flojera = Math.min(entity.flojeraMax, entity.flojera + FLOJERA_REGEN_PER_SEC * (entity.respiro ? REST_REGEN_FACTOR : 1) * dt);
           }
         } else if (entity.noDrainUntil <= now) {
           const before = entity.flojera;
           entity.runStreak = (entity.runStreak || 0) + dt;
-          const drainFactor = (1 + Math.min(RUN_STREAK_MAX, entity.runStreak * RUN_STREAK_RAMP)) * (this.players.get(entityPlayerId)?.isAsymRole ? CURATOR_DRAIN_FACTOR : 1);
+          const drainFactor = (1 + Math.min(RUN_STREAK_MAX, entity.runStreak * RUN_STREAK_RAMP)) * (this.players.get(entityPlayerId)?.isAsymRole ? CURATOR_DRAIN_FACTOR : 1) * (invisible ? PARAGUAY_DRAIN_FACTOR : 1);
           entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * drainFactor * dt);
           if (entity.flojera <= 0) {
             entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
@@ -1400,6 +1440,7 @@ class Room {
         }
         if (skill.stunMs) this.stun(targetPlayerId, targetEntity, skill.stunMs, now, 0);
         if (skill.slowMs) Status.apply(targetEntity, 'slow', skill.slowMs, now, { level: skill.slowLevel || 2 });
+        this.breakParaguay(targetPlayerId, now);
         affectedPlayerIds.push(targetPlayerId);
       }
     }
@@ -1409,7 +1450,7 @@ class Room {
     if (skill.revealMs) {
       for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
         const targetEntity = this.gameState.entities[targetPlayerId];
-        if (patient.status === 'alive' && targetEntity) Status.apply(targetEntity, 'reveal', skill.revealMs, now);
+        if (patient.status === 'alive' && targetEntity && !this.isInvisible(targetEntity, now)) Status.apply(targetEntity, 'reveal', skill.revealMs, now);
       }
     }
 
@@ -1474,6 +1515,7 @@ class Room {
           if (patient.status !== 'alive') continue;
           const targetEntity = this.gameState.entities[targetPlayerId];
           if (!targetEntity || distanceBetween(owner, targetEntity) > skill.radius) continue;
+          this.breakParaguay(targetPlayerId, now);
           this.award(win.playerId, skill.type === 'stun' ? 3 : 2, 'Habilidad certera');
           if (skill.type === 'stun') {
             Status.apply(targetEntity, 'stun', skill.durationMs, now);
@@ -1522,6 +1564,7 @@ class Room {
         }
         if (nearestId) {
           this.award(win.playerId, 3, 'Aturdiste a un Paciente');
+          this.breakParaguay(nearestId, now);
           Status.apply(this.gameState.entities[nearestId], 'stun', skill.durationMs, now);
           this.broadcastPulse({
             playerId: win.playerId,
@@ -1996,6 +2039,7 @@ class Room {
   }
 
   resolveCure(curadorId, curadorEntity, targetPlayerId, now) {
+    this.breakParaguay(targetPlayerId, now);
     const patient = this.gameState.patients[targetPlayerId];
     const targetEntity = this.gameState.entities[targetPlayerId];
     const boost = curadorEntity.cureBoostUntil > now ? curadorEntity.cureBoostFactor : 1;

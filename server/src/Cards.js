@@ -96,6 +96,15 @@ const CARDS = {
     durationMs: 1800,
     cooldownMs: 26000,
   },
+  paraguayizador: {
+    id: 'paraguayizador',
+    keywords: ['escapista'],
+    displayName: 'Paraguayizador',
+    description: 'Endlag al empezar y luego 8s invisible: el Curador no te ve y las habilidades de detección no te revelan. Gastas el doble de Flojera y no se regenera. Si el Curador te golpea, se cancela y quedas en endlag más largo. Al terminar, endlag.',
+    rarity: 'rare',
+    durationMs: 8000,
+    cooldownMs: 40000,
+  },
   grito_animo: {
     id: 'grito_animo',
     keywords: ['bonificadora'],
