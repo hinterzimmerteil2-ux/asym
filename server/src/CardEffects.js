@@ -127,7 +127,8 @@ function customHandler({ room, playerId, entity, card, now }) {
   forEachCurator(room, entity, card.hitRadius, (id, target) => {
     if (card.ragdollMs) room.ragdoll(id, target, card.ragdollMs, now);
     if (card.stunMs) room.stun(id, target, card.stunMs, now, 0);
-    if (card.slowMs) Status.apply(target, 'slow', card.slowMs, now, { level: 2 });
+    if (card.slowMs) Status.apply(target, 'slow', card.slowMs, now, { level: card.slowLevel || 2 });
+    if (card.revealHealerMs) Status.apply(target, 'reveal', card.revealHealerMs, now);
     if (card.knockback) {
       const dx = target.x - entity.x;
       const dz = target.z - entity.z;

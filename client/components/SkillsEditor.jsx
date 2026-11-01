@@ -7,24 +7,24 @@ const PATIENT_KINDS = [['strike', 'Golpe corto'], ['burst', 'Golpe en área'], [
 const HEALER_KINDS = [['pulse', 'Pulso (cura)'], ['stun', 'Aturdir'], ['pull', 'Atraer'], ['boost', 'Potenciar curas'], ['purge', 'Purgar']];
 
 const PATIENT_PARAMS = {
-  common: [['cooldownSec', 'Recarga (s)', 2, 180, 1]],
-  strike: [['windowMs', 'Ventana del golpe (ms)', 100, 1500, 20], ['reach', 'Alcance', 0, 8, 0.1], ['radius', 'Tamaño de la caja', 0.3, 10, 0.1]],
-  burst: [['radius', 'Radio del área', 0.3, 10, 0.1]],
-  hit: [['stunSec', 'Aturdimiento al Healer (s)', 0, 12, 0.1], ['ragdollSec', 'Derribo (s)', 0, 12, 0.1], ['slowSec', 'Ralentización (s)', 0, 20, 0.5], ['knockback', 'Empuje', 0, 20, 0.5], ['hpLoss', 'Daño al Healer (HP)', 0, 300, 1], ['endlagSec', 'Endlag extra (s)', 0, 5, 0.1]],
-  sprint: [['factor', 'Velocidad (x)', 1, 5, 0.05], ['durationSec', 'Dura (s)', 0.5, 30, 0.5], ['hpCost', 'Coste de HP', 0, 60, 1]],
+  common: [['cooldownSec', 'Recarga (s)', 1, 300, 1]],
+  strike: [['windowMs', 'Ventana del golpe (ms)', 100, 1500, 20], ['reach', 'Alcance', 0, 15, 0.1], ['radius', 'Tamaño de la caja', 0.3, 20, 0.1]],
+  burst: [['radius', 'Radio del área', 0.3, 20, 0.1]],
+  hit: [['stunSec', 'Aturdimiento al Healer (s)', 0, 30, 0.1], ['ragdollSec', 'Derribo (s)', 0, 30, 0.1], ['slowSec', 'Ralentización (s)', 0, 60, 0.5], ['slowLevel', 'Nivel de ralentización', 1, 3, 1], ['revealHealerSec', 'Revela al Healer (s)', 0, 60, 1], ['knockback', 'Empuje', 0, 40, 0.5], ['hpLoss', 'Daño al Healer (HP)', 0, 1000, 1], ['endlagSec', 'Endlag extra (s)', 0, 10, 0.1]],
+  sprint: [['factor', 'Velocidad (x)', 1, 10, 0.05], ['durationSec', 'Dura (s)', 0.5, 90, 0.5], ['hpCost', 'Coste de HP', 0, 100, 1]],
 };
 
 const HEALER_PARAMS = {
-  common: [['cooldownSec', 'Recarga (s)', 2, 180, 1]],
-  pulse: [['radius', 'Radio', 0.5, 25, 0.5], ['cureAmount', 'Cura por Paciente', 0, 100, 1], ['revealSec', 'Revela (s)', 0, 40, 1], ['selfHeal', 'Te curas por Paciente', 0, 200, 1]],
-  stun: [['radius', 'Radio', 0.5, 25, 0.5], ['durationSec', 'Aturde (s)', 0.5, 10, 0.5], ['windowMs', 'Ventana (ms)', 100, 1500, 20]],
-  pull: [['radius', 'Radio', 0.5, 25, 0.5], ['strength', 'Fuerza', 0.5, 15, 0.5], ['windowMs', 'Ventana (ms)', 100, 1500, 20]],
-  boost: [['factor', 'Multiplicador (x)', 1, 6, 0.1], ['durationSec', 'Dura (s)', 0.5, 30, 0.5], ['selfHeal', 'Te curas (HP)', 0, 200, 1]],
-  purge: [['radius', 'Radio', 0.5, 25, 0.5], ['flojeraDrain', 'Baja flojera', 0, 100, 1]],
+  common: [['cooldownSec', 'Recarga (s)', 1, 300, 1]],
+  pulse: [['radius', 'Radio', 0.5, 60, 0.5], ['cureAmount', 'Cura por Paciente', 0, 500, 1], ['revealSec', 'Revela (s)', 0, 120, 1], ['selfHeal', 'Te curas por Paciente', 0, 1000, 1], ['stunSec', 'Aturde (s)', 0, 30, 0.1], ['slowSec', 'Ralentiza (s)', 0, 60, 0.5], ['slowLevel', 'Nivel de ralentización', 1, 3, 1]],
+  stun: [['radius', 'Radio', 0.5, 60, 0.5], ['durationSec', 'Aturde (s)', 0.5, 30, 0.5], ['windowMs', 'Ventana (ms)', 100, 1500, 20]],
+  pull: [['radius', 'Radio', 0.5, 60, 0.5], ['strength', 'Fuerza', 0.5, 40, 0.5], ['windowMs', 'Ventana (ms)', 100, 1500, 20]],
+  boost: [['factor', 'Multiplicador (x)', 1, 12, 0.1], ['durationSec', 'Dura (s)', 0.5, 90, 0.5], ['selfHeal', 'Te curas (HP)', 0, 1000, 1]],
+  purge: [['radius', 'Radio', 0.5, 60, 0.5], ['flojeraDrain', 'Baja flojera', 0, 500, 1], ['stunSec', 'Aturde (s)', 0, 30, 0.1], ['slowSec', 'Ralentiza (s)', 0, 60, 0.5], ['slowLevel', 'Nivel de ralentización', 1, 3, 1]],
 };
 
-const DEFAULTS_PATIENT = { kind: 'strike', cooldownSec: 30, windowMs: 380, reach: 1.2, radius: 0.85, stunSec: 1.5, ragdollSec: 0, slowSec: 0, knockback: 0, hpLoss: 0, factor: 1.4, durationSec: 3, hpCost: 0, endlagSec: 0 };
-const DEFAULTS_HEALER = { kind: 'pulse', cooldownSec: 30, windowMs: 700, radius: 6, cureAmount: 8, revealSec: 0, selfHeal: 0, durationSec: 3, strength: 4, factor: 2, flojeraDrain: 30 };
+const DEFAULTS_PATIENT = { kind: 'strike', cooldownSec: 30, windowMs: 380, reach: 1.2, radius: 0.85, stunSec: 1.5, ragdollSec: 0, slowSec: 0, slowLevel: 2, revealHealerSec: 0, knockback: 0, hpLoss: 0, factor: 1.4, durationSec: 3, hpCost: 0, endlagSec: 0 };
+const DEFAULTS_HEALER = { kind: 'pulse', cooldownSec: 30, windowMs: 700, radius: 6, cureAmount: 8, revealSec: 0, selfHeal: 0, durationSec: 3, strength: 4, factor: 2, flojeraDrain: 30, stunSec: 0, slowSec: 0, slowLevel: 2 };
 
 function paramsFor(side, s) {
   const spec = side === 'healer' ? HEALER_PARAMS : PATIENT_PARAMS;
@@ -122,7 +122,7 @@ export default function SkillsEditor({ skills, setSkills, healerSkills, setHeale
   return (
     <div>
       <p style={{ ...style.line, fontWeight: 700 }}>Skills personalizadas (sin límite de poder: son partidas custom y no dan Desgracias)</p>
-      <SideEditor side="patient" list={skills} setList={setSkills} max={6} />
+      <SideEditor side="patient" list={skills} setList={setSkills} max={12} />
       <SideEditor side="healer" list={healerSkills} setList={setHealerSkills} max={4} />
     </div>
   );

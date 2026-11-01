@@ -1,4 +1,4 @@
-const MAX_CARDS = 6;
+const MAX_CARDS = 12;
 const MAX_HEALER = 4;
 const KINDS = ['strike', 'burst', 'sprint'];
 const HEALER_KINDS = ['pulse', 'stun', 'pull', 'boost', 'purge'];
@@ -25,19 +25,21 @@ function sanitize(raw, i) {
     id: typeof (raw && raw.id) === 'string' ? raw.id.slice(0, 40) : `sk_${i}`,
     name: name(raw, `Skill ${i + 1}`),
     kind,
-    cooldownSec: g('cooldownSec', 2, 180, 30),
+    cooldownSec: g('cooldownSec', 1, 300, 30),
     windowMs: Math.round(num(raw && raw.windowMs, 100, 1500, 380)),
-    reach: g('reach', 0, 8, 1.2),
-    radius: g('radius', 0.3, 10, kind === 'burst' ? 2 : 0.85),
-    stunSec: g('stunSec', 0, 12, kind === 'sprint' ? 0 : 1.5),
-    ragdollSec: g('ragdollSec', 0, 12, 0),
-    slowSec: g('slowSec', 0, 20, 0),
-    knockback: g('knockback', 0, 20, 0),
-    hpLoss: g('hpLoss', 0, 300, 0),
-    factor: g('factor', 1, 5, 1.4),
-    durationSec: g('durationSec', 0.5, 30, 3),
-    hpCost: g('hpCost', 0, 60, 0),
-    endlagSec: g('endlagSec', 0, 5, 0),
+    reach: g('reach', 0, 15, 1.2),
+    radius: g('radius', 0.3, 20, kind === 'burst' ? 2 : 0.85),
+    stunSec: g('stunSec', 0, 30, kind === 'sprint' ? 0 : 1.5),
+    ragdollSec: g('ragdollSec', 0, 30, 0),
+    slowSec: g('slowSec', 0, 60, 0),
+    knockback: g('knockback', 0, 40, 0),
+    slowLevel: Math.round(num(raw && raw.slowLevel, 1, 3, 2)),
+    revealHealerSec: g('revealHealerSec', 0, 60, 0),
+    hpLoss: g('hpLoss', 0, 1000, 0),
+    factor: g('factor', 1, 10, 1.4),
+    durationSec: g('durationSec', 0.5, 90, 3),
+    hpCost: g('hpCost', 0, 100, 0),
+    endlagSec: g('endlagSec', 0, 10, 0),
   };
 }
 
@@ -87,6 +89,8 @@ function build(p, id) {
     card.stunMs = Math.round(p.stunSec * 1000);
     card.ragdollMs = Math.round(p.ragdollSec * 1000);
     card.slowMs = Math.round(p.slowSec * 1000);
+    card.slowLevel = p.slowLevel;
+    card.revealHealerMs = Math.round(p.revealHealerSec * 1000);
     card.knockback = p.knockback;
     card.curatorHpLoss = p.hpLoss;
   }
@@ -116,17 +120,20 @@ function sanitizeHealer(raw, i) {
   return {
     name: name(raw, `Skill ${i + 1}`),
     kind,
-    cooldownSec: g('cooldownSec', 2, 180, 30),
+    cooldownSec: g('cooldownSec', 1, 300, 30),
     windowMs: Math.round(num(raw && raw.windowMs, 100, 1500, 700)),
-    radius: g('radius', 0.5, 25, 6),
+    radius: g('radius', 0.5, 60, 6),
     reach: g('reach', 0, 8, 0),
-    cureAmount: g('cureAmount', 0, 100, 8),
-    revealSec: g('revealSec', 0, 40, 0),
-    selfHeal: g('selfHeal', 0, 200, 0),
-    durationSec: g('durationSec', 0.5, 30, 3),
-    strength: g('strength', 0.5, 15, 4),
-    factor: g('factor', 1, 6, 2),
-    flojeraDrain: g('flojeraDrain', 0, 100, 30),
+    cureAmount: g('cureAmount', 0, 500, 8),
+    revealSec: g('revealSec', 0, 120, 0),
+    selfHeal: g('selfHeal', 0, 1000, 0),
+    durationSec: g('durationSec', 0.5, 90, 3),
+    strength: g('strength', 0.5, 40, 4),
+    factor: g('factor', 1, 12, 2),
+    flojeraDrain: g('flojeraDrain', 0, 500, 30),
+    stunSec: g('stunSec', 0, 30, 0),
+    slowSec: g('slowSec', 0, 60, 0),
+    slowLevel: Math.round(num(raw && raw.slowLevel, 1, 3, 2)),
   };
 }
 
@@ -152,6 +159,11 @@ function buildHealer(p, id) {
     cooldownMs: Math.round(p.cooldownSec * 1000),
     radius: p.radius,
   };
+  if (p.kind === 'pulse' || p.kind === 'purge') {
+    s.stunMs = Math.round(p.stunSec * 1000);
+    s.slowMs = Math.round(p.slowSec * 1000);
+    s.slowLevel = p.slowLevel;
+  }
   if (p.kind === 'pulse') {
     s.cureAmount = p.cureAmount;
     s.revealMs = Math.round(p.revealSec * 1000);

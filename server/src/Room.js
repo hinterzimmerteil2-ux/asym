@@ -1372,6 +1372,8 @@ class Room {
           Status.clear(targetEntity, 'slow');
           targetEntity.flojera = Math.max(0, targetEntity.flojera - skill.flojeraDrain);
         }
+        if (skill.stunMs) this.stun(targetPlayerId, targetEntity, skill.stunMs, now, 0);
+        if (skill.slowMs) Status.apply(targetEntity, 'slow', skill.slowMs, now, { level: skill.slowLevel || 2 });
         affectedPlayerIds.push(targetPlayerId);
       }
     }
