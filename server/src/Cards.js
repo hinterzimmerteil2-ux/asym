@@ -113,12 +113,12 @@ const DRAFT_DURATION_MS = 12000;
 for (const card of Object.values(CARDS)) card.weight = RARITY_WEIGHTS[card.rarity] || RARITY_WEIGHTS.common;
 
 function getCard(cardId) {
-  return CARDS[cardId] || null;
+  return CARDS[cardId] || require('./CustomCards').get(cardId) || null;
 }
 
-function dealSlot(chosenIds = []) {
-  const chosenCards = chosenIds.map((id) => CARDS[id]).filter(Boolean);
-  const pool = Object.values(CARDS).filter((card) => !chosenIds.includes(card.id));
+function dealSlot(chosenIds = [], extra = []) {
+  const chosenCards = chosenIds.map((id) => getCard(id)).filter(Boolean);
+  const pool = [...Object.values(CARDS), ...extra].filter((card) => !chosenIds.includes(card.id));
   const options = [];
   while (options.length < OPTIONS_PER_SLOT && pool.length > 0) {
     const weighted = pool.map((card) => ({ card, weight: card.weight * Synergy.synergyMultiplier(card, chosenCards) }));
@@ -138,8 +138,8 @@ function dealSlot(chosenIds = []) {
   return { options, chosen: null };
 }
 
-function dealSlots() {
-  const slots = [dealSlot([])];
+function dealSlots(extra = []) {
+  const slots = [dealSlot([], extra)];
   for (let i = 1; i < SLOT_COUNT; i++) slots.push({ options: [], chosen: null });
   return slots;
 }

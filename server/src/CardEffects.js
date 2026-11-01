@@ -115,12 +115,29 @@ const handlers = {
   },
 };
 
+function customHandler({ room, playerId, entity, card, now }) {
+  if (card.customKind === 'sprint') {
+    if (card.hpCost) room.damagePatient(playerId, card.hpCost, C.GOYSLOP_FLOOR);
+    entity.sprintUntil = now + card.durationMs;
+    entity.sprintFactor = card.sprintFactor;
+    room.checkGameEndConditions();
+    return;
+  }
+  forEachCurator(room, entity, card.hitRadius, (id, target) => {
+    if (card.ragdollMs) room.ragdoll(id, target, card.ragdollMs, now);
+    if (card.stunMs) room.stun(id, target, card.stunMs, now, 0);
+    if (card.curatorHpLoss) room.adjustCuratorHp(-card.curatorHpLoss);
+  }, card.reach || 0);
+  room.checkGameEndConditions();
+}
+
 function apply(room, playerId, entity, card, now) {
-  const handler = handlers[card.id];
+  const handler = handlers[card.id] || (card.custom ? customHandler : null);
   if (handler) handler({ room, playerId, entity, card, now });
 }
 
 function areaOf(card, entity) {
+  if (card.custom && card.customKind === 'burst') return [{ x: entity.x, z: entity.z, half: card.hitRadius }];
   if (card.id === 'rodar') {
     const len = Math.hypot(entity.dashVX || 0, entity.dashVZ || 0) || 1;
     const dx = (entity.dashVX || 0) / len;

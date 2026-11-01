@@ -130,6 +130,7 @@ const DEFAULT_MAP_LAYOUT = {
   });
 })();
 
+const CustomCards = require('./CustomCards');
 const MINIGAMES = ['rhythm', 'needle', 'mash', 'meter'];
 const EVENT_KINDS = ['blackout', 'gates', 'alarm', 'shuffle', 'collapse', 'appear'];
 
@@ -250,6 +251,7 @@ function registerMap(layout, dryRun) {
       minigame: MINIGAMES.includes(o.minigame) ? o.minigame : null,
     })),
     events: sanitizeEvents(layout.events),
+    cards: CustomCards.normalizeList(layout.cards),
     collisionObjects: layout.collisionObjects.map((o) => ({
       id: String(o.id),
       type: typeof o.type === 'string' ? o.type : 'gurney',
@@ -272,7 +274,10 @@ function registerMap(layout, dryRun) {
       tint: /^#[0-9a-fA-F]{6}$/.test(p.tint || '') ? p.tint : null,
     })),
   };
-  if (!dryRun) MAPS[layout.id] = norm;
+  if (!dryRun) {
+    norm._cardObjs = CustomCards.registerAll(layout.id, norm.cards);
+    MAPS[layout.id] = norm;
+  }
   return norm;
 }
 
@@ -298,6 +303,11 @@ function sanitizeEvents(list) {
     yMin: e.yMin === null || e.yMin === undefined || e.yMin === '' ? null : num(e.yMin, -40, 80, null),
     yMax: e.yMax === null || e.yMax === undefined || e.yMax === '' ? null : num(e.yMax, -40, 80, null),
   }));
+}
+
+function getCustomCards(mapId) {
+  const layout = MAPS[mapId];
+  return (layout && layout._cardObjs) || [];
 }
 
 function getEvents(mapId) {
@@ -328,6 +338,7 @@ function getLayoutCopy(mapId) {
     collisionObjects: m.collisionObjects || [],
     platforms: m.platforms || [],
     events: m.events || [],
+    cards: m.cards || [],
   }));
 }
 
@@ -431,6 +442,7 @@ function getCuratorSpawn(mapId, pick) {
 }
 
 module.exports = {
+  getCustomCards,
   getLayoutCopy,
   getEvents,
   sanitizeEvents,

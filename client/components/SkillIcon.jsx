@@ -58,7 +58,10 @@ const ICONS = {
 
 const IMAGES = new Set(['acetilcolina', 'tajo_carmesi', 'red_mist', 'agua_rimac', 'chicharron', 'rodar', 'tropiezo', 'goyslop', 'cascara_platano', 'grito_animo', 'pulso_hierbas', 'somnifero_valeriana', 'raiz_atrayente', 'tonico_reforzado', 'ronda_suero', 'anestesia', 'camilla_magnetica', 'desinfectante', 'golpe_aturdidor']);
 
-export default function SkillIcon({ id, size = 30 }) {
+const CUSTOM_ICONS = { strike: 'tajo_carmesi', burst: 'tropiezo', sprint: 'acetilcolina' };
+
+export default function SkillIcon({ id: rawId, size = 30 }) {
+  const id = typeof rawId === 'string' && rawId.startsWith('mc|') ? CUSTOM_ICONS[rawId.split('|')[1]] : rawId;
   if (IMAGES.has(id)) {
     return <img src={`/icons/${id}.png`} alt="" width={size} height={size} draggable={false} onContextMenu={(e) => e.preventDefault()} style={{ flexShrink: 0, borderRadius: 6, objectFit: 'contain' }} />;
   }

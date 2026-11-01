@@ -826,3 +826,31 @@ test('mapas personalizados no dan Desgracias; el layout de un mapa se puede copi
   assert.ok(copy.platforms.length > 50 && copy.events.length >= 4 && copy.patientSpawns.length > 0);
   assert.strictEqual(GameMap.getLayoutCopy('nope'), null);
 });
+
+test('skills personalizadas: se validan por presupuesto, entran al mazo y funcionan', () => {
+  const GameMap = require('../src/GameMap');
+  const Cards = require('../src/Cards');
+  assert.throws(() => GameMap.registerMap({ id: 'skbad', name: 'x', selfDamageObjects: [], collisionObjects: [], cards: [{ name: 'Rota', kind: 'strike', stunSec: 3, ragdollSec: 3, hpLoss: 40, cooldownSec: 8 }] }), /demasiado fuerte/);
+  GameMap.registerMap({ id: 'skok', name: 'x', selfDamageObjects: [{ id: 's', xFrac: 0, zFrac: 0 }], collisionObjects: [], cards: [
+    { name: 'Tajo propio', kind: 'burst', radius: 2, stunSec: 1.5, hpLoss: 10, cooldownSec: 20 },
+    { name: 'Carrera', kind: 'sprint', factor: 1.5, durationSec: 3, cooldownSec: 20 },
+  ] });
+  const custom = GameMap.getCustomCards('skok');
+  assert.strictEqual(custom.length, 2);
+  const slot = Cards.dealSlot([], custom);
+  assert.strictEqual(slot.options.length, 3);
+  let seen = false;
+  for (let i = 0; i < 60 && !seen; i++) seen = Cards.dealSlot([], custom).options.some((id) => id.startsWith('mc|'));
+  assert.ok(seen, 'las skills personalizadas aparecen en las ofertas');
+  const { room, clock, e, p } = setup();
+  const burst = custom[0];
+  const cur = Object.keys(room.gameState.entities).find((id) => room.players.get(id).isAsymRole);
+  e.a.x = 0; e.a.z = 0; e.a.y = 0;
+  e[cur].x = 1; e[cur].z = 0; e[cur].y = 0;
+  const hp0 = room.gameState.curator.hp;
+  room.applyCardEffect('a', e.a, burst, clock.t);
+  assert.ok(Status.active(e[cur], 'stun', clock.t));
+  assert.strictEqual(room.gameState.curator.hp, hp0 - 10);
+  room.applyCardEffect('a', e.a, custom[1], clock.t);
+  assert.strictEqual(e.a.sprintFactor, 1.5);
+});

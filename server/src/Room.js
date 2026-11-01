@@ -729,7 +729,7 @@ class Room {
       entity.corpse = false;
       entity.gone = false;
       this.gameState.ghosts = {};
-      entity.hand = player.isAsymRole ? [] : Cards.dealSlots();
+      entity.hand = player.isAsymRole ? [] : Cards.dealSlots(GameMap.getCustomCards(this.mapId));
       entity.role = null;
       entity.draftEndsAt = player.isAsymRole ? 0 : Date.now() + Cards.DRAFT_DURATION_MS;
     }
@@ -1705,7 +1705,7 @@ class Room {
     }
     if (entity.hand[next].options.length === 0) {
       const chosenIds = entity.hand.filter((slot) => slot.chosen).map((slot) => slot.chosen);
-      entity.hand[next] = Cards.dealSlot(chosenIds);
+      entity.hand[next] = Cards.dealSlot(chosenIds, GameMap.getCustomCards(this.mapId));
       entity.draftEndsAt = Date.now() + Cards.DRAFT_DURATION_MS;
       this.sendCardOffer(playerId, entity);
     }
@@ -1729,7 +1729,7 @@ class Room {
         if (index === -1) break;
         if (entity.hand[index].options.length === 0) {
           const chosenIds = entity.hand.filter((slot) => slot.chosen).map((slot) => slot.chosen);
-          entity.hand[index] = Cards.dealSlot(chosenIds);
+          entity.hand[index] = Cards.dealSlot(chosenIds, GameMap.getCustomCards(this.mapId));
         }
         this.finalizeChoice(playerId, index, entity.hand[index].options[0]);
       }
