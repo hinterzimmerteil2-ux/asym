@@ -948,6 +948,22 @@ test('Astral Claw: carga con endlag, queda lista al saltar, esfera recta que atu
   assert.ok(!e.b.astral, 'curarte cancela');
 });
 
+test('Ragdoll lanza hacia arriba y deja endlag al levantarse; cartas de vida máxima son cambios planos', () => {
+  const { room, clock, e, p } = setup();
+  const Cards = require('../src/Cards');
+  const C = require('../src/Constants');
+  e.a.onGround = true;
+  room.ragdoll('a', e.a, 1000, clock.t);
+  assert.strictEqual(e.a.velocityY, C.RAGDOLL_POP);
+  assert.ok(!e.a.onGround);
+  p.a.maxHp = C.TUTORIAL_PATIENT_HP_MAX;
+  room.applyMaxCosts('a', e.a, Cards.getCard('red_mist'), true);
+  assert.ok(p.a.maxHp > 1e20, 'IS THAT THE RED MIST? no borra la vida del tutorial');
+  p.b.maxHp = C.PATIENT_HP_MAX;
+  room.applyMaxCosts('b', e.b, Cards.getCard('red_mist'), true);
+  assert.strictEqual(p.b.maxHp, 180);
+});
+
 test('skills personalizadas: efectos a sí mismo/enemigo/aliados al usar, acertar o fallar', () => {
   const GameMap = require('../src/GameMap');
   const CardEffects = require('../src/CardEffects');

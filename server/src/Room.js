@@ -44,6 +44,8 @@ const {
   GRAVITY,
   ASTRAL,
   MUTATIONS,
+  RAGDOLL_POP,
+  GETUP_ENDLAG_MS,
   LOBBY_GRAVITY_FACTOR,
   GROUND_Y,
   PLAYER_COLLISION_RADIUS,
@@ -1144,6 +1146,7 @@ class Room {
         if (!entity.rag) entity.rag = RagdollBody.create(entity, now);
         if (!RagdollBody.step(entity.rag, entity, entity.y || 0, dt)) entity.rag = RagdollBody.create(entity, now);
       } else {
+        if (entity.rag && !resolved && inAction) this.endlagSlow(entity, now, GETUP_ENDLAG_MS);
         entity.rag = null;
       }
       if (entity.paraUntil) {
@@ -1325,7 +1328,7 @@ class Room {
           entity.velocityY = 0;
           entity.onGround = true;
           const fallingPlayer = this.players.get(entityPlayerId);
-          if (fallingPlayer && !fallingPlayer.isAsymRole && fall > FALL_ENDLAG_MIN && inAction) {
+          if (fallingPlayer && fall > FALL_ENDLAG_MIN && inAction) {
             this.endlagSlow(entity, now, FALL_ENDLAG_MS);
           }
         }
@@ -1360,6 +1363,11 @@ class Room {
   }
 
   ragdoll(playerId, entity, ms, now) {
+    if (entity.onGround && !Status.active(entity, 'ragdoll', now)) {
+      entity.onGround = false;
+      entity.velocityY = RAGDOLL_POP;
+      entity.peakY = entity.y;
+    }
     Status.apply(entity, 'ragdoll', ms, now);
   }
 
@@ -2081,7 +2089,8 @@ class Room {
   applyMaxCosts(playerId, entity, card, perUse) {
     const patient = this.gameState.patients[playerId];
     if (patient && patient.status === 'alive' && (card.maxHpSet || card.maxHpDelta)) {
-      const target = card.maxHpSet || patient.maxHp + card.maxHpDelta;
+      const delta = card.maxHpSet ? card.maxHpSet - PATIENT_HP_MAX : card.maxHpDelta;
+      const target = patient.maxHp + delta;
       if (perUse) {
         patient.maxHp = Math.max(1, target);
         if (patient.hp >= patient.maxHp) {
