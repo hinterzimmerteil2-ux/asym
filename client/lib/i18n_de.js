@@ -450,4 +450,11 @@ export const DE = [
 "Vollbild (quer)",
 "Empfohlen am Handy: blendet die Browserleisten aus und sperrt den Bildschirm im Querformat.",
 "Sprache",
+"Tastenmodus",
+"Shiftlock",
+"Langsamer Schritt",
+"Umschalten",
+"Halten",
+"Gemischt",
+"Umschalten: drücken zum Einschalten, erneut drücken zum Ausschalten. Halten: nur aktiv, solange du drückst. Gemischt: kurzes Antippen schaltet um, Gedrückthalten wirkt wie Halten.",
 ];

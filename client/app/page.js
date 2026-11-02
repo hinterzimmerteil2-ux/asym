@@ -22,6 +22,7 @@ import CommunityMaps from '../components/CommunityMaps';
 import LmsIntro from '../components/LmsIntro';
 import { matches as keyMatches, getKey, keyLabel } from '../lib/keybinds';
 import TouchControls from '../components/TouchControls';
+import { createModeKey } from '../lib/modeKey';
 import { KEYWORDS } from '../lib/keywords';
 import { ITEMS, COLORS, SLOT_LABELS } from '../lib/cosmetics';
 import { loadDesgracias, saveDesgracias, priceOf, FREE_ITEMS, emptyQ, addQ, normQ, spendQ, awardToQ, formatQ } from '../lib/desgracias';
@@ -87,6 +88,9 @@ export default function LobbyPage() {
   const [portrait, setPortrait] = useState(false);
   const [specIndex, setSpecIndex] = useState(0);
   const [shiftLock, setShiftLock] = useState(false);
+  const shiftKeyRef = useRef(null);
+  if (!shiftKeyRef.current) shiftKeyRef.current = createModeKey('shiftMode', (v) => setShiftLock(v));
+  useEffect(() => { shiftKeyRef.current.sync(shiftLock); }, [shiftLock]);
   const [warn, setWarn] = useState(false);
   const [hitboxCfg, setHitboxCfg] = useState({ half: 0.36, height: 1.8, interact: 1.2 });
   const specRef = useRef({ on: false });
@@ -751,7 +755,7 @@ export default function LobbyPage() {
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (keyMatches('help', e.code)) setHelpOpen((open) => !open);
-      else if (keyMatches('shiftlock', e.code) && !e.repeat) setShiftLock((on) => !on);
+      else if (keyMatches('shiftlock', e.code)) { if (!e.repeat) shiftKeyRef.current.down(); }
       else if (keyMatches('hitboxes', e.code)) setHitboxes((prev) => ({ ...prev, on: !prev.on }));
       else if (e.code === 'Escape') setHelpOpen(false);
       else if (keyMatches('minigame', e.code)) {
@@ -764,8 +768,12 @@ export default function LobbyPage() {
       else if (keyMatches('card1', e.code)) handleUseCard(0);
       else if (keyMatches('card2', e.code)) handleUseCard(1);
     }
+    function onKeyUp(e) {
+      if (keyMatches('shiftlock', e.code)) shiftKeyRef.current.up();
+    }
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); };
   }, [handleUseCard]);
 
   useEffect(() => {

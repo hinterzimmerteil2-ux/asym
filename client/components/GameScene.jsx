@@ -6,6 +6,7 @@ import { Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferA
 import { itemOf } from '../lib/cosmetics';
 import { getTexture, setTextureQuality } from '../lib/textures';
 import { matches } from '../lib/keybinds';
+import { createModeKey } from '../lib/modeKey';
 import HospitalDecor from './HospitalDecor';
 import { useSettings, gfx } from '../lib/settings';
 
@@ -1339,6 +1340,9 @@ const CAMERA_LOCK = { on: false, yaw: 0, fp: false, fpId: null };
 function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
   const keysPressed = useRef(new Set());
   const lastSent = useRef({ key: '', at: 0 });
+  const slowOn = useRef(false);
+  const slowKey = useRef(null);
+  if (!slowKey.current) slowKey.current = createModeKey('slowMode', (v) => { slowOn.current = v; });
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -1352,14 +1356,21 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       if (skillIndex !== -1 && !keysPressed.current.has(e.code)) {
         onPulse?.(skillIndex === 4 ? 'melee' : skillIndex);
       }
+      if (matches('slow', e.code) && !e.repeat) slowKey.current.down();
       keysPressed.current.add(e.code);
     }
-    function handleKeyUp(e) { keysPressed.current.delete(e.code); }
+    function handleKeyUp(e) {
+      if (matches('slow', e.code)) slowKey.current.up();
+      keysPressed.current.delete(e.code);
+    }
+    const onBlur = () => slowKey.current.reset();
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', onBlur);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', onBlur);
     };
   }, [onPulse]);
 
@@ -1378,7 +1389,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       if (held('left')) inputX -= 1;
       if (held('right')) inputX += 1;
       const jump = held('jump');
-      const slow = held('slow');
+      const slow = slowOn.current;
 
       if (inputX !== 0 && inputZ !== 0) {
         const norm = Math.SQRT1_2;

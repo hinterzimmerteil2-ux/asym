@@ -100,6 +100,21 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
           <p style={styles.hint}>Recomendado en móvil: oculta las barras del navegador y fija la pantalla en horizontal.</p>
         </div>
 
+        <h3 style={styles.section}>Modo de teclas</h3>
+        <div style={styles.card}>
+          {[['shiftMode', 'Shiftlock'], ['slowMode', 'Paso lento']].map(([key, label]) => (
+            <div key={key} style={{ marginBottom: 8 }}>
+              <div style={styles.rowTop}><span>{label}</span></div>
+              <div style={styles.presets}>
+                {[['toggle', 'Alternar'], ['hold', 'Mantener'], ['mixed', 'Mixto']].map(([v, name]) => (
+                  <button key={v} type="button" onClick={() => setSettings({ [key]: v })} style={styles.preset(s[key] === v)}>{name}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <p style={styles.hint}>Alternar: pulsas para activar y vuelves a pulsar para desactivar. Mantener: activo solo mientras lo pulsas. Mixto: un toque rápido alterna y mantenerlo funciona como pulsar.</p>
+        </div>
+
         <h3 style={styles.section}>Controles (haz clic y pulsa la nueva tecla)</h3>
         <KeybindsEditor />
         <button type="button" onClick={resetKeys} style={styles.reset}>Restablecer teclas</button>

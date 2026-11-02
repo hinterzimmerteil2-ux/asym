@@ -452,6 +452,13 @@ const PAIRS = [
 ["Pantalla completa (horizontal)", "Fullscreen (landscape)"],
 ["Recomendado en móvil: oculta las barras del navegador y fija la pantalla en horizontal.", "Recommended on mobile: hides the browser bars and locks the screen to landscape."],
 ["Idioma", "Language"],
+["Modo de teclas", "Key modes"],
+["Shiftlock", "Shift lock"],
+["Paso lento", "Slow walk"],
+["Alternar", "Toggle"],
+["Mantener", "Hold"],
+["Mixto", "Mixed"],
+["Alternar: pulsas para activar y vuelves a pulsar para desactivar. Mantener: activo solo mientras lo pulsas. Mixto: un toque rápido alterna y mantenerlo funciona como pulsar.", "Toggle: press to turn on, press again to turn off. Hold: active only while pressed. Mixed: a quick tap toggles and holding works like hold."],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };
