@@ -42,6 +42,7 @@ const {
   FALL_ENDLAG_MIN,
   FALL_ENDLAG_MS,
   GRAVITY,
+  MUTATIONS,
   LOBBY_GRAVITY_FACTOR,
   GROUND_Y,
   PLAYER_COLLISION_RADIUS,
@@ -158,6 +159,7 @@ class Room {
     this.hitWindows = [];
     this.tickInterval = null;
     this.tickCount = 0;
+    this.mutation = 'none';
     this.mapId = GameMap.DEFAULT_MAP_ID; // qué mapa usa esta sala — hoy siempre 'default', preparado para elegir otro cuando exista el creador
 
     this.chatHistory = [];
@@ -604,6 +606,12 @@ class Room {
    * lobby. mapId debe existir en el catálogo de GameMap (incluye los
    * mapas guardados desde el editor visual).
    */
+  setMutation(requesterId, id) {
+    if (this.phase !== 'lobby' || requesterId !== this.hostId || !MUTATIONS[id]) return;
+    this.mutation = id;
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, mutation: this.mutation });
+  }
+
   setMap(requesterId, mapId, loaded) {
     if (!loaded && !GameMap.MAPS[mapId] && typeof mapId === 'string' && mapId.startsWith('c_')) {
       require('./community').ensureMap(mapId).then(() => this.setMap(requesterId, mapId, true)).catch(() => this.sendTo(requesterId, MessageType.ERROR, { message: 'Ese mapa no existe' }));
@@ -1168,6 +1176,7 @@ class Room {
         speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
       }
       speedMultiplier *= Status.speedFactor(entity, now);
+      if (!this.players.get(entityPlayerId)?.isAsymRole) speedMultiplier *= MUTATIONS[this.mutation].speed;
       if (entity.channel || entity.selfDmg) speedMultiplier *= CHANNEL_SLOW;
       if (entity.acetilUntil <= now && entity.fatigueUntil > now) speedMultiplier *= ACETIL_FATIGUE_FACTOR;
       if (allyCounts[entityPlayerId]) {
@@ -1303,7 +1312,7 @@ class Room {
         entity.velocityY = 0;
         entity.y = Math.max(entity.y, ground);
       } else {
-        entity.velocityY += GRAVITY * (this.phase === 'lobby' ? LOBBY_GRAVITY_FACTOR : 1) * dt;
+        entity.velocityY += GRAVITY * (this.phase === 'lobby' ? LOBBY_GRAVITY_FACTOR : MUTATIONS[this.mutation].gravity) * dt;
         entity.y += entity.velocityY * dt;
         entity.peakY = Math.max(entity.peakY || entity.y, entity.y);
         ground = groundAt(platforms, entity.x, entity.z, entity.y - entity.velocityY * dt);
@@ -1641,7 +1650,7 @@ class Room {
   healPatient(playerId, amount) {
     const patient = this.gameState.patients[playerId];
     if (!patient || patient.status !== 'alive') return false;
-    patient.hp = Math.min(patient.maxHp, patient.hp + amount);
+    patient.hp = Math.min(patient.maxHp, patient.hp + amount * MUTATIONS[this.mutation].heal);
     if (patient.hp >= patient.maxHp) {
       patient.status = 'eliminated';
       this.onPatientFullyCured();

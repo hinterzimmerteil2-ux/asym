@@ -31,6 +31,13 @@ const STEP_DOWN = 0.7;
 const FALL_ENDLAG_MIN = 1.2;
 const FALL_ENDLAG_MS = 1800;
 const GRAVITY = -18;
+const MUTATIONS = {
+  none: { name: 'Sin mutación', gravity: 1, speed: 1, heal: 1 },
+  lowgrav: { name: 'Gravedad baja', gravity: 0.5, speed: 1, heal: 1 },
+  fast: { name: 'Pacientes veloces', gravity: 1, speed: 1.3, heal: 1 },
+  halfheal: { name: 'Curas a la mitad', gravity: 1, speed: 1, heal: 0.5 },
+  doubleheal: { name: 'Curas dobles', gravity: 1, speed: 1, heal: 2 },
+};
 const LOBBY_GRAVITY_FACTOR = 0.6;
 const GROUND_Y = 0;
 const PLAYER_COLLISION_RADIUS = 0.4;
@@ -161,6 +168,7 @@ module.exports = {
   FALL_ENDLAG_MIN,
   FALL_ENDLAG_MS,
   GRAVITY,
+  MUTATIONS,
   LOBBY_GRAVITY_FACTOR,
   GROUND_Y,
   PLAYER_COLLISION_RADIUS,

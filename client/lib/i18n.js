@@ -440,6 +440,14 @@ const PAIRS = [
 ["Controles (haz clic y pulsa la nueva tecla)", "Controls (click, then press the new key)"],
 ["Restablecer teclas", "Reset keys"],
 ["El idioma se cambia con los botones es / en / de de arriba a la derecha.", "Change the language with the es / en / de buttons at the top right."],
+["Mutación", "Mutation"],
+["Sin mutación", "No mutation"],
+["Gravedad baja", "Low gravity"],
+["Pacientes veloces", "Fast patients"],
+["Curas a la mitad", "Half healing"],
+["Curas dobles", "Double healing"],
+["Calidad automática (baja sola si los FPS caen)", "Auto quality (lowers itself if FPS drop)"],
+["Calidad bajada automáticamente por rendimiento", "Quality lowered automatically for performance"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

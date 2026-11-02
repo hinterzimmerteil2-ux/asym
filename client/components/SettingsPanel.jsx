@@ -69,6 +69,10 @@ export default function SettingsPanel({ onClose }) {
           </ul>
           <p style={styles.hint}>0.1 sacrifica casi todo lo visual para ganar rendimiento. Si tu equipo va lento, baja este valor.</p>
           <label style={styles.check}>
+            <input type="checkbox" checked={s.auto} onChange={(e) => setSettings({ auto: e.target.checked })} />
+            Calidad automática (baja sola si los FPS caen)
+          </label>
+          <label style={styles.check}>
             <input type="checkbox" checked={s.fps} onChange={(e) => setSettings({ fps: e.target.checked })} />
             Mostrar FPS
           </label>

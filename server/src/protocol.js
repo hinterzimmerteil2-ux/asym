@@ -21,6 +21,7 @@ const MessageType = {
   CHARACTER_LIST: 'character_list',     // server -> client (al unirse): { characters[] }
   ADD_BOT: 'add_bot',
   REMOVE_BOT: 'remove_bot',
+  SET_MUTATION: 'set_mutation',
   SET_MAP: 'set_map',                   // client(host) -> server: { mapId } — elige el mapa para la próxima partida
 
   // --- Nombre de jugador ---

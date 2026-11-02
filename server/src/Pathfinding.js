@@ -2,7 +2,8 @@ const { platformTop, baseAt } = require('./Hitbox');
 
 const CELL = 0.5;
 const PAD = 0.5;
-const STEP = 0.45;
+const STEP = 0.49;
+const LEDGE = 1.0;
 const MAX_EXPANSIONS = 60000;
 
 function buildGrid(half, objects, platforms) {
@@ -39,7 +40,7 @@ function buildGrid(half, objects, platforms) {
           const ni = i + di;
           const nj = j + dj;
           if (ni < 0 || nj < 0 || ni >= n || nj >= n) continue;
-          if (Math.abs(h[nj * n + ni] - h[idx]) > STEP) { padded[idx] = 1; break; }
+          if (Math.abs(h[nj * n + ni] - h[idx]) > LEDGE) { padded[idx] = 1; break; }
         }
       }
     }

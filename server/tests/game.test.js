@@ -278,6 +278,15 @@ test('Pathfinding rodea plataformas altas y entra por la rampa', () => {
   assert.ok(Math.hypot(end.x - 0, end.z + 47.5) < 1.2);
 });
 
+test('Pathfinding llega a la torre del segundo nivel del hospital por rampas empinadas', () => {
+  const GameMap = require('../src/GameMap');
+  const Pathfinding = require('../src/Pathfinding');
+  const area = GameMap.MATCH_AREA;
+  const grid = Pathfinding.buildGrid(area.halfSize, GameMap.resolveCollisionObjects('hospital', area), GameMap.resolvePlatforms('hospital', area));
+  const path = Pathfinding.findPath(grid, { x: 0, z: 0 }, { x: 31, z: 30 });
+  assert.ok(path.length >= 2);
+});
+
 test('Pacientes resueltos: eliminado queda como cadáver sin hitbox, el que escapa también', () => {
   const { room, e, p, step } = setup();
   p.a.status = 'eliminated';

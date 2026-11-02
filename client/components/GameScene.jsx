@@ -366,13 +366,20 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
           <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
           <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
           <mesh position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+          <mesh position={[0, 0.2, -0.01]}><boxGeometry args={[0.4, 0.1, 0.4]} /><meshStandardMaterial color="#2a2320" roughness={0.9} /></mesh>
+          <mesh position={[-0.07, 0.115, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
+          <mesh position={[0.07, 0.115, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
           <CosmeticPieces slot="head" cosmetics={cosmetics} />
         </group>
+        <mesh position={[0, 0.78, 0]}><boxGeometry args={[0.76, 0.08, 0.4]} /><meshStandardMaterial color="#1b1d29" roughness={0.8} /></mesh>
+        <mesh position={[0, 1.4, 0.19]}><boxGeometry args={[0.3, 0.06, 0.02]} /><meshStandardMaterial color="#e4c9a8" roughness={0.7} /></mesh>
         <CosmeticPieces slot="torso" cosmetics={cosmetics} />
         <CosmeticPieces slot="back" cosmetics={cosmetics} />
         {[['armL', -0.54, 1.44, SKIN], ['armR', 0.54, 1.44, SKIN], ['legL', -0.18, 0.72, '#3a3d52'], ['legR', 0.18, 0.72, '#3a3d52']].map(([key, px, py, col]) => (
           <group key={key} ref={(el) => { rig.current[key] = el; }} position={[px, py, 0]}>
             <mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
+            {key.startsWith('leg') && <mesh position={[0, -0.68, 0.05]}><boxGeometry args={[0.4, 0.14, 0.5]} /><meshStandardMaterial color="#1b1d29" roughness={0.7} /></mesh>}
+            {key.startsWith('arm') && <mesh position={[0, -0.7, 0]}><boxGeometry args={[0.38, 0.1, 0.38]} /><meshStandardMaterial color="#e4c9a8" roughness={0.6} /></mesh>}
           </group>
         ))}
         <HeldItem held={held} />
@@ -391,7 +398,9 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
 
 function LobbyDecor() {
   const glow = useRef([]);
+  const cross = useRef();
   useFrame(({ clock }) => {
+    if (cross.current) { cross.current.rotation.y = clock.elapsedTime * 0.6; cross.current.position.y = Math.sin(clock.elapsedTime) * 0.15; }
     glow.current.forEach((m, i) => { if (m) m.position.y = 3.2 + Math.sin(clock.elapsedTime * 1.5 + i) * 0.25; });
   });
   const posts = Array.from({ length: 8 }, (_, i) => [Math.cos((i / 8) * Math.PI * 2) * 11, Math.sin((i / 8) * Math.PI * 2) * 11]);
@@ -414,6 +423,16 @@ function LobbyDecor() {
             <meshBasicMaterial color={colors[i]} />
           </mesh>
         </group>
+      ))}
+      <group ref={cross}>
+        <mesh position={[0, 4.6, 0]}><boxGeometry args={[0.5, 1.7, 0.2]} /><meshBasicMaterial color="#e0555f" /></mesh>
+        <mesh position={[0, 4.6, 0]}><boxGeometry args={[1.7, 0.5, 0.2]} /><meshBasicMaterial color="#e0555f" /></mesh>
+      </group>
+      {[0, 1, 2].map((i) => (
+        <mesh key={`r${i}`} position={[0, 0.03 + i * 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[5 + i * 1.6, 5.08 + i * 1.6, 64]} />
+          <meshBasicMaterial color="#54d1f2" transparent opacity={0.22 - i * 0.06} />
+        </mesh>
       ))}
       <mesh position={[11.5, 5.2, 0.6]}><octahedronGeometry args={[0.45, 0]} /><meshBasicMaterial color="#f2d154" /></mesh>
       {[[-6, -6], [6, -6], [-6, 6], [6, 6]].map(([x, z], i) => (

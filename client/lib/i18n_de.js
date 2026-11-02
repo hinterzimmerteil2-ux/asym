@@ -438,4 +438,12 @@ export const DE = [
 "Steuerung (anklicken, dann neue Taste drücken)",
 "Tasten zurücksetzen",
 "Die Sprache änderst du mit den Tasten es / en / de oben rechts.",
+"Mutation",
+"Keine Mutation",
+"Niedrige Schwerkraft",
+"Schnelle Patienten",
+"Halbe Heilung",
+"Doppelte Heilung",
+"Automatische Qualität (sinkt von selbst bei FPS-Einbruch)",
+"Qualität automatisch wegen Leistung gesenkt",
 ];

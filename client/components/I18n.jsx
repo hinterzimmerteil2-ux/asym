@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { translate, detectLang, LANGS } from '../lib/i18n';
 import SettingsPanel from './SettingsPanel';
 import FpsCounter from './FpsCounter';
+import AutoQuality from './AutoQuality';
 import { useSettings } from '../lib/settings';
 
 const ATTRS = ['title', 'placeholder', 'aria-label', 'alt'];
@@ -116,6 +117,7 @@ export default function I18n() {
     <>
     {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
     {ui.fps && <FpsCounter />}
+    <AutoQuality />
     <div translate="no" style={{ position: 'fixed', top: 3, right: 3, zIndex: 500, display: 'flex', gap: 3 }}>
       <button type="button" onClick={() => setSettingsOpen(true)} title="Ajustes" aria-label="Ajustes" style={{ fontSize: 14, padding: '1px 9px', borderRadius: 5, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(20,22,30,0.65)', color: '#e8e9f0', cursor: 'pointer', lineHeight: 1.4 }}>⚙</button>
       {LANGS.map((l) => (

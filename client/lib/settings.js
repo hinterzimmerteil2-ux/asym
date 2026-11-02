@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 const STORE = 'asym_settings';
-const DEFAULTS = { quality: 0.5, fps: false };
+const DEFAULTS = { quality: 0.5, fps: false, auto: true };
 const listeners = new Set();
 let cache = null;
 
@@ -14,6 +14,7 @@ function load() {
       const q = Number(raw.quality);
       if (Number.isFinite(q)) cache.quality = Math.max(0.1, Math.min(4, q));
       cache.fps = Boolean(raw.fps);
+      if (typeof raw.auto === 'boolean') cache.auto = raw.auto;
     }
   } catch {}
   return cache;

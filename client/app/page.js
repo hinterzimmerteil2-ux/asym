@@ -197,6 +197,8 @@ export default function LobbyPage() {
   const myPosRef = useRef(null);
   const [hitboxes, setHitboxes] = useState({ on: false, opacity: 0.8 });
   const [maps, setMaps] = useState([]);
+  const [mutation, setMutation] = useState('none');
+  const [mutations, setMutations] = useState([]);
   const [mapId, setMapId] = useState('default');
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
@@ -261,11 +263,14 @@ export default function LobbyPage() {
             setMaps(payload.maps || []);
             setLobbyPlatforms(payload.lobbyPlatforms || []);
             setMapId(payload.mapId || 'default');
+            setMutation(payload.mutation || 'none');
+            setMutations(payload.mutations || []);
             break;
           case 'room_update':
             setPlayers(payload.players);
             if (payload.hostId !== undefined) setHostId(payload.hostId);
             if (payload.mapId !== undefined) setMapId(payload.mapId);
+            if (payload.mutation !== undefined) setMutation(payload.mutation);
             break;
           case 'chat_broadcast':
             setChatMessages((prev) => [...prev, payload]);
@@ -611,6 +616,10 @@ export default function LobbyPage() {
 
   function handleSelectCharacter(characterId) {
     connRef.current?.send('select_character', { characterId });
+  }
+
+  function handleSetMutation(id) {
+    connRef.current?.send('set_mutation', { mutation: id });
   }
 
   function handleSetMap(newMapId) {
@@ -1009,6 +1018,18 @@ export default function LobbyPage() {
               )}
               {mapId.startsWith('c_') && <p style={styles.mapReadOnly}>Mapa de la comunidad: <span translate="no">{communityName[mapId] || maps.find((m) => m.id === mapId)?.name || ''}</span></p>}
               <button type="button" style={{ ...styles.smallButton, width: '100%', marginTop: 4 }} onClick={() => setCommunityOpen(true)}>Mapas de la comunidad</button>
+              {mutations.length > 0 && (
+                <>
+                  <p style={{ ...styles.characterPickerLabel, marginTop: 8 }}>Mutación</p>
+                  {isHost ? (
+                    <select style={styles.mapSelect} value={mutation} onChange={(e) => handleSetMutation(e.target.value)}>
+                      {mutations.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                  ) : (
+                    <p style={styles.mapReadOnly}>{mutations.find((m) => m.id === mutation)?.name || ''}</p>
+                  )}
+                </>
+              )}
               <Link href="/editor" style={styles.editorLink}>Crear mapa nuevo →</Link>
             </div>
           )}

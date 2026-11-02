@@ -147,6 +147,8 @@ wss.on('connection', (ws) => {
           characters: Characters.listCharacters(),
           cards: Cards.listCards(),
           mapId: room.mapId,
+          mutation: room.mutation,
+          mutations: Object.entries(Constants.MUTATIONS).map(([id, m]) => ({ id, name: m.name })),
           maps: GameMap.listMaps(),
           lobbyPlatforms: GameMap.LOBBY_PLATFORMS,
         }));
@@ -180,6 +182,13 @@ wss.on('connection', (ws) => {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
         room.removeBot(playerId);
+        break;
+      }
+
+      case MessageType.SET_MUTATION: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.setMutation(playerId, msg.payload.mutation);
         break;
       }
 
