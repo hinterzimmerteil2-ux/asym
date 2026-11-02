@@ -446,4 +446,8 @@ export const DE = [
 "Doppelte Heilung",
 "Automatische Qualität (sinkt von selbst bei FPS-Einbruch)",
 "Qualität automatisch wegen Leistung gesenkt",
+"Bildschirm",
+"Vollbild (quer)",
+"Empfohlen am Handy: blendet die Browserleisten aus und sperrt den Bildschirm im Querformat.",
+"Sprache",
 ];

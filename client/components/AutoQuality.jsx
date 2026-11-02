@@ -48,5 +48,5 @@ export default function AutoQuality() {
     return () => clearTimeout(t);
   }, [note]);
   if (!note) return null;
-  return <div style={{ position: 'fixed', left: '50%', bottom: 16, transform: 'translateX(-50%)', zIndex: 45, background: 'rgba(0,0,0,0.75)', color: '#f2d154', fontSize: 12, padding: '6px 12px', borderRadius: 6 }}>Calidad bajada automáticamente por rendimiento</div>;
+  return <div style={{ position: 'fixed', left: '50%', top: 56, transform: 'translateX(-50%)', zIndex: 45, fontFamily: 'inherit', background: 'rgba(0,0,0,0.75)', color: '#f2d154', fontSize: 12, padding: '6px 12px', borderRadius: 6 }}>Calidad bajada automáticamente por rendimiento</div>;
 }

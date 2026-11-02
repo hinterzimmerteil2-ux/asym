@@ -2,6 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getKey, keyLabel } from '../lib/keybinds';
+import SkillIcon from './SkillIcon';
+
+const SAFE_R = 'calc(env(safe-area-inset-right, 0px) + 16px)';
+const SAFE_L = 'calc(env(safe-area-inset-left, 0px) + 16px)';
+const SAFE_B = 'calc(env(safe-area-inset-bottom, 0px) + 16px)';
+
+function buzz(ms = 8) {
+  try { navigator.vibrate && navigator.vibrate(ms); } catch {}
+}
 
 function press(code, down) {
   window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, bubbles: true }));
@@ -12,14 +21,14 @@ function Stick() {
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const active = useRef(new Set());
   const pointer = useRef(null);
-  const RADIUS = 40;
+  const RADIUS = 56;
 
   function apply(dx, dy) {
     const want = new Set();
-    if (dy < -0.25) want.add(getKey('forward'));
-    if (dy > 0.25) want.add(getKey('back'));
-    if (dx < -0.25) want.add(getKey('left'));
-    if (dx > 0.25) want.add(getKey('right'));
+    if (dy < -0.3) want.add(getKey('forward'));
+    if (dy > 0.3) want.add(getKey('back'));
+    if (dx < -0.3) want.add(getKey('left'));
+    if (dx > 0.3) want.add(getKey('right'));
     for (const code of active.current) if (!want.has(code)) press(code, false);
     for (const code of want) if (!active.current.has(code)) press(code, true);
     active.current = want;
@@ -50,20 +59,20 @@ function Stick() {
       onPointerMove={(e) => { if (pointer.current === e.pointerId && origin) move(e, origin); }}
       onPointerUp={end}
       onPointerCancel={end}
-      style={{ position: 'absolute', left: 0, bottom: 0, width: '40%', height: '45%', touchAction: 'none', pointerEvents: 'auto' }}
+      style={{ position: 'absolute', left: 0, bottom: 0, width: '42%', height: '55%', touchAction: 'none', pointerEvents: 'auto' }}
     >
       {origin ? (
         <div style={{ position: 'fixed', left: origin.x - RADIUS, top: origin.y - RADIUS, width: RADIUS * 2, height: RADIUS * 2, borderRadius: '50%', background: 'rgba(20,22,30,0.45)', border: '2px solid rgba(255,255,255,0.25)' }}>
-          <div style={{ position: 'absolute', left: RADIUS - 17 + knob.x * RADIUS * 0.7, top: RADIUS - 17 + knob.y * RADIUS * 0.7, width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.65)' }} />
+          <div style={{ position: 'absolute', left: RADIUS - 22 + knob.x * RADIUS * 0.7, top: RADIUS - 22 + knob.y * RADIUS * 0.7, width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.65)' }} />
         </div>
       ) : (
-        <div style={{ position: 'absolute', left: 32, bottom: 32, width: 72, height: 72, borderRadius: '50%', border: '2px dashed rgba(255,255,255,0.2)' }} />
+        <div style={{ position: 'absolute', left: SAFE_L, bottom: SAFE_B, width: 96, height: 96, borderRadius: '50%', border: '2px dashed rgba(255,255,255,0.28)', background: 'rgba(20,22,30,0.18)' }} />
       )}
     </div>
   );
 }
 
-function Btn({ label, code, act, size = 52, style, until = 0 }) {
+function Btn({ label, code, act, size = 56, style, until = 0, icon }) {
   const real = act ? getKey(act) : code;
   const [, setTick] = useState(0);
   const remaining = until - Date.now();
@@ -77,17 +86,17 @@ function Btn({ label, code, act, size = 52, style, until = 0 }) {
     <button
       type="button"
       onContextMenu={(e) => e.preventDefault()}
-      onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); press(real, true); }}
+      onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); buzz(); press(real, true); }}
       onPointerUp={() => press(real, false)}
       onPointerCancel={() => press(real, false)}
       style={{ width: size, height: size, borderRadius: '50%', background: cooling ? 'rgba(20,22,30,0.35)' : 'rgba(20,22,30,0.7)', color: cooling ? 'rgba(255,255,255,0.45)' : '#fff', border: '2px solid rgba(255,255,255,0.3)', fontSize: 15, fontWeight: 700, touchAction: 'none', pointerEvents: 'auto', userSelect: 'none', WebkitUserSelect: 'none', ...style }}
     >
-      {cooling ? Math.ceil(remaining / 1000) : label}
+      {cooling ? Math.ceil(remaining / 1000) : icon ? <SkillIcon id={icon} size={Math.round(size * 0.62)} /> : label}
     </button>
   );
 }
 
-export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsymRole, cardCooldowns = {}, skillCooldowns = {}, onInteract }) {
+export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsymRole, cardCooldowns = {}, skillCooldowns = {}, onInteract, cardIds = [], skillIds = [] }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
     setShow(window.matchMedia('(pointer: coarse)').matches);
@@ -97,9 +106,9 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
     return (
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
         <Stick />
-        <div style={{ position: 'absolute', right: 20, bottom: 24, display: 'flex', gap: 10 }}>
-          <Btn label="Lento" act="slow" size={56} style={{ fontSize: 12 }} />
-          <Btn label="Salto" act="jump" size={64} style={{ fontSize: 13 }} />
+        <div style={{ position: 'absolute', right: SAFE_R, bottom: SAFE_B, display: 'flex', gap: 12, alignItems: 'flex-end' }}>
+          <Btn label="Lento" act="slow" size={60} style={{ fontSize: 12 }} />
+          <Btn label="Salto" act="jump" size={76} style={{ fontSize: 14 }} />
         </div>
       </div>
     );
@@ -113,7 +122,7 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
           disabled={ghostUsed}
           onContextMenu={(e) => e.preventDefault()}
           onPointerDown={(e) => { e.preventDefault(); onReveal && onReveal(); }}
-          style={{ position: 'absolute', right: 20, bottom: 70, width: 72, height: 72, borderRadius: '50%', background: ghostUsed ? 'rgba(80,80,90,0.6)' : 'rgba(150,120,255,0.8)', color: '#fff', border: '2px solid rgba(255,255,255,0.35)', fontSize: 12, fontWeight: 700, touchAction: 'none', pointerEvents: 'auto' }}
+          style={{ position: 'absolute', right: SAFE_R, bottom: SAFE_B, width: 84, height: 84, borderRadius: '50%', background: ghostUsed ? 'rgba(80,80,90,0.6)' : 'rgba(150,120,255,0.8)', color: '#fff', border: '2px solid rgba(255,255,255,0.35)', fontSize: 12, fontWeight: 700, touchAction: 'none', pointerEvents: 'auto' }}
         >
           Aparecer
         </button>
@@ -124,23 +133,23 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
       <Stick />
-      <div style={{ position: 'absolute', right: 20, bottom: 24, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
+      <div style={{ position: 'absolute', right: SAFE_R, bottom: SAFE_B, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
         <div style={{ display: 'flex', gap: 10 }}>
           {isAsymRole
-            ? skills.map(([act], i) => <Btn key={act} label={keyLabel(getKey(act))} act={act} size={48} until={skillCooldowns[i === 4 ? 'melee' : i] || 0} />)
-            : [['card1', 0], ['card2', 1], ['minigame', -1]].map(([act, slot]) => <Btn key={act} label={keyLabel(getKey(act))} act={act} until={slot >= 0 ? cardCooldowns[slot] || 0 : 0} />)}
+            ? skills.map(([act], i) => <Btn key={act} label={act === 'melee' ? 'Golpe' : keyLabel(getKey(act))} icon={act === 'melee' ? 'golpe_aturdidor' : skillIds[i]} act={act} size={54} style={{ fontSize: 12 }} until={skillCooldowns[i === 4 ? 'melee' : i] || 0} />)
+            : [['card1', 0], ['card2', 1], ['minigame', -1]].map(([act, slot]) => <Btn key={act} label={slot < 0 ? 'Mini' : keyLabel(getKey(act))} icon={slot >= 0 ? cardIds[slot] : undefined} act={act} size={60} style={{ fontSize: 12 }} until={slot >= 0 ? cardCooldowns[slot] || 0 : 0} />)}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button
             type="button"
             onContextMenu={(e) => e.preventDefault()}
-            onPointerDown={(e) => { e.preventDefault(); onInteract && onInteract(); }}
-            style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(84,104,255,0.75)', color: '#fff', border: '2px solid rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 700, touchAction: 'none', pointerEvents: 'auto', userSelect: 'none', WebkitUserSelect: 'none' }}
+            onPointerDown={(e) => { e.preventDefault(); buzz(); onInteract && onInteract(); }}
+            style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(84,104,255,0.75)', color: '#fff', border: '2px solid rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 700, touchAction: 'none', pointerEvents: 'auto', userSelect: 'none', WebkitUserSelect: 'none' }}
           >
             {isAsymRole ? 'Curar' : 'Usar'}
           </button>
-          <Btn label="Lento" act="slow" size={56} style={{ fontSize: 12 }} />
-          <Btn label="Salto" act="jump" size={64} style={{ fontSize: 13 }} />
+          <Btn label="Lento" act="slow" size={60} style={{ fontSize: 12 }} />
+          <Btn label="Salto" act="jump" size={76} style={{ fontSize: 14 }} />
         </div>
       </div>
     </div>

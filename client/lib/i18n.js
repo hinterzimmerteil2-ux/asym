@@ -448,6 +448,10 @@ const PAIRS = [
 ["Curas dobles", "Double healing"],
 ["Calidad automática (baja sola si los FPS caen)", "Auto quality (lowers itself if FPS drop)"],
 ["Calidad bajada automáticamente por rendimiento", "Quality lowered automatically for performance"],
+["Pantalla", "Screen"],
+["Pantalla completa (horizontal)", "Fullscreen (landscape)"],
+["Recomendado en móvil: oculta las barras del navegador y fija la pantalla en horizontal.", "Recommended on mobile: hides the browser bars and locks the screen to landscape."],
+["Idioma", "Language"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

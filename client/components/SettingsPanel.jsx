@@ -25,7 +25,12 @@ function describe(q) {
   return lines;
 }
 
-export default function SettingsPanel({ onClose }) {
+async function goFullscreen() {
+  try { await document.documentElement.requestFullscreen(); } catch {}
+  try { await screen.orientation.lock('landscape'); } catch {}
+}
+
+export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
   const s = useSettings();
   const [local, setLocal] = useState(s.quality);
   useEffect(() => setLocal(s.quality), [s.quality]);
@@ -76,6 +81,23 @@ export default function SettingsPanel({ onClose }) {
             <input type="checkbox" checked={s.fps} onChange={(e) => setSettings({ fps: e.target.checked })} />
             Mostrar FPS
           </label>
+        </div>
+
+        {langs.length > 0 && (
+          <>
+            <h3 style={styles.section}>Idioma</h3>
+            <div style={{ ...styles.card, display: 'flex', gap: 6 }} translate="no">
+              {langs.map((l) => (
+                <button key={l} type="button" onClick={() => onLang(l)} style={styles.preset(lang === l)}>{l === 'en-GB' ? 'English' : l === 'de' ? 'Deutsch' : 'Español'}</button>
+              ))}
+            </div>
+          </>
+        )}
+
+        <h3 style={styles.section}>Pantalla</h3>
+        <div style={styles.card}>
+          <button type="button" onClick={goFullscreen} style={styles.reset}>Pantalla completa (horizontal)</button>
+          <p style={styles.hint}>Recomendado en móvil: oculta las barras del navegador y fija la pantalla en horizontal.</p>
         </div>
 
         <h3 style={styles.section}>Controles (haz clic y pulsa la nueva tecla)</h3>

@@ -1110,18 +1110,18 @@ export default function LobbyPage() {
           const current = steps.findIndex(([k]) => !tutorial.flags[k]);
           const finished = current === -1;
           return (
-            <div style={{ position: 'absolute', left: 8, top: compact ? 96 : 150, zIndex: 40, width: 'min(300px, calc(100% - 16px))', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, background: 'rgba(27,29,41,0.92)', border: '1px solid #f2d154', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ position: 'absolute', left: 8, top: compact ? 96 : 150, zIndex: 40, width: compact ? 'min(260px, calc(100% - 16px))' : 'min(300px, calc(100% - 16px))', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, background: 'rgba(27,29,41,0.92)', border: '1px solid #f2d154', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <strong>Tutorial</strong>
                 <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '2px 8px', fontSize: 11 }} onClick={() => setTutorial((t) => ({ ...t, minimized: !t.minimized }))}>{tutorial.minimized ? 'Mostrar' : 'Ocultar'}</button>
               </div>
               {!tutorial.minimized && (
                 <>
-                  {steps.map(([k, text], i) => (
+                  {steps.map(([k, text], i) => (compact && i !== current ? null : (
                     <div key={k} style={{ color: tutorial.flags[k] ? '#5fd58c' : i === current ? '#f2d154' : '#8a8da3' }}>
                       {tutorial.flags[k] ? '✓' : i === current ? '→' : '·'} {text}
                     </div>
-                  ))}
+                  )))}
                   {finished && <div style={{ color: '#5fd58c' }}>Tutorial completado. Gana cada Paciente que baja su HP a 0; el Curador gana si los cura a todos. Si la partida termina, el host puede volver al lobby.</div>}
                 </>
               )}
@@ -1158,7 +1158,7 @@ export default function LobbyPage() {
           />
         )}
         {phase === 'lobby' && <TouchControls lobby />}
-        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
+        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl) => sl.chosen?.id)} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
 
         {phase === 'action' && flojera && (
           <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: compact ? (isAsymRole ? 40 : 64) : (isAsymRole ? 80 : 110) })}>
