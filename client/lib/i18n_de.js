@@ -457,4 +457,6 @@ export const DE = [
 "Halten",
 "Gemischt",
 "Umschalten: drücken zum Einschalten, erneut drücken zum Ausschalten. Halten: nur aktiv, solange du drückst. Gemischt: kurzes Antippen schaltet um, Gedrückthalten wirkt wie Halten.",
+"Klaue",
+"Du wirfst eine Klaue nach vorn (14 Reichweite, 0,5 s Endlag). Trifft sie den Heiler, zieht sie ihn zu dir, betäubt ihn 1 s und nimmt ihm 10 HP. Sonst bleibt sie 2,5 s verankert: Benutze die Karte erneut, um dich zu ihr zu schleudern.",
 ];

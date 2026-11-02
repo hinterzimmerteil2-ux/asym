@@ -919,6 +919,29 @@ test('Paraguayizador: invisible tras endlag, doble gasto sin regeneración, se c
   assert.ok(cur);
 });
 
+test('Garra: proyectil que jala y aturde al Curador, o queda anclada y permite lanzarte', () => {
+  const { room, clock, e } = setup();
+  const cur = Object.keys(e).find((id) => room.players.get(id).isAsymRole);
+  give(e.a, 0, 'garra');
+  e.a.x = 0; e.a.z = 0; e.a.y = 0; e.a.faceX = 0; e.a.faceZ = 1;
+  e[cur].x = 0; e[cur].z = 8; e[cur].y = 0;
+  room.useCard('a', 0);
+  assert.ok(room.gameState.zones.some((z) => z.kind === 'garra'));
+  for (let i = 0; i < 20; i++) { clock.t += 50; room.tickGarras(clock.t, 0.05); }
+  assert.ok(Status.active(e[cur], 'stun', clock.t), 'aturde al acertar');
+  assert.ok(e[cur].kbZ < 0, 'lo jala hacia el lanzador');
+  assert.ok(!room.gameState.zones.some((z) => z.kind === 'garra' && z.until > clock.t));
+  clock.t += 100;
+  give(e.a, 0, 'garra');
+  e[cur].z = 40;
+  room.useCard('a', 0);
+  for (let i = 0; i < 40; i++) { clock.t += 50; room.tickGarras(clock.t, 0.05); }
+  const claw = room.gameState.zones.find((z) => z.kind === 'garra' && z.until > clock.t);
+  assert.ok(claw && claw.state === 'anchored');
+  room.useCard('a', 0);
+  assert.ok(e.a.kbZ > 0, 'segunda pulsación lanza hacia la garra');
+});
+
 test('skills personalizadas: efectos a sí mismo/enemigo/aliados al usar, acertar o fallar', () => {
   const GameMap = require('../src/GameMap');
   const CardEffects = require('../src/CardEffects');

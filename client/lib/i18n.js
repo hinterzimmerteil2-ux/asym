@@ -459,6 +459,8 @@ const PAIRS = [
 ["Mantener", "Hold"],
 ["Mixto", "Mixed"],
 ["Alternar: pulsas para activar y vuelves a pulsar para desactivar. Mantener: activo solo mientras lo pulsas. Mixto: un toque rápido alterna y mantenerlo funciona como pulsar.", "Toggle: press to turn on, press again to turn off. Hold: active only while pressed. Mixed: a quick tap toggles and holding works like hold."],
+["Garra", "Claw"],
+["Lanzas una garra al frente (14 de alcance, endlag 0.5s). Si golpea al Curador, lo jala hacia ti, lo aturde 1s y le quita 10 HP. Si no, queda anclada 2.5s: vuelve a usar la carta para lanzarte hacia ella.", "You throw a claw ahead (14 range, 0.5s endlag). If it hits the Healer, it pulls them toward you, stuns them for 1s and deals 10 HP. If not, it stays anchored for 2.5s: use the card again to launch yourself toward it."],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

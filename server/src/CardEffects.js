@@ -67,6 +67,10 @@ const handlers = {
     room.endlagSlow(entity, now, C.TRAP_ENDLAG_MS);
   },
 
+  garra({ room, playerId, entity, now }) {
+    room.launchGarra(playerId, entity, now);
+  },
+
   agua_rimac({ room, playerId, entity, card, now }) {
     room.addZone({ kind: 'rimac', cardId: card.id, x: entity.x, z: entity.z, radius: C.RIMAC_RADIUS, perSecond: C.RIMAC_CURATOR_PER_SEC, ownerId: playerId, until: now + C.RIMAC_LIFETIME_MS, placedAt: now, level: 3 });
     entity.flojera = Math.min(entity.flojeraMax, entity.flojera + C.RIMAC_FLOJERA_INITIAL);

@@ -42,6 +42,7 @@ const {
   FALL_ENDLAG_MIN,
   FALL_ENDLAG_MS,
   GRAVITY,
+  GARRA,
   MUTATIONS,
   LOBBY_GRAVITY_FACTOR,
   GROUND_Y,
@@ -932,6 +933,7 @@ class Room {
       this.botThink(now);
       this.autoPickExpiredDrafts(now);
       this.tickZones(now, dt);
+      this.tickGarras(now, dt);
       if (now - this.lastRelocateAt >= RELOCATE_INTERVAL_MS) this.relocateSelfDamageObjects(now);
     }
 
@@ -1670,6 +1672,58 @@ class Room {
     this.gameState.zones.push({ id: `z${this.zoneCounter = (this.zoneCounter || 0) + 1}`, ...zone });
   }
 
+  launchGarra(playerId, entity, now) {
+    const len = Math.hypot(entity.faceX || 0, entity.faceZ || 0) || 1;
+    const dx = (entity.faceX || 0) / len;
+    const dz = (entity.faceZ || 1) / len;
+    this.addZone({ kind: 'garra', cardId: 'garra', x: entity.x + dx * 0.8, z: entity.z + dz * 0.8, radius: 0.5, ownerId: playerId, dx, dz, state: 'fly', traveled: 0, until: now + GARRA.FLY_MS });
+    this.endlagSlow(entity, now, GARRA.ENDLAG_MS);
+  }
+
+  garraRecall(entity, claw, now) {
+    const dx = claw.x - entity.x;
+    const dz = claw.z - entity.z;
+    const dist = Math.hypot(dx, dz);
+    claw.until = now;
+    if (dist < 0.8) return;
+    Status.push(entity, dx / dist, dz / dist, Math.min(36, dist / (GARRA.RECALL_MS / 1000)), GARRA.RECALL_MS, now);
+  }
+
+  tickGarras(now, dt) {
+    const half = this.getCurrentArea().halfSize;
+    for (const claw of this.gameState.zones) {
+      if (claw.kind !== 'garra' || claw.state !== 'fly' || now >= claw.until) continue;
+      const step = GARRA.SPEED * dt;
+      claw.x = Math.max(-half, Math.min(half, claw.x + claw.dx * step));
+      claw.z = Math.max(-half, Math.min(half, claw.z + claw.dz * step));
+      claw.traveled += step;
+      const owner = this.gameState.entities[claw.ownerId];
+      for (const [curatorId, p] of this.players) {
+        if (!p.isAsymRole) continue;
+        const target = this.gameState.entities[curatorId];
+        if (!target || target.gone || this.isInvisible(target, now)) continue;
+        if (Math.hypot(target.x - claw.x, target.z - claw.z) > GARRA.HIT) continue;
+        if (Math.abs((target.y || 0) - (claw.y || 0)) > 2.2) continue;
+        if (owner) {
+          const ox = owner.x - target.x;
+          const oz = owner.z - target.z;
+          const dist = Math.hypot(ox, oz) || 1;
+          Status.push(target, ox / dist, oz / dist, Math.min(30, Math.max(0, dist - GARRA.STOP_DIST) / (GARRA.PULL_MS / 1000)), GARRA.PULL_MS, now);
+          this.gainExacerbacion(owner, now);
+        }
+        Status.apply(target, 'stun', GARRA.STUN_MS, now);
+        this.adjustCuratorHp(-GARRA.HP_LOSS);
+        this.checkGameEndConditions();
+        claw.until = now;
+        break;
+      }
+      if (claw.until > now && claw.traveled >= GARRA.RANGE) {
+        claw.state = 'anchored';
+        claw.until = now + GARRA.ANCHOR_MS;
+      }
+    }
+  }
+
   tickZones(now, dt) {
     let statusChanged = false;
     for (const [playerId, entity] of Object.entries(this.gameState.entities)) {
@@ -1912,6 +1966,13 @@ class Room {
     if (entity.channel && entity.channel.cardId === card.id && entity.channel.endsAt > now) {
       this.channelBeat(playerId, entity, now);
       return;
+    }
+    if (card.id === 'garra') {
+      const claw = this.gameState.zones.find((z) => z.kind === 'garra' && z.ownerId === playerId && z.until > now);
+      if (claw) {
+        this.garraRecall(entity, claw, now);
+        return;
+      }
     }
     const cooldownUntil = entity.cardCooldowns[slotIndex] || 0;
     if (cooldownUntil > now) {

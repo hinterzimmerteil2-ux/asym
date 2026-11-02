@@ -764,7 +764,13 @@ function ZoneDisc({ zone, ghost, platforms }) {
   const bananaColor = zone.cardId === 'platano_podrido' ? '#7a6a2a' : '#f2d154';
   return (
     <group position={[zone.x, zone.y || 0, zone.z]} rotation={[0, 0, tilt]}>
-      {isTrap ? (
+      {zone.kind === 'garra' ? (
+        <group position={[0, 1.1, 0]}>
+          <mesh><sphereGeometry args={[0.28, 10, 8]} /><meshStandardMaterial color="#3a3d3b" roughness={0.6} /></mesh>
+          <mesh position={[0.3, 0, 0]}><boxGeometry args={[0.35, 0.1, 0.5]} /><meshStandardMaterial color="#6b4a36" roughness={0.7} /></mesh>
+          <mesh position={[-0.3, 0, 0]}><boxGeometry args={[0.35, 0.1, 0.5]} /><meshStandardMaterial color="#6b4a36" roughness={0.7} /></mesh>
+        </group>
+      ) : isTrap ? (
         <SquareFrame x={0} z={0} half={zone.radius} color={color} opacity={zone.armed ? 0.6 : 0.25} />
       ) : (
         <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>

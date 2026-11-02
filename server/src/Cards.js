@@ -105,6 +105,14 @@ const CARDS = {
     durationMs: 8000,
     cooldownMs: 40000,
   },
+  garra: {
+    id: 'garra',
+    keywords: ['ofensiva', 'escapista'],
+    displayName: 'Garra',
+    description: 'Lanzas una garra al frente (14 de alcance, endlag 0.5s). Si golpea al Curador, lo jala hacia ti, lo aturde 1s y le quita 10 HP. Si no, queda anclada 2.5s: vuelve a usar la carta para lanzarte hacia ella.',
+    rarity: 'rare',
+    cooldownMs: 24000,
+  },
   grito_animo: {
     id: 'grito_animo',
     keywords: ['bonificadora'],
