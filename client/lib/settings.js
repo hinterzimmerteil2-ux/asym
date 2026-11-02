@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 const STORE = 'asym_settings';
-const DEFAULTS = { quality: 1, fps: false };
+const DEFAULTS = { quality: 0.5, fps: false };
 const listeners = new Set();
 let cache = null;
 

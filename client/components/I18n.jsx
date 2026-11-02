@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { translate, detectLang, LANGS } from '../lib/i18n';
+import SettingsPanel from './SettingsPanel';
+import FpsCounter from './FpsCounter';
+import { useSettings } from '../lib/settings';
 
 const ATTRS = ['title', 'placeholder', 'aria-label', 'alt'];
 
@@ -14,6 +17,8 @@ function skipped(node) {
 
 export default function I18n() {
   const [lang, setLang] = useState('es');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const ui = useSettings();
   const langRef = useRef('es');
   const texts = useRef(new WeakMap());
   const attrs = useRef(new WeakMap());
@@ -108,7 +113,11 @@ export default function I18n() {
   };
 
   return (
+    <>
+    {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
+    {ui.fps && <FpsCounter />}
     <div translate="no" style={{ position: 'fixed', top: 3, right: 3, zIndex: 500, display: 'flex', gap: 3 }}>
+      <button type="button" onClick={() => setSettingsOpen(true)} title="Ajustes" aria-label="Ajustes" style={{ fontSize: 14, padding: '1px 9px', borderRadius: 5, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(20,22,30,0.65)', color: '#e8e9f0', cursor: 'pointer', lineHeight: 1.4 }}>⚙</button>
       {LANGS.map((l) => (
         <button
           key={l}
@@ -121,5 +130,6 @@ export default function I18n() {
         </button>
       ))}
     </div>
+    </>
   );
 }

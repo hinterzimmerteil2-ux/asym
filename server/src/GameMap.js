@@ -165,9 +165,13 @@ const HOSPITAL_LAYOUT = (() => {
     if (tower) {
       plat(`tw_${q}`, 30 * sx, 30 * sz, 6, 6, 6, null, 'tower');
       plat(`tr_${q}`, 16 * sx, 30 * sz, 8, 2.5, 6, sx > 0 ? '+x' : '-x', 'ramp');
+      plat(`t2_${q}`, 31 * sx, 30 * sz, 3, 3, 2, null, 'tower', { y0: 6 });
+      plat(`t2r_${q}`, 26 * sx, 30 * sz, 2, 2, 2, sx > 0 ? '+x' : '-x', 'ramp', { y0: 6 });
     } else {
       plat(`rf_${q}`, 30 * sx, 30 * sz, 6, 6, 3, null, 'roof');
       plat(`rr_${q}`, 19 * sx, 30 * sz, 5, 2.5, 3, sx > 0 ? '+x' : '-x', 'ramp');
+      plat(`r2_${q}`, 31 * sx, 30 * sz, 3, 3, 2.5, null, 'roof', { y0: 3 });
+      plat(`r2r_${q}`, 26 * sx, 30 * sz, 2, 2, 2.5, sx > 0 ? '+x' : '-x', 'ramp', { y0: 3 });
     }
     col(`c_${q}_1`, 'gurney', 10 * sx, 10 * sz);
     col(`c_${q}_2`, 'cart', 16 * sx, 8 * sz);

@@ -14,9 +14,6 @@ import {
 import GameScene from '../components/GameScene';
 import SkillIcon from '../components/SkillIcon';
 import HelpPanel from '../components/HelpPanel';
-import SettingsPanel from '../components/SettingsPanel';
-import FpsCounter from '../components/FpsCounter';
-import { useSettings } from '../lib/settings';
 import StatusColumn from '../components/StatusColumn';
 import RhythmBar from '../components/RhythmBar';
 import SelfDamageBar from '../components/SelfDamageBar';
@@ -190,8 +187,6 @@ export default function LobbyPage() {
   const [characters, setCharacters] = useState([]);
   const [cardCatalog, setCardCatalog] = useState([]);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const uiSettings = useSettings();
   const [spawnMs, setSpawnMs] = useState(0);
   const [mapEvents, setMapEvents] = useState([]);
   const [communityOpen, setCommunityOpen] = useState(false);
@@ -1284,12 +1279,11 @@ export default function LobbyPage() {
           </form>
         </div>
 
-        <button type="button" onClick={() => setSettingsOpen(true)} style={sx(styles.helpButton, { top: 8, right: 52, width: 36, height: 36, zIndex: 30 })} title="Ajustes" aria-label="Ajustes">⚙</button>
-        <button type="button" onClick={() => setHelpOpen(true)} style={sx(styles.helpButton, { top: 8, right: 8, width: 36, height: 36, zIndex: 30 })} title="Ayuda (H)" aria-label="Ayuda">?</button>
+        <button type="button" onClick={() => setHelpOpen(true)} style={sx(styles.helpButton, { top: 34, right: 8, width: 36, height: 36, zIndex: 30 })} title="Ayuda (H)" aria-label="Ayuda">?</button>
         <button
           type="button"
           onClick={() => updateHitboxes({ ...hitboxes, on: !hitboxes.on })}
-          style={sx(styles.hitboxButton(hitboxes.on), { top: 8, right: 52, width: 'auto', minWidth: 36, padding: '0 6px', borderRadius: 18, height: 36, zIndex: 30 })}
+          style={sx(styles.hitboxButton(hitboxes.on), { top: 34, right: 52, width: 'auto', minWidth: 36, padding: '0 6px', borderRadius: 18, height: 36, zIndex: 30 })}
           title="Hitboxes y ping (B)"
           aria-label="Hitboxes"
         >
@@ -1341,8 +1335,6 @@ export default function LobbyPage() {
         {touch && portrait && phase === 'action' && (
           <p style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', margin: 0, padding: '10px 16px', borderRadius: 8, background: 'rgba(18,19,26,0.9)', border: '1px solid #2a2d3d', fontSize: 14, zIndex: 25, textAlign: 'center', pointerEvents: 'none' }}>Gira el teléfono para jugar mejor</p>
         )}
-        {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
-        {uiSettings.fps && <FpsCounter />}
         {helpOpen && <HelpPanel characters={characters} cards={cardCatalog} onClose={() => setHelpOpen(false)} />}
 
         {warn && (
