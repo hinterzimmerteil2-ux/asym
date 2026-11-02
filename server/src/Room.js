@@ -42,7 +42,7 @@ const {
   FALL_ENDLAG_MIN,
   FALL_ENDLAG_MS,
   GRAVITY,
-  GARRA,
+  ASTRAL,
   MUTATIONS,
   LOBBY_GRAVITY_FACTOR,
   GROUND_Y,
@@ -933,7 +933,7 @@ class Room {
       this.botThink(now);
       this.autoPickExpiredDrafts(now);
       this.tickZones(now, dt);
-      this.tickGarras(now, dt);
+      this.tickAstral(now, dt);
       if (now - this.lastRelocateAt >= RELOCATE_INTERVAL_MS) this.relocateSelfDamageObjects(now);
     }
 
@@ -980,6 +980,7 @@ class Room {
           statuses: this.buildStatuses(own, now),
           channel: own.channel ? { elapsed: now - own.channel.startedAt, total: CHANNEL_MS, beatMs: CHANNEL_BEAT_MS, beats: CHANNEL_BEATS, hits: own.channel.hits, scored: Object.keys(own.channel.scored).map(Number), slot: own.channel.slot } : null,
           sdGame: own.selfDmg ? this.sdView(own.selfDmg, now) : null,
+          astral: own.astral ? { state: own.astral.state, charge: own.astral.state === 'charging' ? Math.min(1, (now - own.astral.startedAt) / ASTRAL.CHARGE_MS) : own.astral.charge, readyMs: Math.max(0, own.astral.readyAt - now) } : null,
           cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
         };
       }
@@ -1653,6 +1654,8 @@ class Room {
     const patient = this.gameState.patients[playerId];
     if (!patient || patient.status !== 'alive') return false;
     patient.hp = Math.min(patient.maxHp, patient.hp + amount * MUTATIONS[this.mutation].heal);
+    const healed = this.gameState.entities[playerId];
+    if (healed && healed.astral && amount > 0) this.cancelAstral(healed, Date.now());
     if (patient.hp >= patient.maxHp) {
       patient.status = 'eliminated';
       this.onPatientFullyCured();
@@ -1672,54 +1675,64 @@ class Room {
     this.gameState.zones.push({ id: `z${this.zoneCounter = (this.zoneCounter || 0) + 1}`, ...zone });
   }
 
-  launchGarra(playerId, entity, now) {
+  startAstral(playerId, entity, now) {
+    entity.astral = { state: 'charging', startedAt: now, fastMs: 0, charge: 0, readyAt: 0, slot: entity.hand.findIndex((sl) => sl && sl.chosen === 'astral_claw') };
+    Status.apply(entity, 'slow', ASTRAL.ENDLAG_MS, now, { tag: 'endlag', level: 3 });
+  }
+
+  cancelAstral(entity, now) {
+    const a = entity.astral;
+    if (!a) return;
+    if (a.state === 'charging') Status.clear(entity, 'slow');
+    if (a.slot >= 0) entity.cardCooldowns[a.slot] = now + Cards.getCard('astral_claw').cooldownMs;
+    entity.astral = null;
+  }
+
+  readyAstral(entity, now) {
+    const a = entity.astral;
+    a.charge = Math.min(1, (now - a.startedAt) / ASTRAL.CHARGE_MS);
+    a.state = 'ready';
+    a.readyAt = now + ASTRAL.FIRE_DELAY_MS;
+    Status.clear(entity, 'slow');
+  }
+
+  fireAstral(playerId, entity, slotIndex, now) {
+    const a = entity.astral;
     const len = Math.hypot(entity.faceX || 0, entity.faceZ || 0) || 1;
     const dx = (entity.faceX || 0) / len;
     const dz = (entity.faceZ || 1) / len;
-    this.addZone({ kind: 'garra', cardId: 'garra', x: entity.x + dx * 0.8, z: entity.z + dz * 0.8, radius: 0.5, ownerId: playerId, dx, dz, state: 'fly', traveled: 0, until: now + GARRA.FLY_MS });
-    this.endlagSlow(entity, now, GARRA.ENDLAG_MS);
+    this.addZone({ kind: 'astral', cardId: 'astral_claw', x: entity.x + dx * 1, z: entity.z + dz * 1, radius: 0.3 + 0.5 * a.charge, ownerId: playerId, dx, dz, charge: a.charge, until: now + ASTRAL.FLY_MS });
+    entity.astral = null;
+    entity.cardCooldowns[slotIndex] = now + Cards.getCard('astral_claw').cooldownMs;
+    this.endlagSlow(entity, now, ASTRAL.THROW_ENDLAG_MS);
   }
 
-  garraRecall(entity, claw, now) {
-    const dx = claw.x - entity.x;
-    const dz = claw.z - entity.z;
-    const dist = Math.hypot(dx, dz);
-    claw.until = now;
-    if (dist < 0.8) return;
-    Status.push(entity, dx / dist, dz / dist, Math.min(36, dist / (GARRA.RECALL_MS / 1000)), GARRA.RECALL_MS, now);
-  }
-
-  tickGarras(now, dt) {
+  tickAstral(now, dt) {
+    for (const entity of Object.values(this.gameState.entities)) {
+      const a = entity.astral;
+      if (!a || a.state !== 'charging') continue;
+      a.fastMs = (entity.speedNow || 0) > ASTRAL.EXIT_SPEED ? a.fastMs + dt * 1000 : 0;
+      const jumped = !entity.onGround && (entity.velocityY || 0) > 0.5;
+      if (jumped || a.fastMs >= ASTRAL.EXIT_FAST_MS || now - a.startedAt >= ASTRAL.ENDLAG_MS) this.readyAstral(entity, now);
+    }
     const half = this.getCurrentArea().halfSize;
     for (const claw of this.gameState.zones) {
-      if (claw.kind !== 'garra' || claw.state !== 'fly' || now >= claw.until) continue;
-      const step = GARRA.SPEED * dt;
-      claw.x = Math.max(-half, Math.min(half, claw.x + claw.dx * step));
-      claw.z = Math.max(-half, Math.min(half, claw.z + claw.dz * step));
-      claw.traveled += step;
-      const owner = this.gameState.entities[claw.ownerId];
+      if (claw.kind !== 'astral' || now >= claw.until) continue;
+      const step = ASTRAL.SPEED * dt;
+      claw.x += claw.dx * step;
+      claw.z += claw.dz * step;
+      if (Math.abs(claw.x) > half + 2 || Math.abs(claw.z) > half + 2) { claw.until = now; continue; }
       for (const [curatorId, p] of this.players) {
         if (!p.isAsymRole) continue;
         const target = this.gameState.entities[curatorId];
-        if (!target || target.gone || this.isInvisible(target, now)) continue;
-        if (Math.hypot(target.x - claw.x, target.z - claw.z) > GARRA.HIT) continue;
-        if (Math.abs((target.y || 0) - (claw.y || 0)) > 2.2) continue;
-        if (owner) {
-          const ox = owner.x - target.x;
-          const oz = owner.z - target.z;
-          const dist = Math.hypot(ox, oz) || 1;
-          Status.push(target, ox / dist, oz / dist, Math.min(30, Math.max(0, dist - GARRA.STOP_DIST) / (GARRA.PULL_MS / 1000)), GARRA.PULL_MS, now);
-          this.gainExacerbacion(owner, now);
-        }
-        Status.apply(target, 'stun', GARRA.STUN_MS, now);
-        this.adjustCuratorHp(-GARRA.HP_LOSS);
-        this.checkGameEndConditions();
+        if (!target || target.gone) continue;
+        if (Math.hypot(target.x - claw.x, target.z - claw.z) > ASTRAL.HIT + claw.radius) continue;
+        if (Math.abs((target.y || 0) + 1 - ((claw.y || 0) + 1.2)) > 2.4) continue;
+        Status.apply(target, 'stun', Math.max(ASTRAL.MIN_STUN_MS, ASTRAL.MAX_STUN_MS * claw.charge), now);
+        const owner = this.gameState.entities[claw.ownerId];
+        if (owner) this.gainExacerbacion(owner, now);
         claw.until = now;
         break;
-      }
-      if (claw.until > now && claw.traveled >= GARRA.RANGE) {
-        claw.state = 'anchored';
-        claw.until = now + GARRA.ANCHOR_MS;
       }
     }
   }
@@ -1967,12 +1980,12 @@ class Room {
       this.channelBeat(playerId, entity, now);
       return;
     }
-    if (card.id === 'garra') {
-      const claw = this.gameState.zones.find((z) => z.kind === 'garra' && z.ownerId === playerId && z.until > now);
-      if (claw) {
-        this.garraRecall(entity, claw, now);
-        return;
+    if (card.id === 'astral_claw' && entity.astral) {
+      if (entity.astral.state === 'ready' && now >= entity.astral.readyAt) {
+        this.fireAstral(playerId, entity, slotIndex, now);
+        this.broadcast(MessageType.CARD_RESULT, { playerId, slot: slotIndex, cardId: card.id, cooldownUntil: entity.cardCooldowns[slotIndex], hitRadius: null, center: null, boxes: [] });
       }
+      return;
     }
     const cooldownUntil = entity.cardCooldowns[slotIndex] || 0;
     if (cooldownUntil > now) {
@@ -1984,6 +1997,7 @@ class Room {
 
     entity.cardCooldowns[slotIndex] = now + card.cooldownMs;
     this.applyCardEffect(playerId, entity, card, now);
+    if (card.id === 'astral_claw') entity.cardCooldowns[slotIndex] = now + 1500;
 
     this.broadcast(MessageType.CARD_RESULT, {
       playerId,

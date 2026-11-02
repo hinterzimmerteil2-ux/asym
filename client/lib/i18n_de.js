@@ -457,6 +457,9 @@ export const DE = [
 "Halten",
 "Gemischt",
 "Umschalten: drücken zum Einschalten, erneut drücken zum Ausschalten. Halten: nur aktiv, solange du drückst. Gemischt: kurzes Antippen schaltet um, Gedrückthalten wirkt wie Halten.",
-"Klaue",
-"Du wirfst eine Klaue nach vorn (14 Reichweite, 0,5 s Endlag). Trifft sie den Heiler, zieht sie ihn zu dir, betäubt ihn 1 s und nimmt ihm 10 HP. Sonst bleibt sie 2,5 s verankert: Benutze die Karte erneut, um dich zu ihr zu schleudern.",
+"Detaining Astral Claw (30 Cent)",
+"Du packst die Klaue: massiver Endlag 5 s, sie lädt bis zu 4 s (100 %). Wirst du geheilt, bricht sie ab. Du kannst springen oder länger als 1,2 s schnell laufen, dann bleibt sie auf dem erreichten % geladen. Nach 1,2 s kannst du sie erneut benutzen: Du wirfst eine blassgelbe Kugel geradeaus in deine Blickrichtung (sehr große Reichweite, nicht zielsuchend). Trifft sie den Heiler, betäubt sie ihn je nach Ladung bis zu 4 s. Auch das Werfen verursacht Endlag.",
+"Klaue lädt",
+"Klaue gleich bereit",
+"Klaue bereit: wirf sie",
 ];

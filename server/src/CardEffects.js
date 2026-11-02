@@ -67,8 +67,8 @@ const handlers = {
     room.endlagSlow(entity, now, C.TRAP_ENDLAG_MS);
   },
 
-  garra({ room, playerId, entity, now }) {
-    room.launchGarra(playerId, entity, now);
+  astral_claw({ room, playerId, entity, now }) {
+    room.startAstral(playerId, entity, now);
   },
 
   agua_rimac({ room, playerId, entity, card, now }) {

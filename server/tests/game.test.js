@@ -919,27 +919,33 @@ test('Paraguayizador: invisible tras endlag, doble gasto sin regeneración, se c
   assert.ok(cur);
 });
 
-test('Garra: proyectil que jala y aturde al Curador, o queda anclada y permite lanzarte', () => {
+test('Astral Claw: carga con endlag, queda lista al saltar, esfera recta que aturda según la carga y se cancela al curarte', () => {
   const { room, clock, e } = setup();
   const cur = Object.keys(e).find((id) => room.players.get(id).isAsymRole);
-  give(e.a, 0, 'garra');
+  give(e.a, 0, 'astral_claw');
   e.a.x = 0; e.a.z = 0; e.a.y = 0; e.a.faceX = 0; e.a.faceZ = 1;
-  e[cur].x = 0; e[cur].z = 8; e[cur].y = 0;
+  e[cur].x = 0; e[cur].z = 30; e[cur].y = 0;
   room.useCard('a', 0);
-  assert.ok(room.gameState.zones.some((z) => z.kind === 'garra'));
-  for (let i = 0; i < 20; i++) { clock.t += 50; room.tickGarras(clock.t, 0.05); }
-  assert.ok(Status.active(e[cur], 'stun', clock.t), 'aturde al acertar');
-  assert.ok(e[cur].kbZ < 0, 'lo jala hacia el lanzador');
-  assert.ok(!room.gameState.zones.some((z) => z.kind === 'garra' && z.until > clock.t));
-  clock.t += 100;
-  give(e.a, 0, 'garra');
-  e[cur].z = 40;
+  assert.strictEqual(e.a.astral.state, 'charging');
+  assert.ok(Status.active(e.a, 'slow', clock.t));
+  clock.t += 2000;
+  e.a.onGround = false; e.a.velocityY = 5;
+  room.tickAstral(clock.t, 0.05);
+  assert.strictEqual(e.a.astral.state, 'ready');
+  assert.ok(Math.abs(e.a.astral.charge - 0.5) < 0.01);
   room.useCard('a', 0);
-  for (let i = 0; i < 40; i++) { clock.t += 50; room.tickGarras(clock.t, 0.05); }
-  const claw = room.gameState.zones.find((z) => z.kind === 'garra' && z.until > clock.t);
-  assert.ok(claw && claw.state === 'anchored');
+  assert.ok(e.a.astral, 'no dispara antes del retardo');
+  clock.t += 1300;
   room.useCard('a', 0);
-  assert.ok(e.a.kbZ > 0, 'segunda pulsación lanza hacia la garra');
+  assert.ok(!e.a.astral);
+  assert.ok(room.gameState.zones.some((z) => z.kind === 'astral'));
+  for (let i = 0; i < 60; i++) { clock.t += 50; room.tickAstral(clock.t, 0.05); }
+  assert.ok(Status.active(e[cur], 'stun', clock.t - 100) || e[cur].fx.stun, 'aturde al acertar');
+  give(e.b, 0, 'astral_claw');
+  room.useCard('b', 0);
+  assert.ok(e.b.astral);
+  room.healPatient('b', 5);
+  assert.ok(!e.b.astral, 'curarte cancela');
 });
 
 test('skills personalizadas: efectos a sí mismo/enemigo/aliados al usar, acertar o fallar', () => {
