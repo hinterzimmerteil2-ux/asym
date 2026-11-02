@@ -14,7 +14,7 @@ function rng(seed) {
 }
 
 const TRIM = '#1c2523';
-const SIGNS = [['URGENCIAS', '#7a1f1f'], ['QUIRÓFANO', '#1f4f5c'], ['RADIOLOGÍA', '#2c3f66'], ['UCI', '#7a1f1f'], ['PISO 1', '#3b4a40'], ['PISO 2', '#3b4a40'], ['PISO 3', '#3b4a40'], ['MORGUE', '#2a2a2a'], ['ESCALERA →', '#4a4a1f'], ['← SALIDA', '#1f5c34']];
+const SIGNS = [['URGENCIAS', '#7a1f1f'], ['QUIRÓFANO', '#1f4f5c'], ['RADIOLOGÍA', '#2c3f66'], ['UCI', '#7a1f1f'], ['PISO 1', '#3b4a40'], ['PISO 2', '#3b4a40'], ['PISO 3', '#3b4a40'], ['PISO 4', '#3b4a40'], ['MORGUE', '#2a2a2a'], ['ESCALERA →', '#4a4a1f'], ['← SALIDA', '#1f5c34']];
 const texCache = new Map();
 
 function signTexture(text, bg) {
@@ -56,120 +56,262 @@ function Sign({ idx, u, y }) {
   );
 }
 
-function Extinguisher({ u }) {
+function Box({ p, s, c, r = 0.85, m }) {
   return (
-    <group position={[u, 1.2, 0.2]}>
-      <mesh><cylinderGeometry args={[0.13, 0.13, 0.55, 10]} /><meshStandardMaterial color="#8c2a26" roughness={0.6} /></mesh>
-      <mesh position={[0, 0.34, 0]}><cylinderGeometry args={[0.05, 0.05, 0.14, 8]} /><meshStandardMaterial color="#1b1f20" /></mesh>
-      <mesh position={[0, 0, -0.13]}><boxGeometry args={[0.5, 0.9, 0.04]} /><meshStandardMaterial color="#2a312e" /></mesh>
+    <mesh position={p}>
+      <boxGeometry args={s} />
+      {m || <meshStandardMaterial color={c} roughness={r} />}
+    </mesh>
+  );
+}
+
+function Furniture({ kind, x, detail }) {
+  if (kind === 'bed') {
+    return (
+      <group position={[x, 0, 0.55]}>
+        <Box p={[0, 0.45, 0]} s={[2.1, 0.12, 0.9]} c="#4a5550" />
+        <Box p={[0, 0.62, 0]} s={[2.0, 0.2, 0.82]} c="#a9ab9c" r={1} />
+        {detail && <Box p={[-1.0, 0.85, 0]} s={[0.08, 0.7, 0.9]} c="#3a4440" />}
+        {detail && <Box p={[0.3, 0.85, 0.44]} s={[1.4, 0.05, 0.04]} c="#8a9590" />}
+        {detail && <Box p={[0.3, 0.3, 0.42]} s={[1.9, 0.3, 0.04]} c="#2a312e" />}
+        {detail && <mesh position={[1.3, 0.9, 0.2]}><cylinderGeometry args={[0.025, 0.025, 1.8, 5]} /><meshStandardMaterial color="#8a9590" /></mesh>}
+        {detail && <Box p={[1.3, 1.7, 0.2]} s={[0.14, 0.22, 0.04]} c="#a9c4b5" />}
+      </group>
+    );
+  }
+  if (kind === 'lockers') {
+    return (
+      <group position={[x, 0, 0.28]}>
+        {[-0.55, 0, 0.55].map((o, i) => <Box key={i} p={[o, 0.95, 0]} s={[0.52, 1.9, 0.5]} c={i === 1 ? '#4c6358' : '#56655d'} />)}
+      </group>
+    );
+  }
+  if (kind === 'desk') {
+    return (
+      <group position={[x, 0, 0.35]}>
+        <Box p={[0, 0.74, 0]} s={[1.5, 0.06, 0.65]} c="#5c4a36" />
+        <Box p={[-0.65, 0.37, 0]} s={[0.08, 0.74, 0.6]} c="#3a3026" />
+        <Box p={[0.65, 0.37, 0]} s={[0.08, 0.74, 0.6]} c="#3a3026" />
+        {detail && <Box p={[0.1, 1.0, -0.1]} s={[0.5, 0.36, 0.05]} c="#0e1311" />}
+        {detail && <Box p={[0.1, 0.84, -0.1]} s={[0.1, 0.12, 0.1]} c="#1b2220" />}
+      </group>
+    );
+  }
+  if (kind === 'shelf') {
+    return (
+      <group position={[x, 0, 0.22]}>
+        <Box p={[0, 1.0, 0]} s={[1.3, 2.0, 0.4]} c="#4a4f4b" />
+        {detail && [0.5, 1.0, 1.5].map((y) => <Box key={y} p={[0, y, 0.12]} s={[1.2, 0.04, 0.2]} c="#2e3430" />)}
+        {detail && [-0.4, 0, 0.35].map((o) => <Box key={o} p={[o, 1.1, 0.14]} s={[0.12, 0.2, 0.12]} c="#6b8a78" />)}
+      </group>
+    );
+  }
+  if (kind === 'vending') {
+    return (
+      <group position={[x, 0, 0.45]}>
+        <Box p={[0, 0.95, 0]} s={[0.95, 1.9, 0.85]} c="#33423c" />
+        <mesh position={[0, 1.1, 0.43]}><planeGeometry args={[0.7, 1.0]} /><meshBasicMaterial color="#6e9a86" /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'bench') {
+    return (
+      <group position={[x, 0, 0.3]}>
+        <Box p={[0, 0.45, 0.05]} s={[1.8, 0.07, 0.5]} c="#52483b" />
+        <Box p={[0, 0.8, -0.15]} s={[1.8, 0.5, 0.06]} c="#52483b" />
+        <Box p={[-0.8, 0.22, 0.05]} s={[0.06, 0.44, 0.45]} c="#222826" />
+        <Box p={[0.8, 0.22, 0.05]} s={[0.06, 0.44, 0.45]} c="#222826" />
+      </group>
+    );
+  }
+  if (kind === 'sink') {
+    return (
+      <group position={[x, 0, 0.3]}>
+        <Box p={[0, 0.45, 0]} s={[1.6, 0.9, 0.55]} c="#6f7b74" />
+        {detail && <Box p={[0, 0.92, 0.05]} s={[0.55, 0.04, 0.35]} c="#14191a" />}
+        {detail && <Box p={[0, 1.15, -0.2]} s={[0.05, 0.3, 0.05]} c="#9aa7a0" />}
+      </group>
+    );
+  }
+  if (kind === 'board') {
+    return (
+      <group position={[x, 1.8, 0.05]}>
+        <Box p={[0, 0, 0]} s={[1.5, 1.0, 0.05]} c="#6b5a3a" />
+        {detail && [[-0.4, 0.2], [0.1, -0.15], [0.45, 0.25]].map(([a, b], i) => <Box key={i} p={[a, b, 0.04]} s={[0.35, 0.45, 0.01]} c="#bdb9a6" />)}
+      </group>
+    );
+  }
+  if (kind === 'xray') {
+    return (
+      <group position={[x, 1.7, 0.05]}>
+        <Box p={[0, 0, 0]} s={[1.2, 0.9, 0.08]} c="#1b2220" />
+        <mesh position={[0, 0, 0.05]}><planeGeometry args={[1.05, 0.75]} /><meshBasicMaterial color="#9fb8b0" /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'wheelchair') {
+    return (
+      <group position={[x, 0, 0.45]}>
+        <Box p={[0, 0.5, 0]} s={[0.55, 0.06, 0.5]} c="#1b2220" />
+        <Box p={[0, 0.85, -0.22]} s={[0.55, 0.6, 0.05]} c="#1b2220" />
+        {detail && [-0.3, 0.3].map((o) => <mesh key={o} position={[o, 0.32, 0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.32, 0.32, 0.05, 10]} /><meshStandardMaterial color="#2a312e" /></mesh>)}
+      </group>
+    );
+  }
+  return (
+    <group position={[x, 0, 0.1]}>
+      <Box p={[0, 0.7, 0]} s={[1.3, 0.7, 0.12]} c="#6f7b74" />
+      {detail && <Box p={[-0.3, 0.7, 0.08]} s={[0.1, 0.1, 0.05]} c="#4f8f6a" />}
+      {detail && <Box p={[0.3, 0.7, 0.08]} s={[0.1, 0.1, 0.05]} c="#4f6f9f" />}
     </group>
   );
 }
 
-function Cabinet({ u }) {
-  return (
-    <group position={[u, 1.9, 0.18]}>
-      <mesh><boxGeometry args={[1.1, 1.3, 0.3]} /><meshStandardMaterial color="#59635d" roughness={0.8} /></mesh>
-      <mesh position={[0.28, 0, 0.16]} rotation={[0, 0.5, 0]}><boxGeometry args={[0.5, 1.2, 0.03]} /><meshStandardMaterial color="#6f7b74" /></mesh>
-    </group>
-  );
-}
-const GLASS = '#9fb9b4';
+const FURN = ['bed', 'lockers', 'desk', 'shelf', 'bench', 'sink', 'wheelchair', 'radiator', 'board', 'xray', 'vending', 'bed', 'desk', 'bench'];
 
-function Window({ w, rand }) {
-  const broken = rand() < 0.35;
-  const curtain = rand() < 0.25;
+function Window({ w }) {
   return (
     <group position={[w.u, w.y, 0]}>
-      <mesh><boxGeometry args={[1.9, 2.5, 0.12]} /><meshStandardMaterial color={TRIM} roughness={0.9} /></mesh>
-      <mesh position={[0, 0, 0.065]}>
-        <planeGeometry args={[1.6, 2.2]} />
-        <meshBasicMaterial color={w.lit ? '#cfe0d4' : '#16242b'} transparent opacity={broken ? 0.55 : 0.9} />
-      </mesh>
-      <mesh position={[0, 0, 0.09]}><boxGeometry args={[0.07, 2.2, 0.05]} /><meshStandardMaterial color={TRIM} /></mesh>
-      <mesh position={[0, 0.2, 0.09]}><boxGeometry args={[1.6, 0.07, 0.05]} /><meshStandardMaterial color={TRIM} /></mesh>
-      {broken && (
-        <mesh position={[0.3, 0.2, 0.1]} rotation={[0, 0, 0.4]}>
-          <coneGeometry args={[0.55, 1.1, 3]} />
-          <meshBasicMaterial color="#05080a" />
-        </mesh>
-      )}
-      {curtain && (
-        <mesh position={[-0.55, 0.35, 0.12]}>
-          <boxGeometry args={[0.45, 1.9, 0.04]} />
-          <meshStandardMaterial color="#4b4036" roughness={1} />
-        </mesh>
-      )}
-      <mesh position={[0, -1.35, 0.12]}><boxGeometry args={[2.1, 0.12, 0.3]} /><meshStandardMaterial color="#2b3532" /></mesh>
+      <mesh><boxGeometry args={[1.9, 1.7, 0.14]} /><meshStandardMaterial color={TRIM} roughness={0.9} /></mesh>
+      <mesh position={[0, 0, 0.08]}><planeGeometry args={[1.6, 1.4]} /><meshBasicMaterial color={w.lit ? '#d9d2a4' : '#101a20'} transparent opacity={w.broken ? 0.55 : 0.92} /></mesh>
+      <mesh position={[0, 0, 0.1]}><boxGeometry args={[0.07, 1.4, 0.05]} /><meshStandardMaterial color={TRIM} /></mesh>
+      {w.broken && <mesh position={[0.3, 0.15, 0.11]} rotation={[0, 0, 0.4]}><coneGeometry args={[0.4, 0.8, 3]} /><meshBasicMaterial color="#05080a" /></mesh>}
+      <mesh position={[0, -0.95, 0.14]}><boxGeometry args={[2.1, 0.1, 0.3]} /><meshStandardMaterial color="#2b3532" /></mesh>
     </group>
   );
 }
 
-function WallFace({ p, side, mats, seed, full }) {
+function WallFace({ p, side, mats, seed, full, outer }) {
   const alongX = p.hx >= p.hz;
   const len = (alongX ? p.hx : p.hz) * 2;
   const thick = alongX ? p.hz : p.hx;
+  const outward = alongX ? Math.sign(p.z) || 1 : Math.sign(p.x) || 1;
+  const exterior = outer && side === outward;
+  const flip = alongX ? (side > 0 ? 1 : -1) : side > 0 ? -1 : 1;
   const items = useMemo(() => {
     const rand = rng(seed);
     const wins = [];
     const pil = [];
     const lamps = [];
+    const furn = [];
+    const signs = [];
+    if (exterior) {
+      const n = Math.max(0, Math.floor(len / 5));
+      for (let i = 0; i < n; i++) {
+        const u = -len / 2 + (i + 0.5) * (len / n);
+        for (const y of [1.9, 4.9, 7.8]) wins.push({ u: u * flip, y, lit: rand() < 0.22, broken: rand() < 0.25 });
+      }
+      return { wins, pil, lamps, furn, signs };
+    }
     const n = Math.max(0, Math.floor(len / 7));
     for (let i = 0; i < n; i++) {
       const u = -len / 2 + (i + 0.5) * (len / n);
-      pil.push(u - len / n / 2);
-      for (const y of p.h > 7 ? [3.3, 6.5] : [3.3]) wins.push({ u, y, lit: rand() < 0.3 });
-      lamps.push({ u: u + len / n / 2, m: rand() });
+      pil.push((u - len / n / 2) * flip);
+      lamps.push({ u: (u + len / n / 2) * flip, m: rand() });
     }
-    const extra = [];
-    if (len >= 14) {
-      extra.push({ k: 'sign', u: (rand() - 0.5) * len * 0.5, y: p.h > 7 ? 4.9 : 3.8, i: Math.floor(rand() * 100) });
-      extra.push({ k: 'ext', u: (rand() - 0.5) * len * 0.7 });
-      if (full) extra.push({ k: 'cab', u: (rand() - 0.5) * len * 0.7 });
+    const slots = Math.floor((len - 2) / 3.2);
+    for (let i = 0; i < slots; i++) {
+      if (!full && i % 2) continue;
+      const u = -len / 2 + 1.6 + (i + 0.5) * ((len - 3.2) / slots);
+      furn.push({ kind: FURN[Math.floor(rand() * FURN.length)], x: u * flip });
     }
-    return { wins, pil, lamps, rand, extra };
-  }, [len, seed, p.h, full]);
+    if (len >= 14) signs.push({ u: (rand() - 0.5) * len * 0.4 * flip, y: p.h > 7 ? 4.9 : 4.1, i: Math.floor(rand() * 100) });
+    return { wins, pil, lamps, furn, signs };
+  }, [len, seed, p.h, full, exterior, flip]);
   const rot = alongX ? (side > 0 ? 0 : Math.PI) : side > 0 ? Math.PI / 2 : -Math.PI / 2;
   const origin = alongX ? [p.x, 0, p.z + side * (thick + 0.01)] : [p.x + side * (thick + 0.01), 0, p.z];
   return (
     <group position={origin} rotation={[0, rot, 0]}>
-      <group>
-        {len >= 7 && items.wins.map((w, i) => <Window key={i} w={{ ...w, u: alongX ? w.u * (side > 0 ? 1 : -1) : w.u * (side > 0 ? -1 : 1) }} rand={items.rand} />)}
-        {items.pil.map((u, i) => (
-          <group key={i} position={[(alongX ? u * (side > 0 ? 1 : -1) : u * (side > 0 ? -1 : 1)), 0, 0.17]}>
-            <mesh position={[0, p.h / 2, 0]}><boxGeometry args={[0.55, p.h, 0.35]} /><meshStandardMaterial color="#6e7770" roughness={0.95} /></mesh>
-            <mesh position={[0, 0.25, 0.02]}><boxGeometry args={[0.8, 0.5, 0.45]} /><meshStandardMaterial color="#2a312e" /></mesh>
-            <mesh position={[0, p.h - 0.25, 0.02]}><boxGeometry args={[0.8, 0.5, 0.45]} /><meshStandardMaterial color="#2a312e" /></mesh>
+      {items.wins.map((w, i) => <Window key={i} w={w} />)}
+      {items.pil.map((u, i) => (
+        <group key={i} position={[u, 0, 0.17]}>
+          <mesh position={[0, p.h / 2, 0]}><boxGeometry args={[0.55, p.h, 0.35]} /><meshStandardMaterial color="#6e7770" roughness={0.95} /></mesh>
+          <mesh position={[0, 0.25, 0.02]}><boxGeometry args={[0.8, 0.5, 0.45]} /><meshStandardMaterial color="#2a312e" /></mesh>
+          <mesh position={[0, p.h - 0.25, 0.02]}><boxGeometry args={[0.8, 0.5, 0.45]} /><meshStandardMaterial color="#2a312e" /></mesh>
+        </group>
+      ))}
+      {items.lamps.map((l, i) => (
+        <mesh key={`l${i}`} position={[l.u, Math.min(5.2, p.h - 1.5), 0.16]} material={l.m < 0.2 ? mats.dead : l.m < 0.5 ? mats.flicker : mats.steady}>
+          <boxGeometry args={[0.28, 0.9, 0.16]} />
+        </mesh>
+      ))}
+      {items.furn.map((f, i) => <Furniture key={`f${i}`} kind={f.kind} x={f.x} detail={full} />)}
+      {items.signs.map((sg, i) => <Sign key={`s${i}`} idx={sg.i} u={sg.u} y={sg.y} />)}
+      {p.h > 7 && [3.2, 6.2].map((y) => (
+        <mesh key={`b${y}`} position={[0, y, 0.05]}><boxGeometry args={[len, exterior ? 0.35 : 0.16, 0.1]} /><meshStandardMaterial color="#1b2220" /></mesh>
+      ))}
+      {!exterior && <mesh position={[0, 0.6, 0.06]}><boxGeometry args={[len, 0.14, 0.12]} /><meshStandardMaterial color="#1b2220" /></mesh>}
+      <mesh position={[0, p.h - 0.2, 0.2]}><boxGeometry args={[len + 0.2, 0.4, 0.45]} /><meshStandardMaterial color="#222a28" roughness={0.9} /></mesh>
+    </group>
+  );
+}
+
+function floorName(top) {
+  if (top >= 7.5) return 'PISO 4';
+  if (top >= 5) return 'PISO 3';
+  if (top >= 2.5) return 'PISO 2';
+  return null;
+}
+
+function Tiers({ platforms, full }) {
+  const list = useMemo(
+    () => (platforms || []).filter((p) => (p.kind === 'tower' || p.kind === 'roof' || p.kind === 'mezzanine') && !p.ramp && floorName((p.y0 || 0) + p.h)),
+    [platforms]
+  );
+  return (
+    <group>
+      {list.map((p) => {
+        const top = (p.y0 || 0) + p.h;
+        const name = floorName(top);
+        const idx = SIGNS.findIndex(([t]) => t === name);
+        const sx = Math.sign(p.x) || 1;
+        const faceX = p.x - sx * p.hx - sx * 0.04;
+        const inset = 0.35;
+        const line = (pos, size) => (
+          <mesh position={pos} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={size} /><meshBasicMaterial color="#b8a23a" transparent opacity={0.8} depthWrite={false} /></mesh>
+        );
+        return (
+          <group key={p.id}>
+            {line([p.x, top + 0.012, p.z - p.hz + inset], [p.hx * 2 - inset * 2, 0.16])}
+            {line([p.x, top + 0.012, p.z + p.hz - inset], [p.hx * 2 - inset * 2, 0.16])}
+            {line([p.x - p.hx + inset, top + 0.012, p.z], [0.16, p.hz * 2 - inset * 2])}
+            {line([p.x + p.hx - inset, top + 0.012, p.z], [0.16, p.hz * 2 - inset * 2])}
+            {name && (
+              <group position={[faceX, (p.y0 || 0) + p.h - 0.9, p.z]} rotation={[0, sx > 0 ? -Math.PI / 2 : Math.PI / 2, 0]}>
+                <Sign idx={idx >= 0 ? idx : 4} u={0} y={0} />
+              </group>
+            )}
+            {full && (
+              <mesh position={[p.x, top - 0.05, p.z]}>
+                <boxGeometry args={[p.hx * 2 + 0.25, 0.14, p.hz * 2 + 0.25]} />
+                <meshStandardMaterial color="#1c2523" roughness={0.9} />
+              </mesh>
+            )}
           </group>
-        ))}
-        {items.lamps.map((l, i) => (
-          <mesh key={`l${i}`} position={[(alongX ? l.u * (side > 0 ? 1 : -1) : l.u * (side > 0 ? -1 : 1)), Math.min(5.2, p.h - 1.5), 0.16]} material={l.m < 0.2 ? mats.dead : l.m < 0.5 ? mats.flicker : mats.steady}>
-            <boxGeometry args={[0.28, 0.9, 0.16]} />
-          </mesh>
-        ))}
-        {p.h > 7 && <mesh position={[0, 4.75, 0.12]}><boxGeometry args={[len, 0.35, 0.3]} /><meshStandardMaterial color="#232b28" roughness={0.9} /></mesh>}
-        {p.h > 7 && <mesh position={[0, 4.95, 0.04]}><boxGeometry args={[len, 0.04, 0.06]} /><meshStandardMaterial color="#6f3a36" /></mesh>}
-        {items.pil.map((u, i) => (i % 2 === 0 ? (
-          <group key={`d${i}`} position={[(alongX ? (u + 3.2) * (side > 0 ? 1 : -1) : (u + 3.2) * (side > 0 ? -1 : 1)), 0, 0.07]}>
-            <mesh position={[0, 1.15, 0]}><boxGeometry args={[1.5, 2.3, 0.1]} /><meshStandardMaterial color="#10171a" roughness={1} /></mesh>
-            <mesh position={[0, 1.15, 0.06]}><boxGeometry args={[1.25, 2.1, 0.05]} /><meshStandardMaterial color="#3a2f27" roughness={1} /></mesh>
-            <mesh position={[0.45, 1.1, 0.12]}><sphereGeometry args={[0.06, 6, 6]} /><meshStandardMaterial color="#9a8f6a" /></mesh>
-            <mesh position={[0, 2.6, 0.05]}><boxGeometry args={[0.7, 0.3, 0.04]} /><meshBasicMaterial color="#2f6a52" /></mesh>
-          </group>
-        ) : null))}
-        {items.extra.map((e, i) => {
-          const u = alongX ? e.u * (side > 0 ? 1 : -1) : e.u * (side > 0 ? -1 : 1);
-          if (e.k === 'sign') return <Sign key={`x${i}`} idx={e.i} u={u} y={e.y} />;
-          if (e.k === 'ext') return <Extinguisher key={`x${i}`} u={u} />;
-          return <Cabinet key={`x${i}`} u={u} />;
-        })}
-        {p.h > 7 && [3.5, 6.2].map((y) => (
-          <mesh key={`b${y}`} position={[0, y, 0.05]}><boxGeometry args={[len, 0.16, 0.1]} /><meshStandardMaterial color="#1b2220" /></mesh>
-        ))}
-        <mesh position={[0, 0.6, 0.06]}><boxGeometry args={[len, 0.14, 0.12]} /><meshStandardMaterial color="#1b2220" /></mesh>
-        <mesh position={[0, 1.75, 0.05]}><boxGeometry args={[len, 0.1, 0.1]} /><meshStandardMaterial color="#18201e" /></mesh>
-        <mesh position={[0, p.h - 0.2, 0.2]}><boxGeometry args={[len + 0.2, 0.4, 0.45]} /><meshStandardMaterial color="#222a28" roughness={0.9} /></mesh>
-      </group>
+        );
+      })}
+    </group>
+  );
+}
+
+function CeilingInfra({ half }) {
+  const span = half * 0.62;
+  const rows = [-span * 0.8, -span * 0.3, span * 0.3, span * 0.8];
+  return (
+    <group>
+      {rows.map((z, i) => (
+        <group key={i}>
+          <mesh position={[0, 10.4, z]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.16, 0.16, span * 2, 8]} /><meshStandardMaterial color="#444c47" roughness={0.7} /></mesh>
+          <mesh position={[0, 10.1, z + 0.6]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.07, 0.07, span * 2, 6]} /><meshStandardMaterial color="#6b3f33" roughness={0.7} /></mesh>
+          {i % 2 === 0 && <mesh position={[0, 10.0, z - 0.8]}><boxGeometry args={[span * 2, 0.5, 0.7]} /><meshStandardMaterial color="#363d39" roughness={0.9} /></mesh>}
+        </group>
+      ))}
+      {[[-span * 0.5, -span * 0.5], [span * 0.5, span * 0.5], [-span * 0.5, span * 0.5]].map(([x, z], i) => (
+        <group key={`sl${i}`} position={[x, 9.2, z]}>
+          <mesh position={[0, 0.8, 0]}><cylinderGeometry args={[0.04, 0.04, 1.6, 5]} /><meshStandardMaterial color="#555" /></mesh>
+          <mesh><cylinderGeometry args={[0.7, 0.9, 0.2, 14]} /><meshStandardMaterial color="#6f7b74" roughness={0.5} /></mesh>
+        </group>
+      ))}
     </group>
   );
 }
@@ -388,14 +530,16 @@ export default function HospitalDecor({ half, platforms, level = 'full', dust = 
   return (
     <group>
       {level !== 'none' && <FloorLines half={half} />}
+      {level !== 'none' && <Tiers platforms={platforms} full={level === 'full'} />}
       {walls.map((p, i) => {
         const len = (p.hx >= p.hz ? p.hx : p.hz) * 2;
         if (len < 7) return null;
-        return [-1, 1].map((side) => <WallFace key={`${p.id}${side}`} p={p} side={side} mats={mats} seed={i * 31 + (side > 0 ? 7 : 3)} full={level === 'full'} />);
+        return [-1, 1].map((side) => <WallFace key={`${p.id}${side}`} p={p} side={side} mats={mats} seed={i * 31 + (side > 0 ? 7 : 3)} full={level === 'full'} outer={String(p.id).startsWith('w_')} />);
       })}
       {level === 'full' && <Beams half={half * 0.667} />}
       {level === 'full' && <HangingLights half={half} mats={mats} />}
       {level === 'full' && <Wires half={half} />}
+      {level === 'full' && <CeilingInfra half={half} />}
       {level === 'full' && <Props half={half} />}
       {level === 'full' && <Litter half={half} seed={77} />}
       {level === 'full' && dust > 0 && <Dust half={half} count={dust} />}
