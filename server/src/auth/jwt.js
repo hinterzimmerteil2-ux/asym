@@ -6,7 +6,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET no está configurado.');
 }
 
-const GUEST_TOKEN_EXPIRY = '365d';
+const GUEST_TOKEN_EXPIRY = '7d';
 const ACCOUNT_TOKEN_EXPIRY = '30d';
 
 function signAccountToken(userId, displayName) {
