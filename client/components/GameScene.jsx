@@ -1254,7 +1254,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId }) {
     function onPointerMove(e) {
       if (document.pointerLockElement === canvas) {
         yaw.current -= e.movementX * 0.0025;
-        pitch.current = Math.max(0.15, Math.min(1.4, pitch.current + e.movementY * 0.0025));
+        pitch.current = Math.max(-0.3, Math.min(1.4, pitch.current + e.movementY * 0.0025));
         return;
       }
       if (touches.has(e.pointerId)) {
@@ -1272,7 +1272,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId }) {
       const dy = e.clientY - lastPointer.current.y;
       lastPointer.current = { x: e.clientX, y: e.clientY };
       yaw.current -= dx * sens(e);
-      pitch.current = Math.max(0.15, Math.min(1.4, pitch.current + dy * sens(e)));
+      pitch.current = Math.max(-0.3, Math.min(1.4, pitch.current + dy * sens(e)));
     }
     function onWheel(e) {
       e.preventDefault();
@@ -1300,6 +1300,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId }) {
     if (!myEntity) return;
     yawRef.current = yaw.current;
     CAMERA_LOCK.on = Boolean(shiftLock);
+    CAMERA_LOCK.pitch = pitch.current;
     CAMERA_LOCK.yaw = yaw.current;
     shoulder.current += ((shiftLock ? 1 : 0) - shoulder.current) * Math.min(1, delta * 10);
     const rightX = Math.cos(yaw.current) * 1.1 * shoulder.current;
@@ -1332,6 +1333,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId }) {
       smoothedTarget.current.y + height,
       smoothedTarget.current.z + rightZ + Math.cos(yaw.current) * horizontalRadius
     );
+    camera.position.y = Math.max(camera.position.y, myEntity.y + 0.35);
     camera.lookAt(smoothedTarget.current.x + rightX, smoothedTarget.current.y, smoothedTarget.current.z + rightZ);
   });
 
@@ -1340,7 +1342,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId }) {
 
 const SKILL_ACTIONS = ['skill1', 'skill2', 'skill3', 'skill4', 'melee'];
 
-const CAMERA_LOCK = { on: false, yaw: 0, fp: false, fpId: null };
+const CAMERA_LOCK = { on: false, yaw: 0, pitch: 0.5, fp: false, fpId: null };
 
 function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
   const keysPressed = useRef(new Set());
@@ -1410,7 +1412,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       const moveZ = inputZ * cosY - inputX * sinY;
 
       const face = shiftRef && shiftRef.current ? { x: Math.round(-sinY * 100) / 100, z: Math.round(-cosY * 100) / 100 } : undefined;
-      const payload = { moveX: Math.round(moveX * 100) / 100, moveZ: Math.round(moveZ * 100) / 100, jump, slow, face };
+      const payload = { moveX: Math.round(moveX * 100) / 100, moveZ: Math.round(moveZ * 100) / 100, jump, slow, face, aim: Math.round((0.5 - CAMERA_LOCK.pitch) * 100) / 100 };
       const key = JSON.stringify(payload);
       const nowMs = performance.now();
       if (key === lastSent.current.key && nowMs - lastSent.current.at < 400) return;

@@ -4,6 +4,7 @@ const PARTICLE_R = 0.16;
 const BOUNCE = 0.2;
 const FRICTION = 0.25;
 const SUBSTEPS = 4;
+const LEASH = 2.2;
 const ITERATIONS = 6;
 const TORSO = [0, 1, 2, 3, 4];
 const LINKS = [[5, 0], [5, 1], [5, 4], [0, 6], [1, 7], [2, 8], [3, 9]];
@@ -49,7 +50,7 @@ function create(entity, now = Date.now()) {
   return { x, y, z, px, py, pz, links, lastX: entity.x, lastZ: entity.z };
 }
 
-function step(body, entity, floorY, dt) {
+function step(body, entity, floor, dt) {
   const n = body.x.length;
   const sx = entity.x - body.lastX;
   const sz = entity.z - body.lastZ;
@@ -57,7 +58,11 @@ function step(body, entity, floorY, dt) {
   body.lastZ = entity.z;
   for (let i = 0; i < n; i++) { body.x[i] += sx; body.px[i] += sx; body.z[i] += sz; body.pz[i] += sz; }
   const H = dt / SUBSTEPS;
-  const limit = floorY + PARTICLE_R;
+  const limits = [];
+  for (let i = 0; i < n; i++) {
+    const f = typeof floor === 'function' ? floor(body.x[i], body.z[i], body.y[i]) : floor;
+    limits.push((Number.isFinite(f) ? f : 0) + PARTICLE_R);
+  }
   for (let s = 0; s < SUBSTEPS; s++) {
     for (let i = 0; i < n; i++) {
       const vx = (body.x[i] - body.px[i]) * 0.995;
@@ -79,6 +84,17 @@ function step(body, entity, floorY, dt) {
         body.x[b] -= ddx * k; body.y[b] -= ddy * k; body.z[b] -= ddz * k;
       }
       for (let i = 0; i < n; i++) {
+        const lx = body.x[i] - entity.x;
+        const lz = body.z[i] - entity.z;
+        const ld = Math.hypot(lx, lz);
+        if (ld > LEASH) {
+          const k = LEASH / ld;
+          body.x[i] = entity.x + lx * k;
+          body.z[i] = entity.z + lz * k;
+          body.px[i] = body.x[i];
+          body.pz[i] = body.z[i];
+        }
+        const limit = limits[i];
         if (body.y[i] < limit) {
           const v = body.y[i] - body.py[i];
           body.y[i] = limit;

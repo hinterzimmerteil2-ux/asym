@@ -990,6 +990,36 @@ test('skills personalizadas: esfera cargada (Astral Claw) e invisibilidad (Parag
   assert.ok(e.b.paraUntil > clock.t);
 });
 
+test('Astral Claw: apunta arriba/abajo, clic otra vez cancela con endlag si es temprano; el ragdoll no se aleja del cuerpo', () => {
+  const { room, clock, e } = setup();
+  const RagdollBody = require('../src/RagdollBody');
+  const cur = Object.keys(e).find((id) => room.players.get(id).isAsymRole);
+  const shoot = (aim, curY) => {
+    give(e.a, 0, 'astral_claw');
+    e.a.x = 0; e.a.z = 0; e.a.y = 0; e.a.faceX = 0; e.a.faceZ = 1; e.a.aim = aim;
+    e[cur].x = 0; e[cur].z = 10; e[cur].y = curY; e[cur].fx = {};
+    e.a.astral = { card: require('../src/Cards').getCard('astral_claw'), cfg: require('../src/Cards').getCard('astral_claw').astral, startedAt: clock.t - 4000, fastMs: 0, charge: 1, state: 'ready', readyAt: clock.t, slot: 0 };
+    room.useCard('a', 0);
+    for (let i = 0; i < 30; i++) { clock.t += 50; room.tickAstral(clock.t, 0.05); }
+    return Status.active(e[cur], 'stun', clock.t - 50);
+  };
+  assert.ok(!shoot(0.6, 0), 'apuntando arriba pasa por encima');
+  assert.ok(shoot(0.4, 5.5), 'apuntando arriba alcanza al Curador en altura');
+  assert.ok(!shoot(-0.5, 0), 'apuntando abajo choca con el suelo antes');
+  give(e.b, 0, 'astral_claw');
+  room.useCard('b', 0);
+  clock.t += 2000;
+  e.b.cardCooldowns = {};
+  room.useCard('b', 0);
+  assert.strictEqual(e.b.astral.state, 'ready');
+  assert.ok(Status.active(e.b, 'slow', clock.t), 'cancelar antes de tiempo deja endlag');
+  const body = RagdollBody.create({ x: 0, y: 0, z: 0, faceX: 0, faceZ: 1 }, clock.t);
+  const ent = { x: 0, y: 0, z: 0 };
+  body.x.forEach((_, i) => { body.x[i] += 8; body.px[i] += 8; });
+  RagdollBody.step(body, ent, 0, 0.05);
+  assert.ok(body.x.every((x) => Math.abs(x) <= 2.3), 'el cuerpo queda dentro del radio del Paciente');
+});
+
 test('skills personalizadas: efectos a sí mismo/enemigo/aliados al usar, acertar o fallar', () => {
   const GameMap = require('../src/GameMap');
   const CardEffects = require('../src/CardEffects');
