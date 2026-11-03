@@ -2014,6 +2014,7 @@ class Room {
     }
     if (card.astral && entity.astral && entity.astral.card.id === card.id) {
       if (entity.astral.state === 'charging') {
+        if (now - entity.astral.startedAt < 600) return;
         const early = now - entity.astral.startedAt < entity.astral.cfg.chargeMs;
         this.readyAstral(entity, now);
         if (early) Status.apply(entity, 'slow', ASTRAL.CANCEL_ENDLAG_MS, now, { tag: 'endlag', level: 2 });

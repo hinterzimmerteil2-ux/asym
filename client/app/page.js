@@ -765,8 +765,8 @@ export default function LobbyPage() {
       }
       else if (specRef.current.on && (e.code === 'ArrowRight' || e.code === 'BracketRight')) setSpecIndex((i) => i + 1);
       else if (specRef.current.on && (e.code === 'ArrowLeft' || e.code === 'BracketLeft')) setSpecIndex((i) => i - 1);
-      else if (keyMatches('card1', e.code)) handleUseCard(0);
-      else if (keyMatches('card2', e.code)) handleUseCard(1);
+      else if (keyMatches('card1', e.code)) { if (!e.repeat) handleUseCard(0); }
+      else if (keyMatches('card2', e.code)) { if (!e.repeat) handleUseCard(1); }
     }
     function onKeyUp(e) {
       if (keyMatches('shiftlock', e.code)) shiftKeyRef.current.up();
@@ -1141,7 +1141,7 @@ export default function LobbyPage() {
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
         {phase === 'action' && flojera?.astral && (
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: compact ? 110 : 96, width: 'min(260px, calc(100% - 24px))', zIndex: 35, padding: '6px 8px', borderRadius: 8, background: 'rgba(18,19,26,0.85)', border: '1px solid #f3e9a6', fontSize: 12, textAlign: 'center' }}>
-            <div>{flojera.astral.state === 'charging' ? 'Cargando la garra' : flojera.astral.readyMs > 0 ? 'Garra lista en un momento' : 'Garra lista: lánzala'} {Math.round(flojera.astral.charge * 100)}%</div>
+            <div>{flojera.astral.state === 'charging' ? 'Cargando la garra' : flojera.astral.readyMs > 0 ? `Garra cargada: lanzable en ${Math.ceil(flojera.astral.readyMs / 1000)}s` : 'Garra lista: lánzala'} {Math.round(flojera.astral.charge * 100)}%</div>
             <div style={{ height: 6, marginTop: 4, borderRadius: 3, background: '#2a2d3d' }}><div style={{ height: '100%', width: `${Math.round(flojera.astral.charge * 100)}%`, borderRadius: 3, background: '#f3e9a6' }} /></div>
           </div>
         )}
