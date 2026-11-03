@@ -935,7 +935,7 @@ test('Astral Claw: carga con endlag, queda lista al saltar, esfera recta que atu
   assert.ok(Math.abs(e.a.astral.charge - 0.5) < 0.01);
   room.useCard('a', 0);
   assert.ok(e.a.astral, 'no dispara antes del retardo');
-  clock.t += 1300;
+  clock.t += require('../src/Constants').ASTRAL.FIRE_DELAY_MS + 100;
   room.useCard('a', 0);
   assert.ok(!e.a.astral);
   assert.ok(room.gameState.zones.some((z) => z.kind === 'astral'));
@@ -945,7 +945,7 @@ test('Astral Claw: carga con endlag, queda lista al saltar, esfera recta que atu
   room.useCard('b', 0);
   assert.ok(e.b.astral);
   room.healPatient('b', 5);
-  assert.ok(!e.b.astral, 'curarte cancela');
+  assert.strictEqual(e.b.astral.state, 'ready', 'curarte te saca de la carga');
 });
 
 test('Ragdoll lanza hacia arriba y deja endlag al levantarse; cartas de vida máxima son cambios planos', () => {

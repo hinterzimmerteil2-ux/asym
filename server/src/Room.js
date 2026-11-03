@@ -1449,6 +1449,7 @@ class Room {
 
         if (skill.type === 'pulse') {
           patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, skill.cureAmount, now));
+          if (targetEntity) this.exitAstral(targetEntity, now);
           if (patient.hp >= patient.maxHp) {
             patient.status = 'eliminated';
             this.onPatientFullyCured();
@@ -1663,7 +1664,7 @@ class Room {
     if (!patient || patient.status !== 'alive') return false;
     patient.hp = Math.min(patient.maxHp, patient.hp + amount * MUTATIONS[this.mutation].heal);
     const healed = this.gameState.entities[playerId];
-    if (healed && healed.astral && amount > 0) this.cancelAstral(healed, Date.now());
+    if (healed && amount > 0) this.exitAstral(healed, Date.now());
     if (patient.hp >= patient.maxHp) {
       patient.status = 'eliminated';
       this.onPatientFullyCured();
@@ -1688,12 +1689,8 @@ class Room {
     Status.apply(entity, 'slow', ASTRAL.ENDLAG_MS, now, { tag: 'endlag', level: 3 });
   }
 
-  cancelAstral(entity, now) {
-    const a = entity.astral;
-    if (!a) return;
-    if (a.state === 'charging') Status.clear(entity, 'slow');
-    if (a.slot >= 0) entity.cardCooldowns[a.slot] = now + Cards.getCard('astral_claw').cooldownMs;
-    entity.astral = null;
+  exitAstral(entity, now) {
+    if (entity.astral && entity.astral.state === 'charging') this.readyAstral(entity, now);
   }
 
   readyAstral(entity, now) {
@@ -1701,6 +1698,7 @@ class Room {
     a.charge = Math.min(1, (now - a.startedAt) / ASTRAL.CHARGE_MS);
     a.state = 'ready';
     a.readyAt = now + ASTRAL.FIRE_DELAY_MS;
+    if (a.slot >= 0) entity.cardCooldowns[a.slot] = a.readyAt;
     Status.clear(entity, 'slow');
   }
 
@@ -2150,6 +2148,7 @@ class Room {
     const targetEntity = this.gameState.entities[targetPlayerId];
     const boost = curadorEntity.cureBoostUntil > now ? curadorEntity.cureBoostFactor : 1;
     patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, CURE_AMOUNT * boost, now));
+    if (targetEntity) this.exitAstral(targetEntity, now);
     this.award(curadorId, 3, 'Cura');
     if (patient.hp >= patient.maxHp) {
       patient.status = 'eliminated';
