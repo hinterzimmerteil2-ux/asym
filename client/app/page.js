@@ -991,7 +991,7 @@ export default function LobbyPage() {
           )}
 
           {phase === 'lobby' && (
-            <button type="button" style={{ ...styles.smallButton, width: '100%', padding: '8px 12px' }} onClick={() => setCosmeticsOpen(true)}>Personalizar personaje</button>
+            <button type="button" style={{ ...styles.smallButton, width: '100%', padding: '8px 12px' }} onClick={() => setCosmeticsOpen(true)}>Personalizar personaje <span style={{ color: '#e0b34a', marginLeft: 6 }}>{Math.floor(normQ(desgracias.balance))} ℍ</span></button>
           )}
 
           {phase === 'lobby' && isHost && (
@@ -1897,7 +1897,7 @@ const styles = {
   },
   playersOverlay: {
     position: 'absolute',
-    top: 16,
+    top: 52,
     right: 16,
     width: 220,
     padding: 14,
