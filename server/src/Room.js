@@ -265,7 +265,12 @@ class Room {
       st.repathAt = now + 500 + Math.random() * 300;
     }
     while (st.path.length > 1 && Math.hypot(st.path[0].x - entity.x, st.path[0].z - entity.z) < 0.6) st.path.shift();
-    const wp = st.path[0] || goal;
+    if (!st.path.length) {
+      entity.input.moveX = 0;
+      entity.input.moveZ = 0;
+      return false;
+    }
+    const wp = st.path[0];
     const dx = wp.x - entity.x;
     const dz = wp.z - entity.z;
     const len = Math.hypot(dx, dz);
@@ -287,7 +292,7 @@ class Room {
     for (const [patientId, patient] of Object.entries(this.gameState.patients)) {
       if (patient.status !== 'alive') continue;
       const other = this.gameState.entities[patientId];
-      if (!other) continue;
+      if (!other || this.isInvisible(other, now)) continue;
       const d = distanceBetween(entity, other);
       if (d < targetDist) { targetDist = d; target = { id: patientId, entity: other }; }
     }

@@ -1136,7 +1136,7 @@ export default function LobbyPage() {
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
         {phase === 'action' && flojera?.astral && (
-          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: compact ? 110 : 96, width: 'min(260px, calc(100% - 24px))', zIndex: 35, padding: '6px 8px', borderRadius: 8, background: 'rgba(18,19,26,0.85)', border: '1px solid #f3e9a6', fontSize: 12, textAlign: 'center' }}>
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: compact ? 58 : 52, width: 'min(200px, calc(100% - 24px))', zIndex: 35, padding: '4px 8px', borderRadius: 8, background: 'rgba(18,19,26,0.85)', border: '1px solid #f3e9a6', fontSize: 12, textAlign: 'center' }}>
             <div>{flojera.astral.state === 'charging' ? 'Cargando la garra' : 'Esfera cargada'} {Math.round(flojera.astral.charge * 100)}%</div>
             <div style={{ height: 6, marginTop: 4, borderRadius: 3, background: '#2a2d3d' }}><div style={{ height: '100%', width: `${Math.round(flojera.astral.charge * 100)}%`, borderRadius: 3, background: '#f3e9a6' }} /></div>
           </div>

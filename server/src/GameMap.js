@@ -168,14 +168,14 @@ const HOSPITAL_LAYOUT = (() => {
       plat(`t2_${q}`, 31 * sx, 30 * sz, 3, 3, 2, null, 'tower', { y0: 6 });
       plat(`t2r_${q}`, 26 * sx, 30 * sz, 2, 2, 2, sx > 0 ? '+x' : '-x', 'ramp', { y0: 6 });
       plat(`t3r_${q}`, 31 * sx, 30 * sz, 2.5, 2, 3, sx > 0 ? '+x' : '-x', 'ramp', { y0: 8 });
-      plat(`t3_${q}`, 36.5 * sx, 30 * sz, 3, 3, 3, null, 'tower', { y0: 8 });
+      plat(`t3_${q}`, 36.5 * sx, 30 * sz, 3, 3, 11, null, 'tower');
     } else {
       plat(`rf_${q}`, 30 * sx, 30 * sz, 6, 6, 3, null, 'roof');
       plat(`rr_${q}`, 19 * sx, 30 * sz, 5, 2.5, 3, sx > 0 ? '+x' : '-x', 'ramp');
       plat(`r2_${q}`, 31 * sx, 30 * sz, 3, 3, 2.5, null, 'roof', { y0: 3 });
       plat(`r2r_${q}`, 26 * sx, 30 * sz, 2, 2, 2.5, sx > 0 ? '+x' : '-x', 'ramp', { y0: 3 });
       plat(`r3r_${q}`, 31 * sx, 30 * sz, 2.5, 2, 3, sx > 0 ? '+x' : '-x', 'ramp', { y0: 5.5 });
-      plat(`r3_${q}`, 36.5 * sx, 30 * sz, 3, 3, 3, null, 'roof', { y0: 5.5 });
+      plat(`r3_${q}`, 36.5 * sx, 30 * sz, 3, 3, 8.5, null, 'roof');
     }
     col(`c_${q}_1`, 'gurney', 10 * sx, 10 * sz);
     col(`c_${q}_2`, 'cart', 16 * sx, 8 * sz);

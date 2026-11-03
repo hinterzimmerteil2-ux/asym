@@ -1,4 +1,4 @@
-const { platformTop, baseAt } = require('./Hitbox');
+const { platformTop, baseAt, FOOTPRINT } = require('./Hitbox');
 
 const CELL = 0.5;
 const PAD = 0.5;
@@ -15,10 +15,14 @@ function buildGrid(half, objects, platforms) {
       const x = -half + (i + 0.5) * CELL;
       const z = -half + (j + 0.5) * CELL;
       const idx = j * n + i;
-      let top = baseAt(platforms, x, z);
-      for (const p of platforms) {
-        const t = platformTop(p, x, z);
-        if (t !== null && t > top) top = t;
+      let top = -Infinity;
+      for (const [ox, oz] of FOOTPRINT) {
+        let t0 = baseAt(platforms, x + ox, z + oz);
+        for (const p of platforms) {
+          const t = platformTop(p, x + ox, z + oz);
+          if (t !== null && t > t0) t0 = t;
+        }
+        if (t0 > top) top = t0;
       }
       h[idx] = top;
       if (i === 0 || j === 0 || i === n - 1 || j === n - 1 || Math.abs(x) > half - 0.6 || Math.abs(z) > half - 0.6) blocked[idx] = 1;
@@ -64,6 +68,20 @@ function nearestFree(grid, idx) {
   if (!grid.blocked[idx]) return idx;
   const i0 = idx % grid.n;
   const j0 = Math.floor(idx / grid.n);
+  for (let r = 1; r < 14; r++) {
+    let best = -1;
+    let bestD = Infinity;
+    for (let j = j0 - r; j <= j0 + r; j++) {
+      for (let i = i0 - r; i <= i0 + r; i++) {
+        if (i < 0 || j < 0 || i >= grid.n || j >= grid.n) continue;
+        if (Math.max(Math.abs(i - i0), Math.abs(j - j0)) !== r) continue;
+        const k = j * grid.n + i;
+        const d = (i - i0) ** 2 + (j - j0) ** 2;
+        if (!grid.blocked[k] && d < bestD && Math.abs(grid.h[k] - grid.h[idx]) <= STEP) { bestD = d; best = k; }
+      }
+    }
+    if (best >= 0) return best;
+  }
   for (let r = 1; r < 14; r++) {
     let best = -1;
     let bestD = Infinity;
@@ -154,11 +172,15 @@ function findPath(grid, from, to) {
   heap.push([heuristic(start), start]);
   let expansions = 0;
   let found = false;
+  let best = start;
+  let bestH = heuristic(start);
   while (heap.size && expansions < MAX_EXPANSIONS) {
     const [, cur] = heap.pop();
     if (closed[cur]) continue;
     closed[cur] = 1;
     expansions++;
+    const hc = heuristic(cur);
+    if (hc < bestH) { bestH = hc; best = cur; }
     if (cur === goal) { found = true; break; }
     const ci = cur % n;
     const cj = Math.floor(cur / n);
@@ -188,9 +210,10 @@ function findPath(grid, from, to) {
       }
     }
   }
-  if (!found) return [];
+  const end = found ? goal : best;
+  if (!found && end === start) return [];
   const cells = [];
-  for (let k = goal; k !== -1; k = came[k]) cells.push(k);
+  for (let k = end; k !== -1; k = came[k]) cells.push(k);
   cells.reverse();
   const points = cells.map((k) => centerOf(grid, k));
   points[0] = { x: from.x, z: from.z };
@@ -204,7 +227,7 @@ function findPath(grid, from, to) {
     out.push(points[far]);
     anchor = far;
   }
-  if (out.length) out[out.length - 1] = grid.blocked[cellOf(grid, to.x, to.z)] ? out[out.length - 1] : { x: to.x, z: to.z };
+  if (found && out.length) out[out.length - 1] = grid.blocked[cellOf(grid, to.x, to.z)] ? out[out.length - 1] : { x: to.x, z: to.z };
   return out;
 }
 
