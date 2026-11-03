@@ -1,6 +1,6 @@
 const MAX_CARDS = 12;
 const MAX_HEALER = 4;
-const KINDS = ['strike', 'burst', 'sprint'];
+const KINDS = ['strike', 'burst', 'sprint', 'projectile', 'invisible'];
 const HEALER_KINDS = ['pulse', 'stun', 'pull', 'boost', 'purge'];
 const FX_WHEN = ['use', 'hit', 'miss'];
 const FX_TARGET = ['self', 'enemy', 'allies'];
@@ -44,11 +44,11 @@ function sanitize(raw, i) {
     id: typeof (raw && raw.id) === 'string' ? raw.id.slice(0, 40) : `sk_${i}`,
     name: name(raw, `Skill ${i + 1}`),
     kind,
-    cooldownSec: g('cooldownSec', 1, 300, 30),
+    cooldownSec: g('cooldownSec', 1, 300, kind === 'projectile' ? 70 : 30),
     windowMs: Math.round(num(raw && raw.windowMs, 100, 1500, 380)),
     reach: g('reach', 0, 15, 1.2),
     radius: g('radius', 0.3, 20, kind === 'burst' ? 2 : 0.85),
-    stunSec: g('stunSec', 0, 30, kind === 'sprint' ? 0 : 1.5),
+    stunSec: g('stunSec', 0, 30, kind === 'sprint' || kind === 'invisible' ? 0 : kind === 'projectile' ? 4 : 1.5),
     ragdollSec: g('ragdollSec', 0, 30, 0),
     slowSec: g('slowSec', 0, 60, 0),
     knockback: g('knockback', 0, 40, 0),
@@ -56,15 +56,33 @@ function sanitize(raw, i) {
     revealHealerSec: g('revealHealerSec', 0, 60, 0),
     hpLoss: g('hpLoss', 0, 1000, 0),
     factor: g('factor', 1, 10, 1.4),
-    durationSec: g('durationSec', 0.5, 90, 3),
+    durationSec: g('durationSec', 0.5, 90, kind === 'invisible' ? 8 : 3),
     hpCost: g('hpCost', 0, 100, 0),
     endlagSec: g('endlagSec', 0, 10, 0),
+    chargeSec: g('chargeSec', 0.5, 30, 4),
+    holdSec: g('holdSec', 0, 30, 5),
+    fireDelaySec: g('fireDelaySec', 0, 30, 7),
+    throwEndlagSec: g('throwEndlagSec', 0, 10, 1.8),
+    projSpeed: g('projSpeed', 2, 80, 20),
+    projRadius: g('projRadius', 0.2, 3, 0.8),
+    flySec: g('flySec', 1, 30, 7),
+    startSec: g('startSec', 0, 10, 0.9),
     fx: sanitizeFx(raw && raw.fx),
   };
 }
 
 function describe(p) {
   const parts = [];
+  if (p.kind === 'invisible') {
+    return `Endlag ${p.startSec}s y luego ${p.durationSec}s invisible: el Healer no te ve y las detecciones no te revelan. Gastas el doble de Flojera sin regenerar. Si te golpean, se cancela.`;
+  }
+  if (p.kind === 'projectile') {
+    const out = [`Empuñas la esfera: endlag ${p.holdSec}s mientras se carga hasta ${p.chargeSec}s (100%).`, 'Saltar o curarte te saca de la carga y conservas lo cargado.', `Tras ${p.fireDelaySec}s puedes lanzarla en línea recta (${p.projSpeed} de velocidad, ${p.flySec}s de vuelo).`];
+    if (p.stunSec) out.push(`Si choca con el Healer lo aturde hasta ${p.stunSec}s según la carga.`);
+    if (p.hpLoss) out.push(`Le quita hasta ${p.hpLoss} HP.`);
+    out.push(`Lanzarla da ${p.throwEndlagSec}s de endlag.`);
+    return out.join(' ');
+  }
   if (p.kind === 'sprint') {
     parts.push(`Corres x${p.factor} durante ${p.durationSec}s.`);
     if (p.hpCost) parts.push(`Pierdes ${p.hpCost} de HP, hasta un mínimo de 35.`);
@@ -89,7 +107,7 @@ function build(p, id) {
     description: describe(p),
     rarity: 'uncommon',
     weight: 25,
-    keywords: [p.kind === 'sprint' ? 'bonificadora' : 'ofensiva'],
+    keywords: [p.kind === 'sprint' ? 'bonificadora' : p.kind === 'invisible' ? 'escapista' : 'ofensiva'],
     cooldownMs: Math.round(p.cooldownSec * 1000),
     corrupt: false,
     endlagMs: Math.round(p.endlagSec * 1000),
@@ -101,12 +119,17 @@ function build(p, id) {
     card.hitRadius = p.radius;
   } else if (p.kind === 'burst') {
     card.hitRadius = p.radius;
+  } else if (p.kind === 'projectile') {
+    card.astral = { chargeMs: Math.round(p.chargeSec * 1000), holdMs: Math.round(p.holdSec * 1000), fireDelayMs: Math.round(p.fireDelaySec * 1000), throwEndlagMs: Math.round(p.throwEndlagSec * 1000), speed: p.projSpeed, radius: p.projRadius, hit: 1, flyMs: Math.round(p.flySec * 1000) };
+  } else if (p.kind === 'invisible') {
+    card.paraStartMs = Math.round(p.startSec * 1000);
+    card.paraMs = Math.round(p.durationSec * 1000);
   } else {
     card.sprintFactor = p.factor;
     card.durationMs = Math.round(p.durationSec * 1000);
     card.hpCost = p.hpCost;
   }
-  if (p.kind !== 'sprint') {
+  if (p.kind === 'strike' || p.kind === 'burst' || p.kind === 'projectile') {
     card.stunMs = Math.round(p.stunSec * 1000);
     card.ragdollMs = Math.round(p.ragdollSec * 1000);
     card.slowMs = Math.round(p.slowSec * 1000);

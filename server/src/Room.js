@@ -982,7 +982,7 @@ class Room {
           statuses: this.buildStatuses(own, now),
           channel: own.channel ? { elapsed: now - own.channel.startedAt, total: CHANNEL_MS, beatMs: CHANNEL_BEAT_MS, beats: CHANNEL_BEATS, hits: own.channel.hits, scored: Object.keys(own.channel.scored).map(Number), slot: own.channel.slot } : null,
           sdGame: own.selfDmg ? this.sdView(own.selfDmg, now) : null,
-          astral: own.astral ? { state: own.astral.state, charge: own.astral.state === 'charging' ? Math.min(1, (now - own.astral.startedAt) / ASTRAL.CHARGE_MS) : own.astral.charge, readyMs: Math.max(0, own.astral.readyAt - now) } : null,
+          astral: own.astral ? { state: own.astral.state, charge: own.astral.state === 'charging' ? Math.min(1, (now - own.astral.startedAt) / own.astral.cfg.chargeMs) : own.astral.charge, readyMs: Math.max(0, own.astral.readyAt - now) } : null,
           cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
         };
       }
@@ -1684,9 +1684,10 @@ class Room {
     this.gameState.zones.push({ id: `z${this.zoneCounter = (this.zoneCounter || 0) + 1}`, ...zone });
   }
 
-  startAstral(playerId, entity, now) {
-    entity.astral = { state: 'charging', startedAt: now, fastMs: 0, charge: 0, readyAt: 0, slot: entity.hand.findIndex((sl) => sl && sl.chosen === 'astral_claw') };
-    Status.apply(entity, 'slow', ASTRAL.ENDLAG_MS, now, { tag: 'endlag', level: 3 });
+  startAstral(playerId, entity, card, now) {
+    const cfg = card.astral;
+    entity.astral = { card, cfg, startedAt: now, fastMs: 0, charge: 0, state: 'charging', readyAt: 0, slot: entity.hand.findIndex((sl) => sl && sl.chosen === card.id) };
+    if (cfg.holdMs > 0) Status.apply(entity, 'slow', cfg.holdMs, now, { tag: 'endlag', level: 3 });
   }
 
   exitAstral(entity, now) {
@@ -1695,22 +1696,24 @@ class Room {
 
   readyAstral(entity, now) {
     const a = entity.astral;
-    a.charge = Math.min(1, (now - a.startedAt) / ASTRAL.CHARGE_MS);
+    a.charge = Math.min(1, (now - a.startedAt) / Math.max(1, a.cfg.chargeMs));
     a.state = 'ready';
-    a.readyAt = now + ASTRAL.FIRE_DELAY_MS;
+    a.readyAt = now + a.cfg.fireDelayMs;
     if (a.slot >= 0) entity.cardCooldowns[a.slot] = a.readyAt;
     Status.clear(entity, 'slow');
   }
 
   fireAstral(playerId, entity, slotIndex, now) {
     const a = entity.astral;
+    const cfg = a.cfg;
+    const card = a.card;
     const len = Math.hypot(entity.faceX || 0, entity.faceZ || 0) || 1;
     const dx = (entity.faceX || 0) / len;
     const dz = (entity.faceZ || 1) / len;
-    this.addZone({ kind: 'astral', cardId: 'astral_claw', x: entity.x + dx * 1, z: entity.z + dz * 1, radius: 0.3 + 0.5 * a.charge, ownerId: playerId, dx, dz, charge: a.charge, until: now + ASTRAL.FLY_MS });
+    this.addZone({ kind: 'astral', cardId: card.id, x: entity.x + dx, z: entity.z + dz, radius: cfg.radius * (0.4 + 0.6 * a.charge), ownerId: playerId, dx, dz, charge: a.charge, speed: cfg.speed, hitR: cfg.hit, card, until: now + cfg.flyMs });
     entity.astral = null;
-    entity.cardCooldowns[slotIndex] = now + Cards.getCard('astral_claw').cooldownMs;
-    this.endlagSlow(entity, now, ASTRAL.THROW_ENDLAG_MS);
+    entity.cardCooldowns[slotIndex] = now + card.cooldownMs;
+    this.endlagSlow(entity, now, cfg.throwEndlagMs);
   }
 
   tickAstral(now, dt) {
@@ -1719,12 +1722,12 @@ class Room {
       if (!a || a.state !== 'charging') continue;
       a.fastMs = (entity.speedNow || 0) > ASTRAL.EXIT_SPEED ? a.fastMs + dt * 1000 : 0;
       const jumped = !entity.onGround && (entity.velocityY || 0) > 0.5;
-      if (jumped || a.fastMs >= ASTRAL.EXIT_FAST_MS || now - a.startedAt >= ASTRAL.ENDLAG_MS) this.readyAstral(entity, now);
+      if (jumped || a.fastMs >= ASTRAL.EXIT_FAST_MS || now - a.startedAt >= Math.max(a.cfg.holdMs, a.cfg.chargeMs)) this.readyAstral(entity, now);
     }
     const half = this.getCurrentArea().halfSize;
     for (const claw of this.gameState.zones) {
       if (claw.kind !== 'astral' || now >= claw.until) continue;
-      const step = ASTRAL.SPEED * dt;
+      const step = claw.speed * dt;
       claw.x += claw.dx * step;
       claw.z += claw.dz * step;
       if (Math.abs(claw.x) > half + 2 || Math.abs(claw.z) > half + 2) { claw.until = now; continue; }
@@ -1732,9 +1735,21 @@ class Room {
         if (!p.isAsymRole) continue;
         const target = this.gameState.entities[curatorId];
         if (!target || target.gone) continue;
-        if (Math.hypot(target.x - claw.x, target.z - claw.z) > ASTRAL.HIT + claw.radius) continue;
+        if (Math.hypot(target.x - claw.x, target.z - claw.z) > claw.hitR + claw.radius) continue;
         if (Math.abs((target.y || 0) + 1 - ((claw.y || 0) + 1.2)) > 2.4) continue;
-        Status.apply(target, 'stun', Math.max(ASTRAL.MIN_STUN_MS, ASTRAL.MAX_STUN_MS * claw.charge), now);
+        const card = claw.card;
+        const k = Math.max(ASTRAL.MIN_FRACTION, claw.charge);
+        if (card.stunMs) this.stun(curatorId, target, Math.round(card.stunMs * k), now, 0);
+        if (card.ragdollMs) this.ragdoll(curatorId, target, Math.round(card.ragdollMs * k), now);
+        if (card.slowMs) Status.apply(target, 'slow', Math.round(card.slowMs * k), now, { level: card.slowLevel || 2 });
+        if (card.revealHealerMs) Status.apply(target, 'reveal', card.revealHealerMs, now);
+        if (card.knockback) {
+          const ddx = target.x - claw.x;
+          const ddz = target.z - claw.z;
+          const l = Math.hypot(ddx, ddz) || 1;
+          Status.push(target, ddx / l, ddz / l, card.knockback * k, 400, now);
+        }
+        if (card.curatorHpLoss) { this.adjustCuratorHp(-card.curatorHpLoss * k); this.checkGameEndConditions(); }
         const owner = this.gameState.entities[claw.ownerId];
         if (owner) this.gainExacerbacion(owner, now);
         claw.until = now;
@@ -1986,7 +2001,7 @@ class Room {
       this.channelBeat(playerId, entity, now);
       return;
     }
-    if (card.id === 'astral_claw' && entity.astral) {
+    if (card.astral && entity.astral && entity.astral.card.id === card.id) {
       if (entity.astral.state === 'ready' && now >= entity.astral.readyAt) {
         this.fireAstral(playerId, entity, slotIndex, now);
         this.broadcast(MessageType.CARD_RESULT, { playerId, slot: slotIndex, cardId: card.id, cooldownUntil: entity.cardCooldowns[slotIndex], hitRadius: null, center: null, boxes: [] });
@@ -2003,7 +2018,7 @@ class Room {
 
     entity.cardCooldowns[slotIndex] = now + card.cooldownMs;
     this.applyCardEffect(playerId, entity, card, now);
-    if (card.id === 'astral_claw') entity.cardCooldowns[slotIndex] = now + 1500;
+    if (card.astral) entity.cardCooldowns[slotIndex] = now + 1500;
 
     this.broadcast(MessageType.CARD_RESULT, {
       playerId,

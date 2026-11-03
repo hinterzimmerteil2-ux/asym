@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { listCommunitySkills, publishCommunitySkill, deleteCommunitySkill } from '../lib/community';
 
-const PATIENT_KINDS = [['strike', 'Golpe corto'], ['burst', 'Golpe en área'], ['sprint', 'Impulso']];
+const PATIENT_KINDS = [['strike', 'Golpe corto'], ['burst', 'Golpe en área'], ['sprint', 'Impulso'], ['projectile', 'Esfera cargada (Astral Claw)'], ['invisible', 'Invisibilidad (Paraguayizador)']];
 const HEALER_KINDS = [['pulse', 'Pulso (cura)'], ['stun', 'Aturdir'], ['pull', 'Atraer'], ['boost', 'Potenciar curas'], ['purge', 'Purgar']];
 
 const PATIENT_PARAMS = {
@@ -12,6 +12,15 @@ const PATIENT_PARAMS = {
   burst: [['radius', 'Radio del área', 0.3, 20, 0.1]],
   hit: [['stunSec', 'Aturdimiento al Healer (s)', 0, 30, 0.1], ['ragdollSec', 'Derribo (s)', 0, 30, 0.1], ['slowSec', 'Ralentización (s)', 0, 60, 0.5], ['slowLevel', 'Nivel de ralentización', 1, 3, 1], ['revealHealerSec', 'Revela al Healer (s)', 0, 60, 1], ['knockback', 'Empuje', 0, 40, 0.5], ['hpLoss', 'Daño al Healer (HP)', 0, 1000, 1], ['endlagSec', 'Endlag extra (s)', 0, 10, 0.1]],
   sprint: [['factor', 'Velocidad (x)', 1, 10, 0.05], ['durationSec', 'Dura (s)', 0.5, 90, 0.5], ['hpCost', 'Coste de HP', 0, 100, 1]],
+  projectile: [['chargeSec', 'Tiempo de carga al 100% (s)', 0.5, 30, 0.5], ['holdSec', 'Endlag al empuñarla (s)', 0, 30, 0.5], ['fireDelaySec', 'Espera tras la carga para lanzar (s)', 0, 30, 0.5], ['throwEndlagSec', 'Endlag al lanzar (s)', 0, 10, 0.1], ['projSpeed', 'Velocidad de la esfera', 2, 80, 1], ['projRadius', 'Tamaño de la esfera', 0.2, 3, 0.1], ['flySec', 'Vuelo máximo (s)', 1, 30, 0.5]],
+  invisible: [['startSec', 'Endlag al empezar (s)', 0, 10, 0.1], ['durationSec', 'Dura invisible (s)', 0.5, 90, 0.5]],
+};
+const KIND_PRESETS = {
+  projectile: { cooldownSec: 70, stunSec: 4 },
+  invisible: { cooldownSec: 40, durationSec: 8, stunSec: 0 },
+  strike: { cooldownSec: 30, stunSec: 1.5, durationSec: 3 },
+  burst: { cooldownSec: 30, stunSec: 1.5, durationSec: 3 },
+  sprint: { cooldownSec: 30, stunSec: 0, durationSec: 3 },
 };
 
 const HEALER_PARAMS = {
@@ -23,7 +32,7 @@ const HEALER_PARAMS = {
   purge: [['radius', 'Radio', 0.5, 60, 0.5], ['flojeraDrain', 'Baja flojera', 0, 500, 1], ['stunSec', 'Aturde (s)', 0, 30, 0.1], ['slowSec', 'Ralentiza (s)', 0, 60, 0.5], ['slowLevel', 'Nivel de ralentización', 1, 3, 1]],
 };
 
-const DEFAULTS_PATIENT = { kind: 'strike', cooldownSec: 30, windowMs: 380, reach: 1.2, radius: 0.85, stunSec: 1.5, ragdollSec: 0, slowSec: 0, slowLevel: 2, revealHealerSec: 0, knockback: 0, hpLoss: 0, factor: 1.4, durationSec: 3, hpCost: 0, endlagSec: 0 };
+const DEFAULTS_PATIENT = { chargeSec: 4, holdSec: 5, fireDelaySec: 7, throwEndlagSec: 1.8, projSpeed: 20, projRadius: 0.8, flySec: 7, startSec: 0.9, kind: 'strike', cooldownSec: 30, windowMs: 380, reach: 1.2, radius: 0.85, stunSec: 1.5, ragdollSec: 0, slowSec: 0, slowLevel: 2, revealHealerSec: 0, knockback: 0, hpLoss: 0, factor: 1.4, durationSec: 3, hpCost: 0, endlagSec: 0 };
 const DEFAULTS_HEALER = { kind: 'pulse', cooldownSec: 30, windowMs: 700, radius: 6, cureAmount: 8, revealSec: 0, selfHeal: 0, durationSec: 3, strength: 4, factor: 2, flojeraDrain: 30, stunSec: 0, slowSec: 0, slowLevel: 2 };
 
 const FX_WHEN = [['use', 'Al usarla'], ['hit', 'Si acierta'], ['miss', 'Si falla']];
@@ -59,7 +68,7 @@ function FxList({ side, s, upd }) {
 function paramsFor(side, s) {
   const spec = side === 'healer' ? HEALER_PARAMS : PATIENT_PARAMS;
   const list = [...spec.common, ...(spec[s.kind] || [])];
-  if (side === 'patient' && s.kind !== 'sprint') list.push(...spec.hit);
+  if (side === 'patient' && ['strike', 'burst', 'projectile'].includes(s.kind)) list.push(...spec.hit);
   return list;
 }
 
@@ -128,7 +137,7 @@ function SideEditor({ side, list, setList, max, library }) {
           <div key={s.id} style={{ marginTop: 6, padding: 6, border: '1px solid #3d4a42', borderRadius: 6 }}>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               <input value={s.name} maxLength={28} onChange={(ev) => upd({ name: ev.target.value })} style={{ flex: 1, minWidth: 0 }} />
-              <select value={s.kind} onChange={(ev) => upd({ kind: ev.target.value })}>
+              <select value={s.kind} onChange={(ev) => upd({ kind: ev.target.value, ...(side === 'patient' ? KIND_PRESETS[ev.target.value] : {}) })}>
                 {kinds.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
               <button style={{ fontSize: 11 }} title="Publicar en la biblioteca" onClick={() => publish(s)}>⇪</button>

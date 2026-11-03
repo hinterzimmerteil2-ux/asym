@@ -964,6 +964,32 @@ test('Ragdoll lanza hacia arriba y deja endlag al levantarse; cartas de vida má
   assert.strictEqual(p.b.maxHp, 180);
 });
 
+test('skills personalizadas: esfera cargada (Astral Claw) e invisibilidad (Paraguayizador)', () => {
+  const CustomCards = require('../src/CustomCards');
+  const { room, clock, e } = setup();
+  const list = CustomCards.normalizeList([{ kind: 'projectile', name: 'Esfera', chargeSec: 2, holdSec: 3, fireDelaySec: 1, stunSec: 3, projSpeed: 30 }, { kind: 'invisible', name: 'Fantasma', durationSec: 5, startSec: 0.5 }]);
+  const [sphere, ghost] = CustomCards.registerAll('t', list);
+  assert.ok(sphere.astral && ghost.paraMs === 5000);
+  const cur = Object.keys(e).find((id) => room.players.get(id).isAsymRole);
+  give(e.a, 0, sphere.id);
+  e.a.x = 0; e.a.z = 0; e.a.y = 0; e.a.faceX = 0; e.a.faceZ = 1;
+  e[cur].x = 0; e[cur].z = 20; e[cur].y = 0;
+  room.useCard('a', 0);
+  assert.strictEqual(e.a.astral.state, 'charging');
+  clock.t += 1000;
+  room.exitAstral(e.a, clock.t);
+  assert.ok(Math.abs(e.a.astral.charge - 0.5) < 0.01);
+  clock.t += 1100;
+  room.useCard('a', 0);
+  assert.ok(!e.a.astral);
+  for (let i = 0; i < 40; i++) { clock.t += 50; room.tickAstral(clock.t, 0.05); }
+  const left = e[cur].fx.stun.until - clock.t;
+  assert.ok(left > 0 && left <= 1600, 'aturde en proporción a la carga');
+  give(e.b, 0, ghost.id);
+  room.useCard('b', 0);
+  assert.ok(e.b.paraUntil > clock.t);
+});
+
 test('skills personalizadas: efectos a sí mismo/enemigo/aliados al usar, acertar o fallar', () => {
   const GameMap = require('../src/GameMap');
   const CardEffects = require('../src/CardEffects');

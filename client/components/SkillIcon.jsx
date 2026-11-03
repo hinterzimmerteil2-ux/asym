@@ -60,7 +60,7 @@ const ICONS = {
 
 const IMAGES = new Set(['acetilcolina', 'tajo_carmesi', 'red_mist', 'agua_rimac', 'chicharron', 'rodar', 'tropiezo', 'goyslop', 'cascara_platano', 'grito_animo', 'pulso_hierbas', 'somnifero_valeriana', 'raiz_atrayente', 'tonico_reforzado', 'ronda_suero', 'anestesia', 'camilla_magnetica', 'desinfectante', 'golpe_aturdidor']);
 
-const CUSTOM_ICONS = { strike: 'tajo_carmesi', burst: 'tropiezo', sprint: 'acetilcolina', pulse: 'pulso_hierbas', stun: 'somnifero_valeriana', pull: 'raiz_atrayente', boost: 'tonico_reforzado', purge: 'desinfectante' };
+const CUSTOM_ICONS = { strike: 'tajo_carmesi', burst: 'tropiezo', sprint: 'acetilcolina', projectile: 'astral_claw', invisible: 'paraguayizador', pulse: 'pulso_hierbas', stun: 'somnifero_valeriana', pull: 'raiz_atrayente', boost: 'tonico_reforzado', purge: 'desinfectante' };
 
 export default function SkillIcon({ id: rawId, size = 30 }) {
   const id = typeof rawId === 'string' && (rawId.startsWith('mc|') || rawId.startsWith('mh|')) ? CUSTOM_ICONS[rawId.split('|')[1]] : rawId;

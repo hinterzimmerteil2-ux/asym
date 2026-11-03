@@ -464,6 +464,17 @@ const PAIRS = [
 ["Cargando la garra", "Charging the claw"],
 ["Garra lista en un momento", "Claw ready in a moment"],
 ["Garra lista: lánzala", "Claw ready: throw it"],
+["Esfera cargada (Astral Claw)", "Charged sphere (Astral Claw)"],
+["Invisibilidad (Paraguayizador)", "Invisibility (Paraguayizador)"],
+["Tiempo de carga al 100% (s)", "Time to full charge (s)"],
+["Endlag al empuñarla (s)", "Endlag while holding it (s)"],
+["Espera tras la carga para lanzar (s)", "Wait after charging before throwing (s)"],
+["Endlag al lanzar (s)", "Endlag when throwing (s)"],
+["Velocidad de la esfera", "Sphere speed"],
+["Tamaño de la esfera", "Sphere size"],
+["Vuelo máximo (s)", "Max flight time (s)"],
+["Endlag al empezar (s)", "Endlag at start (s)"],
+["Dura invisible (s)", "Invisible for (s)"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

@@ -67,8 +67,8 @@ const handlers = {
     room.endlagSlow(entity, now, C.TRAP_ENDLAG_MS);
   },
 
-  astral_claw({ room, playerId, entity, now }) {
-    room.startAstral(playerId, entity, now);
+  astral_claw({ room, playerId, entity, card, now }) {
+    room.startAstral(playerId, entity, card, now);
   },
 
   agua_rimac({ room, playerId, entity, card, now }) {
@@ -127,6 +127,13 @@ const handlers = {
 };
 
 function customHandler({ room, playerId, entity, card, now }) {
+  if (card.customKind === 'invisible') {
+    entity.paraFrom = now + card.paraStartMs;
+    entity.paraUntil = entity.paraFrom + card.paraMs;
+    entity.paraOn = false;
+    Status.apply(entity, 'slow', card.paraStartMs, now, { tag: 'endlag', level: 2 });
+    return;
+  }
   if (card.customKind === 'sprint') {
     if (card.hpCost) room.damagePatient(playerId, card.hpCost, C.GOYSLOP_FLOOR);
     entity.sprintUntil = now + card.durationMs;
@@ -208,6 +215,7 @@ function runFx(room, ownerId, ownerEntity, list, trigger, ctx, now) {
 }
 
 function apply(room, playerId, entity, card, now) {
+  if (card.astral) { room.startAstral(playerId, entity, card, now); return; }
   const handler = handlers[card.id] || (card.custom ? customHandler : null);
   if (handler) handler({ room, playerId, entity, card, now });
 }
