@@ -2159,18 +2159,6 @@ class Room {
     const entity = this.gameState.entities[curadorId];
     if (!entity || entity.baseCooldownUntil > now || Status.blocksSkills(entity, now)) return;
     entity.baseCooldownUntil = now + (Characters.getCharacter(curador.characterId).baseCooldownMs || 900);
-    let near = null;
-    let nearDist = 2.6;
-    for (const [pid, pat] of Object.entries(this.gameState.patients)) {
-      const pe = this.gameState.entities[pid];
-      if (pat.status !== 'alive' || !pe) continue;
-      const d = euclid(entity, pe);
-      if (d < nearDist) { nearDist = d; near = pe; }
-    }
-    if (near && nearDist > 0.05) {
-      entity.faceX = (near.x - entity.x) / nearDist;
-      entity.faceZ = (near.z - entity.z) / nearDist;
-    }
     this.hitWindows.push({ kind: 'm1', playerId: curadorId, endsAt: now + M1_WINDOW_MS });
     this.broadcast(MessageType.HIT_FX, { playerId: curadorId, boxes: [handBox(entity, M1_REACH, M1_RADIUS)] });
   }
