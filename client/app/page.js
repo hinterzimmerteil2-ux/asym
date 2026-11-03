@@ -208,11 +208,11 @@ export default function LobbyPage() {
   const [nameInput, setNameInput] = useState('');
   const [nameSaving, setNameSaving] = useState(false);
   const [skillCooldowns, setSkillCooldowns] = useState({});
-  const [skillCooldownNow, setSkillCooldownNow] = useState(0);
+  const [skillCooldownNow, setSkillCooldownNow] = useState(() => Date.now());
   const [flojera, setFlojera] = useState(null);
   const [hand, setHand] = useState([]);
   const [cardCooldowns, setCardCooldowns] = useState({});
-  const [cardCooldownNow, setCardCooldownNow] = useState(0);
+  const [cardCooldownNow, setCardCooldownNow] = useState(() => Date.now());
   const [draftEndsAt, setDraftEndsAt] = useState(0);
   const [draftNow, setDraftNow] = useState(0);
 
@@ -496,11 +496,9 @@ export default function LobbyPage() {
   // activo — pulseCooldownUntil es un timestamp fijo, necesitamos un
   // "ahora" que avance para poder mostrar la cuenta regresiva.
   useEffect(() => {
-    const anyActive = Object.values(skillCooldowns).some((until) => until > Date.now());
-    if (!anyActive) return;
     const interval = setInterval(() => setSkillCooldownNow(Date.now()), 200);
     return () => clearInterval(interval);
-  }, [skillCooldowns]);
+  }, []);
 
   useEffect(() => {
     if (draftEndsAt <= Date.now()) return;
@@ -509,11 +507,9 @@ export default function LobbyPage() {
   }, [draftEndsAt]);
 
   useEffect(() => {
-    const anyActive = Object.values(cardCooldowns).some((until) => until > Date.now());
-    if (!anyActive) return;
     const interval = setInterval(() => setCardCooldownNow(Date.now()), 200);
     return () => clearInterval(interval);
-  }, [cardCooldowns]);
+  }, []);
 
   // Antes un error se quedaba pegado en pantalla para siempre hasta la
   // próxima acción — ahora se auto-oculta (salvo que el usuario ya lo haya
@@ -1141,7 +1137,7 @@ export default function LobbyPage() {
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
         {phase === 'action' && flojera?.astral && (
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: compact ? 110 : 96, width: 'min(260px, calc(100% - 24px))', zIndex: 35, padding: '6px 8px', borderRadius: 8, background: 'rgba(18,19,26,0.85)', border: '1px solid #f3e9a6', fontSize: 12, textAlign: 'center' }}>
-            <div>{flojera.astral.state === 'charging' ? 'Cargando la garra' : flojera.astral.readyMs > 0 ? `Garra cargada: lanzable en ${Math.ceil(flojera.astral.readyMs / 1000)}s` : 'Garra lista: lánzala'} {Math.round(flojera.astral.charge * 100)}%</div>
+            <div>{flojera.astral.state === 'charging' ? 'Cargando la garra' : 'Esfera cargada'} {Math.round(flojera.astral.charge * 100)}%</div>
             <div style={{ height: 6, marginTop: 4, borderRadius: 3, background: '#2a2d3d' }}><div style={{ height: '100%', width: `${Math.round(flojera.astral.charge * 100)}%`, borderRadius: 3, background: '#f3e9a6' }} /></div>
           </div>
         )}
@@ -1172,7 +1168,7 @@ export default function LobbyPage() {
           />
         )}
         {phase === 'lobby' && <TouchControls lobby />}
-        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl) => sl.chosen?.id)} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
+        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
 
         {phase === 'action' && flojera && (
           <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: compact ? (isAsymRole ? 40 : 64) : (isAsymRole ? 80 : 110) })}>
@@ -1248,7 +1244,7 @@ export default function LobbyPage() {
                   style={styles.cardButton(onCooldown)}
                   title={slot.chosen.description}
                 >
-                  <SkillIcon id={slot.chosen.id} size={34} />
+                  <SkillIcon id={flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : slot.chosen.id} size={34} />
                   <span style={styles.skillKey}>{i + 1}</span>
                   {onCooldown && (
                     <span style={styles.skillCooldownOverlay}>{Math.ceil((cooldownUntil - cardCooldownNow) / 1000)}</span>

@@ -139,7 +139,7 @@ const HOSPITAL_LAYOUT = (() => {
   const platforms = [];
   const plat = (id, x, z, hx, hz, h, ramp, kind, extra) =>
     platforms.push({ id, xFrac: x / half, zFrac: z / half, hxFrac: hx / REF_HALF, hzFrac: hz / REF_HALF, h, ramp: ramp || null, kind, ...(extra || {}) });
-  const wall = (id, x, z, hx, hz) => plat(id, x, z, hx, hz, 9, null, 'wall');
+  const wall = (id, x, z, hx, hz) => plat(id, x, z, hx, hz, 14, null, 'wall');
   wall('w_n1', -22.75, -40, 17.75, 0.5);
   wall('w_n2', 22.75, -40, 17.75, 0.5);
   wall('w_s1', -12.75, 40, 27.75, 0.5);
@@ -167,11 +167,15 @@ const HOSPITAL_LAYOUT = (() => {
       plat(`tr_${q}`, 16 * sx, 30 * sz, 8, 2.5, 6, sx > 0 ? '+x' : '-x', 'ramp');
       plat(`t2_${q}`, 31 * sx, 30 * sz, 3, 3, 2, null, 'tower', { y0: 6 });
       plat(`t2r_${q}`, 26 * sx, 30 * sz, 2, 2, 2, sx > 0 ? '+x' : '-x', 'ramp', { y0: 6 });
+      plat(`t3r_${q}`, 31 * sx, 30 * sz, 2.5, 2, 3, sx > 0 ? '+x' : '-x', 'ramp', { y0: 8 });
+      plat(`t3_${q}`, 36.5 * sx, 30 * sz, 3, 3, 3, null, 'tower', { y0: 8 });
     } else {
       plat(`rf_${q}`, 30 * sx, 30 * sz, 6, 6, 3, null, 'roof');
       plat(`rr_${q}`, 19 * sx, 30 * sz, 5, 2.5, 3, sx > 0 ? '+x' : '-x', 'ramp');
       plat(`r2_${q}`, 31 * sx, 30 * sz, 3, 3, 2.5, null, 'roof', { y0: 3 });
       plat(`r2r_${q}`, 26 * sx, 30 * sz, 2, 2, 2.5, sx > 0 ? '+x' : '-x', 'ramp', { y0: 3 });
+      plat(`r3r_${q}`, 31 * sx, 30 * sz, 2.5, 2, 3, sx > 0 ? '+x' : '-x', 'ramp', { y0: 5.5 });
+      plat(`r3_${q}`, 36.5 * sx, 30 * sz, 3, 3, 3, null, 'roof', { y0: 5.5 });
     }
     col(`c_${q}_1`, 'gurney', 10 * sx, 10 * sz);
     col(`c_${q}_2`, 'cart', 16 * sx, 8 * sz);

@@ -16,7 +16,7 @@ const PATIENT_PARAMS = {
   invisible: [['startSec', 'Endlag al empezar (s)', 0, 10, 0.1], ['durationSec', 'Dura invisible (s)', 0.5, 90, 0.5]],
 };
 const KIND_PRESETS = {
-  projectile: { cooldownSec: 70, stunSec: 4 },
+  projectile: { cooldownSec: 52, stunSec: 4 },
   invisible: { cooldownSec: 40, durationSec: 8, stunSec: 0 },
   strike: { cooldownSec: 30, stunSec: 1.5, durationSec: 3 },
   burst: { cooldownSec: 30, stunSec: 1.5, durationSec: 3 },

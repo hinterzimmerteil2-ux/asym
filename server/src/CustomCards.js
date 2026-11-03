@@ -44,7 +44,7 @@ function sanitize(raw, i) {
     id: typeof (raw && raw.id) === 'string' ? raw.id.slice(0, 40) : `sk_${i}`,
     name: name(raw, `Skill ${i + 1}`),
     kind,
-    cooldownSec: g('cooldownSec', 1, 300, kind === 'projectile' ? 70 : 30),
+    cooldownSec: g('cooldownSec', 1, 300, kind === 'projectile' ? 52 : 30),
     windowMs: Math.round(num(raw && raw.windowMs, 100, 1500, 380)),
     reach: g('reach', 0, 15, 1.2),
     radius: g('radius', 0.3, 20, kind === 'burst' ? 2 : 0.85),

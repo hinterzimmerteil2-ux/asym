@@ -982,7 +982,7 @@ class Room {
           statuses: this.buildStatuses(own, now),
           channel: own.channel ? { elapsed: now - own.channel.startedAt, total: CHANNEL_MS, beatMs: CHANNEL_BEAT_MS, beats: CHANNEL_BEATS, hits: own.channel.hits, scored: Object.keys(own.channel.scored).map(Number), slot: own.channel.slot } : null,
           sdGame: own.selfDmg ? this.sdView(own.selfDmg, now) : null,
-          astral: own.astral ? { state: own.astral.state, charge: own.astral.state === 'charging' ? Math.min(1, (now - own.astral.startedAt) / own.astral.cfg.chargeMs) : own.astral.charge, readyMs: Math.max(0, own.astral.readyAt - now) } : null,
+          astral: own.astral ? { state: own.astral.state, charge: own.astral.state === 'charging' ? Math.min(1, (now - own.astral.startedAt) / own.astral.cfg.chargeMs) : own.astral.charge, readyMs: Math.max(0, own.astral.readyAt - now), slot: own.astral.slot } : null,
           cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
         };
       }
