@@ -22,10 +22,10 @@ const CANVAS_HALF = CANVAS_SIZE / 2;
 
 const TEXTURES = [['', 'Por defecto'], ['marble', 'Mármol'], ['tile', 'Azulejo'], ['plaster', 'Yeso celeste'], ['tower', 'Paneles'], ['roof', 'Teja celeste'], ['ramp', 'Franjas'], ['concrete', 'Concreto'], ['brick', 'Ladrillo'], ['wood', 'Madera'], ['metal', 'Metal']];
 const TEX_COLORS = { marble: '#e7eef5', tile: '#eef3f8', plaster: '#8fc6ea', tower: '#b9dcf3', roof: '#9fd0f0', ramp: '#6fb6e8', concrete: '#c8d6e2', brick: '#d8dfe6', wood: '#c99a62', metal: '#b4c3d0' };
-const COLLISION_TYPES = ['gurney', 'shelf', 'cart', 'pillar', 'crate', 'desk', 'plant', 'tank'];
+const COLLISION_TYPES = ['gurney', 'shelf', 'cart', 'pillar', 'crate', 'desk', 'plant', 'tank', 'bed', 'vending', 'mri', 'wheelchair', 'iv'];
 const REF_HALF = 30;
 const MAP_HALF = 60;
-const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3, crate: 1.1, desk: 1, plant: 1.4, tank: 2 };
+const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3, crate: 1.1, desk: 1, plant: 1.4, tank: 2, bed: 1.1, vending: 2, mri: 2.4, wheelchair: 1, iv: 2 };
 
 const DEFAULT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', mezzanine: 'marble' };
 
@@ -132,6 +132,11 @@ const TYPE_COLORS = {
   desk: '#7a5a3a',
   plant: '#4f9a5a',
   tank: '#5b8fb0',
+  bed: '#b9c4c0',
+  vending: '#a33a3a',
+  mri: '#c9d3d6',
+  wheelchair: '#4a4f58',
+  iv: '#9fb0b0',
 };
 
 // Mismos criterios usados para verificar a mano el mapa 'default' en
@@ -970,7 +975,7 @@ function round3(n) {
 }
 
 function labelForType(type) {
-  const labels = { gurney: 'Camilla', shelf: 'Estantería', cart: 'Carrito', pillar: 'Columna', crate: 'Caja', desk: 'Escritorio', plant: 'Planta', tank: 'Tanque' };
+  const labels = { gurney: 'Camilla', shelf: 'Estantería', cart: 'Carrito', pillar: 'Columna', crate: 'Caja', desk: 'Escritorio', plant: 'Planta', tank: 'Tanque', bed: 'Cama', vending: 'Expendedora', mri: 'Resonancia', wheelchair: 'Silla de ruedas', iv: 'Poste de suero' };
   return labels[type] || type;
 }
 

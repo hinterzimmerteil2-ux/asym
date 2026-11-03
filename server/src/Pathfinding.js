@@ -4,7 +4,7 @@ const CELL = 0.5;
 const PAD = 0.5;
 const STEP = 0.49;
 const LEDGE = 1.0;
-const MAX_EXPANSIONS = 60000;
+const MAX_EXPANSIONS = 140000;
 
 function buildGrid(half, objects, platforms) {
   const n = Math.ceil((half * 2) / CELL);

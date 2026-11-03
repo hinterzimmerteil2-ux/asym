@@ -690,6 +690,50 @@ function CollisionObjectMesh({ type, radius }) {
           <mesh position={[0, 2.05, 0]}><sphereGeometry args={[radius * 0.95, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#4a7a96" metalness={0.5} roughness={0.4} /></mesh>
         </group>
       );
+    case 'bed':
+      return (
+        <group>
+          <mesh position={[0, 0.55, 0]}><boxGeometry args={[radius * 2, 0.18, radius * 1.1]} /><meshStandardMaterial color="#c9d3d0" roughness={0.7} /></mesh>
+          <mesh position={[-radius * 0.55, 0.72, 0]}><boxGeometry args={[radius * 0.7, 0.14, radius * 0.9]} /><meshStandardMaterial color="#e8ecea" roughness={0.9} /></mesh>
+          <mesh position={[radius * 0.95, 0.85, 0]}><boxGeometry args={[0.1, 0.7, radius * 1.1]} /><meshStandardMaterial color="#6f7b74" roughness={0.6} metalness={0.4} /></mesh>
+          {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => (
+            <mesh key={`${a}${b}`} position={[a * radius * 0.85, 0.25, b * radius * 0.45]}><cylinderGeometry args={[0.05, 0.05, 0.5, 6]} /><meshStandardMaterial color="#2a2d3d" /></mesh>
+          ))}
+        </group>
+      );
+    case 'vending':
+      return (
+        <group>
+          <mesh position={[0, 1, 0]}><boxGeometry args={[radius * 1.8, 2, radius * 1.4]} /><meshStandardMaterial color="#a33a3a" roughness={0.6} /></mesh>
+          <mesh position={[0, 1.2, radius * 0.71]}><boxGeometry args={[radius * 1.2, 1.1, 0.04]} /><meshStandardMaterial color="#9fe3ff" emissive="#3a8fb0" emissiveIntensity={0.7} /></mesh>
+        </group>
+      );
+    case 'mri':
+      return (
+        <group>
+          <mesh position={[0, 1.2, 0]} rotation={[Math.PI / 2, 0, Math.PI / 2]}><torusGeometry args={[radius * 0.75, radius * 0.28, 10, 18]} /><meshStandardMaterial color="#c9d3d6" roughness={0.5} metalness={0.3} /></mesh>
+          <mesh position={[0, 0.7, 0]}><boxGeometry args={[radius * 2, 0.2, radius * 0.6]} /><meshStandardMaterial color="#6f7b74" roughness={0.6} /></mesh>
+          <mesh position={[0, 0.35, 0]}><boxGeometry args={[radius * 1.4, 0.7, radius * 1.2]} /><meshStandardMaterial color="#8a948f" roughness={0.8} /></mesh>
+        </group>
+      );
+    case 'wheelchair':
+      return (
+        <group>
+          <mesh position={[0, 0.5, 0]}><boxGeometry args={[radius * 1.2, 0.1, radius * 1.2]} /><meshStandardMaterial color="#3a3f48" /></mesh>
+          <mesh position={[-radius * 0.55, 0.85, 0]}><boxGeometry args={[0.08, 0.7, radius * 1.2]} /><meshStandardMaterial color="#3a3f48" /></mesh>
+          {[-1, 1].map((b) => (
+            <mesh key={b} position={[0, 0.3, b * radius * 0.7]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.3, 0.3, 0.06, 12]} /><meshStandardMaterial color="#1c1f26" /></mesh>
+          ))}
+        </group>
+      );
+    case 'iv':
+      return (
+        <group>
+          <mesh position={[0, 1, 0]}><cylinderGeometry args={[0.03, 0.03, 2, 6]} /><meshStandardMaterial color="#9fb0b0" metalness={0.6} roughness={0.4} /></mesh>
+          <mesh position={[0, 0.05, 0]}><cylinderGeometry args={[radius * 0.9, radius * 0.9, 0.06, 8]} /><meshStandardMaterial color="#555" /></mesh>
+          <mesh position={[0.12, 1.85, 0]}><boxGeometry args={[0.16, 0.3, 0.1]} /><meshStandardMaterial color="#cfeaff" transparent opacity={0.85} emissive="#6fa0c0" emissiveIntensity={0.3} /></mesh>
+        </group>
+      );
     case 'pillar':
     default:
       return (

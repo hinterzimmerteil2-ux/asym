@@ -135,7 +135,7 @@ const MINIGAMES = ['rhythm', 'needle', 'mash', 'meter'];
 const EVENT_KINDS = ['blackout', 'gates', 'alarm', 'shuffle', 'collapse', 'appear'];
 
 const HOSPITAL_LAYOUT = (() => {
-  const half = MATCH_AREA.halfSize;
+  const half = 80;
   const platforms = [];
   const plat = (id, x, z, hx, hz, h, ramp, kind, extra) =>
     platforms.push({ id, xFrac: x / half, zFrac: z / half, hxFrac: hx / REF_HALF, hzFrac: hz / REF_HALF, h, ramp: ramp || null, kind, ...(extra || {}) });
@@ -150,7 +150,7 @@ const HOSPITAL_LAYOUT = (() => {
   wall('w_e2', 40, 28.25, 0.5, 12.25);
   const collisionObjects = [];
   const selfDamageObjects = [];
-  const radii = { gurney: 0.04, shelf: 0.05, cart: 0.03, pillar: 0.033 };
+  const radii = { gurney: 0.04, shelf: 0.05, cart: 0.03, pillar: 0.033, bed: 0.045, vending: 0.03, mri: 0.08, wheelchair: 0.025, iv: 0.015 };
   const col = (id, type, x, z) => collisionObjects.push({ id, type, xFrac: x / half, zFrac: z / half, radiusFrac: radii[type] });
   const sd = (id, x, z) => selfDamageObjects.push({ id, xFrac: x / half, zFrac: z / half });
   const quadrants = [[1, 1], [-1, 1], [1, -1], [-1, -1]];
@@ -185,6 +185,15 @@ const HOSPITAL_LAYOUT = (() => {
     col(`c_${q}_5`, 'shelf', 14 * sx, 26 * sz);
     col(`c_${q}_6`, 'pillar', 36 * sx, 12 * sz);
     col(`c_${q}_7`, 'cart', 36 * sx, 22 * sz);
+    col(`c_${q}_8`, 'mri', 29 * sx, 11 * sz);
+    col(`c_${q}_9`, 'bed', 26 * sx, 7.5 * sz);
+    col(`c_${q}_10`, 'bed', 8 * sx, 7 * sz);
+    col(`c_${q}_11`, 'vending', 6 * sx, 15 * sz);
+    col(`c_${q}_12`, 'wheelchair', 20 * sx, 13 * sz);
+    col(`c_${q}_13`, 'iv', 11.5 * sx, 6.5 * sz);
+    col(`c_${q}_14`, 'iv', 8 * sx, 9.5 * sz);
+    col(`c_${q}_15`, 'iv', 11.5 * sx, 25 * sz);
+    col(`c_${q}_16`, 'wheelchair', 19 * sx, 25 * sz);
     sd(`sd_room_${q}`, 32 * sx, 17 * sz);
     plat(`mz_${q}`, 14 * sx, 20 * sz, 5, 3.5, 3.5, null, 'mezzanine', { slab: 0.4 });
     plat(`mzr_${q}`, 24 * sx, 20 * sz, 5, 2.5, 3.5, sx > 0 ? '-x' : '+x', 'ramp');
@@ -220,7 +229,7 @@ const HOSPITAL_LAYOUT = (() => {
     { id: 'ev_collapse_2', kind: 'collapse', targetId: 'rr_1', startSec: 150, warnSec: 8, durSec: 45, repeatSec: 120 },
     { id: 'ev_collapse_3', kind: 'collapse', targetId: 'tr_3', startSec: 240, warnSec: 10, durSec: 60, repeatSec: 0, permanent: true },
   ]);
-  return { id: 'hospital', name: 'Hospital de varios pisos', selfDamageObjects, collisionObjects, platforms, events };
+  return { id: 'hospital', name: 'Hospital de varios pisos', halfSize: half, selfDamageObjects, collisionObjects, platforms, events };
 })();
 
 const HOSPITAL_SPAWNS = [
@@ -256,7 +265,7 @@ function registerMap(layout, dryRun) {
     id: layout.id,
     name: typeof layout.name === 'string' && layout.name.trim() ? layout.name.trim() : layout.id,
     custom: true,
-    halfSize: Math.max(20, Math.min(250, Number(layout.halfSize) || MATCH_AREA.halfSize)),
+    halfSize: Math.max(20, Math.min(400, Number(layout.halfSize) || MATCH_AREA.halfSize)),
     curatorSpawns: (Array.isArray(layout.curatorSpawns) ? layout.curatorSpawns : []).slice(0, 64).map((s) => ({ xFrac: clampFrac(s.xFrac), zFrac: clampFrac(s.zFrac) })),
     patientSpawns: (Array.isArray(layout.patientSpawns) ? layout.patientSpawns : []).slice(0, 128).map((s) => ({ xFrac: clampFrac(s.xFrac), zFrac: clampFrac(s.zFrac) })),
     selfDamageObjects: layout.selfDamageObjects.map((o) => ({
@@ -379,7 +388,7 @@ function resolveSelfDamagePositions(mapId, area) {
   }));
 }
 
-const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3, crate: 1.1, desk: 1, plant: 1.4, tank: 2 };
+const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3, crate: 1.1, desk: 1, plant: 1.4, tank: 2, bed: 1.1, vending: 2, mri: 2.4, wheelchair: 1, iv: 2 };
 
 function resolveCollisionObjects(mapId, area) {
   const layout = MAPS[mapId] || MAPS[DEFAULT_MAP_ID];
