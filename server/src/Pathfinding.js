@@ -15,14 +15,17 @@ function buildGrid(half, objects, platforms) {
       const x = -half + (i + 0.5) * CELL;
       const z = -half + (j + 0.5) * CELL;
       const idx = j * n + i;
-      let top = -Infinity;
-      for (const [ox, oz] of FOOTPRINT) {
-        let t0 = baseAt(platforms, x + ox, z + oz);
-        for (const p of platforms) {
+      let top = baseAt(platforms, x, z);
+      for (const p of platforms) {
+        const t = platformTop(p, x, z);
+        if (t !== null && t > top) top = t;
+      }
+      for (const p of platforms) {
+        if (!p.ramp) continue;
+        for (const [ox, oz] of FOOTPRINT) {
           const t = platformTop(p, x + ox, z + oz);
-          if (t !== null && t > t0) t0 = t;
+          if (t !== null && t > top) top = t;
         }
-        if (t0 > top) top = t0;
       }
       h[idx] = top;
       if (i === 0 || j === 0 || i === n - 1 || j === n - 1 || Math.abs(x) > half - 0.6 || Math.abs(z) > half - 0.6) blocked[idx] = 1;

@@ -199,7 +199,7 @@ function WallFace({ p, side, mats, seed, full, outer }) {
       const n = Math.max(0, Math.floor(len / 5));
       for (let i = 0; i < n; i++) {
         const u = -len / 2 + (i + 0.5) * (len / n);
-        for (const y of [1.9, 4.9, 7.8, 10.8]) wins.push({ u: u * flip, y, lit: rand() < 0.22, broken: rand() < 0.25 });
+        for (const y of [1.9, 4.9, 7.8, 10.8, 13.8, 16.8]) wins.push({ u: u * flip, y, lit: rand() < 0.22, broken: rand() < 0.25 });
       }
       return { wins, pil, lamps, furn, signs };
     }

@@ -139,7 +139,7 @@ const HOSPITAL_LAYOUT = (() => {
   const platforms = [];
   const plat = (id, x, z, hx, hz, h, ramp, kind, extra) =>
     platforms.push({ id, xFrac: x / half, zFrac: z / half, hxFrac: hx / REF_HALF, hzFrac: hz / REF_HALF, h, ramp: ramp || null, kind, ...(extra || {}) });
-  const wall = (id, x, z, hx, hz) => plat(id, x, z, hx, hz, 14, null, 'wall');
+  const wall = (id, x, z, hx, hz) => plat(id, x, z, hx, hz, 20, null, 'wall');
   wall('w_n1', -22.75, -40, 17.75, 0.5);
   wall('w_n2', 22.75, -40, 17.75, 0.5);
   wall('w_s1', -12.75, 40, 27.75, 0.5);
@@ -157,7 +157,7 @@ const HOSPITAL_LAYOUT = (() => {
   quadrants.forEach(([sx, sz], q) => {
     wall(`wa_${q}_1`, 4 * sx, 9.75 * sz, 0.5, 6.25);
     wall(`wa_${q}_2`, 4 * sx, 26 * sz, 0.5, 4);
-    wall(`wa_${q}_3`, 4 * sx, 37.25 * sz, 0.5, 3.25);
+    wall(`wa_${q}_3`, 4 * sx, 39.5 * sz, 0.5, 1);
     wall(`wb_${q}_1`, 14.75 * sx, 4 * sz, 11.25, 0.5);
     wall(`wb_${q}_2`, 36.25 * sx, 4 * sz, 4.25, 0.5);
     plat(`wp_${q}`, 22 * sx, 9 * sz, 0.5, 5, 6, null, 'partition');
@@ -174,14 +174,15 @@ const HOSPITAL_LAYOUT = (() => {
       plat(`rr_${q}`, 19 * sx, 30 * sz, 5, 2.5, 3, sx > 0 ? '+x' : '-x', 'ramp');
       plat(`r2_${q}`, 31 * sx, 30 * sz, 3, 3, 2.5, null, 'roof', { y0: 3 });
       plat(`r2r_${q}`, 26 * sx, 30 * sz, 2, 2, 2.5, sx > 0 ? '+x' : '-x', 'ramp', { y0: 3 });
-      plat(`r3r_${q}`, 31 * sx, 30 * sz, 2.5, 2, 3, sx > 0 ? '+x' : '-x', 'ramp', { y0: 5.5 });
-      plat(`r3_${q}`, 36.5 * sx, 30 * sz, 3, 3, 8.5, null, 'roof');
+      plat(`r3r_${q}`, 31 * sx, 30 * sz, 2.5, 2, 2.5, sx > 0 ? '+x' : '-x', 'ramp', { y0: 5.5 });
+      plat(`r3_${q}`, 36.5 * sx, 30 * sz, 3, 3, 8, null, 'roof');
     }
+    plat(`f3c_${q}`, (tower ? 31 : 36.5) * sx, 33 * sz, 2.5, 3, 8, null, 'mezzanine', { slab: 0.4 });
     col(`c_${q}_1`, 'gurney', 10 * sx, 10 * sz);
     col(`c_${q}_2`, 'cart', 16 * sx, 8 * sz);
     col(`c_${q}_3`, 'shelf', 13 * sx, 13 * sz);
-    col(`c_${q}_4`, 'gurney', 9 * sx, 37 * sz);
-    col(`c_${q}_5`, 'shelf', 14 * sx, 37 * sz);
+    col(`c_${q}_4`, 'gurney', 9 * sx, 26 * sz);
+    col(`c_${q}_5`, 'shelf', 14 * sx, 26 * sz);
     col(`c_${q}_6`, 'pillar', 36 * sx, 12 * sz);
     col(`c_${q}_7`, 'cart', 36 * sx, 22 * sz);
     sd(`sd_room_${q}`, 32 * sx, 17 * sz);
@@ -189,6 +190,12 @@ const HOSPITAL_LAYOUT = (() => {
     plat(`mzr_${q}`, 24 * sx, 20 * sz, 5, 2.5, 3.5, sx > 0 ? '-x' : '+x', 'ramp');
     sd(`sd_mez_${q}`, 14 * sx, 20 * sz);
     sd(`sd_top_${q}`, 30 * sx, 30 * sz);
+  });
+  [1, -1].forEach((sz, i) => {
+    plat(`f3h_${i}`, 0, 36.5 * sz, 36, 3.5, 8, null, 'mezzanine', { slab: 0.4 });
+    [-24, -12, 12, 24].forEach((x, k) => plat(`f3p_${i}_${k}`, x, 38.4 * sz, 0.3, 0.8, 2.2, null, 'partition', { y0: 8 }));
+    sd(`sd_f3_${i}`, -6, 36.5 * sz);
+    sd(`sd_f3b_${i}`, 18, 36 * sz);
   });
   [[0, 20], [0, -20]].forEach(([x, z], i) => {
     col(`c_cor_${i}`, 'pillar', x, z);
