@@ -181,6 +181,8 @@ export default function LobbyPage() {
   const [matchHalf, setMatchHalf] = useState(60);
   const [roles, setRoles] = useState([]);
   const [myRole, setMyRole] = useState(null);
+  const [kitPref, setKitPref] = useState({ on: false, kit: 'none' });
+  const kitSentRef = useRef(false);
   const [platforms, setPlatforms] = useState([]);
   const [patients, setPatients] = useState({});
   const [timeRemainingMs, setTimeRemainingMs] = useState(null);
@@ -729,6 +731,15 @@ export default function LobbyPage() {
 
   const mySkills = players.find((p) => p.id === myPlayerId)?.character?.skills || [];
 
+  useEffect(() => {
+    if (!kitPref.on || kitSentRef.current) return;
+    if (phase !== 'action' || isAsymRole || !roles.length || myRole || !hand[0] || hand[0].chosen) return;
+    const ids = ['none', ...roles.map((r) => r.id)];
+    const pick = kitPref.kit === 'random' || !ids.includes(kitPref.kit) ? ids[Math.floor(Math.random() * ids.length)] : kitPref.kit;
+    kitSentRef.current = true;
+    connRef.current?.send('select_role', { roleId: pick });
+  }, [kitPref, phase, isAsymRole, roles, myRole, hand]);
+
   const handlePulse = useCallback((skill) => {
     // Validamos en el cliente solo para no spamear el servidor con un
     // mensaje que de todos modos va a rechazar — la validación real
@@ -794,6 +805,18 @@ export default function LobbyPage() {
     setHitboxes(next);
     try { localStorage.setItem('asym_hitboxes', JSON.stringify(next)); } catch {}
   }
+
+  useEffect(() => {
+    try {
+      const k = JSON.parse(localStorage.getItem('asym_kit') || 'null');
+      if (k && typeof k === 'object') setKitPref({ on: Boolean(k.on), kit: typeof k.kit === 'string' ? k.kit : 'none' });
+    } catch {}
+  }, []);
+  const updateKitPref = (next) => {
+    setKitPref(next);
+    try { localStorage.setItem('asym_kit', JSON.stringify(next)); } catch {}
+  };
+  useEffect(() => { kitSentRef.current = false; }, [roles]);
 
   const handleSelectRole = useCallback((roleId) => {
     if (isAsymRole || phase !== 'action') return;
@@ -992,6 +1015,24 @@ export default function LobbyPage() {
 
           {phase === 'lobby' && (
             <button type="button" style={{ ...styles.smallButton, width: '100%', padding: '8px 12px' }} onClick={() => setCosmeticsOpen(true)}>Personalizar personaje <span style={{ color: '#e0b34a', marginLeft: 6 }}>{Math.floor(normQ(desgracias.balance))} ℍ</span></button>
+          )}
+          {phase === 'lobby' && !isAsymRole && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', border: '1px solid #2a2d3d', borderRadius: 8, fontSize: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                <input type="checkbox" checked={kitPref.on} onChange={(e) => updateKitPref({ ...kitPref, on: e.target.checked })} />
+                Preselección de kit
+              </label>
+              {kitPref.on && (
+                <select value={kitPref.kit} onChange={(e) => updateKitPref({ ...kitPref, kit: e.target.value })} style={{ background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 6, padding: 6 }}>
+                  <option value="none">Sin kit</option>
+                  <option value="loquito">Loquito de la Esquina</option>
+                  <option value="hincha">Hincha Cantarín del Barrio</option>
+                  <option value="cobrador">Cobrador de Combi</option>
+                  <option value="random">Random</option>
+                </select>
+              )}
+              {!kitPref.on && <span style={{ opacity: 0.65 }}>Desactivada: eliges el kit en plena partida.</span>}
+            </div>
           )}
 
           {phase === 'lobby' && isHost && (
