@@ -244,7 +244,9 @@ const MAPS = {
   hospital: HOSPITAL_LAYOUT,
 };
 
+MAPS.general = require('./HospitalGeneral').build(REF_HALF, sanitizeEvents);
 const HOSPITAL_ID = 'hospital';
+const GENERAL_ID = 'general';
 
 const DEFAULT_MAP_ID = 'default';
 
@@ -274,6 +276,7 @@ function registerMap(layout, dryRun) {
       xFrac: clampFrac(o.xFrac),
       zFrac: clampFrac(o.zFrac),
       minigame: MINIGAMES.includes(o.minigame) ? o.minigame : null,
+      y: Number.isFinite(Number(o.y)) ? Math.max(-10, Math.min(60, Number(o.y))) : undefined,
     })),
     events: sanitizeEvents(layout.events),
     cards: CustomCards.normalizeList(layout.cards),
@@ -363,6 +366,7 @@ function getLayoutCopy(mapId) {
     curatorSpawns: m.curatorSpawns || [],
     patientSpawns,
     selfDamageObjects: m.selfDamageObjects || [],
+    serums: m.serums || [],
     collisionObjects: m.collisionObjects || [],
     platforms: m.platforms || [],
     events: m.events || [],
@@ -391,7 +395,13 @@ function resolveSelfDamagePositions(mapId, area) {
     x: obj.xFrac * area.halfSize,
     z: obj.zFrac * area.halfSize,
     minigame: obj.minigame || null,
+    y: typeof obj.y === 'number' ? obj.y : undefined,
   }));
+}
+
+function resolveSerums(mapId, area) {
+  const layout = MAPS[mapId] || {};
+  return (layout.serums || []).map((o) => ({ id: o.id, x: o.xFrac * area.halfSize, z: o.zFrac * area.halfSize, y: o.y || 0 }));
 }
 
 const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3, crate: 1.1, desk: 1, plant: 1.4, tank: 2, bed: 1.1, vending: 2, mri: 2.4, wheelchair: 1, iv: 2 };
@@ -485,6 +495,8 @@ module.exports = {
   MAPS,
   DEFAULT_MAP_ID,
   HOSPITAL_ID,
+  GENERAL_ID,
+  resolveSerums,
   resolveSelfDamagePositions,
   resolveCollisionObjects,
   resolvePlatforms,

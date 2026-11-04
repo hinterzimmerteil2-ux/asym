@@ -1064,3 +1064,30 @@ test('Módulos: al reubicarse nunca quedan juntos ni en el mismo sitio (salvo ma
     }
   }
 });
+
+test('Hospital General: todos los pisos, sótano, azotea y patio son alcanzables; Suero cura a Pacientes con tope y lleva al Curador a la mitad', () => {
+  const GameMap = require('../src/GameMap');
+  const Pathfinding = require('../src/Pathfinding');
+  const area = GameMap.areaFor('general');
+  const grid = Pathfinding.buildGrid(area.halfSize, GameMap.resolveCollisionObjects('general', area), GameMap.resolvePlatforms('general', area));
+  const seen = Pathfinding.reachableFrom(grid, { x: -26, z: 3, y: 0 });
+  for (const [x, z, y] of [[-30, -24, 7.5], [-10, -24, 15], [26, 22, 22.5], [-6, 0, -4.5], [55, 20, 0]]) {
+    assert.ok(Pathfinding.isReachableNear(grid, seen, x, z, 2, y), `inalcanzable ${x},${z},${y}`);
+  }
+  const { room, e, p, clock, step } = setup();
+  room.mapId = 'general';
+  const sr = { id: 'sr_t', kind: 'serum', x: -26, z: 3, y: 0, radius: 3, ownerId: null, until: Infinity, activeUntil: clock.t + 14000, armedAt: undefined };
+  room.gameState.zones.push(sr);
+  const curId = [...room.players].find(([, pl]) => pl.isAsymRole)[0];
+  const patId = curId === 'a' ? 'b' : 'a';
+  e[curId].x = -25; e[curId].z = 3; e[curId].y = 0;
+  e[patId].x = -26; e[patId].z = 3; e[patId].y = 0;
+  p[patId].hp = 50;
+  room.gameState.curator.hp = 100;
+  for (let i = 0; i < 400; i++) { step(1); room.tickZones(clock.t, 0.05); }
+  assert.ok(p[patId].hp > 50 && p[patId].hp <= p[patId].maxHp * 0.9 + 1e-6, 'cura con tope');
+  assert.ok(room.gameState.curator.hp > 400 && room.gameState.curator.hp <= room.gameState.curator.max / 2 + 1e-6, 'curador sube hacia la mitad sin pasarla');
+  p[patId].hp = p[patId].maxHp * 0.9;
+  for (let i = 0; i < 100; i++) { step(1); room.tickZones(clock.t, 0.05); }
+  assert.ok(p[patId].hp <= p[patId].maxHp * 0.9 + 1e-6, 'no pasa del tope');
+});

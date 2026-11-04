@@ -9,7 +9,7 @@ class RoomManager {
   getOrCreateRoom(roomId) {
     if (!this.rooms.has(roomId)) {
       const room = new Room(roomId);
-      room.mapId = GameMap.HOSPITAL_ID;
+      room.mapId = GameMap.GENERAL_ID;
       this.rooms.set(roomId, room);
     }
     return this.rooms.get(roomId);

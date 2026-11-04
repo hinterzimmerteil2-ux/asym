@@ -745,7 +745,7 @@ function CollisionObjectMesh({ type, radius }) {
   }
 }
 
-const ZONE_COLORS = { rimac: '#6b8f3a', puddle: '#5fd58c', trap: '#f2d154' };
+const ZONE_COLORS = { rimac: '#6b8f3a', puddle: '#5fd58c', trap: '#f2d154', serum: '#54e0c0' };
 
 function BananaMesh({ color, spotted, ghost, fade }) {
   return (
@@ -818,7 +818,7 @@ function ZoneDisc({ zone, ghost, platforms }) {
       ) : (
         <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[zone.radius * 2, zone.radius * 2]} />
-          <meshBasicMaterial color={color} transparent opacity={zone.kind === 'rimac' ? 0.1 + 0.07 * (zone.level || 3) : 0.3} />
+          <meshBasicMaterial color={color} transparent opacity={zone.kind === 'rimac' ? 0.1 + 0.07 * (zone.level || 3) : zone.kind === 'serum' ? (zone.armed ? 0.22 : 0.06) : 0.3} />
         </mesh>
       )}
       {isTrap && <BananaMesh color={bananaColor} spotted={false} ghost={ghost} fade={zone.level > 0 && zone.level <= 2} />}
@@ -829,6 +829,14 @@ function ZoneDisc({ zone, ghost, platforms }) {
         </>
       )}
       {zone.kind === 'puddle' && <PuddleRipples radius={zone.radius} color="#5fd58c" />}
+      {zone.kind === 'serum' && (
+        <group>
+          <mesh position={[0, 1, 0]}><cylinderGeometry args={[0.03, 0.03, 2, 6]} /><meshStandardMaterial color="#9fb0b0" metalness={0.6} roughness={0.4} /></mesh>
+          <mesh position={[0, 0.05, 0]}><cylinderGeometry args={[0.35, 0.35, 0.06, 8]} /><meshStandardMaterial color="#555" /></mesh>
+          <mesh position={[0.12, 1.85, 0]}><boxGeometry args={[0.2, 0.34, 0.12]} /><meshStandardMaterial color={zone.armed ? '#7ff5d8' : '#7a8a8a'} transparent opacity={0.9} emissive={zone.armed ? '#2fd0b0' : '#000000'} emissiveIntensity={zone.armed ? 0.9 : 0} /></mesh>
+          {zone.armed && <PuddleRipples radius={zone.radius} color="#54e0c0" />}
+        </group>
+      )}
     </group>
   );
 }

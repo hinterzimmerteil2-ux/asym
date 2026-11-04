@@ -8,6 +8,12 @@ const Roles = require('./Roles');
 const CardEffects = require('./CardEffects');
 const Hitbox = require('./Hitbox');
 const MODULE_MIN_DIST = 9;
+const SERUM_RADIUS = 3;
+const SERUM_ACTIVE_MS = 14000;
+const SERUM_RECHARGE_MS = 28000;
+const SERUM_PATIENT_PER_SEC = 1.5;
+const SERUM_PATIENT_CAP = 0.9;
+const SERUM_CURATOR_PER_SEC = 30;
 const { groundAt, blockedAt, distanceBetween, euclid, reachPoint, handBox, handHit } = Hitbox;
 const {
   MAX_PLAYERS,
@@ -234,15 +240,15 @@ class Room {
     const objects = GameMap.resolveCollisionObjects(this.mapId, area);
     const platforms = GameMap.resolvePlatforms(this.mapId, area);
     const ok = all
-      .filter((p) => !objects.some((o) => o.height > 0.5 && Math.abs(p.x - o.x) <= o.radius + 0.6 && Math.abs(p.z - o.z) <= o.radius + 0.6))
-      .filter((p) => Pathfinding.isReachableNear(grid, this.nav.seen, p.x, p.z, 2))
+      .filter((p) => !objects.some((o) => o.height > 0.5 && (typeof p.y !== 'number' || p.y < 0.5) && Math.abs(p.x - o.x) <= o.radius + 0.6 && Math.abs(p.z - o.z) <= o.radius + 0.6))
+      .filter((p) => Pathfinding.isReachableNear(grid, this.nav.seen, p.x, p.z, 2, p.y))
       .map((p) => {
         let top = Hitbox.baseAt(platforms, p.x, p.z);
         for (const pl of platforms) {
           const t = Hitbox.platformTop(pl, p.x, p.z);
           if (t !== null && t > top) top = t;
         }
-        return { ...p, y: top };
+        return { ...p, y: typeof p.y === 'number' ? p.y : top };
       });
     return ok.length ? ok : all.map((p) => ({ ...p, y: GROUND_Y }));
   }
@@ -786,6 +792,9 @@ class Room {
 
     this.lastRelocateAt = Date.now();
     this.gameState.zones = [];
+    for (const sr of GameMap.resolveSerums(this.mapId, GameMap.areaFor(this.mapId))) {
+      this.gameState.zones.push({ id: `sr_${sr.id}`, kind: 'serum', x: sr.x, z: sr.z, y: sr.y, radius: SERUM_RADIUS, ownerId: null, until: Infinity, activeUntil: Date.now() + SERUM_ACTIVE_MS, armedAt: undefined });
+    }
     this.gameState.curator = { hp: CURATOR_HP_START, max: CURATOR_HP_MAX };
     this.gameState.selfDamageObjectPositions = {};
     this.gameState.selfDamageTypes = {};
@@ -1776,6 +1785,39 @@ class Room {
     }
   }
 
+  tickSerum(zone, now, dt) {
+    if (zone.armedAt !== undefined && now >= zone.armedAt) {
+      zone.armedAt = undefined;
+      zone.activeUntil = now + SERUM_ACTIVE_MS;
+    }
+    if (zone.armedAt !== undefined) return;
+    if (now >= zone.activeUntil) {
+      zone.armedAt = now + SERUM_RECHARGE_MS;
+      return;
+    }
+    for (const [playerId, patient] of Object.entries(this.gameState.patients)) {
+      if (patient.status !== 'alive') continue;
+      const entity = this.gameState.entities[playerId];
+      if (!entity || this.zoneDistance(entity, zone) > zone.radius) continue;
+      const cap = patient.maxHp * SERUM_PATIENT_CAP;
+      if (patient.hp < cap) {
+        patient.hp = Math.min(cap, patient.hp + SERUM_PATIENT_PER_SEC * dt * MUTATIONS[this.mutation].heal);
+        this.exitAstral(entity, now);
+      }
+    }
+    const curator = this.gameState.curator;
+    if (!curator) return;
+    for (const [playerId, player] of this.players) {
+      if (!player.isAsymRole) continue;
+      const entity = this.gameState.entities[playerId];
+      if (!entity || this.zoneDistance(entity, zone) > zone.radius) continue;
+      const target = curator.max / 2;
+      const diff = target - curator.hp;
+      const step = Math.min(Math.abs(diff), SERUM_CURATOR_PER_SEC * dt);
+      if (step > 0) this.adjustCuratorHp(Math.sign(diff) * step);
+    }
+  }
+
   tickZones(now, dt) {
     let statusChanged = false;
     for (const [playerId, entity] of Object.entries(this.gameState.entities)) {
@@ -1795,6 +1837,10 @@ class Room {
       }
       remaining.push(zone);
 
+      if (zone.kind === 'serum') {
+        this.tickSerum(zone, now, dt);
+        continue;
+      }
       if (zone.kind === 'rimac') {
         const frac = Math.min(1, (now - zone.placedAt) / (zone.until - zone.placedAt));
         zone.level = frac < 1 / 3 ? 3 : frac < 2 / 3 ? 2 : 1;
