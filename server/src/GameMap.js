@@ -266,6 +266,7 @@ function registerMap(layout, dryRun) {
     name: typeof layout.name === 'string' && layout.name.trim() ? layout.name.trim() : layout.id,
     custom: true,
     halfSize: Math.max(20, Math.min(400, Number(layout.halfSize) || MATCH_AREA.halfSize)),
+    allowModuleOverlap: layout.allowModuleOverlap === true,
     curatorSpawns: (Array.isArray(layout.curatorSpawns) ? layout.curatorSpawns : []).slice(0, 64).map((s) => ({ xFrac: clampFrac(s.xFrac), zFrac: clampFrac(s.zFrac) })),
     patientSpawns: (Array.isArray(layout.patientSpawns) ? layout.patientSpawns : []).slice(0, 128).map((s) => ({ xFrac: clampFrac(s.xFrac), zFrac: clampFrac(s.zFrac) })),
     selfDamageObjects: layout.selfDamageObjects.map((o) => ({
@@ -288,9 +289,9 @@ function registerMap(layout, dryRun) {
       id: typeof p.id === 'string' ? p.id : `pl_${i}`,
       xFrac: clampFrac(p.xFrac),
       zFrac: clampFrac(p.zFrac),
-      hxFrac: Math.max(0.005, Math.min(4, Number(p.hxFrac) || 0.1)),
-      hzFrac: Math.max(0.005, Math.min(4, Number(p.hzFrac) || 0.1)),
-      h: Math.max(0.4, Math.min(40, Number(p.h) || 1.6)),
+      hxFrac: Math.max(0.002, Math.min(4, Number(p.hxFrac) || 0.1)),
+      hzFrac: Math.max(0.002, Math.min(4, Number(p.hzFrac) || 0.1)),
+      h: Math.max(0.05, Math.min(40, Number(p.h) || 1.6)),
       ramp: p.ramp === '+x' || p.ramp === '-x' ? p.ramp : null,
       kind: ['pit', 'gate', 'mezzanine', 'wall', 'partition', 'tower', 'roof', 'ramp'].includes(p.kind) ? p.kind : null,
       slab: p.kind === 'mezzanine' ? 0.4 : 0,
@@ -358,6 +359,7 @@ function getLayoutCopy(mapId) {
     id: m.id,
     name: m.name,
     halfSize: half,
+    allowModuleOverlap: m.allowModuleOverlap === true,
     curatorSpawns: m.curatorSpawns || [],
     patientSpawns,
     selfDamageObjects: m.selfDamageObjects || [],
@@ -366,6 +368,10 @@ function getLayoutCopy(mapId) {
     events: m.events || [],
     cards: m.cards || [],
   }));
+}
+
+function allowsModuleOverlap(mapId) {
+  return Boolean((MAPS[mapId] || {}).allowModuleOverlap);
 }
 
 function listMaps() {
@@ -484,6 +490,7 @@ module.exports = {
   resolvePlatforms,
   getPatientSpawnPositions,
   getCuratorSpawn,
+  allowsModuleOverlap,
   registerMap,
   listMaps,
 };

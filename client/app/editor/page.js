@@ -27,6 +27,16 @@ const REF_HALF = 30;
 const MAP_HALF = 60;
 const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3, crate: 1.1, desk: 1, plant: 1.4, tank: 2, bed: 1.1, vending: 2, mri: 2.4, wheelchair: 1, iv: 2 };
 
+const PREFABS = {
+  cama: { name: 'Cama (bloques)', parts: [[0, 0, 1, 0.5, 0.45, 0.25, '#c9d3d0'], [-0.7, 0, 0.3, 0.45, 0.2, 0.7, '#f1f4f2'], [1, 0, 0.06, 0.5, 0.6, 0.7, '#6f7b74'], [-0.95, -0.4, 0.06, 0.06, 0.25, 0, '#2a2d3d'], [-0.95, 0.4, 0.06, 0.06, 0.25, 0, '#2a2d3d'], [0.95, -0.4, 0.06, 0.06, 0.25, 0, '#2a2d3d'], [0.95, 0.4, 0.06, 0.06, 0.25, 0, '#2a2d3d']] },
+  letrero: { name: 'Letrero (poste + panel)', parts: [[0, 0, 0.08, 0.08, 2.2, 0, '#555d5a'], [0, 0, 0.8, 0.05, 0.6, 2.2, '#2f6f5a']] },
+  mesa: { name: 'Mesa', parts: [[0, 0, 0.9, 0.5, 0.08, 0.8, '#7a5a3a'], [-0.8, -0.4, 0.06, 0.06, 0.8, 0, '#5a4129'], [0.8, -0.4, 0.06, 0.06, 0.8, 0, '#5a4129'], [-0.8, 0.4, 0.06, 0.06, 0.8, 0, '#5a4129'], [0.8, 0.4, 0.06, 0.06, 0.8, 0, '#5a4129']] },
+  mostrador: { name: 'Mostrador', parts: [[0, 0, 1.6, 0.4, 1, 0, '#8a948f'], [0, -0.2, 1.7, 0.45, 0.06, 1, '#c9d3d6']] },
+  cortina: { name: 'Cortina de box', parts: [[0, 0, 1.2, 0.04, 1.9, 0.1, '#9fd3c7']] },
+  banca: { name: 'Banca', parts: [[0, 0, 1, 0.25, 0.08, 0.45, '#6f7b74'], [-0.85, 0, 0.06, 0.2, 0.45, 0, '#3a3f48'], [0.85, 0, 0.06, 0.2, 0.45, 0, '#3a3f48']] },
+};
+const SNAPS = [0, 0.25, 0.5, 1];
+
 const DEFAULT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', mezzanine: 'marble' };
 
 function PlatformMesh({ p, onPick, selected, MAP_HALF }) {
@@ -216,6 +226,10 @@ export default function MapEditorPage() {
   const [buildTint, setBuildTint] = useState('#ffffff');
   const [buildH, setBuildH] = useState(1.6);
   const [buildSize, setBuildSize] = useState(3);
+  const [snap, setSnap] = useState(0.5);
+  const [allowOverlap, setAllowOverlap] = useState(false);
+  const [prefabKey, setPrefabKey] = useState('cama');
+  const [prefabRot, setPrefabRot] = useState(false);
   const [rampDir, setRampDir] = useState('-x');
   const [selectedTool, setSelectedTool] = useState('self_damage'); // 'self_damage' | 'block' | 'ramp' | tipo de collision
   const [draggingId, setDraggingId] = useState(null);
@@ -258,10 +272,25 @@ export default function MapEditorPage() {
     placeAt(xFrac, zFrac);
   }
 
+  const snapFrac = (f) => (snap > 0 ? Math.round((f * MAP_HALF) / snap) * snap / MAP_HALF : f);
+
   function placeAt(xFrac, zFrac) {
     if (selectedTool === 'edit') { setSelectedId(null); return; }
-    xFrac = Math.max(-1, Math.min(1, xFrac));
-    zFrac = Math.max(-1, Math.min(1, zFrac));
+    xFrac = snapFrac(Math.max(-1, Math.min(1, xFrac)));
+    zFrac = snapFrac(Math.max(-1, Math.min(1, zFrac)));
+    if (selectedTool === 'prefab') {
+      const pf = PREFABS[prefabKey];
+      if (!pf) return;
+      setPlatforms((prev) => [...prev, ...pf.parts.map(([dx, dz, hx, hz, h, y0, tint]) => ({
+        id: generateId('mb'),
+        xFrac: xFrac + (prefabRot ? dz : dx) / MAP_HALF,
+        zFrac: zFrac + (prefabRot ? dx : dz) / MAP_HALF,
+        hxFrac: (prefabRot ? hz : hx) / REF_HALF,
+        hzFrac: (prefabRot ? hx : hz) / REF_HALF,
+        h, ramp: null, kind: null, tex: null, tint, y0: y0 + buildY0,
+      }))]);
+      return;
+    }
     if (selectedTool === 'pit' || selectedTool === 'pit_ramp' || selectedTool === 'gate' || selectedTool === 'slab') {
       const kind = selectedTool === 'gate' ? 'gate' : selectedTool === 'slab' ? 'mezzanine' : 'pit';
       setPlatforms((prev) => [...prev, {
@@ -311,7 +340,9 @@ export default function MapEditorPage() {
 
   function handleCanvasPointerMove(e) {
     if (!draggingId) return;
-    const { xFrac, zFrac } = pixelToFraction(e.clientX, e.clientY);
+    const raw = pixelToFraction(e.clientX, e.clientY);
+    const xFrac = snapFrac(raw.xFrac);
+    const zFrac = snapFrac(raw.zFrac);
     setSelfDamageObjects((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
     setCollisionObjects((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
     setPlatforms((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
@@ -344,6 +375,7 @@ export default function MapEditorPage() {
       id,
       name,
       halfSize: mapHalf,
+      allowModuleOverlap: allowOverlap,
       curatorSpawns: curatorSpawns.map((o) => ({ xFrac: round3(o.xFrac), zFrac: round3(o.zFrac) })),
       patientSpawns: patientSpawns.map((o) => ({ xFrac: round3(o.xFrac), zFrac: round3(o.zFrac) })),
       selfDamageObjects: selfDamageObjects.map((o) => ({
@@ -411,6 +443,7 @@ export default function MapEditorPage() {
       if (!res.ok) throw new Error(data.error || 'No se pudo cargar el mapa.');
       const l = data.layout;
       setMapHalf(l.halfSize || 60);
+      setAllowOverlap(l.allowModuleOverlap === true);
       setSelfDamageObjects((l.selfDamageObjects || []).map((o) => ({ ...o })));
       setCollisionObjects((l.collisionObjects || []).map((o) => ({ ...o })));
       setPlatforms((l.platforms || []).map((o) => ({ ...o })));
@@ -576,8 +609,9 @@ export default function MapEditorPage() {
               style={styles.toolButton(selectedTool === 'self_damage', '#e0555f')}
               onClick={() => setSelectedTool('self_damage')}
             >
-              Objeto de auto-daño
+              Módulo (auto-daño)
             </button>
+            <button style={styles.toolButton(selectedTool === 'prefab', '#c08a3e')} onClick={() => setSelectedTool('prefab')}>Mueble de bloques</button>
             <button style={styles.toolButton(selectedTool === 'block', '#6b7280')} onClick={() => setSelectedTool('block')}>Bloque</button>
             <button style={styles.toolButton(selectedTool === 'ramp', '#9ca3af')} onClick={() => setSelectedTool('ramp')}>Rampa</button>
             <button style={styles.toolButton(selectedTool === 'pit', '#3b6ea5')} onClick={() => setSelectedTool('pit')}>Sótano (foso)</button>
@@ -595,6 +629,28 @@ export default function MapEditorPage() {
             ))}
           </div>
 
+          <div style={styles.countsBox}>
+            <label style={styles.countLine}>Cuadrícula (imán):{' '}
+              <select value={snap} onChange={(e) => setSnap(parseFloat(e.target.value))}>
+                {SNAPS.map((v) => <option key={v} value={v}>{v === 0 ? 'Libre' : `${v} m`}</option>)}
+              </select>
+            </label>
+            <label style={styles.countLine}>
+              <input type="checkbox" checked={allowOverlap} onChange={(e) => setAllowOverlap(e.target.checked)} /> Permitir Módulos juntos o solapados
+            </label>
+          </div>
+          {selectedTool === 'prefab' && (
+            <div style={styles.countsBox}>
+              <label style={styles.countLine}>Mueble:{' '}
+                <select value={prefabKey} onChange={(e) => setPrefabKey(e.target.value)}>
+                  {Object.entries(PREFABS).map(([k, v]) => <option key={k} value={k}>{v.name}</option>)}
+                </select>
+              </label>
+              <label style={styles.countLine}><input type="checkbox" checked={prefabRot} onChange={(e) => setPrefabRot(e.target.checked)} /> Girar 90°</label>
+              <p style={styles.countLine}>Cada mueble son bloques pequeños sueltos: edítalos o bórralos uno a uno con la herramienta Editar.</p>
+            </div>
+          )}
+
           {(selectedTool === 'block' || selectedTool === 'ramp' || selectedTool === 'pit' || selectedTool === 'pit_ramp' || selectedTool === 'gate' || selectedTool === 'slab') && (
             <div style={styles.countsBox}>
               <label style={styles.countLine}>Textura:{' '}
@@ -610,7 +666,7 @@ export default function MapEditorPage() {
                 <input type="range" min="0.4" max="20" step="0.2" value={buildH} onChange={(e) => setBuildH(parseFloat(e.target.value))} style={{ width: '100%' }} />
               </label>
               <label style={styles.countLine}>Tamaño: {buildSize.toFixed(1)}
-                <input type="range" min="1.5" max="40" step="0.5" value={buildSize} onChange={(e) => setBuildSize(parseFloat(e.target.value))} style={{ width: '100%' }} />
+                <input type="range" min="0.25" max="40" step="0.25" value={buildSize} onChange={(e) => setBuildSize(parseFloat(e.target.value))} style={{ width: '100%' }} />
               </label>
               {(selectedTool === 'ramp' || selectedTool === 'pit_ramp') && (
                 <p style={styles.countLine}>
@@ -743,7 +799,7 @@ export default function MapEditorPage() {
             <p style={styles.countLine}>Bloques y rampas: {platforms.length}</p>
             <p style={styles.countLine}>Spawns de Curador: {curatorSpawns.length} (al azar si hay varios; sin ninguno, el centro)</p>
             <p style={styles.countLine}>Spawns de sobrevivientes: {patientSpawns.length}</p>
-            <p style={styles.countLine}>Objetos de auto-daño: {selfDamageObjects.length}</p>
+            <p style={styles.countLine}>Módulos (auto-daño): {selfDamageObjects.length}</p>
             <p style={styles.countLine}>Objetos de colisión: {collisionObjects.length}</p>
             {hasAnyConflict && (
               <p style={styles.conflictWarning}>

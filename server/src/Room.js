@@ -7,6 +7,7 @@ const Cards = require('./Cards');
 const Roles = require('./Roles');
 const CardEffects = require('./CardEffects');
 const Hitbox = require('./Hitbox');
+const MODULE_MIN_DIST = 9;
 const { groundAt, blockedAt, distanceBetween, euclid, reachPoint, handBox, handHit } = Hitbox;
 const {
   MAX_PLAYERS,
@@ -1874,13 +1875,29 @@ class Room {
     if (statusChanged) this.checkGameEndConditions();
   }
 
+  pickModuleSpot(allPositions, movingId) {
+    const positions = this.gameState.selfDamageObjectPositions;
+    const cur = positions[movingId];
+    const minD = Math.min(MODULE_MIN_DIST, this.getCurrentArea().halfSize * 0.15);
+    const free = allPositions.filter((c) => {
+      if (cur && Math.hypot(c.x - cur.x, c.z - cur.z) < 0.5) return false;
+      if (GameMap.allowsModuleOverlap(this.mapId)) return true;
+      for (const [id, pos] of Object.entries(positions)) {
+        if (id === movingId) continue;
+        if (Math.hypot(c.x - pos.x, c.z - pos.z) < minD && Math.abs((c.y || 0) - (pos.y || 0)) < 3) return false;
+      }
+      return true;
+    });
+    return free.length ? free[Math.floor(Math.random() * free.length)] : null;
+  }
+
   relocateSelfDamageObjects(now) {
     this.lastRelocateAt = now;
     const allPositions = this.selfDamageCandidates();
-    for (const objectId of Object.keys(this.gameState.selfDamageObjectPositions)) {
-      const others = allPositions.filter((p) => p.id !== objectId);
-      if (others.length === 0) continue;
-      const newPos = others[Math.floor(Math.random() * others.length)];
+    const ids = Object.keys(this.gameState.selfDamageObjectPositions).sort(() => Math.random() - 0.5);
+    for (const objectId of ids) {
+      const newPos = this.pickModuleSpot(allPositions, objectId);
+      if (!newPos) continue;
       this.gameState.selfDamageObjectPositions[objectId] = { x: newPos.x, y: newPos.y, z: newPos.z };
     }
   }
@@ -2330,10 +2347,8 @@ class Room {
       patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - damage);
       if (patient.hp <= PATIENT_HP_MIN) patient.status = 'self_won';
       const allPositions = this.selfDamageCandidates();
-      const otherPositions = allPositions.filter((p) => p.id !== game.objectId);
-      const pool = otherPositions.length ? otherPositions : allPositions;
-      const newPos = pool[Math.floor(Math.random() * pool.length)];
-      this.gameState.selfDamageObjectPositions[game.objectId] = { x: newPos.x, y: newPos.y, z: newPos.z };
+      const newPos = this.pickModuleSpot(allPositions, game.objectId);
+      if (newPos) this.gameState.selfDamageObjectPositions[game.objectId] = { x: newPos.x, y: newPos.y, z: newPos.z };
       this.gameState.selfDamageTypes[game.objectId] = this.randomMinigame(game.objectId);
     }
     this.sendTo(playerId, MessageType.SELF_DAMAGE_RESULT, {

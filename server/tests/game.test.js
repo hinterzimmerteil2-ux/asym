@@ -1049,3 +1049,18 @@ test('skills personalizadas: efectos a sí mismo/enemigo/aliados al usar, acerta
   assert.strictEqual(e.a.sprintFactor, 2);
   assert.strictEqual(typeof CardEffects.runFx, 'function');
 });
+
+test('Módulos: al reubicarse nunca quedan juntos ni en el mismo sitio (salvo mapa que lo permita)', () => {
+  const { room } = setup();
+  room.mapId = 'hospital';
+  room.gameState.selfDamageObjectPositions = {};
+  const cands = room.selfDamageCandidates();
+  for (const c of cands.slice(0, 6)) room.gameState.selfDamageObjectPositions[c.id] = { x: c.x, y: c.y, z: c.z };
+  for (let i = 0; i < 40; i++) {
+    room.relocateSelfDamageObjects(Date.now());
+    const list = Object.values(room.gameState.selfDamageObjectPositions);
+    for (let a = 0; a < list.length; a++) for (let b = a + 1; b < list.length; b++) {
+      assert.ok(Math.hypot(list[a].x - list[b].x, list[a].z - list[b].z) > 0.5, 'mismo lugar');
+    }
+  }
+});
