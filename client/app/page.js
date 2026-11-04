@@ -1226,7 +1226,7 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && !isAsymRole && roles.length > 0 && !myRole && hand[0] && !hand[0].chosen && (
-          <div style={{ position: 'absolute', top: 50, left: '50%', transform: 'translateX(-50%)', zIndex: 40, display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(20,24,40,0.92)', border: '1px solid #8fc6ea', borderRadius: 10, padding: 10, width: 'min(94vw, 460px)', maxHeight: 'calc(100% - 70px)', overflow: 'auto' }}>
+          <div style={{ position: 'absolute', top: 50, left: '50%', transform: 'translateX(-50%)', zIndex: 40, maxHeight: 'calc(100% - 64px)', overflowY: 'auto', overscrollBehavior: 'contain', display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(20,24,40,0.92)', border: '1px solid #8fc6ea', borderRadius: 10, padding: 10, width: 'min(94vw, 460px)', maxHeight: 'calc(100% - 70px)', overflow: 'auto' }}>
             <strong style={{ color: '#cfe8fa', fontSize: 14 }}>Elige tu rol</strong>
             {roles.map((r) => (
               <button key={r.id} type="button" onClick={() => handleSelectRole(r.id)} style={{ textAlign: 'left', background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 8, padding: 8, cursor: 'pointer' }}>
@@ -1949,6 +1949,11 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: 10,
+    maxHeight: 'calc(100% - 68px)',
+    overflowY: 'auto',
+    boxSizing: 'border-box',
+    overscrollBehavior: 'contain',
+    scrollbarWidth: 'thin',
   },
   chatOverlay: {
     position: 'absolute',
