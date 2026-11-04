@@ -5,6 +5,7 @@ import { useSettings, setSettings, gfx } from '../lib/settings';
 import { resetKeys } from '../lib/keybinds';
 
 const PRESETS = [
+  [0.05, 'Mínimo+'],
   [0.1, 'Mínimo'],
   [0.5, 'Bajo'],
   [1, 'Medio'],
@@ -19,6 +20,7 @@ function describe(q) {
   lines.push(g.antialias ? 'Bordes suavizados: sí' : 'Bordes suavizados: no');
   lines.push(g.textures ? `Texturas: sí (filtrado ${g.aniso}x)` : 'Texturas: no (colores planos)');
   lines.push(g.decor === 'none' ? 'Decoración del hospital: apagada' : g.decor === 'light' ? 'Decoración del hospital: solo paredes' : 'Decoración del hospital: completa (vigas, escombros, polvo)');
+  lines.push(`Polígonos: ${Math.round(g.poly * 100)}%`);
   lines.push(g.lights ? 'Luces dinámicas: sí' : 'Luces dinámicas: no');
   lines.push(g.stars ? 'Cielo con estrellas y luna: sí' : 'Cielo con estrellas y luna: no');
   if (g.dust) lines.push(`Partículas de polvo: ${g.dust}`);
@@ -34,7 +36,7 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
   const s = useSettings();
   const [local, setLocal] = useState(s.quality);
   useEffect(() => setLocal(s.quality), [s.quality]);
-  const q = Math.round(local * 10) / 10;
+  const q = Math.round(local * 20) / 20;
 
   return (
     <div style={styles.backdrop} onClick={onClose}>
@@ -48,13 +50,13 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
         <div style={styles.card}>
           <div style={styles.rowTop}>
             <span>Calidad gráfica</span>
-            <strong style={{ color: '#f2d154' }}>{q.toFixed(1)}</strong>
+            <strong style={{ color: '#f2d154' }}>{q.toFixed(2)}</strong>
           </div>
           <input
             type="range"
-            min="0.1"
+            min="0.05"
             max="4"
-            step="0.1"
+            step="0.05"
             value={local}
             onChange={(e) => setLocal(parseFloat(e.target.value))}
             onPointerUp={() => setSettings({ quality: q })}
@@ -72,7 +74,7 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
           <ul style={styles.list}>
             {describe(q).map((l) => <li key={l}>{l}</li>)}
           </ul>
-          <p style={styles.hint}>0.1 sacrifica casi todo lo visual para ganar rendimiento. Si tu equipo va lento, baja este valor.</p>
+          <p style={styles.hint}>0.05 es el nivel más bajo: sacrifica casi todo lo visual para ganar rendimiento. Si tu equipo va lento, baja este valor.</p>
           <label style={styles.check}>
             <input type="checkbox" checked={s.auto} onChange={(e) => setSettings({ auto: e.target.checked })} />
             Calidad automática (baja sola si los FPS caen)

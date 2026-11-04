@@ -9,6 +9,7 @@ import { matches } from '../lib/keybinds';
 import { createModeKey } from '../lib/modeKey';
 import HospitalDecor from './HospitalDecor';
 import { useSettings, gfx } from '../lib/settings';
+import { setPolyScale, installLowPoly } from '../lib/lowpoly';
 
 const LOBBY_HALF_SIZE = 15;
 const MATCH_HALF_SIZE = 60;
@@ -1756,6 +1757,8 @@ export default function GameScene({
 }) {
   const settings = useSettings();
   const g = gfx(settings.quality);
+  installLowPoly();
+  setPolyScale(g.poly);
   setTextureQuality(!g.textures, g.aniso);
   const yawRef = useRef(Math.PI);
   const shiftRef = useRef(false);
@@ -1769,7 +1772,7 @@ export default function GameScene({
   const pits = useMemo(() => (phase === 'action' ? (platforms || []).filter((p) => p.kind === 'pit') : []), [platforms, phase]);
 
   return (
-    <Canvas key={`${g.antialias}-${g.textures}`} dpr={coarse ? Math.min(g.dpr, 2) : g.dpr} gl={{ antialias: g.antialias, powerPreference: g.minimal ? 'low-power' : 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
+    <Canvas key={`${g.antialias}-${g.textures}-${g.poly}`} dpr={coarse ? Math.min(g.dpr, 2) : g.dpr} gl={{ antialias: g.antialias, powerPreference: g.minimal ? 'low-power' : 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
       <ambientLight intensity={phase === 'action' ? (g.lights ? 0.55 : 0.95) : 0.75} color={phase === 'action' ? '#c4dcd2' : '#cfe0ff'} />
       <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? 0.7 : 1.1} color={phase === 'action' ? '#d6e2ff' : '#ffffff'} />
       <hemisphereLight args={phase === 'action' ? ['#8fb4e8', '#4a4f66', 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />

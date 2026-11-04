@@ -163,6 +163,7 @@ export default function LobbyPage() {
   const tutSentRef = useRef({ role: false, start: false });
   const pingSentRef = useRef(0);
   const frameBuf = useRef([]);
+  const lastSnapRef = useRef(null);
   const [replay, setReplay] = useState(null);
   const [selfDamageObjects, setSelfDamageObjects] = useState({});
   const [sdTypes, setSdTypes] = useState({});
@@ -281,7 +282,19 @@ export default function LobbyPage() {
           case 'chat_broadcast':
             setChatMessages((prev) => [...prev, payload]);
             break;
-          case 'state_snapshot':
+          case 'state_snapshot': {
+            const prevSnap = lastSnapRef.current;
+            if (payload.delta && prevSnap) {
+              for (const k of ['entities', 'ghosts', 'flojera']) {
+                const merged = { ...(prevSnap[k] || {}) };
+                for (const id of payload.rm?.[k] || []) delete merged[id];
+                Object.assign(merged, payload[k] || {});
+                payload[k] = merged;
+              }
+              for (const k of Object.keys(prevSnap)) if (!(k in payload) && k !== 'events') payload[k] = prevSnap[k];
+            } else if (payload.delta) break;
+            lastSnapRef.current = payload;
+          }
             sceneStore.entities = payload.entities || {};
             sceneStore.ghosts = payload.ghosts || {};
             sceneStore.revealed = payload.revealed || [];

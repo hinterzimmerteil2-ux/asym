@@ -29,9 +29,9 @@ export default function AutoQuality() {
           frames = 0;
           start = now;
           const q = getSettings().quality;
-          if (strikes >= STRIKES && q > 0.1) {
+          if (strikes >= STRIKES && q > 0.05) {
             strikes = 0;
-            setSettings({ quality: Math.max(0.1, Math.round((q - 0.2) * 10) / 10) });
+            setSettings({ quality: Math.max(0.05, Math.round((q - 0.2) * 20) / 20) });
             setNote(true);
           }
         }

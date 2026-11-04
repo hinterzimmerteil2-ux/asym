@@ -1,4 +1,5 @@
 const { MessageType, encode } = require('./protocol');
+const Delta = require('./Delta');
 const GameMap = require('./GameMap');
 const Cosmetics = require('./Cosmetics');
 const Characters = require('./Characters');
@@ -1002,7 +1003,7 @@ class Room {
           cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
         };
       }
-      this.sendTo(playerId, MessageType.STATE_SNAPSHOT, {
+      const snapFull = {
         flojera,
         tick: this.tickCount,
         entities: ownHidden(playerId, player, publicEntities, this, now),
@@ -1017,7 +1018,8 @@ class Room {
         spawnMs: player.isAsymRole ? Math.max(0, (this.gameState.curatorReleaseAt || 0) - now) : 0,
         zones,
         revealed: player.isAsymRole ? Object.entries(this.gameState.entities).filter(([, e]) => Status.active(e, 'reveal', now) && !this.isInvisible(e, now)).map(([id]) => id) : [],
-      });
+      };
+      this.sendTo(playerId, MessageType.STATE_SNAPSHOT, Delta.diff(player, snapFull, this.tickCount));
     }
   }
 
