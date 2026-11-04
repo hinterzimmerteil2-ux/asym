@@ -530,7 +530,6 @@ export default function HospitalDecor({ half, platforms, level = 'full', dust = 
   const walls = useMemo(() => (platforms || []).filter((p) => p.kind === 'wall' || p.kind === 'partition'), [platforms]);
   return (
     <group>
-      {level !== 'none' && <FloorLines half={half} />}
       {level !== 'none' && <Tiers platforms={platforms} full={level === 'full'} />}
       {walls.map((p, i) => {
         const len = (p.hx >= p.hz ? p.hx : p.hz) * 2;
@@ -538,11 +537,7 @@ export default function HospitalDecor({ half, platforms, level = 'full', dust = 
         return [-1, 1].map((side) => <WallFace key={`${p.id}${side}`} p={p} side={side} mats={mats} seed={i * 31 + (side > 0 ? 7 : 3)} full={level === 'full'} outer={String(p.id).startsWith('w_')} />);
       })}
       {level === 'full' && <Beams half={half * 0.667} />}
-      {level === 'full' && <HangingLights half={half} mats={mats} />}
-      {level === 'full' && <Wires half={half} />}
       {level === 'full' && <CeilingInfra half={half} />}
-      {level === 'full' && <Props half={half} />}
-      {level === 'full' && <Litter half={half} seed={77} />}
       {level === 'full' && dust > 0 && <Dust half={half} count={dust} />}
       {level === 'full' && <pointLight position={[0, 6, 0]} intensity={2.5} distance={40} color="#b7d9c9" />}
     </group>

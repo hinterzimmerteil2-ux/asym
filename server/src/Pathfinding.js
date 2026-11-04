@@ -6,7 +6,8 @@ const STEP = 0.49;
 const LEDGE = 1.0;
 const HEAD = 1.8;
 const K = 4;
-const MAX_EXPANSIONS = 220000;
+const MAX_EXPANSIONS = 90000;
+const WEIGHT = 1.35;
 const RAMP_SLAB = 0.4;
 
 function buildGrid(half, objects, platforms) {
@@ -244,9 +245,16 @@ function findPath(grid, from, to) {
   if (start < 0 || goal < 0) return [];
   if (start === goal) return [{ x: to.x, y: grid.ys[goal], z: to.z }];
   const total = grid.n * grid.n * grid.K;
-  const gScore = new Float32Array(total).fill(Infinity);
-  const came = new Int32Array(total).fill(-1);
-  const closed = new Uint8Array(total);
+  if (!grid.scratch) grid.scratch = { g: new Float32Array(total), came: new Int32Array(total), mark: new Uint32Array(total), stamp: 0 };
+  const sc = grid.scratch;
+  sc.stamp++;
+  const stamp = sc.stamp;
+  const gScore = sc.g;
+  const came = sc.came;
+  const mark = sc.mark;
+  const gOf = (k) => (mark[k] === stamp ? gScore[k] : Infinity);
+  const closedSet = new Set();
+  const closed = { has: (k) => closedSet.has(k) };
   const gc = Math.floor(goal / grid.K);
   const gi = gc % grid.n;
   const gj = Math.floor(gc / grid.n);
@@ -257,32 +265,54 @@ function findPath(grid, from, to) {
     return Math.max(dx, dz) + 0.414 * Math.min(dx, dz);
   };
   const heap = new Heap();
+  mark[start] = stamp;
   gScore[start] = 0;
-  heap.push([heuristic(start), start]);
+  came[start] = -1;
+  heap.push([heuristic(start) * WEIGHT, start]);
   let expansions = 0;
   let found = false;
   let best = start;
   let bestH = heuristic(start);
+  const n = grid.n;
+  const Kk = grid.K;
   while (heap.size && expansions < MAX_EXPANSIONS) {
     const [, cur] = heap.pop();
-    if (closed[cur]) continue;
-    closed[cur] = 1;
+    if (closedSet.has(cur)) continue;
+    closedSet.add(cur);
     expansions++;
     const hc = heuristic(cur);
     if (hc < bestH) { bestH = hc; best = cur; }
     if (cur === goal) { found = true; break; }
+    const cc = Math.floor(cur / Kk);
+    const ci = cc % n;
+    const cj = Math.floor(cc / n);
+    const cy = grid.ys[cur];
     for (let dj = -1; dj <= 1; dj++) {
       for (let di = -1; di <= 1; di++) {
         if (!di && !dj) continue;
+        const ni = ci + di;
+        const nj = cj + dj;
+        if (ni < 0 || nj < 0 || ni >= n || nj >= n) continue;
+        const nc = nj * n + ni;
         const diag = di && dj;
-        for (const nk of neighbors(grid, cur, di, dj)) {
-          if (closed[nk]) continue;
-          if (diag && (!neighbors(grid, cur, di, 0).some((m) => Math.abs(grid.ys[m] - grid.ys[nk]) <= STEP) || !neighbors(grid, cur, 0, dj).some((m) => Math.abs(grid.ys[m] - grid.ys[nk]) <= STEP))) continue;
-          const g = gScore[cur] + (diag ? 1.414 : 1);
-          if (g < gScore[nk]) {
+        for (let l = 0; l < grid.cnt[nc]; l++) {
+          const nk = nc * Kk + l;
+          if (grid.blocked[nk] || Math.abs(grid.ys[nk] - cy) > STEP || closedSet.has(nk)) continue;
+          if (diag) {
+            let okA = false;
+            let okB = false;
+            const ca = cj * n + ni;
+            for (let m = 0; m < grid.cnt[ca]; m++) { const k2 = ca * Kk + m; if (!grid.blocked[k2] && Math.abs(grid.ys[k2] - cy) <= STEP && Math.abs(grid.ys[k2] - grid.ys[nk]) <= STEP) { okA = true; break; } }
+            const cb = nj * n + ci;
+            for (let m = 0; m < grid.cnt[cb]; m++) { const k2 = cb * Kk + m; if (!grid.blocked[k2] && Math.abs(grid.ys[k2] - cy) <= STEP && Math.abs(grid.ys[k2] - grid.ys[nk]) <= STEP) { okB = true; break; } }
+            if (!okA || !okB) continue;
+          }
+          const g = gOf(cur) + (diag ? 1.414 : 1);
+          if (g < gOf(nk)) {
+            mark[nk] = stamp;
             gScore[nk] = g;
             came[nk] = cur;
-            heap.push([g + heuristic(nk), nk]);
+            heap.push([g + heuristic(nk) * WEIGHT, nk]);
           }
         }
       }
@@ -291,7 +321,7 @@ function findPath(grid, from, to) {
   const end = found ? goal : best;
   if (!found && end === start) return [];
   const nodes = [];
-  for (let k = end; k !== -1; k = came[k]) nodes.push(k);
+  for (let k = end; k !== -1; k = mark[k] === stamp ? came[k] : -1) nodes.push(k);
   nodes.reverse();
   const points = nodes.map((k) => ({ ...centerOfCell(grid, Math.floor(k / grid.K)), y: grid.ys[k] }));
   points[0] = { x: from.x, z: from.z, y: grid.ys[start] };

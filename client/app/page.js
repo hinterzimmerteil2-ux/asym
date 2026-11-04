@@ -569,7 +569,7 @@ export default function LobbyPage() {
     tutSentRef.current = { role: false, start: false };
     tutStartRef.current = null;
     setTutorial({ launching: true, active: false, minimized: false, flags: {} });
-    if (!players.some((pl) => pl.isBot)) connRef.current?.send('add_bot', { tutorial: true });
+    connRef.current?.send('add_bot', { tutorial: true });
   }
 
   useEffect(() => {
