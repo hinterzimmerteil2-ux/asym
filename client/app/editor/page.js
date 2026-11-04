@@ -214,6 +214,7 @@ export default function MapEditorPage() {
   const MAP_HALF = mapHalf;
   const [selfDamageObjects, setSelfDamageObjects] = useState([]);
   const [collisionObjects, setCollisionObjects] = useState([]);
+  const [serums, setSerums] = useState([]);
   const [curatorSpawns, setCuratorSpawns] = useState([]);
   const [patientSpawns, setPatientSpawns] = useState([]);
   const [platforms, setPlatforms] = useState([]);
@@ -230,6 +231,7 @@ export default function MapEditorPage() {
   const [allowOverlap, setAllowOverlap] = useState(false);
   const [prefabKey, setPrefabKey] = useState('cama');
   const [prefabRot, setPrefabRot] = useState(false);
+  const [buildStairs, setBuildStairs] = useState(false);
   const [rampDir, setRampDir] = useState('-x');
   const [selectedTool, setSelectedTool] = useState('self_damage'); // 'self_damage' | 'block' | 'ramp' | tipo de collision
   const [draggingId, setDraggingId] = useState(null);
@@ -314,6 +316,7 @@ export default function MapEditorPage() {
         h: buildH,
         ramp: selectedTool === 'ramp' ? rampDir : null,
         kind: null,
+        stairs: selectedTool === 'ramp' && buildStairs,
         tex: buildTex || null,
         tint: buildTint !== '#ffffff' ? buildTint : null,
         y0: buildY0,
@@ -322,6 +325,8 @@ export default function MapEditorPage() {
       setCuratorSpawns((prev) => [...prev, { id: generateId('cs'), xFrac, zFrac }]);
     } else if (selectedTool === 'patient_spawn') {
       setPatientSpawns((prev) => [...prev, { id: generateId('ps'), xFrac, zFrac }]);
+    } else if (selectedTool === 'serum') {
+      setSerums((prev) => [...prev, { id: generateId('su'), xFrac, zFrac, y: buildY0 }]);
     } else if (selectedTool === 'self_damage') {
       setSelfDamageObjects((prev) => [...prev, { id: generateId('obj'), xFrac, zFrac }]);
     } else {
@@ -345,6 +350,7 @@ export default function MapEditorPage() {
     const zFrac = snapFrac(raw.zFrac);
     setSelfDamageObjects((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
     setCollisionObjects((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
+    setSerums((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
     setPlatforms((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
     setCuratorSpawns((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
     setPatientSpawns((prev) => prev.map((o) => (o.id === draggingId ? { ...o, xFrac, zFrac } : o)));
@@ -357,6 +363,7 @@ export default function MapEditorPage() {
   function handleRemove(id, e) {
     e.stopPropagation();
     setSelfDamageObjects((prev) => prev.filter((o) => o.id !== id));
+    setSerums((prev) => prev.filter((o) => o.id !== id));
     setCollisionObjects((prev) => prev.filter((o) => o.id !== id));
     setPlatforms((prev) => prev.filter((o) => o.id !== id));
     setCuratorSpawns((prev) => prev.filter((o) => o.id !== id));
@@ -387,6 +394,7 @@ export default function MapEditorPage() {
       events: mapEvents.map((e) => ({ ...e })),
       cards: skills.map((s) => ({ ...s })),
       healerSkills: healerSkills.map((s) => ({ ...s })),
+      serums: serums.map((o) => ({ id: o.id, xFrac: round3(o.xFrac), zFrac: round3(o.zFrac), y: round3(o.y || 0) })),
       collisionObjects: collisionObjects.map((o) => ({
         id: o.id,
         type: o.type,
@@ -405,6 +413,7 @@ export default function MapEditorPage() {
         kind: p.kind || null,
         tex: p.tex || null,
         tint: p.tint || null,
+        stairs: p.stairs === true,
         y0: round3(p.y0 || 0),
       })),
     };
@@ -445,6 +454,7 @@ export default function MapEditorPage() {
       setMapHalf(l.halfSize || 60);
       setAllowOverlap(l.allowModuleOverlap === true);
       setSelfDamageObjects((l.selfDamageObjects || []).map((o) => ({ ...o })));
+      setSerums((l.serums || []).map((o) => ({ ...o })));
       setCollisionObjects((l.collisionObjects || []).map((o) => ({ ...o })));
       setPlatforms((l.platforms || []).map((o) => ({ ...o })));
       setCuratorSpawns((l.curatorSpawns || []).map((o) => ({ ...o, id: generateId('cs') })));
@@ -611,6 +621,7 @@ export default function MapEditorPage() {
             >
               Módulo (auto-daño)
             </button>
+            <button style={styles.toolButton(selectedTool === 'serum', '#54e0c0')} onClick={() => setSelectedTool('serum')}>Suero (cura Pacientes, lleva al Curador a la mitad)</button>
             <button style={styles.toolButton(selectedTool === 'prefab', '#c08a3e')} onClick={() => setSelectedTool('prefab')}>Mueble de bloques</button>
             <button style={styles.toolButton(selectedTool === 'block', '#6b7280')} onClick={() => setSelectedTool('block')}>Bloque</button>
             <button style={styles.toolButton(selectedTool === 'ramp', '#9ca3af')} onClick={() => setSelectedTool('ramp')}>Rampa</button>
@@ -648,6 +659,12 @@ export default function MapEditorPage() {
               </label>
               <label style={styles.countLine}><input type="checkbox" checked={prefabRot} onChange={(e) => setPrefabRot(e.target.checked)} /> Girar 90°</label>
               <p style={styles.countLine}>Cada mueble son bloques pequeños sueltos: edítalos o bórralos uno a uno con la herramienta Editar.</p>
+            </div>
+          )}
+
+          {selectedTool === 'ramp' && (
+            <div style={styles.countsBox}>
+              <label style={styles.countLine}><input type="checkbox" checked={buildStairs} onChange={(e) => setBuildStairs(e.target.checked)} /> Dibujar como escalera (la hitbox sigue siendo rampa)</label>
             </div>
           )}
 
@@ -800,6 +817,7 @@ export default function MapEditorPage() {
             <p style={styles.countLine}>Spawns de Curador: {curatorSpawns.length} (al azar si hay varios; sin ninguno, el centro)</p>
             <p style={styles.countLine}>Spawns de sobrevivientes: {patientSpawns.length}</p>
             <p style={styles.countLine}>Módulos (auto-daño): {selfDamageObjects.length}</p>
+            <p style={styles.countLine}>Sueros: {serums.length}</p>
             <p style={styles.countLine}>Objetos de colisión: {collisionObjects.length}</p>
             {hasAnyConflict && (
               <p style={styles.conflictWarning}>
@@ -950,6 +968,12 @@ export default function MapEditorPage() {
               </g>
             ))}
 
+            {serums.map((o) => (
+              <g key={o.id} transform={`translate(${o.xFrac * CANVAS_HALF + CANVAS_HALF}, ${o.zFrac * CANVAS_HALF + CANVAS_HALF})`} onPointerDown={(e) => handleMarkerPointerDown(e, o.id)} onContextMenu={(e) => { e.preventDefault(); handleRemove(o.id, e); }} style={{ cursor: 'grab' }}>
+                <circle r={6} fill="#54e0c0" stroke="#0e5f50" strokeWidth={1.5} />
+                <text y={3} fontSize={8} textAnchor="middle" fill="#04332a">S</text>
+              </g>
+            ))}
             {/* Marcadores de objetos de auto-daño */}
             {selfDamageObjects.map((o) => {
               const inConflict = conflicts.has(o.id);

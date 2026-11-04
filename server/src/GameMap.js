@@ -279,6 +279,7 @@ function registerMap(layout, dryRun) {
       y: Number.isFinite(Number(o.y)) ? Math.max(-10, Math.min(60, Number(o.y))) : undefined,
     })),
     events: sanitizeEvents(layout.events),
+    serums: (Array.isArray(layout.serums) ? layout.serums : []).slice(0, 24).map((o, i) => ({ id: typeof o.id === 'string' ? o.id.slice(0, 40) : `su_${i}`, xFrac: clampFrac(o.xFrac), zFrac: clampFrac(o.zFrac), y: Math.max(-10, Math.min(60, Number(o.y) || 0)) })),
     cards: CustomCards.normalizeList(layout.cards),
     healerSkills: CustomCards.normalizeHealer(layout.healerSkills),
     collisionObjects: layout.collisionObjects.map((o) => ({
@@ -301,6 +302,7 @@ function registerMap(layout, dryRun) {
       y0: Math.max(0, Math.min(80, Number(p.y0) || 0)),
       tex: ['marble', 'tile', 'plaster', 'tower', 'roof', 'ramp', 'concrete', 'brick', 'wood', 'metal'].includes(p.tex) ? p.tex : null,
       tint: /^#[0-9a-fA-F]{6}$/.test(p.tint || '') ? p.tint : null,
+      stairs: p.stairs === true && Boolean(p.ramp),
     })),
   };
   if (!dryRun) {
@@ -465,6 +467,7 @@ function resolvePlatforms(mapId, area) {
     y0: p.y0 || 0,
     tex: p.tex || null,
     tint: p.tint || null,
+    stairs: p.stairs === true,
   }));
 }
 

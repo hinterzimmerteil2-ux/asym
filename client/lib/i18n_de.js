@@ -473,4 +473,8 @@ export const DE = [
 "Maximale Flugzeit (s)",
 "Endlag zu Beginn (s)",
 "Unsichtbar für (s)",
+"Kit-Vorauswahl",
+"Aus: Du wählst dein Kit mitten im Spiel.",
+"Kein Kit",
+"Allgemeines Krankenhaus (3 Etagen, Keller und Dach)",
 ];

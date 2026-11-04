@@ -1586,6 +1586,34 @@ function ShakeGroup({ on, children }) {
   return <group ref={ref}>{children}</group>;
 }
 
+function StairMesh({ p, tops, tint }) {
+  const len = p.hx * 2;
+  const n = Math.max(2, Math.round(p.h / 0.28));
+  const sign = p.ramp === '+x' ? 1 : -1;
+  const steps = [];
+  for (let i = 0; i < n; i++) {
+    const frac = (i + 0.5) / n;
+    steps.push({ x: sign * (-p.hx + frac * len), top: frac * p.h });
+  }
+  const angle = Math.atan2(p.h, len) * sign;
+  return (
+    <group position={[p.x, p.y0 || 0, p.z]}>
+      {steps.map((st, i) => (
+        <mesh key={i} position={[st.x, st.top - 0.2, 0]}>
+          <boxGeometry args={[len / n + 0.02, 0.4, p.hz * 2 - 0.5]} />
+          <meshStandardMaterial map={tops} color={tint} roughness={0.8} />
+        </mesh>
+      ))}
+      {[-1, 1].map((side) => (
+        <group key={side} position={[0, p.h / 2, side * (p.hz - 0.15)]} rotation={[0, 0, angle]}>
+          <mesh position={[0, -0.35, 0]}><boxGeometry args={[Math.hypot(len, p.h), 0.5, 0.3]} /><meshStandardMaterial color="#59635e" roughness={0.8} /></mesh>
+          <mesh position={[0, 0.85, 0]}><boxGeometry args={[Math.hypot(len, p.h), 0.08, 0.1]} /><meshStandardMaterial color="#9aa5a0" metalness={0.6} roughness={0.4} /></mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
 function Platform({ p }) {
   if (p.kind === 'gate') return <GateMesh p={p} />;
   const name = p.tex || (p.ramp ? 'ramp' : PLAT_TEX[p.kind] || 'concrete');
@@ -1623,6 +1651,7 @@ function Platform({ p }) {
       </mesh>
     );
   }
+  if (p.stairs) return <StairMesh p={p} tops={tops} tint={tint} />;
   const angle = Math.atan2(p.h, len) * (p.ramp === '+x' ? 1 : -1);
   return (
     <group position={[p.x, y0 + p.h / 2, p.z]} rotation={[0, 0, angle]}>

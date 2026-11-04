@@ -57,11 +57,11 @@ function build(REF_HALF, sanitizeEvents) {
   slab('rf_e1', 12, 0, 2, 12, ROOF); slab('rf_e2', 23, 3, 9, 9, ROOF); slab('rf_e3', 36, 0, 4, 12, ROOF);
   slab('rf_w1', -12, 0, 2, 12, ROOF); slab('rf_w2', -23, 0, 9, 12, ROOF); slab('rf_w3', -36, 0, 4, 12, ROOF);
 
-  plat('stA_e', 25, -9, 7, 2.5, F2, '+x', 'ramp');
-  plat('stB_e', 25, 9, 7, 2.5, F2, '+x', 'ramp', { y0: F2 });
-  plat('stC_e', 25, -9, 7, 2.5, F2, '+x', 'ramp', { y0: F3 });
-  plat('stA_w', -25, 9, 7, 2.5, F2, '-x', 'ramp');
-  plat('stB_w', -25, -9, 7, 2.5, F2, '-x', 'ramp', { y0: F2 });
+  plat('stA_e', 25, -9, 7, 2.5, F2, '+x', 'ramp', { stairs: true });
+  plat('stB_e', 25, 9, 7, 2.5, F2, '+x', 'ramp', { y0: F2, stairs: true });
+  plat('stC_e', 25, -9, 7, 2.5, F2, '+x', 'ramp', { y0: F3, stairs: true });
+  plat('stA_w', -25, 9, 7, 2.5, F2, '-x', 'ramp', { stairs: true });
+  plat('stB_w', -25, -9, 7, 2.5, F2, '-x', 'ramp', { y0: F2, stairs: true });
 
   plat('pit_c', 0, 0, 10, 7, 4.5, null, 'pit');
   plat('pit_wr', -16, 0, 6, 2.5, 4.5, '-x', 'pit');

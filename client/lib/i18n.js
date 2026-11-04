@@ -475,6 +475,10 @@ const PAIRS = [
 ["Vuelo máximo (s)", "Max flight time (s)"],
 ["Endlag al empezar (s)", "Endlag at start (s)"],
 ["Dura invisible (s)", "Invisible for (s)"],
+["Preselección de kit","Kit pre-selection"],
+["Desactivada: eliges el kit en plena partida.","Off: you pick your kit mid-match."],
+["Sin kit","No kit"],
+["Hospital General (3 pisos, sótano y azotea)","General Hospital (3 floors, basement and roof)"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };
