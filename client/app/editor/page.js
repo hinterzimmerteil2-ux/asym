@@ -35,7 +35,7 @@ const PREFABS = {
   cortina: { name: 'Cortina de box', parts: [[0, 0, 1.2, 0.04, 1.9, 0.1, '#9fd3c7']] },
   banca: { name: 'Banca', parts: [[0, 0, 1, 0.25, 0.08, 0.45, '#6f7b74'], [-0.85, 0, 0.06, 0.2, 0.45, 0, '#3a3f48'], [0.85, 0, 0.06, 0.2, 0.45, 0, '#3a3f48']] },
 };
-const SNAPS = [0, 0.25, 0.5, 1];
+const SNAPS = [0, 0.01, 0.05, 0.1, 0.25, 0.5, 1];
 
 const DEFAULT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', mezzanine: 'marble' };
 
@@ -663,10 +663,10 @@ export default function MapEditorPage() {
                 <input type="range" min="0" max="40" step="0.5" value={buildY0} onChange={(e) => setBuildY0(parseFloat(e.target.value))} style={{ width: '100%' }} />
               </label>
               <label style={styles.countLine}>Altura: {buildH.toFixed(1)}
-                <input type="range" min="0.4" max="20" step="0.2" value={buildH} onChange={(e) => setBuildH(parseFloat(e.target.value))} style={{ width: '100%' }} />
+                <input type="range" min="0.01" max="40" step="0.01" value={buildH} onChange={(e) => setBuildH(parseFloat(e.target.value))} style={{ width: '100%' }} />
               </label>
-              <label style={styles.countLine}>Tamaño: {buildSize.toFixed(1)}
-                <input type="range" min="0.25" max="40" step="0.25" value={buildSize} onChange={(e) => setBuildSize(parseFloat(e.target.value))} style={{ width: '100%' }} />
+              <label style={styles.countLine}>Tamaño: {buildSize.toFixed(2)}
+                <input type="range" min="0.01" max="40" step="0.01" value={buildSize} onChange={(e) => setBuildSize(parseFloat(e.target.value))} style={{ width: '100%' }} />
               </label>
               {(selectedTool === 'ramp' || selectedTool === 'pit_ramp') && (
                 <p style={styles.countLine}>

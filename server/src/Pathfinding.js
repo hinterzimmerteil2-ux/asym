@@ -4,102 +4,170 @@ const CELL = 0.5;
 const PAD = 0.5;
 const STEP = 0.49;
 const LEDGE = 1.0;
-const MAX_EXPANSIONS = 140000;
+const HEAD = 1.8;
+const K = 4;
+const MAX_EXPANSIONS = 220000;
+const RAMP_SLAB = 0.4;
 
 function buildGrid(half, objects, platforms) {
   const n = Math.ceil((half * 2) / CELL);
-  const h = new Float32Array(n * n);
-  const blocked = new Uint8Array(n * n);
+  const cells = n * n;
+  const ys = new Float32Array(cells * K).fill(NaN);
+  const blocked = new Uint8Array(cells * K);
+  const cnt = new Uint8Array(cells);
+  const solid = platforms.filter((p) => p.kind !== 'pit');
+  const ramps = solid.filter((p) => p.ramp);
+  const gridOf = (x, z) => ({ i: Math.floor((x + half) / CELL), j: Math.floor((z + half) / CELL) });
+  const buckets = new Map();
+  const reach = 1.2;
+  for (const p of solid) {
+    const a = gridOf(p.x - p.hx - reach, p.z - p.hz - reach);
+    const b = gridOf(p.x + p.hx + reach, p.z + p.hz + reach);
+    for (let j = Math.max(0, a.j); j <= Math.min(n - 1, b.j); j++) {
+      for (let i = Math.max(0, a.i); i <= Math.min(n - 1, b.i); i++) {
+        const key = j * n + i;
+        let arr = buckets.get(key);
+        if (!arr) { arr = []; buckets.set(key, arr); }
+        arr.push(p);
+      }
+    }
+  }
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
+      const cell = j * n + i;
       const x = -half + (i + 0.5) * CELL;
       const z = -half + (j + 0.5) * CELL;
-      const idx = j * n + i;
-      let top = baseAt(platforms, x, z);
-      for (const p of platforms) {
-        const t = platformTop(p, x, z);
-        if (t !== null && t > top) top = t;
-      }
-      for (const p of platforms) {
-        if (!p.ramp) continue;
-        for (const [ox, oz] of FOOTPRINT) {
-          const t = platformTop(p, x + ox, z + oz);
-          if (t !== null && t > top) top = t;
+      const edge = i === 0 || j === 0 || i === n - 1 || j === n - 1 || Math.abs(x) > half - 0.6 || Math.abs(z) > half - 0.6;
+      const near = buckets.get(cell) || [];
+      const entries = [];
+      for (const p of near) {
+        let top = platformTop(p, x, z);
+        if (p.ramp) {
+          for (const [ox, oz] of FOOTPRINT) {
+            const t = platformTop(p, x + ox, z + oz);
+            if (t !== null && (top === null || t > top)) top = t;
+          }
         }
+        if (top === null) continue;
+        const bottom = p.ramp || p.slab ? top - (p.slab || RAMP_SLAB) : (p.y0 || 0);
+        entries.push({ top, bottom });
       }
-      h[idx] = top;
-      if (i === 0 || j === 0 || i === n - 1 || j === n - 1 || Math.abs(x) > half - 0.6 || Math.abs(z) > half - 0.6) blocked[idx] = 1;
-      for (const o of objects) {
-        if (o.height > STEP && Math.abs(x - o.x) <= o.radius + PAD && Math.abs(z - o.z) <= o.radius + PAD) {
-          blocked[idx] = 1;
-          break;
+      const cands = [baseAt(platforms, x, z)];
+      for (const e of entries) cands.push(e.top);
+      cands.sort((a, b) => a - b);
+      let c = 0;
+      let last = -Infinity;
+      for (const y of cands) {
+        if (y - last < 0.05) continue;
+        last = y;
+        let ok = !edge;
+        let ceil = Infinity;
+        for (const e of entries) {
+          if (e.bottom < y - 0.05 && e.top > y + 0.05) { ok = false; break; }
+          if (e.bottom >= y - 0.05 && e.top > y + 0.05 && e.bottom < ceil) ceil = e.bottom;
         }
+        if (!ok || ceil - y < HEAD) continue;
+        if (c >= K) break;
+        ys[cell * K + c] = y;
+        c++;
+      }
+      cnt[cell] = c;
+    }
+  }
+  for (const o of objects) {
+    if (!(o.height > STEP)) continue;
+    const r = o.radius + PAD;
+    const a = gridOf(o.x - r, o.z - r);
+    const b = gridOf(o.x + r, o.z + r);
+    for (let j = Math.max(0, a.j); j <= Math.min(n - 1, b.j); j++) {
+      for (let i = Math.max(0, a.i); i <= Math.min(n - 1, b.i); i++) {
+        const cell = j * n + i;
+        const x = -half + (i + 0.5) * CELL;
+        const z = -half + (j + 0.5) * CELL;
+        if (Math.abs(x - o.x) > r || Math.abs(z - o.z) > r) continue;
+        for (let l = 0; l < cnt[cell]; l++) if (ys[cell * K + l] < 0.5 + 1e-3 && ys[cell * K + l] > -6) blocked[cell * K + l] = 1;
       }
     }
   }
   const padded = blocked.slice();
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
-      const idx = j * n + i;
-      if (padded[idx]) continue;
-      for (let dj = -2; dj <= 2 && !padded[idx]; dj++) {
-        for (let di = -2; di <= 2; di++) {
-          const ni = i + di;
-          const nj = j + dj;
-          if (ni < 0 || nj < 0 || ni >= n || nj >= n) continue;
-          if (Math.abs(h[nj * n + ni] - h[idx]) > LEDGE) { padded[idx] = 1; break; }
+      const cell = j * n + i;
+      for (let l = 0; l < cnt[cell]; l++) {
+        const node = cell * K + l;
+        if (padded[node]) continue;
+        const y = ys[node];
+        let bad = false;
+        for (let dj = -2; dj <= 2 && !bad; dj++) {
+          for (let di = -2; di <= 2; di++) {
+            const ni = i + di;
+            const nj = j + dj;
+            if (ni < 0 || nj < 0 || ni >= n || nj >= n) continue;
+            const nc = nj * n + ni;
+            let okN = false;
+            for (let m = 0; m < cnt[nc]; m++) {
+              if (Math.abs(ys[nc * K + m] - y) <= LEDGE) { okN = true; break; }
+            }
+            if (!okN) { bad = true; break; }
+          }
         }
+        if (bad) padded[node] = 1;
       }
     }
   }
-  return { n, half, h, blocked: padded };
+  return { n, half, K, ys, cnt, blocked: padded };
 }
 
-function cellOf(grid, x, z) {
+function cellIdx(grid, x, z) {
   const i = Math.max(0, Math.min(grid.n - 1, Math.floor((x + grid.half) / CELL)));
   const j = Math.max(0, Math.min(grid.n - 1, Math.floor((z + grid.half) / CELL)));
   return j * grid.n + i;
 }
 
-function centerOf(grid, idx) {
-  const i = idx % grid.n;
-  const j = Math.floor(idx / grid.n);
-  return { x: -grid.half + (i + 0.5) * CELL, z: -grid.half + (j + 0.5) * CELL };
+function centerOfCell(grid, cell) {
+  return { x: -grid.half + ((cell % grid.n) + 0.5) * CELL, z: -grid.half + (Math.floor(cell / grid.n) + 0.5) * CELL };
 }
 
-function nearestFree(grid, idx) {
-  if (!grid.blocked[idx]) return idx;
-  const i0 = idx % grid.n;
-  const j0 = Math.floor(idx / grid.n);
-  for (let r = 1; r < 14; r++) {
-    let best = -1;
-    let bestD = Infinity;
+function nodeAtHeight(grid, cell, y) {
+  let best = -1;
+  let bd = Infinity;
+  for (let l = 0; l < grid.cnt[cell]; l++) {
+    const node = cell * grid.K + l;
+    if (grid.blocked[node]) continue;
+    const d = Math.abs(grid.ys[node] - y);
+    if (d <= STEP && d < bd) { bd = d; best = node; }
+  }
+  return best;
+}
+
+function nearestNode(grid, x, z, y) {
+  const c0 = cellIdx(grid, x, z);
+  const i0 = c0 % grid.n;
+  const j0 = Math.floor(c0 / grid.n);
+  const hasY = typeof y === 'number';
+  let best = -1;
+  let bestScore = Infinity;
+  let foundR = -1;
+  for (let r = 0; r < 24; r++) {
     for (let j = j0 - r; j <= j0 + r; j++) {
       for (let i = i0 - r; i <= i0 + r; i++) {
         if (i < 0 || j < 0 || i >= grid.n || j >= grid.n) continue;
-        if (Math.max(Math.abs(i - i0), Math.abs(j - j0)) !== r) continue;
-        const k = j * grid.n + i;
-        const d = (i - i0) ** 2 + (j - j0) ** 2;
-        if (!grid.blocked[k] && d < bestD && Math.abs(grid.h[k] - grid.h[idx]) <= STEP) { bestD = d; best = k; }
+        if (r && Math.max(Math.abs(i - i0), Math.abs(j - j0)) !== r) continue;
+        const cell = j * grid.n + i;
+        for (let l = 0; l < grid.cnt[cell]; l++) {
+          const node = cell * grid.K + l;
+          if (grid.blocked[node]) continue;
+          const dy = hasY ? Math.abs(grid.ys[node] - y) : Math.abs(grid.ys[node]) * 0.2;
+          if (hasY && dy > 2.5) continue;
+          const score = (i - i0) ** 2 + (j - j0) ** 2 + dy * dy * 4;
+          if (score < bestScore) { bestScore = score; best = node; }
+        }
       }
     }
-    if (best >= 0) return best;
+    if (best >= 0 && foundR < 0) foundR = r;
+    if (best >= 0 && r >= foundR + 1) break;
   }
-  for (let r = 1; r < 14; r++) {
-    let best = -1;
-    let bestD = Infinity;
-    for (let j = j0 - r; j <= j0 + r; j++) {
-      for (let i = i0 - r; i <= i0 + r; i++) {
-        if (i < 0 || j < 0 || i >= grid.n || j >= grid.n) continue;
-        if (Math.max(Math.abs(i - i0), Math.abs(j - j0)) !== r) continue;
-        const k = j * grid.n + i;
-        const d = (i - i0) ** 2 + (j - j0) ** 2;
-        if (!grid.blocked[k] && d < bestD) { bestD = d; best = k; }
-      }
-    }
-    if (best >= 0) return best;
-  }
-  return idx;
+  return best;
 }
 
 class Heap {
@@ -138,36 +206,54 @@ class Heap {
   get size() { return this.a.length; }
 }
 
-function walkable(grid, a, b) {
-  return !grid.blocked[b] && Math.abs(grid.h[a] - grid.h[b]) <= STEP;
+function neighbors(grid, node, di, dj) {
+  const cell = Math.floor(node / grid.K);
+  const ni = (cell % grid.n) + di;
+  const nj = Math.floor(cell / grid.n) + dj;
+  if (ni < 0 || nj < 0 || ni >= grid.n || nj >= grid.n) return [];
+  const nc = nj * grid.n + ni;
+  const y = grid.ys[node];
+  const out = [];
+  for (let l = 0; l < grid.cnt[nc]; l++) {
+    const nn = nc * grid.K + l;
+    if (!grid.blocked[nn] && Math.abs(grid.ys[nn] - y) <= STEP) out.push(nn);
+  }
+  return out;
 }
 
-function lineClear(grid, ax, az, bx, bz) {
-  const dist = Math.hypot(bx - ax, bz - az);
+function lineClear(grid, a, b) {
+  const dist = Math.hypot(b.x - a.x, b.z - a.z);
   const steps = Math.max(1, Math.ceil(dist / (CELL * 0.5)));
-  let prev = cellOf(grid, ax, az);
+  let y = a.y;
+  let prev = cellIdx(grid, a.x, a.z);
   for (let s = 1; s <= steps; s++) {
     const t = s / steps;
-    const cur = cellOf(grid, ax + (bx - ax) * t, az + (bz - az) * t);
-    if (cur !== prev && !walkable(grid, prev, cur)) return false;
+    const cur = cellIdx(grid, a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t);
+    if (cur === prev) continue;
+    const node = nodeAtHeight(grid, cur, y);
+    if (node < 0) return false;
+    y = grid.ys[node];
     prev = cur;
   }
-  return true;
+  return Math.abs(y - b.y) <= STEP + 0.01;
 }
 
 function findPath(grid, from, to) {
-  const start = nearestFree(grid, cellOf(grid, from.x, from.z));
-  const goal = nearestFree(grid, cellOf(grid, to.x, to.z));
-  if (start === goal) return [{ x: to.x, z: to.z }];
-  const n = grid.n;
-  const gScore = new Float32Array(n * n).fill(Infinity);
-  const came = new Int32Array(n * n).fill(-1);
-  const closed = new Uint8Array(n * n);
-  const gi = goal % n;
-  const gj = Math.floor(goal / n);
+  const start = nearestNode(grid, from.x, from.z, from.y);
+  const goal = nearestNode(grid, to.x, to.z, to.y);
+  if (start < 0 || goal < 0) return [];
+  if (start === goal) return [{ x: to.x, y: grid.ys[goal], z: to.z }];
+  const total = grid.n * grid.n * grid.K;
+  const gScore = new Float32Array(total).fill(Infinity);
+  const came = new Int32Array(total).fill(-1);
+  const closed = new Uint8Array(total);
+  const gc = Math.floor(goal / grid.K);
+  const gi = gc % grid.n;
+  const gj = Math.floor(gc / grid.n);
   const heuristic = (k) => {
-    const dx = Math.abs((k % n) - gi);
-    const dz = Math.abs(Math.floor(k / n) - gj);
+    const c = Math.floor(k / grid.K);
+    const dx = Math.abs((c % grid.n) - gi);
+    const dz = Math.abs(Math.floor(c / grid.n) - gj);
     return Math.max(dx, dz) + 0.414 * Math.min(dx, dz);
   };
   const heap = new Heap();
@@ -185,78 +271,63 @@ function findPath(grid, from, to) {
     const hc = heuristic(cur);
     if (hc < bestH) { bestH = hc; best = cur; }
     if (cur === goal) { found = true; break; }
-    const ci = cur % n;
-    const cj = Math.floor(cur / n);
     for (let dj = -1; dj <= 1; dj++) {
       for (let di = -1; di <= 1; di++) {
         if (!di && !dj) continue;
-        const ni = ci + di;
-        const nj = cj + dj;
-        if (ni < 0 || nj < 0 || ni >= n || nj >= n) continue;
-        const nk = nj * n + ni;
-        if (closed[nk] || !walkable(grid, cur, nk)) continue;
-        if (di && dj && (!walkable(grid, cur, cj * n + ni) || !walkable(grid, cur, nj * n + ci))) continue;
-        let step = di && dj ? 1.414 : 1;
-        for (let a = -1; a <= 1; a++) {
-          for (let b = -1; b <= 1; b++) {
-            const xi = ni + a;
-            const xj = nj + b;
-            if ((a || b) && xi >= 0 && xj >= 0 && xi < n && xj < n && grid.blocked[xj * n + xi]) { step += 0.15; a = 2; break; }
+        const diag = di && dj;
+        for (const nk of neighbors(grid, cur, di, dj)) {
+          if (closed[nk]) continue;
+          if (diag && (!neighbors(grid, cur, di, 0).some((m) => Math.abs(grid.ys[m] - grid.ys[nk]) <= STEP) || !neighbors(grid, cur, 0, dj).some((m) => Math.abs(grid.ys[m] - grid.ys[nk]) <= STEP))) continue;
+          const g = gScore[cur] + (diag ? 1.414 : 1);
+          if (g < gScore[nk]) {
+            gScore[nk] = g;
+            came[nk] = cur;
+            heap.push([g + heuristic(nk), nk]);
           }
-        }
-        const g = gScore[cur] + step;
-        if (g < gScore[nk]) {
-          gScore[nk] = g;
-          came[nk] = cur;
-          heap.push([g + heuristic(nk), nk]);
         }
       }
     }
   }
   const end = found ? goal : best;
   if (!found && end === start) return [];
-  const cells = [];
-  for (let k = end; k !== -1; k = came[k]) cells.push(k);
-  cells.reverse();
-  const points = cells.map((k) => centerOf(grid, k));
-  points[0] = { x: from.x, z: from.z };
+  const nodes = [];
+  for (let k = end; k !== -1; k = came[k]) nodes.push(k);
+  nodes.reverse();
+  const points = nodes.map((k) => ({ ...centerOfCell(grid, Math.floor(k / grid.K)), y: grid.ys[k] }));
+  points[0] = { x: from.x, z: from.z, y: grid.ys[start] };
   const out = [];
   let anchor = 0;
   while (anchor < points.length - 1) {
     let far = anchor + 1;
     for (let k = points.length - 1; k > anchor + 1; k--) {
-      if (lineClear(grid, points[anchor].x, points[anchor].z, points[k].x, points[k].z)) { far = k; break; }
+      if (lineClear(grid, points[anchor], points[k])) { far = k; break; }
     }
     out.push(points[far]);
     anchor = far;
   }
-  if (found && out.length) out[out.length - 1] = grid.blocked[cellOf(grid, to.x, to.z)] ? out[out.length - 1] : { x: to.x, z: to.z };
+  if (found && out.length) out[out.length - 1] = { x: to.x, z: to.z, y: out[out.length - 1].y };
   return out;
 }
 
 function reachableFrom(grid, from) {
-  const n = grid.n;
-  const seen = new Uint8Array(n * n);
-  const start = nearestFree(grid, cellOf(grid, from.x, from.z));
+  const seen = new Uint8Array(grid.n * grid.n * grid.K);
+  const start = nearestNode(grid, from.x, from.z, from.y);
+  if (start < 0) return seen;
   const stack = [start];
   seen[start] = 1;
   while (stack.length) {
     const cur = stack.pop();
-    const ci = cur % n;
-    const cj = Math.floor(cur / n);
     for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const ni = ci + di;
-      const nj = cj + dj;
-      if (ni < 0 || nj < 0 || ni >= n || nj >= n) continue;
-      const nk = nj * n + ni;
-      if (!seen[nk] && walkable(grid, cur, nk)) { seen[nk] = 1; stack.push(nk); }
+      for (const nk of neighbors(grid, cur, di, dj)) {
+        if (!seen[nk]) { seen[nk] = 1; stack.push(nk); }
+      }
     }
   }
   return seen;
 }
 
-function isReachableNear(grid, seen, x, z, cells = 2) {
-  const c = cellOf(grid, x, z);
+function isReachableNear(grid, seen, x, z, cells = 2, y) {
+  const c = cellIdx(grid, x, z);
   const ci = c % grid.n;
   const cj = Math.floor(c / grid.n);
   for (let dj = -cells; dj <= cells; dj++) {
@@ -264,10 +335,14 @@ function isReachableNear(grid, seen, x, z, cells = 2) {
       const ni = ci + di;
       const nj = cj + dj;
       if (ni < 0 || nj < 0 || ni >= grid.n || nj >= grid.n) continue;
-      if (seen[nj * grid.n + ni]) return true;
+      const nc = nj * grid.n + ni;
+      for (let l = 0; l < grid.cnt[nc]; l++) {
+        const node = nc * grid.K + l;
+        if (seen[node] && (typeof y !== 'number' || Math.abs(grid.ys[node] - y) <= 1)) return true;
+      }
     }
   }
   return false;
 }
 
-module.exports = { buildGrid, findPath, lineClear, cellOf, reachableFrom, isReachableNear };
+module.exports = { buildGrid, findPath, lineClear, reachableFrom, isReachableNear };

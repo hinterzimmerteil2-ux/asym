@@ -283,7 +283,7 @@ test('Pathfinding llega a la torre del segundo nivel del hospital por rampas emp
   const Pathfinding = require('../src/Pathfinding');
   const area = GameMap.areaFor('hospital');
   const grid = Pathfinding.buildGrid(area.halfSize, GameMap.resolveCollisionObjects('hospital', area), GameMap.resolvePlatforms('hospital', area));
-  const path = Pathfinding.findPath(grid, { x: 0, z: 0 }, { x: 31, z: 30 });
+  const path = Pathfinding.findPath(grid, { x: 0, z: 0, y: 0 }, { x: 31, z: 30, y: 9.5 });
   const last = path[path.length - 1];
   assert.ok(Math.hypot(last.x - 31, last.z - 30) < 1);
 });

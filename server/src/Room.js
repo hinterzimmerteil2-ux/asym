@@ -258,14 +258,14 @@ class Room {
       st.lastCheck = now;
       if (st.stuck >= 1) st.repathAt = 0;
     }
-    const goalMoved = !st.goal || Math.hypot(goal.x - st.goal.x, goal.z - st.goal.z) > 1.5;
+    const goalMoved = !st.goal || Math.hypot(goal.x - st.goal.x, goal.z - st.goal.z) > 1.5 || Math.abs((goal.y || 0) - (st.goal.y || 0)) > 1;
     if (goalMoved || now >= st.repathAt || !st.path.length) {
       const jitter = st.stuck >= 2 ? { x: (Math.random() - 0.5) * 3, z: (Math.random() - 0.5) * 3 } : { x: 0, z: 0 };
-      st.path = Pathfinding.findPath(grid, { x: entity.x + jitter.x, z: entity.z + jitter.z }, goal);
-      st.goal = { x: goal.x, z: goal.z };
+      st.path = Pathfinding.findPath(grid, { x: entity.x + jitter.x, z: entity.z + jitter.z, y: entity.y || 0 }, goal);
+      st.goal = { x: goal.x, z: goal.z, y: goal.y };
       st.repathAt = now + 500 + Math.random() * 300;
     }
-    while (st.path.length > 1 && Math.hypot(st.path[0].x - entity.x, st.path[0].z - entity.z) < 0.6) st.path.shift();
+    while (st.path.length > 1 && Math.hypot(st.path[0].x - entity.x, st.path[0].z - entity.z) < 0.6 && Math.abs((st.path[0].y ?? entity.y) - (entity.y || 0)) < 1.2) st.path.shift();
     if (!st.path.length) {
       entity.input.moveX = 0;
       entity.input.moveZ = 0;
@@ -307,6 +307,7 @@ class Room {
       const goal = {
         x: target.entity.x + (target.entity.input?.moveX || 0) * lead,
         z: target.entity.z + (target.entity.input?.moveZ || 0) * lead,
+        y: target.entity.y || 0,
       };
       this.botSteer(player, entity, goal, now, 0.15);
       entity.input.slow = entity.flojera < 12;
