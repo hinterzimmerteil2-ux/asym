@@ -28,6 +28,8 @@ const FACING = new Map();
 const HAND_ANIMS = new Map();
 const ANIM_DURATION = { swing: 650, consume: 1700, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600 };
 const IMPACT_MS = { swing: 260, consume: 1500, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150 };
+const HOLD_MS = { card_tropiezo: 1200, card_paraguayizador: 1000, card_acetilcolina: 1300, card_tajo_carmesi: 800, card_red_mist: 800, skill_melee_stun: 800, card_rodar: 650 };
+const durOf = (h) => (h && (h.ms || ANIM_DURATION[h.anim])) || 1;
 const STATE_HELD = new Set(['card_chicharron', 'card_goyslop', 'card_astral_claw', 'card_grito_animo']);
 const ANIM_BY_KIND = {
   skill_melee_stun: 'swing',
@@ -66,7 +68,7 @@ function HeldItem({ held }) {
   useFrame(() => {
     const group = groupRef.current;
     if (!group || !held) return;
-    const t = Math.min(1, (Date.now() - held.startedAt) / ANIM_DURATION[held.anim]);
+    const t = Math.min(1, (Date.now() - held.startedAt) / durOf(held));
     group.visible = t < 1;
     const e = easeOut(t);
     if (held.anim === 'swing') {
@@ -277,6 +279,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
   const [held, setHeld] = useState(null);
   const heldId = useRef(null);
   const holdRef = useRef(null);
+  const holdStart = useRef({ key: null, at: 0 });
   holdRef.current = entityState.hold || null;
   const groupRef = useRef();
   const rag = useRef({ on: false });
@@ -354,8 +357,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
       laz -= 0.5 * w.air;
       raz += 0.5 * w.air;
       const ha = HAND_ANIMS.get(playerId);
-      if (ha && ANIM_DURATION[ha.anim]) {
-        const ht = Math.min(1, (Date.now() - ha.startedAt) / ANIM_DURATION[ha.anim]);
+      if (ha && durOf(ha) > 1) {
+        const ht = Math.min(1, (Date.now() - ha.startedAt) / durOf(ha));
         if (ha.anim === 'swing') {
           rax = -Math.PI + 2.9 * easeOut(ht);
           raz = 0.1;
@@ -390,6 +393,23 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
           raz = 0.35 * up;
         }
       }
+      const hold = entityState.hold || null;
+      const hs = holdStart.current;
+      if (hold !== hs.key) { hs.key = hold; hs.at = Date.now(); }
+      if (hold) {
+        const hel = Date.now() - hs.at;
+        if (hold === 'claw') {
+          lax = -1.5; rax = -1.5; laz = -0.25; raz = 0.25;
+        } else if (hold === 'claw_ready') {
+          lax = -2.5; rax = -2.5 + Math.sin(w.t * 9) * 0.1; laz = -0.2; raz = 0.2;
+        } else if (hold === 'horn') {
+          rax = -1.8; raz = 0.1; lax = -0.5 + Math.sin(w.t * 7) * 0.1;
+        } else if (hold.startsWith('eat_')) {
+          const up = easeOut(Math.min(1, hel / 450));
+          rax = -1.9 * up + (hel > 600 ? Math.sin(w.t * 25) * 0.12 : 0);
+          raz = 0.2;
+        }
+      }
       const r6 = rig.current;
       if (r6.legL) {
         r6.legL.rotation.x = swing * 1.1 + 0.5 * w.air;
@@ -402,7 +422,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
       const showRag = Boolean(ragdoll && entityState.rag && entityState.rag.p);
       body.visible = !showRag;
       const pa = HAND_ANIMS.get(playerId);
-      const pt = pa && ANIM_DURATION[pa.anim] ? Math.min(1, (Date.now() - pa.startedAt) / ANIM_DURATION[pa.anim]) : 1;
+      const pt = pa && durOf(pa) > 1 ? Math.min(1, (Date.now() - pa.startedAt) / durOf(pa)) : 1;
       let pitch = 0;
       let offY = 0;
       let offF = 0;
@@ -430,7 +450,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
     } else if (!anim && heldId.current) {
       heldId.current = null;
       setHeld(null);
-    } else if (anim && Date.now() - anim.startedAt > ANIM_DURATION[anim.anim]) {
+    } else if (anim && Date.now() - anim.startedAt > durOf(anim)) {
       HAND_ANIMS.delete(playerId);
     }
     groupRef.current.visible = !(CAMERA_LOCK.fp && CAMERA_LOCK.fpId === playerId);
@@ -1001,11 +1021,11 @@ const FX = {
   skill_anestesia: { shape: 'spark', color: '#b07cf2', count: 14, speed: 2.5, up: 3, gravity: -2, prop: 'mask' },
   skill_camilla_magnetica: { shape: 'spark', color: '#e0555f', count: 16, speed: 3, up: 0.5, gravity: 0, inward: true, prop: 'magnet' },
   skill_desinfectante: { shape: 'drop', color: '#54a8f2', liquid: '#dcdde8', count: 20, speed: 4, up: 2, gravity: 9, prop: 'bottle' },
-  skill_pulse: { shape: 'leaf', color: '#5fd58c', count: 14, speed: 3, up: 2.5, gravity: -1 },
-  skill_stun: { shape: 'spark', color: '#b07cf2', count: 12, speed: 2.5, up: 3, gravity: -2 },
-  skill_pull: { shape: 'leaf', color: '#8f6a3a', count: 14, speed: 3, up: 0.5, gravity: 0, inward: true },
-  skill_boost: { shape: 'spark', color: '#f2a154', count: 12, speed: 1, up: 4, gravity: -3 },
-  skill_purge: { shape: 'drop', color: '#54a8f2', count: 14, speed: 3.5, up: 2, gravity: 9 },
+  skill_pulse: { shape: 'leaf', color: '#5fd58c', count: 14, speed: 3, up: 2.5, gravity: -1, prop: 'herbs' },
+  skill_stun: { shape: 'spark', color: '#b07cf2', count: 12, speed: 2.5, up: 3, gravity: -2, prop: 'mask' },
+  skill_pull: { shape: 'leaf', color: '#8f6a3a', count: 14, speed: 3, up: 0.5, gravity: 0, inward: true, prop: 'magnet' },
+  skill_boost: { shape: 'spark', color: '#f2a154', count: 12, speed: 1, up: 4, gravity: -3, prop: 'bottle' },
+  skill_purge: { shape: 'drop', color: '#54a8f2', count: 14, speed: 3.5, up: 2, gravity: 9, prop: 'drip' },
   skill_melee_stun: { shape: 'spark', color: '#f2d154', count: 12, speed: 4, up: 2, gravity: 6, prop: 'hammer' },
   card_acetilcolina: { shape: 'spark', color: '#54d1f2', count: 16, speed: 3, up: 2, gravity: 0, prop: 'img_acetilcolina' },
   card_rodar: { shape: 'smoke', color: '#cfd2e0', count: 8, speed: 2, up: 0.5, gravity: 0, prop: 'img_rodar' },
@@ -1186,7 +1206,7 @@ function Particles({ effect, fx }) {
 
   useEffect(() => {
     if (anim && effect.casterId) {
-      HAND_ANIMS.set(effect.casterId, { id: effect.id, anim, prop: fx.prop, color: fx.liquid || fx.color, startedAt: effect.startedAt });
+      HAND_ANIMS.set(effect.casterId, { id: effect.id, anim, ms: HOLD_MS[effect.kind], prop: fx.prop, color: fx.liquid || fx.color, startedAt: effect.startedAt });
     }
   }, []);
   const particles = Array.from({ length: fx.count }, (_, i) => {
