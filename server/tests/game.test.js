@@ -419,22 +419,50 @@ test('cáscara de plátano: 2 usos, cura 20 al Curador y también tropieza su du
   assert.strictEqual(room.gameState.zones.length, 0);
 });
 
-test('chicharrón y goyslop en el mínimo dan velocidad temporal o Flojera', () => {
+function finishEating(room, e, slot = 0) {
+  e.a.eating.endsAt = 0;
+  room.tickEating(Date.now());
+}
+
+test('chicharrón y goyslop: se comen quietos, restan HP y dan Flojera', () => {
   const { room, e } = setup();
-  room.gameState.patients.a.hp = 60;
-  give(e.a, 0, 'chicharron');
-  room.useCard('a', 0);
-  assert.ok(!(e.a.sprintUntil > Date.now()));
-  e.a.cardCooldowns = {};
-  give(e.a, 0, 'chicharron');
-  room.useCard('a', 0);
-  assert.ok(e.a.sprintUntil > Date.now());
+  room.gameState.patients.a.hp = 90;
   e.a.flojera = 10;
+  give(e.a, 0, 'chicharron');
+  room.useCard('a', 0);
+  assert.ok(e.a.eating);
+  assert.strictEqual(room.gameState.patients.a.hp, 90);
+  finishEating(room, e);
+  assert.strictEqual(room.gameState.patients.a.hp, 62);
+  assert.ok(e.a.flojera > 10);
+  assert.ok(e.a.hitScale > 1);
   e.a.cardCooldowns = {};
-  room.gameState.patients.a.hp = 30;
+  room.gameState.patients.a.hp = 56;
+  e.a.flojera = 10;
+  give(e.a, 0, 'chicharron');
+  room.useCard('a', 0);
+  finishEating(room, e);
+  assert.strictEqual(room.gameState.patients.a.hp, 56);
+  assert.ok(e.a.sprintUntil > Date.now());
+  assert.strictEqual(e.a.flojera, 10 + 12 + 28);
+});
+
+test('comer se interrumpe al curarte o moverte y no se consume', () => {
+  const { room, e } = setup();
+  room.gameState.patients.a.hp = 90;
   give(e.a, 0, 'goyslop');
   room.useCard('a', 0);
-  assert.strictEqual(e.a.flojera, 50);
+  room.gameState.patients.a.hp = 95;
+  room.tickEating(Date.now());
+  assert.strictEqual(e.a.eating, null);
+  assert.strictEqual(room.gameState.patients.a.hp, 95);
+  assert.strictEqual(room.gameState.patients.a.maxHp, require('../src/Constants').PATIENT_HP_MAX);
+  e.a.cardCooldowns = {};
+  give(e.a, 0, 'goyslop');
+  room.useCard('a', 0);
+  e.a.x += 5;
+  room.tickEating(Date.now());
+  assert.strictEqual(e.a.eating, null);
 });
 
 test('la cáscara no se gasta dos veces con la misma entidad que sigue encima', () => {

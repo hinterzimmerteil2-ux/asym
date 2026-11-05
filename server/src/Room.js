@@ -953,6 +953,7 @@ class Room {
       this.autoPickExpiredDrafts(now);
       this.tickZones(now, dt);
       this.tickAstral(now, dt);
+      this.tickEating(now);
       if (now - this.lastRelocateAt >= RELOCATE_INTERVAL_MS) this.relocateSelfDamageObjects(now);
     }
 
@@ -1711,7 +1712,10 @@ class Room {
   }
 
   exitAstral(entity, now) {
-    if (entity.astral && entity.astral.state === 'charging') this.readyAstral(entity, now);
+    if (entity.astral && entity.astral.state === 'charging') {
+      this.readyAstral(entity, now);
+      Status.apply(entity, 'slow', ASTRAL.CANCEL_ENDLAG_MS, now, { tag: 'endlag', level: 2 });
+    }
   }
 
   readyAstral(entity, now) {
@@ -1746,7 +1750,8 @@ class Room {
       if (!a || a.state !== 'charging') continue;
       a.fastMs = (entity.speedNow || 0) > ASTRAL.EXIT_SPEED ? a.fastMs + dt * 1000 : 0;
       const jumped = !entity.onGround && (entity.velocityY || 0) > 0.5;
-      if (jumped || a.fastMs >= ASTRAL.EXIT_FAST_MS || now - a.startedAt >= Math.max(a.cfg.holdMs, a.cfg.chargeMs)) this.readyAstral(entity, now);
+      if (jumped || a.fastMs >= ASTRAL.EXIT_FAST_MS) this.exitAstral(entity, now);
+      else if (now - a.startedAt >= Math.max(a.cfg.holdMs, a.cfg.chargeMs)) this.readyAstral(entity, now);
     }
     const half = this.getCurrentArea().halfSize;
     let platformsNow = null;
@@ -2105,6 +2110,10 @@ class Room {
       return;
     }
 
+    if (card.eat) {
+      this.startEating(playerId, entity, slotIndex, card, now);
+      return;
+    }
     entity.cardCooldowns[slotIndex] = now + card.cooldownMs;
     this.applyCardEffect(playerId, entity, card, now);
     if (card.astral) entity.cardCooldowns[slotIndex] = now + 1500;
@@ -2118,6 +2127,38 @@ class Room {
       center: card.reach ? (({ x, z }) => ({ x, z }))(reachPoint(entity, card.reach)) : null,
       boxes: card.reach ? [handBox(entity, card.reach, card.hitRadius)] : CardEffects.areaOf(card, entity),
     });
+  }
+
+  startEating(playerId, entity, slotIndex, card, now) {
+    if (entity.eating) return;
+    const patient = this.gameState.patients[playerId];
+    entity.eating = { cardId: card.id, slot: slotIndex, endsAt: now + card.eat.ms, x: entity.x, z: entity.z, hp: patient ? patient.hp : 0, limit: card.eat.moveLimit };
+    entity.cardCooldowns[slotIndex] = now + card.eat.ms;
+    Status.apply(entity, 'slow', card.eat.ms, now, { tag: 'endlag', level: 2 });
+    this.broadcast(MessageType.CARD_RESULT, { playerId, slot: slotIndex, cardId: card.id, cooldownUntil: entity.cardCooldowns[slotIndex], hitRadius: null, center: null, boxes: [] });
+  }
+
+  tickEating(now) {
+    for (const [playerId, entity] of Object.entries(this.gameState.entities)) {
+      const e = entity.eating;
+      if (!e) continue;
+      const patient = this.gameState.patients[playerId];
+      const card = Cards.getCard(e.cardId);
+      const healed = !patient || patient.status !== 'alive' || patient.hp > e.hp + 1e-6;
+      if (patient) e.hp = Math.min(e.hp, patient.hp);
+      const moved = Math.hypot(entity.x - e.x, entity.z - e.z) > e.limit;
+      if (healed || moved) {
+        entity.eating = null;
+        entity.cardCooldowns[e.slot] = now + 1000;
+        Status.apply(entity, 'slow', 1000, now, { tag: 'endlag', level: 2 });
+        continue;
+      }
+      if (now < e.endsAt) continue;
+      entity.eating = null;
+      entity.cardCooldowns[e.slot] = now + card.cooldownMs;
+      this.applyCardEffect(playerId, entity, card, now);
+      this.broadcast(MessageType.CARD_RESULT, { playerId, slot: e.slot, cardId: card.id, cooldownUntil: entity.cardCooldowns[e.slot], hitRadius: null, center: null, boxes: [] });
+    }
   }
 
   alliesNear(playerId, entity, radius) {

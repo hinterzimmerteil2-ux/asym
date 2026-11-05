@@ -53,7 +53,7 @@ function blockedAt(platforms, x, z, y, stepUp = STEP_UP) {
 }
 
 function extentOf(o) {
-  return o.input && !o.corpse ? { half: PLAYER_HALF, height: PLAYER_HEIGHT } : { half: 0, height: 0 };
+  return o.input && !o.corpse ? { half: PLAYER_HALF * (o.hitScale || 1), height: PLAYER_HEIGHT } : { half: 0, height: 0 };
 }
 
 const ATTACK_VERTICAL_PAD = 1.5;

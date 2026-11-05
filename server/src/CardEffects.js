@@ -11,6 +11,22 @@ function forEachCurator(room, entity, radius, fn, reach = 0) {
   }
 }
 
+function eatFood(room, playerId, entity, loss, floor) {
+  const patient = room.gameState.patients[playerId];
+  const margin = patient ? patient.hp - floor : 0;
+  const free = margin <= C.FOOD_NEAR_FLOOR;
+  let flojera = C.FOOD_BONUS_FLOJERA_SMALL;
+  if (free) {
+    flojera += loss;
+  } else {
+    const actual = Math.min(loss, margin);
+    room.damagePatient(playerId, actual, floor);
+    flojera += loss - actual;
+  }
+  entity.flojera = Math.min(entity.flojeraMax, entity.flojera + flojera);
+  return { free };
+}
+
 const handlers = {
   paraguayizador({ room, entity, now }) {
     entity.paraFrom = now + C.PARAGUAY_START_MS;
@@ -32,17 +48,17 @@ const handlers = {
   },
 
   chicharron({ room, playerId, entity, now }) {
-    const hurt = room.damagePatient(playerId, C.CHICHARRON_DAMAGE, C.CHICHARRON_FLOOR);
-    if (!hurt) {
+    const gained = eatFood(room, playerId, entity, C.CHICHARRON_DAMAGE, C.CHICHARRON_FLOOR);
+    if (gained.free) {
       entity.sprintUntil = now + C.FOOD_BONUS_SPRINT_MS;
       entity.sprintFactor = C.FOOD_BONUS_SPRINT_FACTOR;
     }
+    entity.hitScale = (entity.hitScale || 1) * 1.005;
     room.checkGameEndConditions();
   },
 
   goyslop({ room, playerId, entity, now }) {
-    const hurt = room.damagePatient(playerId, C.GOYSLOP_DAMAGE, C.GOYSLOP_FLOOR);
-    if (!hurt) entity.flojera = Math.min(entity.flojeraMax, entity.flojera + C.FOOD_BONUS_FLOJERA);
+    eatFood(room, playerId, entity, C.GOYSLOP_DAMAGE, C.GOYSLOP_FLOOR);
     entity.sprintUntil = now + C.GOYSLOP_SPRINT_MS;
     entity.sprintFactor = C.GOYSLOP_SPRINT_FACTOR;
     room.checkGameEndConditions();
