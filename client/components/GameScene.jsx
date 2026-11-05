@@ -26,8 +26,8 @@ const COLOR_EMERGENCY_LIGHT = '#5468ff';
 
 const FACING = new Map();
 const HAND_ANIMS = new Map();
-const ANIM_DURATION = { swing: 650, consume: 950, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600 };
-const IMPACT_MS = { swing: 260, consume: 560, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150 };
+const ANIM_DURATION = { swing: 650, consume: 1700, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600 };
+const IMPACT_MS = { swing: 260, consume: 1500, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150 };
 const ANIM_BY_KIND = {
   skill_melee_stun: 'swing',
   card_tajo_carmesi: 'swing',
@@ -56,6 +56,8 @@ const ANIM_BY_KIND = {
   card_grito_animo: 'cast',
   card_risa_enlatada: 'cast',
   card_risa_macabra: 'cast',
+  card_paraguayizador: 'cast',
+  card_astral_claw: 'cast',
 };
 
 function easeOut(t) {
@@ -191,7 +193,25 @@ export function CosmeticPieces({ slot, cosmetics }) {
   );
 }
 
-function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, ghost, ghostOpacity = 0.65, cosmetics }) {
+function HerbStaff() {
+  const ref = useRef();
+  useFrame(({ clock }) => {
+    if (ref.current) ref.current.rotation.z = Math.sin(clock.elapsedTime * 2.2) * 0.05;
+  });
+  const leaves = [[0, 0.1, 0, 0], [0.12, 0.0, 0.06, 0.7], [-0.12, 0.02, -0.05, -0.7], [0.06, 0.12, -0.1, 0.3], [-0.07, 0.14, 0.1, -0.4]];
+  return (
+    <group ref={ref} position={[0, -0.72, 0.28]}>
+      <mesh position={[0, 0.45, 0]}><cylinderGeometry args={[0.035, 0.05, 1.9, 6]} /><meshStandardMaterial color="#6b4a2a" roughness={0.9} /></mesh>
+      <mesh position={[0, 1.18, 0]}><cylinderGeometry args={[0.07, 0.07, 0.1, 8]} /><meshStandardMaterial color="#c9b27a" roughness={0.8} /></mesh>
+      {leaves.map(([x, y, z, r], i) => (
+        <mesh key={i} position={[x, 1.42 + y, z]} rotation={[0, 0, r]}><coneGeometry args={[0.09, 0.42, 5]} /><meshStandardMaterial color={i % 2 ? '#4fa86a' : '#6fd58c'} roughness={0.7} /></mesh>
+      ))}
+      <mesh position={[0.1, 1.2, 0.05]}><sphereGeometry args={[0.07, 6, 5]} /><meshStandardMaterial color="#e0555f" roughness={0.6} /></mesh>
+    </group>
+  );
+}
+
+function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned, ragdoll, ghost, ghostOpacity = 0.65, cosmetics }) {
   const bodyRef = useRef();
   const lastPos = useRef([entityState.x, entityState.z]);
   const yaw = useRef(0);
@@ -382,6 +402,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, stunned, ragdoll, g
             <mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
             {key.startsWith('leg') && <mesh position={[0, -0.68, 0.05]}><boxGeometry args={[0.4, 0.14, 0.5]} /><meshStandardMaterial color="#1b1d29" roughness={0.7} /></mesh>}
             {key.startsWith('arm') && <mesh position={[0, -0.7, 0]}><boxGeometry args={[0.38, 0.1, 0.38]} /><meshStandardMaterial color="#e4c9a8" roughness={0.6} /></mesh>}
+            {key === 'armR' && isCurator && <HerbStaff />}
           </group>
         ))}
         <HeldItem held={held} />
@@ -899,10 +920,16 @@ const SIMPLE_PROPS = {
   horn: [['coneGeometry', [0.3, 0.6, 10], [0, 0, 0], '#f2d154'], ['sphereGeometry', [0.1, 8, 6], [0, 0.35, 0], '#54d1f2']],
   bowl: [['cylinderGeometry', [0.35, 0.2, 0.25, 12], [0, 0, 0], '#dcdde8'], ['sphereGeometry', [0.12, 8, 6], [0, 0.18, 0], '#c98a3a']],
   molecule: [['sphereGeometry', [0.18, 10, 8], [0, 0, 0], '#54d1f2'], ['sphereGeometry', [0.1, 8, 6], [-0.3, 0.15, 0], '#54d1f2'], ['sphereGeometry', [0.1, 8, 6], [0.3, 0.15, 0], '#54d1f2'], ['sphereGeometry', [0.1, 8, 6], [0, -0.3, 0], '#54d1f2']],
+  flag: [['boxGeometry', [0.05, 0.9, 0.05], [-0.35, 0, 0], '#8f6a3a'], ['boxGeometry', [0.6, 0.12, 0.03], [0, 0.34, 0], '#d52b1e'], ['boxGeometry', [0.6, 0.12, 0.03], [0, 0.22, 0], '#f1f1f6'], ['boxGeometry', [0.6, 0.12, 0.03], [0, 0.1, 0], '#0038a8']],
+  claw: [['sphereGeometry', [0.18, 10, 8], [0, 0, 0], '#b57cff'], ['coneGeometry', [0.05, 0.4, 5], [-0.15, -0.3, 0], '#ecdcff'], ['coneGeometry', [0.05, 0.4, 5], [0, -0.33, 0], '#ecdcff'], ['coneGeometry', [0.05, 0.4, 5], [0.15, -0.3, 0], '#ecdcff']],
   can: [['cylinderGeometry', [0.2, 0.2, 0.4, 10], [0, 0, 0], '#c3c5d6']],
 };
 
+const FX_DEFAULT = { shape: 'spark', color: '#f2d154', count: 10, speed: 3, up: 3, gravity: 2, prop: 'pill' };
+
 const FX = {
+  card_paraguayizador: { shape: 'smoke', color: '#d52b1e', count: 14, speed: 2.5, up: 1, gravity: 0, prop: 'flag' },
+  card_astral_claw: { shape: 'spark', color: '#b57cff', count: 14, speed: 3, up: 2, gravity: 0, prop: 'claw' },
   skill_pulso_hierbas: { shape: 'leaf', color: '#5fd58c', count: 18, speed: 3.5, up: 3, gravity: 1, prop: 'herbs' },
   skill_somnifero_valeriana: { shape: 'shard', color: '#d9c8f5', liquid: '#b07cf2', count: 16, speed: 4, up: 4, gravity: 12, prop: 'bottle' },
   skill_raiz_atrayente: { shape: 'leaf', color: '#8f6a3a', count: 16, speed: 3, up: 0.5, gravity: 0, inward: true, prop: 'roots' },
@@ -1195,7 +1222,7 @@ function SkillEffect({ effect }) {
   });
 
   const flat = style.mode === 'ring' || style.mode === 'contract';
-  const fx = FX[effect.kind] || FX[effect.baseKind];
+  const fx = FX[effect.kind] || FX[effect.baseKind] || (String(effect.kind).startsWith('card_') ? FX_DEFAULT : null);
   return (
     <>
     {fx && <Particles effect={effect} fx={fx} />}
@@ -1863,6 +1890,7 @@ export default function GameScene({
               entityState={entityState}
               color={color}
               isMe={playerId === myPlayerId}
+              isCurator={phase === 'action' && Boolean(player.isAsymRole)}
               stunned={(stunnedIds || []).includes(playerId)}
               ragdoll={(ragdollIds || []).includes(playerId)}
               cosmetics={player.cosmetics}

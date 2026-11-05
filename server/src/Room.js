@@ -130,6 +130,7 @@ const {
   PARAGUAY_HIT_END_MS,
   PARAGUAY_END_MS,
   PARAGUAY_DRAIN_FACTOR,
+  ACETIL_DRAIN_FACTOR,
 } = require('./Constants');
 const Status = require('./Status');
 const LMS_GIMMICKS = ['adrenalina', 'reflejos', 'escudo', 'codicia'];
@@ -1227,7 +1228,7 @@ class Room {
 
       if (inAction && entity.acetilUntil > now) {
         if (isMoving && entity.flojera > 0 && !input.slow) {
-          entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * dt);
+          entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * ACETIL_DRAIN_FACTOR * dt);
           if (entity.flojera <= 0) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
         }
       } else if (inAction && !rolling) {
@@ -2151,13 +2152,14 @@ class Room {
         entity.eating = null;
         entity.cardCooldowns[e.slot] = now + 1000;
         Status.apply(entity, 'slow', 1000, now, { tag: 'endlag', level: 2 });
+        this.broadcast(MessageType.CARD_RESULT, { playerId, slot: e.slot, cardId: card.id, cooldownUntil: entity.cardCooldowns[e.slot], hitRadius: null, center: null, boxes: [], silent: true });
         continue;
       }
       if (now < e.endsAt) continue;
       entity.eating = null;
       entity.cardCooldowns[e.slot] = now + card.cooldownMs;
       this.applyCardEffect(playerId, entity, card, now);
-      this.broadcast(MessageType.CARD_RESULT, { playerId, slot: e.slot, cardId: card.id, cooldownUntil: entity.cardCooldowns[e.slot], hitRadius: null, center: null, boxes: [] });
+      this.broadcast(MessageType.CARD_RESULT, { playerId, slot: e.slot, cardId: card.id, cooldownUntil: entity.cardCooldowns[e.slot], hitRadius: null, center: null, boxes: [], silent: true });
     }
   }
 
