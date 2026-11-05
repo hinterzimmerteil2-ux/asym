@@ -67,11 +67,11 @@ function PlatformMesh({ p, onPick, selected, MAP_HALF }) {
       </mesh>
     );
   }
-  if (p.kind === 'gate') {
+  if (p.kind === 'gate' || p.kind === 'pgate') {
     return (
       <mesh position={[x, y0 + p.h / 2, z]} onClick={pick}>
         <boxGeometry args={[hx * 2, p.h, hz * 2]} />
-        <meshStandardMaterial color={selected ? '#facc15' : '#f2a154'} transparent opacity={0.6} />
+        <meshStandardMaterial color={selected ? '#facc15' : p.kind === 'pgate' ? '#5fd58c' : '#f2a154'} transparent opacity={0.6} />
       </mesh>
     );
   }
@@ -293,14 +293,14 @@ export default function MapEditorPage() {
       }))]);
       return;
     }
-    if (selectedTool === 'pit' || selectedTool === 'pit_ramp' || selectedTool === 'gate' || selectedTool === 'slab') {
-      const kind = selectedTool === 'gate' ? 'gate' : selectedTool === 'slab' ? 'mezzanine' : 'pit';
+    if (selectedTool === 'pit' || selectedTool === 'pit_ramp' || selectedTool === 'gate' || selectedTool === 'pgate' || selectedTool === 'slab') {
+      const kind = selectedTool === 'gate' ? 'gate' : selectedTool === 'pgate' ? 'pgate' : selectedTool === 'slab' ? 'mezzanine' : 'pit';
       setPlatforms((prev) => [...prev, {
         id: generateId(kind),
         xFrac, zFrac,
-        hxFrac: (selectedTool === 'gate' ? 0.3 : buildSize) / REF_HALF,
-        hzFrac: (selectedTool === 'gate' ? buildSize : selectedTool === 'slab' ? buildSize : buildSize * 0.8) / REF_HALF,
-        h: selectedTool === 'gate' ? 3 : buildH,
+        hxFrac: (selectedTool === 'gate' || selectedTool === 'pgate' ? 0.3 : buildSize) / REF_HALF,
+        hzFrac: (selectedTool === 'gate' || selectedTool === 'pgate' ? buildSize : selectedTool === 'slab' ? buildSize : buildSize * 0.8) / REF_HALF,
+        h: selectedTool === 'gate' || selectedTool === 'pgate' ? 3 : buildH,
         ramp: selectedTool === 'pit_ramp' ? rampDir : null,
         kind,
         tex: buildTex || null,
@@ -629,6 +629,7 @@ export default function MapEditorPage() {
             <button style={styles.toolButton(selectedTool === 'pit_ramp', '#5b8fb0')} onClick={() => setSelectedTool('pit_ramp')}>Rampa de sótano (bajada)</button>
             <button style={styles.toolButton(selectedTool === 'slab', '#8fc6ea')} onClick={() => setSelectedTool('slab')}>Entrepiso (pasable por debajo)</button>
             <button style={styles.toolButton(selectedTool === 'gate', '#f2a154')} onClick={() => setSelectedTool('gate')}>Puerta solo Curador</button>
+            <button style={styles.toolButton(selectedTool === 'pgate', '#5fd58c')} onClick={() => setSelectedTool('pgate')}>Puerta solo Pacientes</button>
             {COLLISION_TYPES.map((type) => (
               <button
                 key={type}
@@ -668,7 +669,7 @@ export default function MapEditorPage() {
             </div>
           )}
 
-          {(selectedTool === 'block' || selectedTool === 'ramp' || selectedTool === 'pit' || selectedTool === 'pit_ramp' || selectedTool === 'gate' || selectedTool === 'slab') && (
+          {(selectedTool === 'block' || selectedTool === 'ramp' || selectedTool === 'pit' || selectedTool === 'pit_ramp' || selectedTool === 'gate' || selectedTool === 'pgate' || selectedTool === 'slab') && (
             <div style={styles.countsBox}>
               <label style={styles.countLine}>Textura:{' '}
                 <select value={buildTex} onChange={(e) => setBuildTex(e.target.value)}>
@@ -772,7 +773,7 @@ export default function MapEditorPage() {
                           <label style={styles.countLine}>Bloque o rampa:{' '}
                             <select value={e.targetId || ''} onChange={(ev) => upd({ targetId: ev.target.value })}>
                               <option value="">(elige uno)</option>
-                              {platforms.map((p) => <option key={p.id} value={p.id}>{p.id} ({p.ramp ? 'rampa' : p.kind === 'pit' ? 'sótano' : p.kind === 'gate' ? 'puerta' : p.kind === 'mezzanine' ? 'entrepiso' : 'bloque'})</option>)}
+                              {platforms.map((p) => <option key={p.id} value={p.id}>{p.id} ({p.ramp ? 'rampa' : p.kind === 'pit' ? 'sótano' : p.kind === 'gate' ? 'puerta' : p.kind === 'pgate' ? 'puerta pacientes' : p.kind === 'mezzanine' ? 'entrepiso' : 'bloque'})</option>)}
                             </select>
                           </label>
                           {e.kind === 'collapse' && (
@@ -948,7 +949,7 @@ export default function MapEditorPage() {
                   onContextMenu={(e) => { e.preventDefault(); handleRemove(p.id, e); }}
                   style={{ cursor: 'grab' }}
                 >
-                  <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.kind === 'gate' ? '#f2a154' : p.kind === 'pit' ? '#3b6ea5' : p.ramp ? '#9ca3af' : '#6b7280'} fillOpacity={0.55} stroke={p.id === selectedId ? '#facc15' : mapEvents.some((q) => q.targetId === p.id) ? '#ff7a45' : '#3d4a42'} strokeWidth={p.id === selectedId ? 4 : mapEvents.some((q) => q.targetId === p.id) ? 4 : 2} />
+                  <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.kind === 'gate' ? '#f2a154' : p.kind === 'pgate' ? '#5fd58c' : p.kind === 'pit' ? '#3b6ea5' : p.ramp ? '#9ca3af' : '#6b7280'} fillOpacity={0.55} stroke={p.id === selectedId ? '#facc15' : mapEvents.some((q) => q.targetId === p.id) ? '#ff7a45' : '#3d4a42'} strokeWidth={p.id === selectedId ? 4 : mapEvents.some((q) => q.targetId === p.id) ? 4 : 2} />
                   <text x={0} y={4} fontSize={10} fill="#111" textAnchor="middle">{p.ramp ? `${p.ramp === '+x' ? '→' : '←'} ${p.h.toFixed(1)}` : p.h.toFixed(1)}</text>
                 </g>
               );

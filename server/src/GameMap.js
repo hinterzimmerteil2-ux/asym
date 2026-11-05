@@ -297,7 +297,7 @@ function registerMap(layout, dryRun) {
       hzFrac: Math.max(0.0003, Math.min(4, Number(p.hzFrac) || 0.1)),
       h: Math.max(0.01, Math.min(40, Number(p.h) || 1.6)),
       ramp: p.ramp === '+x' || p.ramp === '-x' ? p.ramp : null,
-      kind: ['pit', 'gate', 'mezzanine', 'wall', 'partition', 'tower', 'roof', 'ramp'].includes(p.kind) ? p.kind : null,
+      kind: ['pit', 'gate', 'pgate', 'mezzanine', 'wall', 'partition', 'tower', 'roof', 'ramp'].includes(p.kind) ? p.kind : null,
       slab: p.kind === 'mezzanine' ? 0.4 : 0,
       y0: Math.max(0, Math.min(80, Number(p.y0) || 0)),
       tex: ['marble', 'tile', 'plaster', 'tower', 'roof', 'ramp', 'concrete', 'brick', 'wood', 'metal'].includes(p.tex) ? p.tex : null,

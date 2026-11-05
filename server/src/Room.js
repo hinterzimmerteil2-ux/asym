@@ -223,7 +223,7 @@ class Room {
       const objects = GameMap.resolveCollisionObjects(this.mapId, area);
       const all = GameMap.resolvePlatforms(this.mapId, area).filter((p) => !hidden.includes(p.id));
       const cur = gates === 'lock' ? all : all.filter((p) => p.kind !== 'gate');
-      const pat = gates === 'open' ? cur : all;
+      const pat = (gates === 'open' ? cur : all).filter((p) => p.kind !== 'pgate');
       entry = {
         grid: Pathfinding.buildGrid(area.halfSize, objects, pat),
         gridCur: Pathfinding.buildGrid(area.halfSize, objects, cur),
@@ -1116,7 +1116,7 @@ class Room {
       this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)).filter((p) => !hiddenIds.includes(p.id)) : this.phase === 'lobby' ? GameMap.LOBBY_PLATFORMS : [];
     const gates = this.gatesState();
     const curPlatforms = gates === 'lock' ? allPlatforms : allPlatforms.filter((p) => p.kind !== 'gate');
-    const patPlatforms = gates === 'open' ? curPlatforms : allPlatforms;
+    const patPlatforms = (gates === 'open' ? curPlatforms : allPlatforms).filter((p) => p.kind !== 'pgate');
 
     const now = Date.now();
     const allyCounts = {};

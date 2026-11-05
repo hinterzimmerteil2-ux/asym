@@ -1663,21 +1663,23 @@ function NightDecor({ showStars = true, lights = true }) {
 }
 
 function GateMesh({ p }) {
+  const c = p.kind === 'pgate' ? '#5fd58c' : '#f2a154';
+  const c2 = p.kind === 'pgate' ? '#2e8a55' : '#c97a2e';
   const bars = Math.max(2, Math.round(p.hz * 2 / 0.6));
   return (
-    <group position={[p.x, 0, p.z]}>
+    <group position={[p.x, p.y0 || 0, p.z]}>
       <mesh position={[0, p.h / 2, 0]}>
         <boxGeometry args={[p.hx * 2, p.h, p.hz * 2]} />
-        <meshBasicMaterial color="#f2a154" transparent opacity={0.18} depthWrite={false} />
+        <meshBasicMaterial color={c} transparent opacity={0.18} depthWrite={false} />
       </mesh>
       {Array.from({ length: bars + 1 }, (_, i) => (
         <mesh key={i} position={[0, p.h / 2, -p.hz + (i * p.hz * 2) / bars]}>
           <boxGeometry args={[p.hx * 2 + 0.1, p.h, 0.08]} />
-          <meshStandardMaterial color="#f2a154" emissive="#f2a154" emissiveIntensity={0.5} />
+          <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.5} />
         </mesh>
       ))}
       {[0.1, p.h - 0.1].map((y) => (
-        <mesh key={y} position={[0, y, 0]}><boxGeometry args={[p.hx * 2 + 0.1, 0.12, p.hz * 2]} /><meshStandardMaterial color="#c97a2e" /></mesh>
+        <mesh key={y} position={[0, y, 0]}><boxGeometry args={[p.hx * 2 + 0.1, 0.12, p.hz * 2]} /><meshStandardMaterial color={c2} /></mesh>
       ))}
     </group>
   );
@@ -1726,7 +1728,7 @@ function StairMesh({ p, tops, tint }) {
 }
 
 function Platform({ p }) {
-  if (p.kind === 'gate') return <GateMesh p={p} />;
+  if (p.kind === 'gate' || p.kind === 'pgate') return <GateMesh p={p} />;
   const name = p.tex || (p.ramp ? 'ramp' : PLAT_TEX[p.kind] || 'concrete');
   const y0 = p.y0 || 0;
   const len = p.hx * 2;

@@ -43,7 +43,13 @@ function build(REF_HALF, sanitizeEvents) {
     hallWall(`wh_n${t}`, -12, doors(N_DOORS), y0);
     hallWall(`wh_s${t}`, 12, [...doors([-30, -12.5]), [-5, 5], ...doors([12.5, 30])].sort((a, b) => a[0] - b[0]), y0);
     [-20, 0, 20].forEach((x, i) => wallSeg(`wd_n${t}_${i}`, x, -22, 0.5, 10, y0));
-    [-20, -5, 5, 20].forEach((x, i) => wallSeg(`wd_s${t}_${i}`, x, 22, 0.5, 10, y0));
+    [-20, 20].forEach((x, i) => wallSeg(`wd_s${t}_${i}`, x, 22, 0.5, 10, y0));
+    [-5, 5].forEach((x, i) => {
+      wallSeg(`wd_sa${t}_${i}`, x, 14.5, 0.5, 2.5, y0);
+      wallSeg(`wd_sb${t}_${i}`, x, 27.5, 0.5, 4.5, y0);
+      const kind = i === 1 ? 'pgate' : t === 3 ? 'gate' : null;
+      if (kind) plat(`dg_${t}_${i}`, x, 20, 0.3, 3, WALL_H, null, kind, y0 ? { y0 } : {});
+    });
   });
 
   [[F2, 'f2'], [F3, 'f3'], [ROOF, 'rf']].forEach(([top, p]) => {
