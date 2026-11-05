@@ -1,5 +1,6 @@
 'use client';
 
+import StaticMerge from './StaticMerge';
 import { useMemo, useRef } from 'react';
 import { CanvasTexture, SRGBColorSpace } from 'three';
 import { useFrame } from '@react-three/fiber';
@@ -516,7 +517,7 @@ function Dust({ half, count }) {
   );
 }
 
-export default function HospitalDecor({ half, platforms, level = 'full', dust = 260 }) {
+export default function HospitalDecor({ half, platforms, level = 'full', dust = 260, lightsOn = true }) {
   const mats = useMemo(() => ({
     steady: new MeshBasicMaterial({ color: '#d6efd9' }),
     flicker: new MeshBasicMaterial({ color: '#d6efd9' }),
@@ -530,6 +531,7 @@ export default function HospitalDecor({ half, platforms, level = 'full', dust = 
   const walls = useMemo(() => (platforms || []).filter((p) => p.kind === 'wall' || p.kind === 'partition'), [platforms]);
   return (
     <group>
+      <StaticMerge key={`${level}-${half}-${(platforms || []).length}`}>
       {level !== 'none' && <Tiers platforms={platforms} full={level === 'full'} />}
       {walls.map((p, i) => {
         const len = (p.hx >= p.hz ? p.hx : p.hz) * 2;
@@ -538,8 +540,9 @@ export default function HospitalDecor({ half, platforms, level = 'full', dust = 
       })}
       {level === 'full' && <Beams half={half * 0.667} />}
       {level === 'full' && <CeilingInfra half={half} />}
+      </StaticMerge>
       {level === 'full' && dust > 0 && <Dust half={half} count={dust} />}
-      {level === 'full' && <pointLight position={[0, 6, 0]} intensity={2.5} distance={40} color="#b7d9c9" />}
+      {level === 'full' && lightsOn && <pointLight position={[0, 6, 0]} intensity={2.5} distance={40} color="#b7d9c9" />}
     </group>
   );
 }

@@ -8,6 +8,7 @@ import { getTexture, setTextureQuality } from '../lib/textures';
 import { matches } from '../lib/keybinds';
 import { createModeKey } from '../lib/modeKey';
 import HospitalDecor from './HospitalDecor';
+import StaticMerge from './StaticMerge';
 import { useSettings, gfx } from '../lib/settings';
 import { setPolyScale, installLowPoly } from '../lib/lowpoly';
 
@@ -1629,7 +1630,7 @@ function SquareFrame({ x, z, half, color, opacity, y = 0, hy, hz }) {
 
 const PLAT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', ramp: 'ramp', mezzanine: 'concrete' };
 
-function NightDecor({ showStars = true, lights = true }) {
+function NightDecor({ showStars = true, lights = true, lightCount = 5 }) {
   const stars = useMemo(() => {
     const pts = [];
     for (let i = 0; i < 400; i++) {
@@ -1652,10 +1653,10 @@ function NightDecor({ showStars = true, lights = true }) {
       {lights && (
         <>
           <pointLight position={[0, 4, 0]} intensity={7} distance={30} color="#fff3e0" />
-          <pointLight position={[20, 4, 20]} intensity={5} distance={26} color="#fff3e0" />
-          <pointLight position={[-20, 4, -20]} intensity={5} distance={26} color="#fff3e0" />
-          <pointLight position={[-20, 4, 20]} intensity={5} distance={26} color="#fff3e0" />
-          <pointLight position={[20, 4, -20]} intensity={5} distance={26} color="#fff3e0" />
+          {lightCount >= 2 && <pointLight position={[20, 4, 20]} intensity={5} distance={26} color="#fff3e0" />}
+          {lightCount >= 2 && <pointLight position={[-20, 4, -20]} intensity={5} distance={26} color="#fff3e0" />}
+          {lightCount >= 5 && <pointLight position={[-20, 4, 20]} intensity={5} distance={26} color="#fff3e0" />}
+          {lightCount >= 5 && <pointLight position={[20, 4, -20]} intensity={5} distance={26} color="#fff3e0" />}
         </>
       )}
     </group>
@@ -1890,8 +1891,8 @@ export default function GameScene({
       <hemisphereLight args={phase === 'action' ? ['#8fb4e8', '#4a4f66', 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
       <color attach="background" args={[phase === 'action' ? '#060a0c' : '#12162e']} />
       <fog attach="fog" args={phase === 'action' ? ['#0a1214', 45, g.fogFar] : ['#12162e', 45, 130]} />
-      {phase === 'action' && <NightDecor showStars={g.stars} lights={g.lights} />}
-      {phase === 'action' && g.decor !== 'none' && <HospitalDecor half={areaHalfSize} platforms={platforms} level={g.decor} dust={g.dust} />}
+      {phase === 'action' && <NightDecor showStars={g.stars} lights={g.lights} lightCount={g.lightCount} />}
+      {phase === 'action' && g.decor !== 'none' && <HospitalDecor half={areaHalfSize} platforms={platforms} level={g.decor} dust={g.dust} lightsOn={g.lightCount >= 5} />}
 
       <FollowCamera focusId={followId || myPlayerId} myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
 
@@ -1917,11 +1918,25 @@ export default function GameScene({
         />
       )}
 
-      {(platforms || []).filter((p) => p.kind !== 'pit').map((p) => <ShakeGroup key={p.id} on={Boolean(shakeIds && shakeIds.includes(p.id))}><MPlatform p={p} /></ShakeGroup>)}
+      {(() => {
+        const solid = (platforms || []).filter((p) => p.kind !== 'pit');
+        const loose = (p) => p.tex || p.kind === 'gate' || p.kind === 'pgate' || (shakeIds && shakeIds.includes(p.id));
+        const fixed = solid.filter((p) => !loose(p));
+        return (
+          <>
+            <StaticMerge key={fixed.map((p) => p.id).join(',')} enabled={g.q < 4}>
+              {fixed.map((p) => <MPlatform key={p.id} p={p} />)}
+            </StaticMerge>
+            {solid.filter(loose).map((p) => <ShakeGroup key={p.id} on={Boolean(shakeIds && shakeIds.includes(p.id))}><MPlatform p={p} /></ShakeGroup>)}
+          </>
+        );
+      })()}
       
 
       {phase === 'action' &&
-        (collisionObjects || []).map((obj) => <MCollisionObject key={obj.id} obj={obj} />)}
+        <StaticMerge key={`co${(collisionObjects || []).length}`}>
+          {(collisionObjects || []).map((obj) => <MCollisionObject key={obj.id} obj={obj} />)}
+        </StaticMerge>}
 
       {phase === 'action' &&
         Object.entries(selfDamageObjects || {}).map(([objectId, pos]) => (

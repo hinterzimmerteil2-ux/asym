@@ -58,6 +58,7 @@ export function gfx(quality) {
     textures: !minimal,
     aniso: q >= 3 ? 16 : q >= 2 ? 8 : q >= 1 ? 4 : 1,
     lights: !minimal,
+    lightCount: q < 1 ? 1 : q < 2 ? 2 : 5,
     dust: q < 1 ? 0 : Math.round(120 * q),
     stars: q >= 0.5,
     fogFar: q < 0.1 ? 45 : minimal ? 70 : q < 1 ? 100 : 140,
