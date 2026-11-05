@@ -967,6 +967,7 @@ class Room {
         corpse: Boolean(entity.corpse),
         gone: Boolean(entity.gone),
         invis: this.isInvisible(entity, now),
+        hold: entity.astral ? (entity.astral.state === 'charging' ? 'claw' : 'claw_ready') : entity.eating ? `eat_${entity.eating.cardId}` : entity.channel && entity.channel.endsAt > now ? 'horn' : undefined,
         rag: entity.rag ? { p: RagdollBody.serialize(entity.rag, entity) } : null,
       };
     }

@@ -28,15 +28,13 @@ const FACING = new Map();
 const HAND_ANIMS = new Map();
 const ANIM_DURATION = { swing: 650, consume: 1700, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600 };
 const IMPACT_MS = { swing: 260, consume: 1500, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150 };
+const STATE_HELD = new Set(['card_chicharron', 'card_goyslop', 'card_astral_claw', 'card_grito_animo']);
 const ANIM_BY_KIND = {
   skill_melee_stun: 'swing',
   card_tajo_carmesi: 'swing',
   card_red_mist: 'swing',
   card_tropiezo: 'stumble',
   card_rodar: 'roll',
-  card_grito_animo: 'shout',
-  card_chicharron: 'consume',
-  card_goyslop: 'consume',
   card_racion_compartida: 'consume',
   card_acetilcolina: 'consume',
   skill_tonico_reforzado: 'consume',
@@ -57,7 +55,6 @@ const ANIM_BY_KIND = {
   card_risa_enlatada: 'cast',
   card_risa_macabra: 'cast',
   card_paraguayizador: 'cast',
-  card_astral_claw: 'cast',
 };
 
 function easeOut(t) {
@@ -116,6 +113,68 @@ function HeldItem({ held }) {
         <PropMesh kind={held.prop} color={held.color} />
       </group>
     </group>
+  );
+}
+
+const EAT_MS = { eat_chicharron: 1500, eat_goyslop: 1800 };
+
+function StateHeld({ holdRef }) {
+  const claw = useRef();
+  const food = useRef();
+  const horn = useRef();
+  const last = useRef({ key: null, at: 0 });
+  useFrame(({ clock }) => {
+    const hold = holdRef.current || null;
+    const l = last.current;
+    if (hold !== l.key) { l.key = hold; l.at = Date.now(); }
+    const el = Date.now() - l.at;
+    const T = clock.elapsedTime;
+    if (claw.current) {
+      const on = hold === 'claw' || hold === 'claw_ready';
+      claw.current.visible = on;
+      if (on) {
+        const ready = hold === 'claw_ready';
+        const k = ready ? 1.35 : 0.7 + 0.65 * Math.min(1, el / 4000);
+        claw.current.position.set(ready ? 0.45 : 0.55, (ready ? 2.0 : 1.55) + Math.sin(T * (ready ? 9 : 5)) * 0.05, ready ? 0.15 : 0.5);
+        claw.current.rotation.set(0.3, T * (ready ? 4 : 1.2), Math.sin(T * 14) * (ready ? 0.04 : 0.12));
+        claw.current.scale.setScalar(k * (1 + (ready ? 0.1 : 0.05) * Math.sin(T * 18)));
+      }
+    }
+    if (food.current) {
+      const on = hold && hold.startsWith('eat_');
+      food.current.visible = Boolean(on);
+      if (on) {
+        const t = Math.min(1, el / (EAT_MS[hold] || 1600));
+        const up = easeOut(Math.min(1, t / 0.3));
+        const bites = t < 0.35 ? 1 : Math.max(0.12, 1 - (t - 0.35) * 1.5);
+        const chew = t > 0.35 ? Math.sin(t * 60) * 0.04 : 0;
+        food.current.position.set(0.5 - 0.5 * up, 0.95 + 0.8 * up + chew, 0.35 + 0.1 * up);
+        food.current.rotation.set(0.3 * up, 0, -0.6 * up + (t > 0.35 ? Math.sin(t * 40) * 0.12 : 0));
+        food.current.scale.setScalar(1.2 * bites);
+        food.current.children[0].visible = hold === 'eat_chicharron';
+        food.current.children[1].visible = hold !== 'eat_chicharron';
+      }
+    }
+    if (horn.current) {
+      const on = hold === 'horn';
+      horn.current.visible = on;
+      if (on) {
+        const blow = Math.max(0, Math.sin(T * 7));
+        horn.current.position.set(0.12, 1.72, 0.5 + 0.08 * blow);
+        horn.current.rotation.set(Math.PI / 2, 0, 0);
+        horn.current.scale.setScalar(1 + 0.18 * blow);
+      }
+    }
+  });
+  return (
+    <>
+      <group ref={claw} visible={false}><PropMesh kind="claw" color="#b57cff" /></group>
+      <group ref={food} visible={false}>
+        <group><PropMesh kind="img_chicharron" color="#c98a3a" /></group>
+        <group><PropMesh kind="img_goyslop" color="#8f8f4a" /></group>
+      </group>
+      <group ref={horn} visible={false}><PropMesh kind="megaphone" color="#f2d154" /></group>
+    </>
   );
 }
 
@@ -217,6 +276,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
   const yaw = useRef(0);
   const [held, setHeld] = useState(null);
   const heldId = useRef(null);
+  const holdRef = useRef(null);
+  holdRef.current = entityState.hold || null;
   const groupRef = useRef();
   const rag = useRef({ on: false });
   const limbRefs = useRef([]);
@@ -406,6 +467,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
           </group>
         ))}
         <HeldItem held={held} />
+        <StateHeld holdRef={holdRef} />
       </group>
       {ragdoll && entityState.rag && entityState.rag.p && <RagdollR6 entityState={entityState} color={color} />}
       {stunned && <StunHalo />}
@@ -922,6 +984,7 @@ const SIMPLE_PROPS = {
   molecule: [['sphereGeometry', [0.18, 10, 8], [0, 0, 0], '#54d1f2'], ['sphereGeometry', [0.1, 8, 6], [-0.3, 0.15, 0], '#54d1f2'], ['sphereGeometry', [0.1, 8, 6], [0.3, 0.15, 0], '#54d1f2'], ['sphereGeometry', [0.1, 8, 6], [0, -0.3, 0], '#54d1f2']],
   flag: [['boxGeometry', [0.05, 0.9, 0.05], [-0.35, 0, 0], '#8f6a3a'], ['boxGeometry', [0.6, 0.12, 0.03], [0, 0.34, 0], '#d52b1e'], ['boxGeometry', [0.6, 0.12, 0.03], [0, 0.22, 0], '#f1f1f6'], ['boxGeometry', [0.6, 0.12, 0.03], [0, 0.1, 0], '#0038a8']],
   claw: [['sphereGeometry', [0.18, 10, 8], [0, 0, 0], '#b57cff'], ['coneGeometry', [0.05, 0.4, 5], [-0.15, -0.3, 0], '#ecdcff'], ['coneGeometry', [0.05, 0.4, 5], [0, -0.33, 0], '#ecdcff'], ['coneGeometry', [0.05, 0.4, 5], [0.15, -0.3, 0], '#ecdcff']],
+  megaphone: [['coneGeometry', [0.3, 0.55, 12], [0, 0.1, 0], '#f2d154'], ['cylinderGeometry', [0.1, 0.12, 0.3, 10], [0, -0.28, 0], '#2a2d3d'], ['boxGeometry', [0.05, 0.2, 0.05], [0, -0.5, 0.05], '#2a2d3d']],
   can: [['cylinderGeometry', [0.2, 0.2, 0.4, 10], [0, 0, 0], '#c3c5d6']],
 };
 
@@ -1114,7 +1177,7 @@ function PropMesh({ kind, color }) {
 function Particles({ effect, fx }) {
   const refs = useRef([]);
   const propRef = useRef();
-  const anim = fx.prop && fx.prop !== 'roots' ? ANIM_BY_KIND[effect.kind] || 'cast' : null;
+  const anim = fx.prop && fx.prop !== 'roots' && !STATE_HELD.has(effect.kind) ? ANIM_BY_KIND[effect.kind] || 'cast' : null;
   const duration = fx.prop ? 1300 : 900;
   const impact = fx.prop === 'roots' ? 0.25 : anim ? IMPACT_MS[anim] / duration : fx.prop ? 0.4 : 0;
   const yawAtCast = FACING.get(effect.casterId) || 0;
