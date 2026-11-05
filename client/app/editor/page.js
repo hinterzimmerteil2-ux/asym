@@ -48,7 +48,7 @@ function PlatformMesh({ p, onPick, selected, MAP_HALF }) {
   const texName = p.tex || (p.ramp ? 'ramp' : DEFAULT_TEX[p.kind] || 'concrete');
   const map = useMemo(() => getTexture(texName, Math.max(1, Math.round(hx * 2 / 3)), Math.max(1, Math.round(Math.max(hz * 2, p.h) / 3))), [texName, hx, hz, p.h]);
   const pick = onPick ? (e) => { e.stopPropagation(); onPick(p.id); } : undefined;
-  const color = selected ? '#facc15' : p.tint || '#ffffff';
+  const color = selected ? '#facc15' : p.hp > 0 ? '#d9a679' : p.tint || '#ffffff';
   if (p.kind === 'pit') {
     if (!p.ramp) {
       return (
@@ -89,6 +89,17 @@ function PlatformMesh({ p, onPick, selected, MAP_HALF }) {
         <boxGeometry args={[hx * 2, p.h, hz * 2]} />
         <meshStandardMaterial map={map} color={color} />
       </mesh>
+    );
+  }
+  if (p.ramp === '+z' || p.ramp === '-z') {
+    const zl = hz * 2;
+    return (
+      <group position={[x, y0 + p.h / 2, z]} rotation={[0, p.ramp === '+z' ? -Math.PI / 2 : Math.PI / 2, 0]}>
+        <mesh rotation={[0, 0, Math.atan2(p.h, zl)]} onClick={pick}>
+          <boxGeometry args={[Math.hypot(zl, p.h), 0.3, hx * 2]} />
+          <meshStandardMaterial map={map} color={color} />
+        </mesh>
+      </group>
     );
   }
   const len = hx * 2;
@@ -301,7 +312,7 @@ export default function MapEditorPage() {
         hxFrac: (selectedTool === 'gate' || selectedTool === 'pgate' ? 0.3 : buildSize) / REF_HALF,
         hzFrac: (selectedTool === 'gate' || selectedTool === 'pgate' ? buildSize : selectedTool === 'slab' ? buildSize : buildSize * 0.8) / REF_HALF,
         h: selectedTool === 'gate' || selectedTool === 'pgate' ? 3 : buildH,
-        ramp: selectedTool === 'pit_ramp' ? rampDir : null,
+        ramp: selectedTool === 'pit_ramp' ? (rampDir === '+x' || rampDir === '-x' ? rampDir : '-x') : null,
         kind,
         tex: buildTex || null,
         tint: buildTint !== '#ffffff' ? buildTint : null,
@@ -415,6 +426,8 @@ export default function MapEditorPage() {
         tint: p.tint || null,
         stairs: p.stairs === true,
         y0: round3(p.y0 || 0),
+        hp: p.hp || 0,
+        regenMs: p.regenMs || 0,
       })),
     };
   }
@@ -586,8 +599,22 @@ export default function MapEditorPage() {
                   <p style={styles.countLine}>
                     Sube hacia:{' '}
                     <button style={styles.toolButton(sp.ramp === '-x', '#5468ff')} onClick={() => upd({ ramp: '-x' })}>-X</button>{' '}
-                    <button style={styles.toolButton(sp.ramp === '+x', '#5468ff')} onClick={() => upd({ ramp: '+x' })}>+X</button>
+                    <button style={styles.toolButton(sp.ramp === '+x', '#5468ff')} onClick={() => upd({ ramp: '+x' })}>+X</button>{' '}
+                    <button style={styles.toolButton(sp.ramp === '-z', '#5468ff')} onClick={() => upd({ ramp: '-z' })}>-Z</button>{' '}
+                    <button style={styles.toolButton(sp.ramp === '+z', '#5468ff')} onClick={() => upd({ ramp: '+z' })}>+Z</button>
                   </p>
+                )}
+                {!['pit', 'gate', 'pgate'].includes(sp.kind) && (
+                  <>
+                    <label style={styles.countLine}>Golpes para romperse (0 = no se rompe): {sp.hp || 0}
+                      <input type="range" min="0" max="20" step="1" value={sp.hp || 0} onChange={(e) => upd({ hp: parseInt(e.target.value, 10) })} style={{ width: '100%' }} />
+                    </label>
+                    {(sp.hp || 0) > 0 && (
+                      <label style={styles.countLine}>Se regenera tras (s, 0 = nunca): {((sp.regenMs || 0) / 1000).toFixed(0)}
+                        <input type="range" min="0" max="120" step="5" value={(sp.regenMs || 0) / 1000} onChange={(e) => upd({ regenMs: parseInt(e.target.value, 10) * 1000 })} style={{ width: '100%' }} />
+                      </label>
+                    )}
+                  </>
                 )}
                 <p style={styles.countLine}>
                   <button style={styles.toolButton(false, '#e0555f')} onClick={() => { setPlatforms((prev) => prev.filter((q) => q.id !== sp.id)); setSelectedId(null); }}>Eliminar</button>
@@ -690,7 +717,13 @@ export default function MapEditorPage() {
                 <p style={styles.countLine}>
                   Sube hacia:{' '}
                   <button style={styles.toolButton(rampDir === '-x', '#5468ff')} onClick={() => setRampDir('-x')}>-X</button>{' '}
-                  <button style={styles.toolButton(rampDir === '+x', '#5468ff')} onClick={() => setRampDir('+x')}>+X</button>
+                  <button style={styles.toolButton(rampDir === '+x', '#5468ff')} onClick={() => setRampDir('+x')}>+X</button>{selectedTool === 'ramp' && (
+                    <>
+                      {' '}
+                      <button style={styles.toolButton(rampDir === '-z', '#5468ff')} onClick={() => setRampDir('-z')}>-Z</button>{' '}
+                      <button style={styles.toolButton(rampDir === '+z', '#5468ff')} onClick={() => setRampDir('+z')}>+Z</button>
+                    </>
+                  )}
                 </p>
               )}
             </div>
@@ -950,7 +983,7 @@ export default function MapEditorPage() {
                   style={{ cursor: 'grab' }}
                 >
                   <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.kind === 'gate' ? '#f2a154' : p.kind === 'pgate' ? '#5fd58c' : p.kind === 'pit' ? '#3b6ea5' : p.ramp ? '#9ca3af' : '#6b7280'} fillOpacity={0.55} stroke={p.id === selectedId ? '#facc15' : mapEvents.some((q) => q.targetId === p.id) ? '#ff7a45' : '#3d4a42'} strokeWidth={p.id === selectedId ? 4 : mapEvents.some((q) => q.targetId === p.id) ? 4 : 2} />
-                  <text x={0} y={4} fontSize={10} fill="#111" textAnchor="middle">{p.ramp ? `${p.ramp === '+x' ? '→' : '←'} ${p.h.toFixed(1)}` : p.h.toFixed(1)}</text>
+                  <text x={0} y={4} fontSize={10} fill="#111" textAnchor="middle">{p.ramp ? `${{ '+x': '→', '-x': '←', '+z': '↓', '-z': '↑' }[p.ramp]} ${p.h.toFixed(1)}` : p.h.toFixed(1)}</text>
                 </g>
               );
             })}

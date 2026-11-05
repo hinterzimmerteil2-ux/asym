@@ -200,6 +200,7 @@ export default function LobbyPage() {
   const [lmsUntil, setLmsUntil] = useState(0);
   const [lmsInfo, setLmsInfo] = useState(null);
   const [hiddenPlatforms, setHiddenPlatforms] = useState([]);
+  const [plankHp, setPlankHp] = useState({});
   const [communityName, setCommunityName] = useState({});
   const myPosRef = useRef(null);
   const [hitboxes, setHitboxes] = useState({ on: false, opacity: 0.8 });
@@ -314,6 +315,7 @@ export default function LobbyPage() {
             setZones((prev) => (sameValue(prev, payload.zones || []) ? prev : payload.zones || []));
             setCuratorHp(payload.curator || null);
             setSpawnMs(payload.spawnMs || 0);
+            setPlankHp((prev) => (sameValue(prev, payload.plankHp || {}) ? prev : payload.plankHp || {}));
             setHiddenPlatforms((prev) => (sameValue(prev, payload.hiddenPlatforms || []) ? prev : payload.hiddenPlatforms || []));
             setMapEvents((prev) => (sameValue(prev, payload.events || []) ? prev : payload.events || []));
             {
@@ -917,6 +919,7 @@ export default function LobbyPage() {
             sdTypes={sdTypes}
             platforms={phase === 'action' && !(isAsymRole && spawnMs > 0) ? visiblePlatforms : lobbyPlatforms}
             shakeIds={shakeIds}
+            plankHp={plankHp}
             sendInput={handleSendInput}
             sendAction={handleSendAction}
             onPulse={handlePulse}

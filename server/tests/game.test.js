@@ -573,7 +573,7 @@ test('Agua del Río Rímac: melee AoE con DoT, charco con tope de 12 y costos de
   const hp = p.b.hp;
   room.useCard('a', 0);
   assert.strictEqual(room.gameState.zones.length, 1);
-  assert.strictEqual(room.gameState.zones[0].radius, 1.6);
+  assert.strictEqual(room.gameState.zones[0].radius, 1.4);
   assert.ok(p.b.hp < hp);
   assert.ok(e.b.rimacDot);
   assert.ok(e.a.flojera > 10);
@@ -1118,4 +1118,39 @@ test('Hospital General: todos los pisos, sótano, azotea y patio son alcanzables
   p[patId].hp = p[patId].maxHp * 0.9;
   for (let i = 0; i < 100; i++) { step(1); room.tickZones(clock.t, 0.05); }
   assert.ok(p[patId].hp <= p[patId].maxHp * 0.9 + 1e-6, 'no pasa del tope');
+});
+
+test('tablones rompibles: se rompen a golpes y se regeneran si así se configura', () => {
+  const GameMap = require('../src/GameMap');
+  GameMap.registerMap({
+    id: 'plank', name: 'pk', selfDamageObjects: [], collisionObjects: [],
+    platforms: [
+      { id: 'p1', xFrac: 0.2, zFrac: 0.2, hxFrac: 0.01, hzFrac: 0.01, h: 2, kind: 'wall', hp: 2, regenMs: 3000 },
+      { id: 'p2', xFrac: -0.2, zFrac: 0.2, hxFrac: 0.01, hzFrac: 0.01, h: 2, kind: 'wall', hp: 1 },
+      { id: 'r1', xFrac: 0, zFrac: -0.2, hxFrac: 0.01, hzFrac: 0.02, h: 2, ramp: '+z', kind: 'ramp' },
+    ],
+  });
+  const { room, e, step, clock } = setup();
+  room.mapId = 'plank';
+  room.gameState.plankHp = {};
+  room.gameState.plankBroken = {};
+  const [p1, p2] = GameMap.resolvePlatforms('plank', GameMap.areaFor('plank'));
+  assert.strictEqual(p1.hp, 2);
+  const stand = (p) => { e.a.x = p.x - 0.5; e.a.z = p.z; e.a.y = 0; e.a.faceX = 1; e.a.faceZ = 0; };
+  stand(p2);
+  room.hitPlanks(e.a, 1, 0.8, false, clock.t);
+  assert.ok(room.gameState.plankBroken.p2 === Infinity);
+  stand(p1);
+  room.hitPlanks(e.a, 1, 0.8, false, clock.t);
+  assert.strictEqual(room.gameState.plankHp.p1, 1);
+  room.hitPlanks(e.a, 1, 0.8, false, clock.t);
+  assert.ok(room.gameState.plankBroken.p1 > clock.t);
+  room.tickEvents(clock.t);
+  assert.ok(room.gameState.hiddenPlatforms.includes('p1'));
+  room.tickEvents(clock.t + 4000);
+  assert.ok(!room.gameState.hiddenPlatforms.includes('p1'));
+  assert.ok(room.gameState.hiddenPlatforms.includes('p2'));
+  const Hitbox = require('../src/Hitbox');
+  const ramp = GameMap.resolvePlatforms('plank', GameMap.areaFor('plank'))[2];
+  assert.ok(Hitbox.platformTop(ramp, ramp.x, ramp.z + ramp.hz * 0.9) > Hitbox.platformTop(ramp, ramp.x, ramp.z - ramp.hz * 0.9));
 });

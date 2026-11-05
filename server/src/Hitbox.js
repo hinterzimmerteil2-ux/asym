@@ -6,10 +6,17 @@ function euclid(a, b) {
 
 const RAMP_SLAB = 0.4;
 
+function rampT(p, x, z) {
+  if (p.ramp === '+z') return (z - (p.z - p.hz)) / (2 * p.hz);
+  if (p.ramp === '-z') return (p.z + p.hz - z) / (2 * p.hz);
+  if (p.ramp === '-x') return (p.x + p.hx - x) / (2 * p.hx);
+  return (x - (p.x - p.hx)) / (2 * p.hx);
+}
+
 function pitDepth(p, x, z) {
   if (Math.abs(x - p.x) > p.hx || Math.abs(z - p.z) > p.hz) return 0;
   if (!p.ramp) return p.h;
-  const t = p.ramp === '-x' ? (p.x + p.hx - x) / (2 * p.hx) : (x - (p.x - p.hx)) / (2 * p.hx);
+  const t = rampT(p, x, z);
   return (1 - Math.max(0, Math.min(1, t))) * p.h;
 }
 
@@ -24,7 +31,7 @@ function platformTop(p, x, z) {
   if (Math.abs(x - p.x) > p.hx || Math.abs(z - p.z) > p.hz) return null;
   const y0 = p.y0 || 0;
   if (!p.ramp) return y0 + p.h;
-  const t = p.ramp === '-x' ? (p.x + p.hx - x) / (2 * p.hx) : (x - (p.x - p.hx)) / (2 * p.hx);
+  const t = rampT(p, x, z);
   return y0 + Math.max(0, Math.min(1, t)) * p.h;
 }
 

@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useMemo, memo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace } from 'three';
+import { Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace, Color } from 'three';
 import { itemOf } from '../lib/cosmetics';
 import { getTexture, setTextureQuality } from '../lib/textures';
 import { matches } from '../lib/keybinds';
@@ -1730,12 +1730,21 @@ function StairMesh({ p, tops, tint }) {
 
 function Platform({ p }) {
   if (p.kind === 'gate' || p.kind === 'pgate') return <GateMesh p={p} />;
+  if (p.ramp === '+z' || p.ramp === '-z') {
+    const q = { ...p, x: 0, z: 0, hx: p.hz, hz: p.hx, ramp: '+x' };
+    return (
+      <group position={[p.x, 0, p.z]} rotation={[0, p.ramp === '+z' ? -Math.PI / 2 : Math.PI / 2, 0]}>
+        <Platform p={q} />
+      </group>
+    );
+  }
   const name = p.tex || (p.ramp ? 'ramp' : PLAT_TEX[p.kind] || 'concrete');
   const y0 = p.y0 || 0;
   const len = p.hx * 2;
   const tops = useMemo(() => getTexture(name, Math.max(1, Math.round(len / 3)), Math.max(1, Math.round(p.hz * 2 / 3))), [name, len, p.hz]);
   const sides = useMemo(() => getTexture(name, Math.max(1, Math.round(Math.max(len, p.hz * 2) / 3)), Math.max(1, Math.round(p.h / 3))), [name, len, p.hz, p.h]);
-  const tint = p.tint || (tops ? '#ffffff' : p.ramp ? '#9a8f3a' : '#76817b');
+  let tint = p.tint || (tops ? '#ffffff' : p.ramp ? '#9a8f3a' : '#76817b');
+  if (p.hp > 0) tint = p.dmg > 0 ? new Color(p.tint || '#d9a679').lerp(new Color('#3a2a1c'), Math.min(0.85, p.dmg)).getStyle() : p.tint || '#d9a679';
   if (p.slab) {
     const legs = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
     return (
@@ -1867,6 +1876,7 @@ export default function GameScene({
   shiftLock,
   onShiftLockLost,
   shakeIds,
+  plankHp,
 }) {
   const settings = useSettings();
   const g = gfx(settings.quality);
@@ -1920,14 +1930,14 @@ export default function GameScene({
 
       {(() => {
         const solid = (platforms || []).filter((p) => p.kind !== 'pit');
-        const loose = (p) => p.tex || p.kind === 'gate' || p.kind === 'pgate' || (shakeIds && shakeIds.includes(p.id));
+        const loose = (p) => p.tex || p.hp > 0 || p.kind === 'gate' || p.kind === 'pgate' || (shakeIds && shakeIds.includes(p.id));
         const fixed = solid.filter((p) => !loose(p));
         return (
           <>
             <StaticMerge key={fixed.map((p) => p.id).join(',')} enabled={g.q < 4}>
               {fixed.map((p) => <MPlatform key={p.id} p={p} />)}
             </StaticMerge>
-            {solid.filter(loose).map((p) => <ShakeGroup key={p.id} on={Boolean(shakeIds && shakeIds.includes(p.id))}><MPlatform p={p} /></ShakeGroup>)}
+            {solid.filter(loose).map((p) => <ShakeGroup key={p.id} on={Boolean(shakeIds && shakeIds.includes(p.id)) || (p.hp > 0 && plankHp && plankHp[p.id] !== undefined && plankHp[p.id] < p.hp && plankHp[p.id] > 0)}><MPlatform p={p.hp > 0 ? { ...p, dmg: 1 - (plankHp && plankHp[p.id] !== undefined ? plankHp[p.id] : p.hp) / p.hp } : p} /></ShakeGroup>)}
           </>
         );
       })()}

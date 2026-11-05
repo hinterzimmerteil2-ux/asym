@@ -830,6 +830,8 @@ class Room {
     this.gameState.eventsFired = {};
     this.gameState.eventsView = [];
     this.gameState.hiddenPlatforms = [];
+    this.gameState.plankHp = {};
+    this.gameState.plankBroken = {};
     for (const obj of selfDamagePositions) {
       this.gameState.selfDamageObjectPositions[obj.id] = { x: obj.x, y: obj.y, z: obj.z };
       this.gameState.selfDamageTypes[obj.id] = this.randomMinigame(obj.id);
@@ -884,6 +886,13 @@ class Room {
       const active = phases.some((p) => p.ev === ev && p.phase === 'active');
       if ((ev.kind === 'collapse' && active) || (ev.kind === 'appear' && !active)) hidden.push(ev.targetId);
     }
+    const broken = this.gameState.plankBroken || {};
+    for (const id of Object.keys(broken)) {
+      if (broken[id] <= now) {
+        delete broken[id];
+        delete this.gameState.plankHp[id];
+      } else hidden.push(id);
+    }
     const prev = this.gameState.hiddenPlatforms || [];
     this.gameState.hiddenPlatforms = [...new Set(hidden)];
     const appeared = prev.filter((id) => !this.gameState.hiddenPlatforms.includes(id));
@@ -902,6 +911,31 @@ class Room {
         this.gameState.eventsFired[key] = true;
         this.relocateSelfDamageObjects(now);
         for (const id of Object.keys(this.gameState.selfDamageObjectPositions)) this.gameState.selfDamageTypes[id] = this.randomMinigame(id);
+      }
+    }
+  }
+
+  hitPlanks(owner, reach, radius, around, now) {
+    const planks = GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)).filter((p) => p.hp > 0 && !(this.gameState.plankBroken || {})[p.id]);
+    if (!planks.length) return;
+    const fx = owner.faceX || 0;
+    const fz = owner.faceZ || 1;
+    const px = around ? owner.x : owner.x + fx * reach;
+    const pz = around ? owner.z : owner.z + fz * reach;
+    for (const p of planks) {
+      const y0 = p.y0 || 0;
+      if (owner.y > y0 + p.h + 0.6 || owner.y + 2 < y0) continue;
+      const nx = Math.max(p.x - p.hx, Math.min(p.x + p.hx, px));
+      const nz = Math.max(p.z - p.hz, Math.min(p.z + p.hz, pz));
+      if (Math.hypot(nx - px, nz - pz) > radius + 0.3) continue;
+      const left = (this.gameState.plankHp[p.id] === undefined ? p.hp : this.gameState.plankHp[p.id]) - 1;
+      if (left > 0) {
+        this.gameState.plankHp[p.id] = left;
+      } else {
+        this.gameState.plankHp[p.id] = 0;
+        this.gameState.plankBroken[p.id] = p.regenMs > 0 ? now + p.regenMs : Infinity;
+        this.gameState.hiddenPlatforms = [...new Set([...(this.gameState.hiddenPlatforms || []), p.id])];
+        this.navCache = null;
       }
     }
   }
@@ -1042,6 +1076,7 @@ class Room {
         curator: player.isAsymRole ? this.gameState.curator : null,
         events: this.eventsFor(),
         hiddenPlatforms: this.gameState.hiddenPlatforms || [],
+        plankHp: this.gameState.plankHp || {},
         spawnMs: player.isAsymRole ? Math.max(0, (this.gameState.curatorReleaseAt || 0) - now) : 0,
         zones,
         revealed: player.isAsymRole ? Object.entries(this.gameState.entities).filter(([, e]) => Status.active(e, 'reveal', now) && !this.isInvisible(e, now)).map(([id]) => id) : [],
@@ -1567,6 +1602,13 @@ class Room {
     for (const win of this.hitWindows) {
       const owner = this.gameState.entities[win.playerId];
       if (!owner || this.phase !== 'action' || this.gameState.gameOver || Status.blocksSkills(owner, now)) continue;
+      if (!win.planked) {
+        win.planked = true;
+        if (win.kind === 'm1') this.hitPlanks(owner, M1_REACH, M1_RADIUS, false, now);
+        else if (win.kind === 'melee') this.hitPlanks(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now);
+        else if (win.kind === 'area') this.hitPlanks(owner, 0, win.skill.radius || 1, true, now);
+        else if (win.kind === 'card') this.hitPlanks(owner, win.card.reach || 0, win.card.hitRadius || 0.8, false, now);
+      }
       if (win.kind === 'm1') {
         let hitId = null;
         let hitDist = Infinity;
@@ -1925,7 +1967,7 @@ class Room {
         zone.level = life >= TRAP_PEAK_LIFE ? 1 : life >= 31 ? 2 : 3;
         if (life >= TRAP_PEAK_LIFE) zone.charges = 0;
         if (zone.charges > 0 && now >= zone.cooldownUntil) {
-          const stunMs = [0, 1000, 1500, 2000][zone.level];
+          const stunMs = [0, 1500, 2200, 3000][zone.level];
           const heal = [0, 8, 14, 20][zone.level];
           zone.spent = zone.spent || {};
           for (const [playerId, player] of this.players) {
