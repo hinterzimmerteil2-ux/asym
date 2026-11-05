@@ -7,7 +7,7 @@ const LEDGE = 1.0;
 const HEAD = 1.8;
 const K = 4;
 const MAX_EXPANSIONS = 90000;
-const WEIGHT = 1.35;
+const WEIGHT = 1.8;
 const RAMP_SLAB = 0.4;
 
 function buildGrid(half, objects, platforms) {
