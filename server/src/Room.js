@@ -274,7 +274,9 @@ class Room {
       const jitter = st.stuck >= 2 ? { x: (Math.random() - 0.5) * 3, z: (Math.random() - 0.5) * 3 } : { x: 0, z: 0 };
       st.path = Pathfinding.findPath(grid, { x: entity.x + jitter.x, z: entity.z + jitter.z, y: entity.y || 0 }, goal);
       st.goal = { x: goal.x, z: goal.z, y: goal.y };
-      st.repathAt = now + 1500 + Math.random() * 1000;
+      const calm = !goalMoved && st.stuck === 0 && st.path.length > 0;
+      const farMs = Math.min(2500, Math.hypot(goal.x - entity.x, goal.z - entity.z) * 80);
+      st.repathAt = now + (calm ? 5000 + Math.random() * 3000 : 1500 + farMs * 0.5 + Math.random() * 1000);
     }
     while (st.path.length > 1 && Math.hypot(st.path[0].x - entity.x, st.path[0].z - entity.z) < 0.6 && Math.abs((st.path[0].y ?? entity.y) - (entity.y || 0)) < 1.2) st.path.shift();
     if (!st.path.length) {
@@ -301,13 +303,17 @@ class Room {
     if (!entity) return;
     let target = null;
     let targetDist = Infinity;
+    let kept = null;
     for (const [patientId, patient] of Object.entries(this.gameState.patients)) {
       if (patient.status !== 'alive') continue;
       const other = this.gameState.entities[patientId];
       if (!other || this.isInvisible(other, now)) continue;
       const d = distanceBetween(entity, other);
+      if (patientId === player.curTarget) kept = { id: patientId, entity: other, d };
       if (d < targetDist) { targetDist = d; target = { id: patientId, entity: other }; }
     }
+    if (kept && kept.d <= targetDist * 1.3 + 2) { target = { id: kept.id, entity: kept.entity }; targetDist = kept.d; }
+    player.curTarget = target ? target.id : null;
     if (!target) {
       entity.input.moveX = 0;
       entity.input.moveZ = 0;
@@ -343,6 +349,11 @@ class Room {
   botThink(now) {
     if (now - (this.lastBotThink || 0) < 100) return;
     this.lastBotThink = now;
+    let humansOnline = false;
+    for (const other of this.players.values()) {
+      if (!other.isBot && other.ws && other.ws.readyState === 1) { humansOnline = true; break; }
+    }
+    if (!humansOnline) return;
     this.pathBudget = 1;
     for (const [botId, player] of this.players) {
       if (!player.isBot) continue;
@@ -378,13 +389,20 @@ class Room {
       let best = null;
       let bestDist = Infinity;
       let bestScore = Infinity;
+      let keptTarget = null;
       for (const [objectId, pos] of Object.entries(this.gameState.selfDamageObjectPositions)) {
         const d = distanceBetween(entity, pos);
         const danger = curatorEntity ? Math.max(0, 14 - euclid(curatorEntity, pos)) : 0;
         const score = d + danger * 1.5;
+        if (objectId === player.sdTarget) keptTarget = { objectId, pos, d, score };
         if (score < bestScore) { bestScore = score; bestDist = d; best = { objectId, pos }; }
       }
+      if (keptTarget && keptTarget.score <= bestScore * 1.3 + 2) {
+        best = { objectId: keptTarget.objectId, pos: keptTarget.pos };
+        bestDist = keptTarget.d;
+      }
       if (!best) continue;
+      player.sdTarget = best.objectId;
       if (bestDist <= INTERACTION_RADIUS - 0.3) {
         entity.input.moveX = 0;
         entity.input.moveZ = 0;
