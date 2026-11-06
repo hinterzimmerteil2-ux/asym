@@ -479,6 +479,18 @@ const PAIRS = [
 ["Desactivada: eliges el kit en plena partida.","Off: you pick your kit mid-match."],
 ["Sin kit","No kit"],
 ["Hospital General (3 pisos, sótano y azotea)","General Hospital (3 floors, basement and roof)"],
+["Puerta solo Curador","Healer-only gate"],
+["Puerta solo Pacientes","Patient-only gate"],
+["Rampa de sótano (bajada)","Basement ramp (down)"],
+["Golpes para romperse (0 = no se rompe)","Hits to break (0 = unbreakable)"],
+["Se regenera tras (s, 0 = nunca)","Regenerates after (s, 0 = never)"],
+["Módulo (auto-daño)","Module (self-damage)"],
+["Módulos (auto-daño):","Modules (self-damage):"],
+["Permitir Módulos juntos o solapados","Allow Modules together or overlapping"],
+["Llevar / pasar Módulo (Paciente)","Carry / hand over Module (Patient)"],
+["Soltar Módulo (Paciente)","Drop Module (Patient)"],
+["Módulo","Module"],
+["Soltar","Drop"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };
