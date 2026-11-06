@@ -139,6 +139,8 @@ const CARDS = {
 
 const SLOT_COUNT = 2;
 const OPTIONS_PER_SLOT = 3;
+const POOL_SIZE = 5;
+const REROLLS = 2;
 const DRAFT_DURATION_MS = 12000;
 
 for (const card of Object.values(CARDS)) card.weight = RARITY_WEIGHTS[card.rarity] || RARITY_WEIGHTS.common;
@@ -169,9 +171,26 @@ function dealSlot(chosenIds = [], extra = []) {
   return { options, chosen: null };
 }
 
+function dealPool(extra = [], exclude = []) {
+  const pool = [...Object.values(CARDS), ...extra].filter((card) => !exclude.includes(card.id));
+  const options = [];
+  while (options.length < POOL_SIZE && pool.length > 0) {
+    const total = pool.reduce((sum, card) => sum + card.weight, 0);
+    let roll = Math.random() * total;
+    let picked = pool[pool.length - 1];
+    for (const card of pool) {
+      roll -= card.weight;
+      if (roll <= 0) { picked = card; break; }
+    }
+    options.push(picked.id);
+    pool.splice(pool.indexOf(picked), 1);
+  }
+  return options;
+}
 function dealSlots(extra = []) {
-  const slots = [dealSlot([], extra)];
-  for (let i = 1; i < SLOT_COUNT; i++) slots.push({ options: [], chosen: null });
+  const options = dealPool(extra);
+  const slots = [];
+  for (let i = 0; i < SLOT_COUNT; i++) slots.push({ options: [...options], chosen: null });
   return slots;
 }
 
@@ -195,4 +214,4 @@ function listCards() {
   }));
 }
 
-module.exports = { listCards, CARDS, SLOT_COUNT, OPTIONS_PER_SLOT, DRAFT_DURATION_MS, getCard, dealSlot, dealSlots };
+module.exports = { listCards, CARDS, SLOT_COUNT, OPTIONS_PER_SLOT, POOL_SIZE, REROLLS, dealPool, DRAFT_DURATION_MS, getCard, dealSlot, dealSlots };

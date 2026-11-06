@@ -618,21 +618,25 @@ test('puerta solo Curador, sótano con rampa y paso bajo rampas altas', () => {
   assert.ok(go('a', 20, 24, 0, 1, 30).z > 30);
 });
 
-test('roles: fuerzan una carta, ofrecen secundarias afines y ocultan al Curador hasta liberarlo', () => {
-  const { room, e, sent } = setup();
-  room.gameState.curatorReleaseAt = Date.now() + 5000;
-  room.selectRole('a', 'loquito');
-  assert.strictEqual(e.a.hand[0].chosen, 'agua_rimac');
-  assert.ok(e.a.hand[1].options.length === 3 && !e.a.hand[1].options.includes('grito_animo'));
-  room.selectRole('a', 'hincha');
-  assert.strictEqual(e.a.role, 'loquito');
-  room.selectRole('b', 'none');
-  assert.strictEqual(e.b.role, 'none');
-  assert.ok(!e.b.hand[0].chosen);
-  room.broadcastState && 0;
-  room.tick();
-  const snaps = sent.a.filter((m) => m.type === 'state_snapshot');
-  assert.ok(snaps.length && snaps[snaps.length - 1].payload.entities.c.gone === true);
+test('draft: 5 cartas, eliges 2, renovar toma otra de la baraja y se acaban', () => {
+  const { room, e } = setup();
+  const hand = e.a.hand;
+  assert.strictEqual(hand[0].options.length, 5);
+  const first = hand[0].options[0];
+  const old = hand[0].options[1];
+  room.rerollCard('a', old);
+  assert.ok(!e.a.hand[0].options.includes(old));
+  assert.strictEqual(e.a.hand[0].options.length, 5);
+  assert.strictEqual(e.a.rerolls, 1);
+  room.chooseCard('a', 0, first);
+  assert.strictEqual(e.a.hand[0].chosen, first);
+  assert.ok(!e.a.hand[1].options.includes(first));
+  const second = e.a.hand[1].options[0];
+  room.chooseCard('a', 1, second);
+  assert.strictEqual(e.a.hand[1].chosen, second);
+  assert.strictEqual(e.a.draftEndsAt, 0);
+  room.rerollCard('a', e.a.hand[1].options[0] || 'x');
+  assert.strictEqual(e.a.rerolls, 1);
 });
 
 test('auto-daño: minijuego de ritmo, perfecto hace más daño y fallar corta', () => {

@@ -268,6 +268,13 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.REROLL_CARD: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.rerollCard(playerId, msg.payload.cardId);
+        break;
+      }
+
       case MessageType.RETURN_TO_LOBBY: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;

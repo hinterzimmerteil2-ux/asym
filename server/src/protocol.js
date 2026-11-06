@@ -54,6 +54,7 @@ const MessageType = {
 
   // --- Mano de cartas de los Pacientes ---
   CARD_OFFER: 'card_offer',                 // server -> Paciente: { slots[{options[]}], draftEndsAt }
+  REROLL_CARD: 'reroll_card',
   CHOOSE_CARD_ACTION: 'choose_card_action', // client(Paciente) -> server: { slot, cardId }
   SELECT_ROLE: 'select_role',               // client(Paciente) -> server: { roleId }
   ROLE_SELECTED: 'role_selected',           // server -> Paciente: { roleId }

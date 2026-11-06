@@ -371,18 +371,11 @@ class Room {
         if (entity) { entity.input.moveX = 0; entity.input.moveZ = 0; }
         continue;
       }
-      if (!entity.role && entity.hand[0] && !entity.hand[0].chosen && now > (player.nextBotPick || 0)) {
-        const picks = ['none', 'loquito', 'hincha', 'cobrador'];
-        this.selectRole(botId, picks[Math.floor(Math.random() * picks.length)]);
+      const openSlot = entity.hand.find((slot) => !slot.chosen);
+      if (openSlot && openSlot.options.length && now > (player.nextBotPick || 0)) {
+        this.chooseCard(botId, 0, openSlot.options[Math.floor(Math.random() * openSlot.options.length)]);
         player.nextBotPick = now + 800;
       }
-      entity.hand.forEach((slot, index) => {
-        if (!slot.chosen && slot.options.length && now > (player.nextBotPick || 0)) {
-          const option = slot.options[Math.floor(Math.random() * slot.options.length)];
-          this.chooseCard(botId, index, option);
-          player.nextBotPick = now + 800;
-        }
-      });
       let curatorEntity = null;
       let curatorDist = Infinity;
       for (const [otherId, other] of this.players) {
@@ -818,7 +811,8 @@ class Room {
       entity.gone = false;
       this.gameState.ghosts = {};
       entity.hand = player.isAsymRole ? [] : Cards.dealSlots(GameMap.getCustomCards(this.mapId));
-      entity.role = null;
+      entity.role = 'none';
+      entity.rerolls = Cards.REROLLS;
       entity.draftEndsAt = player.isAsymRole ? 0 : Date.now() + Cards.DRAFT_DURATION_MS;
     }
 
@@ -2220,6 +2214,7 @@ class Room {
         chosen: slot.chosen ? Cards.getCard(slot.chosen) : null,
       })),
       draftEndsAt: entity.draftEndsAt,
+      rerolls: entity.rerolls || 0,
     });
   }
 
@@ -2229,11 +2224,7 @@ class Room {
       for (let guard = 0; guard < entity.hand.length; guard++) {
         const index = entity.hand.findIndex((slot) => !slot.chosen);
         if (index === -1) break;
-        if (entity.hand[index].options.length === 0) {
-          const chosenIds = entity.hand.filter((slot) => slot.chosen).map((slot) => slot.chosen);
-          entity.hand[index] = Cards.dealSlot(chosenIds, GameMap.getCustomCards(this.mapId));
-        }
-        this.finalizeChoice(playerId, index, entity.hand[index].options[0]);
+        this.takeCard(playerId, entity, index, entity.hand[index].options[0]);
       }
       entity.draftEndsAt = 0;
     }
@@ -2278,21 +2269,42 @@ class Room {
     if (!player || player.isAsymRole || !entity) return;
     if (this.gameState.patients[playerId]?.status !== 'alive') return;
 
-    const slot = entity.hand[slotIndex];
-    if (!slot) {
-      this.sendTo(playerId, MessageType.ERROR, { message: 'Ese slot no existe' });
+    const index = entity.hand.findIndex((sl) => !sl.chosen);
+    if (index === -1) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Ya elegiste tus dos cartas' });
       return;
     }
-    if (slot.chosen) {
-      this.sendTo(playerId, MessageType.ERROR, { message: 'Ya elegiste carta para ese slot' });
-      return;
-    }
-    if (!slot.options.includes(cardId)) {
+    if (!entity.hand[index].options.includes(cardId)) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Esa carta no está entre tus opciones' });
       return;
     }
-    this.finalizeChoice(playerId, slotIndex, cardId);
-    this.advanceDraft(playerId, entity);
+    this.takeCard(playerId, entity, index, cardId);
+  }
+
+  takeCard(playerId, entity, index, cardId) {
+    this.finalizeChoice(playerId, index, cardId);
+    for (const sl of entity.hand) if (!sl.chosen) sl.options = sl.options.filter((id) => id !== cardId);
+    if (entity.hand.every((sl) => sl.chosen)) entity.draftEndsAt = 0;
+    this.sendCardOffer(playerId, entity);
+  }
+
+  rerollCard(playerId, cardId) {
+    if (this.phase !== 'action' || this.gameState.gameOver) return;
+    const player = this.players.get(playerId);
+    const entity = this.gameState.entities[playerId];
+    if (!player || player.isAsymRole || !entity) return;
+    if (!(entity.rerolls > 0)) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'No te quedan renovaciones' });
+      return;
+    }
+    const open = entity.hand.filter((sl) => !sl.chosen);
+    if (!open.length || !open[0].options.includes(cardId)) return;
+    const chosenIds = entity.hand.filter((sl) => sl.chosen).map((sl) => sl.chosen);
+    const fresh = Cards.dealPool(GameMap.getCustomCards(this.mapId), [...open[0].options, ...chosenIds])[0];
+    if (!fresh) return;
+    entity.rerolls--;
+    for (const sl of open) sl.options = sl.options.map((id) => (id === cardId ? fresh : id));
+    this.sendCardOffer(playerId, entity);
   }
 
   useCard(playerId, slotIndex) {

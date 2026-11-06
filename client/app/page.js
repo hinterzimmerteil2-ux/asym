@@ -221,6 +221,7 @@ export default function LobbyPage() {
   const [cardCooldowns, setCardCooldowns] = useState({});
   const [cardCooldownNow, setCardCooldownNow] = useState(() => Date.now());
   const [draftEndsAt, setDraftEndsAt] = useState(0);
+  const [rerolls, setRerolls] = useState(0);
   const [draftNow, setDraftNow] = useState(0);
 
   useEffect(() => {
@@ -385,6 +386,7 @@ export default function LobbyPage() {
           case 'card_offer':
             setHand(payload.slots.map((slot) => ({ options: slot.options, chosen: slot.chosen || null })));
             setDraftEndsAt(payload.draftEndsAt);
+            setRerolls(payload.rerolls || 0);
             setCardCooldowns({});
             break;
           case 'role_selected':
@@ -762,15 +764,6 @@ export default function LobbyPage() {
 
   const mySkills = players.find((p) => p.id === myPlayerId)?.character?.skills || [];
 
-  useEffect(() => {
-    if (!kitPref.on || kitSentRef.current) return;
-    if (phase !== 'action' || isAsymRole || !roles.length || myRole || !hand[0] || hand[0].chosen) return;
-    const ids = ['none', ...roles.map((r) => r.id)];
-    const pick = kitPref.kit === 'random' || !ids.includes(kitPref.kit) ? ids[Math.floor(Math.random() * ids.length)] : kitPref.kit;
-    kitSentRef.current = true;
-    connRef.current?.send('select_role', { roleId: pick });
-  }, [kitPref, phase, isAsymRole, roles, myRole, hand]);
-
   const handlePulse = useCallback((skill) => {
     // Validamos en el cliente solo para no spamear el servidor con un
     // mensaje que de todos modos va a rechazar — la validación real
@@ -856,6 +849,11 @@ export default function LobbyPage() {
   const handleSelectRole = useCallback((roleId) => {
     if (isAsymRole || phase !== 'action') return;
     connRef.current?.send('select_role', { roleId });
+  }, [isAsymRole, phase]);
+
+  const handleReroll = useCallback((cardId) => {
+    if (isAsymRole || phase !== 'action') return;
+    connRef.current?.send('reroll_card', { cardId });
   }, [isAsymRole, phase]);
 
   const handleChooseCard = useCallback((slot, cardId) => {
@@ -1053,25 +1051,6 @@ export default function LobbyPage() {
           {phase === 'lobby' && (
             <button type="button" style={{ ...styles.smallButton, width: '100%', padding: '8px 12px' }} onClick={() => setCosmeticsOpen(true)}>Personalizar personaje <span style={{ color: '#e0b34a', marginLeft: 6 }}>{Math.floor(normQ(desgracias.balance))} ℍ</span></button>
           )}
-          {phase === 'lobby' && !isAsymRole && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', border: '1px solid #2a2d3d', borderRadius: 8, fontSize: 12 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                <input type="checkbox" checked={kitPref.on} onChange={(e) => updateKitPref({ ...kitPref, on: e.target.checked })} />
-                Preselección de kit
-              </label>
-              {kitPref.on && (
-                <select value={kitPref.kit} onChange={(e) => updateKitPref({ ...kitPref, kit: e.target.value })} style={{ background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 6, padding: 6 }}>
-                  <option value="none">Sin kit</option>
-                  <option value="loquito">Loquito de la Esquina</option>
-                  <option value="hincha">Hincha Cantarín del Barrio</option>
-                  <option value="cobrador">Cobrador de Combi</option>
-                  <option value="random">Random</option>
-                </select>
-              )}
-              {!kitPref.on && <span style={{ opacity: 0.65 }}>Desactivada: eliges el kit en plena partida.</span>}
-            </div>
-          )}
-
           {phase === 'lobby' && isHost && (
             <button type="button" style={{ ...styles.smallButton, width: '100%', padding: '8px 12px', borderColor: '#f2d154' }} onClick={handleStartTutorial} disabled={tutorial.launching}>
               {tutorial.launching ? 'Preparando tutorial...' : 'Tutorial (jugar contra un bot)'}
@@ -1261,50 +1240,33 @@ export default function LobbyPage() {
           </div>
         )}
 
-        {phase === 'action' && !isAsymRole && roles.length > 0 && !myRole && hand[0] && !hand[0].chosen && (
-          <div style={{ position: 'absolute', top: 50, left: '50%', transform: 'translateX(-50%)', zIndex: 40, maxHeight: 'calc(100% - 64px)', overflowY: 'auto', overscrollBehavior: 'contain', display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(20,24,40,0.92)', border: '1px solid #8fc6ea', borderRadius: 10, padding: 10, width: 'min(94vw, 460px)', maxHeight: 'calc(100% - 70px)', overflow: 'auto' }}>
-            <strong style={{ color: '#cfe8fa', fontSize: 14 }}>Elige tu rol</strong>
-            {roles.map((r) => (
-              <button key={r.id} type="button" onClick={() => handleSelectRole(r.id)} style={{ textAlign: 'left', background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 8, padding: 8, cursor: 'pointer' }}>
-                <div style={{ fontWeight: 700 }}>{r.name}</div>
-                <div style={{ fontSize: 12, opacity: 0.85 }}>{r.tagline} / {r.card?.displayName}</div>
-                <div style={{ fontSize: 11, opacity: 0.65 }}>{(r.pool || []).join(' / ')}</div>
-              </button>
-            ))}
-            <button type="button" onClick={() => handleSelectRole('none')} style={{ background: 'transparent', color: '#cfe8fa', border: '1px dashed #4a6a8a', borderRadius: 8, padding: 8, cursor: 'pointer' }}>Sin rol (elegir cartas libremente)</button>
-          </div>
-        )}
-
         {phase === 'action' && !isAsymRole && hand.length > 0 && (
           <div style={sx(styles.handContainer, { top: 50, bottom: 'auto', right: 8, maxWidth: 'calc(100% - 16px)', maxHeight: 'calc(100% - 60px)', overflow: 'auto', zIndex: 30 })}>
             {hand.map((slot, i) => {
-              if (!slot.chosen && slot.options.length === 0) {
-                return (
-                  <div key={i} style={sx(styles.draftSlot, { width: 130, padding: 6 })}>
-                    <span style={styles.draftTitle}>Slot {i + 1} · elige primero el anterior</span>
-                  </div>
-                );
-              }
               if (!slot.chosen) {
+                if (hand.findIndex((sl) => !sl.chosen) !== i) return null;
                 const secondsLeft = Math.max(0, Math.ceil((draftEndsAt - Math.max(draftNow, Date.now())) / 1000));
+                const picked = hand.filter((sl) => sl.chosen).length;
                 return (
-                  <div key={i} style={sx(styles.draftSlot, { width: 130, padding: 6 })}>
-                    <span style={styles.draftTitle}>Slot {i + 1} · elige ({secondsLeft}s)</span>
+                  <div key={i} style={sx(styles.draftSlot, { width: 150, padding: 6 })}>
+                    <span style={styles.draftTitle}>Elige 2 ({picked}/2) · {secondsLeft}s · Renovar: {rerolls}</span>
                     {slot.options.map((card) => (
-                      <button
-                        key={card.id}
-                        type="button"
-                        onClick={() => handleChooseCard(i, card.id)}
-                        style={styles.draftOption(card.rarity, card.corrupt)}
-                        title={card.description}
-                      >
-                        <span style={styles.draftHeader}><SkillIcon id={card.id} size={26} /><span style={styles.cardButtonName}>{card.displayName}</span></span>
-                        {card.corrupt && !compact && <span style={styles.draftDeck}>corrupto</span>}
-                        {!compact && <span style={styles.draftDescription}>{card.description}</span>}
-                        <span style={styles.keywordRow}>
-                          {(card.keywords || []).slice(0, 2).map((k) => <KeywordChip key={k} id={k} />)}
-                        </span>
-                      </button>
+                      <div key={card.id} style={{ display: 'flex', gap: 4, alignItems: 'stretch' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleChooseCard(i, card.id)}
+                          style={sx(styles.draftOption(card.rarity, card.corrupt), { flex: 1 })}
+                          title={card.description}
+                        >
+                          <span style={styles.draftHeader}><SkillIcon id={card.id} size={26} /><span style={styles.cardButtonName}>{card.displayName}</span></span>
+                          {card.corrupt && !compact && <span style={styles.draftDeck}>corrupto</span>}
+                          {!compact && <span style={styles.draftDescription}>{card.description}</span>}
+                          <span style={styles.keywordRow}>
+                            {(card.keywords || []).slice(0, 2).map((k) => <KeywordChip key={k} id={k} />)}
+                          </span>
+                        </button>
+                        <button type="button" disabled={rerolls <= 0} onClick={() => handleReroll(card.id)} title="Renovar esta carta" style={{ width: 26, background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 6, cursor: rerolls > 0 ? 'pointer' : 'default', opacity: rerolls > 0 ? 1 : 0.35 }}>↻</button>
+                      </div>
                     ))}
                   </div>
                 );
