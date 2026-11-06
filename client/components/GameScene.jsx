@@ -403,6 +403,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
           lax = -1.5; rax = -1.5; laz = -0.25; raz = 0.25;
         } else if (hold === 'claw_ready') {
           lax = -2.5; rax = -2.5 + Math.sin(w.t * 9) * 0.1; laz = -0.2; raz = 0.2;
+        } else if (hold === 'module') {
+          lax = -1.25; rax = -1.25; laz = -0.15; raz = 0.15;
         } else if (hold === 'horn') {
           rax = -1.8; raz = 0.1; lax = -0.5 + Math.sin(w.t * 7) * 0.1;
         } else if (hold.startsWith('eat_')) {

@@ -1154,3 +1154,34 @@ test('tablones rompibles: se rompen a golpes y se regeneran si así se configura
   const ramp = GameMap.resolvePlatforms('plank', GameMap.areaFor('plank'))[2];
   assert.ok(Hitbox.platformTop(ramp, ramp.x, ramp.z + ramp.hz * 0.9) > Hitbox.platformTop(ramp, ramp.x, ramp.z - ramp.hz * 0.9));
 });
+
+test('Módulos: llevar con G, pasar a un compañero, soltar y Desgracias al que lo entregó', () => {
+  const { room, e, p, clock } = setup();
+  const GameMap = require('../src/GameMap');
+  const id = Object.keys(room.gameState.selfDamageObjectPositions)[0];
+  const pos = room.gameState.selfDamageObjectPositions[id];
+  e.a.x = pos.x + 1; e.a.z = pos.z; e.a.y = pos.y || 0;
+  e.b.x = pos.x + 2.5; e.b.z = pos.z; e.b.y = pos.y || 0;
+  room.carryModule('a');
+  assert.strictEqual(e.a.carry, id);
+  room.tickCarry();
+  assert.ok(Math.hypot(room.gameState.selfDamageObjectPositions[id].x - e.a.x, room.gameState.selfDamageObjectPositions[id].z - e.a.z) < 1.2);
+  room.carryModule('a');
+  assert.strictEqual(e.a.carry, null);
+  assert.strictEqual(e.b.carry, id);
+  assert.strictEqual(room.gameState.moduleHandler[id], 'a');
+  room.dropModule('b');
+  assert.strictEqual(e.b.carry, null);
+  assert.strictEqual(room.gameState.moduleCarry[id], undefined);
+  const spot = room.gameState.selfDamageObjectPositions[id];
+  e.b.x = spot.x; e.b.z = spot.z; e.b.y = spot.y;
+  room.gameState.desgracias = { a: {}, b: {} };
+  room.players.get('a').isBot = false;
+  room.gameState.moduleHandler[id] = 'a';
+  e.b.selfDmg = { type: 'mash', objectId: id, startedAt: clock.t, endsAt: clock.t + 5000, count: 7, target: 7, hits: 7 };
+  const before = Object.values(room.gameState.desgracias.a).reduce((s, n) => s + n, 0);
+  room.finishSelfDamage('b', e.b, clock.t);
+  const after = Object.values(room.gameState.desgracias.a).reduce((s, n) => s + n, 0);
+  assert.ok(after > before);
+  void p; void GameMap;
+});

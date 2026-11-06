@@ -71,6 +71,10 @@ const {
   GOYSLOP_FLOOR,
   MAX_HP_MINIMUM,
   TRAP_RADIUS,
+  MODULE_CARRY_SLOW,
+  MODULE_CARRY_RADIUS,
+  MODULE_HANDOFF_RADIUS,
+  MODULE_DROP_MIN_DIST,
   TRAP_ARM_MS,
   TRAP_PEAK_LIFE,
   TRAP_LIFETIME_MS,
@@ -790,6 +794,7 @@ class Room {
       entity.kbUntil = 0;
       entity.channel = null;
       entity.selfDmg = null;
+      entity.carry = null;
       entity.perezaLevel = 0;
       entity.acetilUntil = 0;
       entity.paraFrom = 0;
@@ -830,6 +835,8 @@ class Room {
     this.gameState.eventsFired = {};
     this.gameState.eventsView = [];
     this.gameState.hiddenPlatforms = [];
+    this.gameState.moduleCarry = {};
+    this.gameState.moduleHandler = {};
     this.gameState.plankHp = {};
     this.gameState.plankBroken = {};
     for (const obj of selfDamagePositions) {
@@ -1013,6 +1020,7 @@ class Room {
       this.tickZones(now, dt);
       this.tickAstral(now, dt);
       this.tickEating(now);
+      this.tickCarry();
       if (now - this.lastRelocateAt >= RELOCATE_INTERVAL_MS) this.relocateSelfDamageObjects(now);
     }
 
@@ -1025,7 +1033,8 @@ class Room {
         corpse: Boolean(entity.corpse),
         gone: Boolean(entity.gone),
         invis: this.isInvisible(entity, now),
-        hold: entity.astral ? (entity.astral.state === 'charging' ? 'claw' : 'claw_ready') : entity.eating ? `eat_${entity.eating.cardId}` : entity.channel && entity.channel.endsAt > now ? 'horn' : undefined,
+        carry: entity.carry || undefined,
+        hold: entity.astral ? (entity.astral.state === 'charging' ? 'claw' : 'claw_ready') : entity.eating ? `eat_${entity.eating.cardId}` : entity.channel && entity.channel.endsAt > now ? 'horn' : entity.carry ? 'module' : undefined,
         rag: entity.rag ? { p: RagdollBody.serialize(entity.rag, entity) } : null,
       };
     }
@@ -1264,6 +1273,7 @@ class Room {
       speedMultiplier *= Status.speedFactor(entity, now);
       if (!this.players.get(entityPlayerId)?.isAsymRole) speedMultiplier *= MUTATIONS[this.mutation].speed;
       if (entity.channel || entity.selfDmg) speedMultiplier *= CHANNEL_SLOW;
+      if (entity.carry) speedMultiplier *= MODULE_CARRY_SLOW;
       if (entity.acetilUntil <= now && entity.fatigueUntil > now) speedMultiplier *= ACETIL_FATIGUE_FACTOR;
       if (allyCounts[entityPlayerId]) {
         entity.allyBoostUntil = now + 2000;
@@ -2013,11 +2023,102 @@ class Room {
     return free.length ? free[Math.floor(Math.random() * free.length)] : null;
   }
 
+  carryOf(playerId) {
+    const map = this.gameState.moduleCarry || {};
+    return Object.keys(map).find((id) => map[id] === playerId) || null;
+  }
+
+  takeOverModule(objectId, newUserId, now) {
+    for (const [id, e] of Object.entries(this.gameState.entities)) {
+      if (id === newUserId || !e.selfDmg || e.selfDmg.objectId !== objectId) continue;
+      e.selfDmg = null;
+      const patient = this.gameState.patients[id];
+      this.sendTo(id, MessageType.SELF_DAMAGE_RESULT, { playerId: id, newHp: patient ? patient.hp : 0, status: patient ? patient.status : 'alive', objectId, objectNewPosition: this.gameState.selfDamageObjectPositions[objectId], damage: 0, hits: 0, perfect: false, failed: true, stolen: true });
+    }
+  }
+
+  carryModule(playerId) {
+    const now = Date.now();
+    const entity = this.gameState.entities[playerId];
+    const patient = this.gameState.patients[playerId];
+    if (!entity || !patient || patient.status !== 'alive' || this.gameState.gameOver) return;
+    if (Status.blocksSkills(entity, now) || entity.selfDmg || entity.eating) return;
+    const mine = this.carryOf(playerId);
+    if (mine) {
+      let best = null;
+      let bestD = MODULE_HANDOFF_RADIUS;
+      for (const [id, e] of Object.entries(this.gameState.entities)) {
+        const pt = this.gameState.patients[id];
+        if (id === playerId || !pt || pt.status !== 'alive' || e.carry) continue;
+        const d = distanceBetween(entity, e);
+        if (d < bestD) { bestD = d; best = id; }
+      }
+      if (!best) {
+        this.sendTo(playerId, MessageType.ERROR, { message: 'No hay un compañero cerca (suelta el Módulo con la tecla de soltar)' });
+        return;
+      }
+      this.gameState.moduleCarry[mine] = best;
+      this.gameState.moduleHandler[mine] = playerId;
+      entity.carry = null;
+      this.gameState.entities[best].carry = mine;
+      return;
+    }
+    let target = null;
+    let bestD = MODULE_CARRY_RADIUS;
+    for (const [id, pos] of Object.entries(this.gameState.selfDamageObjectPositions)) {
+      const d = distanceBetween(entity, pos);
+      if (d < bestD) { bestD = d; target = id; }
+    }
+    if (!target) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'No hay un Módulo cerca' });
+      return;
+    }
+    const holder = this.gameState.moduleCarry[target];
+    if (holder && this.gameState.entities[holder]) this.gameState.entities[holder].carry = null;
+    this.takeOverModule(target, playerId, now);
+    this.gameState.moduleCarry[target] = playerId;
+    entity.carry = target;
+  }
+
+  dropModule(playerId) {
+    const entity = this.gameState.entities[playerId];
+    const id = this.carryOf(playerId);
+    if (!entity || !id) return;
+    const spot = { x: entity.x + (entity.faceX || 0) * 0.9, y: entity.y, z: entity.z + (entity.faceZ || 1) * 0.9 };
+    const minD = GameMap.allowsModuleOverlap(this.mapId) ? 0 : MODULE_DROP_MIN_DIST;
+    for (const [oid, pos] of Object.entries(this.gameState.selfDamageObjectPositions)) {
+      if (oid !== id && Math.hypot(spot.x - pos.x, spot.z - pos.z) < minD && Math.abs(spot.y - (pos.y || 0)) < 3) {
+        this.sendTo(playerId, MessageType.ERROR, { message: 'Muy cerca de otro Módulo' });
+        return;
+      }
+    }
+    this.gameState.selfDamageObjectPositions[id] = spot;
+    delete this.gameState.moduleCarry[id];
+    this.gameState.moduleHandler[id] = playerId;
+    entity.carry = null;
+  }
+
+  tickCarry() {
+    const map = this.gameState.moduleCarry;
+    if (!map) return;
+    for (const id of Object.keys(map)) {
+      const carrier = this.gameState.entities[map[id]];
+      const patient = this.gameState.patients[map[id]];
+      if (!carrier || !patient || patient.status !== 'alive') {
+        if (carrier) carrier.carry = null;
+        delete map[id];
+        continue;
+      }
+      this.gameState.selfDamageObjectPositions[id] = { x: carrier.x + (carrier.faceX || 0) * 0.8, y: carrier.y, z: carrier.z + (carrier.faceZ || 1) * 0.8 };
+    }
+  }
+
   relocateSelfDamageObjects(now) {
     this.lastRelocateAt = now;
     const allPositions = this.selfDamageCandidates();
     const ids = Object.keys(this.gameState.selfDamageObjectPositions).sort(() => Math.random() - 0.5);
     for (const objectId of ids) {
+      if (this.gameState.moduleCarry[objectId]) continue;
       const newPos = this.pickModuleSpot(allPositions, objectId);
       if (!newPos) continue;
       this.gameState.selfDamageObjectPositions[objectId] = { x: newPos.x, y: newPos.y, z: newPos.z };
@@ -2386,6 +2487,10 @@ class Room {
       return;
     }
 
+    if (this.gameState.moduleCarry && this.gameState.moduleCarry[objectId]) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Alguien lleva ese Módulo' });
+      return;
+    }
     const objectPos = this.gameState.selfDamageObjectPositions[objectId];
     if (!objectPos) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Ese objeto no existe' });
@@ -2396,6 +2501,11 @@ class Room {
       return;
     }
     if (Status.blocksSkills(playerEntity, now)) return;
+    if (playerEntity.carry) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Suelta el Módulo que llevas para usarlo' });
+      return;
+    }
+    this.takeOverModule(objectId, playerId, now);
     const type = this.gameState.selfDamageTypes[objectId] || 'rhythm';
     if (type === 'rhythm') {
       const beats = [];
@@ -2502,6 +2612,11 @@ class Room {
     const damage = this.sdDamage(game);
     const perfect = damage >= SD_MAX_DAMAGE;
     if (perfect) this.award(playerId, 4, 'Auto-daño perfecto');
+    const handler = this.gameState.moduleHandler && this.gameState.moduleHandler[game.objectId];
+    if (damage > 0 && handler && handler !== playerId) {
+      this.award(handler, perfect ? 6 : 3, 'Módulo entregado');
+      delete this.gameState.moduleHandler[game.objectId];
+    }
     if (damage > 0) {
       patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - damage);
       if (patient.hp <= PATIENT_HP_MIN) patient.status = 'self_won';

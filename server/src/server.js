@@ -301,6 +301,15 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.MODULE_CARRY:
+      case MessageType.MODULE_DROP: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room || room.phase !== 'action') return;
+        if (msg.type === MessageType.MODULE_CARRY) room.carryModule(playerId);
+        else room.dropModule(playerId);
+        break;
+      }
+
       case MessageType.CURATOR_PULSE_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room || room.phase !== 'action') return;

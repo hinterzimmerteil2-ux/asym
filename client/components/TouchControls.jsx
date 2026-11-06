@@ -137,7 +137,7 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
         <div style={{ display: 'flex', gap: 10 }}>
           {isAsymRole
             ? skills.map(([act], i) => <Btn key={act} label={act === 'melee' ? 'Golpe' : keyLabel(getKey(act))} icon={act === 'melee' ? 'golpe_aturdidor' : skillIds[i]} act={act} size={54} style={{ fontSize: 12 }} until={skillCooldowns[i === 4 ? 'melee' : i] || 0} />)
-            : [['card1', 0], ['card2', 1], ['minigame', -1]].map(([act, slot]) => <Btn key={act} label={slot < 0 ? 'Mini' : keyLabel(getKey(act))} icon={slot >= 0 ? cardIds[slot] : undefined} act={act} size={60} style={{ fontSize: 12 }} until={slot >= 0 ? cardCooldowns[slot] || 0 : 0} />)}
+            : [['card1', 0], ['card2', 1], ['minigame', -1], ['carry', -2], ['dropmod', -3]].map(([act, slot]) => <Btn key={act} label={slot === -1 ? 'Mini' : slot === -2 ? 'Módulo' : slot === -3 ? 'Soltar' : keyLabel(getKey(act))} icon={slot >= 0 ? cardIds[slot] : undefined} act={act} size={slot < -1 ? 50 : 60} style={{ fontSize: slot < -1 ? 10 : 12 }} until={slot >= 0 ? cardCooldowns[slot] || 0 : 0} />)}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button

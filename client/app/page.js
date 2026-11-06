@@ -73,6 +73,7 @@ function fmtHp(n) {
 
 export default function LobbyPage() {
   const connRef = useRef(null);
+  const isAsymRoleRef = useRef(false);
   const chatEndRef = useRef(null);
   const [status, setStatus] = useState('checking_session');
   const [sessionToken, setSessionToken] = useState(null);
@@ -787,6 +788,8 @@ export default function LobbyPage() {
       }
       else if (specRef.current.on && (e.code === 'ArrowRight' || e.code === 'BracketRight')) setSpecIndex((i) => i + 1);
       else if (specRef.current.on && (e.code === 'ArrowLeft' || e.code === 'BracketLeft')) setSpecIndex((i) => i - 1);
+      else if (keyMatches('carry', e.code)) { if (!e.repeat && !isAsymRoleRef.current) connRef.current?.send('module_carry', {}); }
+      else if (keyMatches('dropmod', e.code)) { if (!e.repeat && !isAsymRoleRef.current) connRef.current?.send('module_drop', {}); }
       else if (keyMatches('card1', e.code)) { if (!e.repeat) handleUseCard(0); }
       else if (keyMatches('card2', e.code)) { if (!e.repeat) handleUseCard(1); }
     }
@@ -863,6 +866,7 @@ export default function LobbyPage() {
   const shakeIds = mapEvents.filter((e) => e.target && e.phase === 'warn').map((e) => e.target);
   const sx = (base, extra) => (compact ? { ...base, ...extra } : base);
   const playersOpen = panelOpen ?? phase === 'lobby';
+  isAsymRoleRef.current = isAsymRole;
   const handleInteract = () => {
     if (sdRef.current) { pressMinigameRef.current(); return; }
     const entities = entitiesRef.current;

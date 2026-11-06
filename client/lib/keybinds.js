@@ -11,6 +11,8 @@ export const ACTIONS = [
   { id: 'skill4', label: 'Habilidad 4 (Curador)', def: 'KeyF' },
   { id: 'melee', label: 'Golpe aturdidor (Curador)', def: 'KeyG' },
   { id: 'minigame', label: 'Minijuego de auto-daño', def: 'KeyE' },
+  { id: 'carry', label: 'Llevar / pasar Módulo (Paciente)', def: 'KeyG' },
+  { id: 'dropmod', label: 'Soltar Módulo (Paciente)', def: 'KeyT' },
   { id: 'card1', label: 'Carta 1', def: 'Digit1' },
   { id: 'card2', label: 'Carta 2', def: 'Digit2' },
   { id: 'help', label: 'Ayuda', def: 'KeyH' },
