@@ -171,12 +171,14 @@ class Room {
     this.roomId = roomId;
     this.players = new Map();
     this.hostId = null;
+    this.isDefault = false;
+    this.votes = { bots: {}, map: {}, mutation: {}, curator: {} };
     this.phase = 'lobby';
     this.hitWindows = [];
     this.tickInterval = null;
     this.tickCount = 0;
     this.mutation = 'none';
-    this.mapId = GameMap.DEFAULT_MAP_ID; // qué mapa usa esta sala — hoy siempre 'default', preparado para elegir otro cuando exista el creador
+    this.mapId = GameMap.DEFAULT_MAP_ID; // qué mapa usa esta sala, hoy siempre 'default', preparado para elegir otro cuando exista el creador
 
     this.chatHistory = [];
     this.lastChatAt = new Map();
@@ -196,6 +198,7 @@ class Room {
 
   addBot(requesterId, tutorial) {
     if (this.phase !== 'lobby' || requesterId !== this.hostId) return;
+    if (this.isDefault && tutorial !== true) return;
     this.tutorial = tutorial === true;
     if (tutorial === true && [...this.players.values()].some((p) => p.isBot)) return;
     if (this.isFull()) return;
@@ -207,7 +210,7 @@ class Room {
   }
 
   removeBot(requesterId) {
-    if (this.phase !== 'lobby' || requesterId !== this.hostId) return;
+    if (this.phase !== 'lobby' || requesterId !== this.hostId || this.isDefault) return;
     const botIds = [...this.players.entries()].filter(([, p]) => p.isBot).map(([id]) => id);
     if (!botIds.length) return;
     this.tutorial = false;
@@ -532,6 +535,10 @@ class Room {
   removePlayer(playerId) {
     const wasAsymRole = this.players.get(playerId)?.isAsymRole;
     this.players.delete(playerId);
+    for (const kind of Object.keys(this.votes)) {
+      delete this.votes[kind][playerId];
+      for (const [voter, v] of Object.entries(this.votes[kind])) if (v === playerId) delete this.votes[kind][voter];
+    }
     delete this.gameState.entities[playerId];
     delete this.gameState.patients[playerId];
     this.lastChatAt.delete(playerId);
@@ -541,7 +548,7 @@ class Room {
     }
     // Si el Curador se desconecta en el lobby, la sala se queda sin nadie
     // en ese rol. Se lo reasignamos a otro jugador para que la partida
-    // siga siendo iniciable — igual que pasa al entrar el primer jugador.
+    // siga siendo iniciable, igual que pasa al entrar el primer jugador.
     if (wasAsymRole && this.phase === 'lobby' && this.players.size > 0) {
       const next = this.players.keys().next().value;
       const nextPlayer = this.players.get(next);
@@ -580,7 +587,7 @@ class Room {
    * Cambia el nombre visible del jugador dentro de esta sala (chat,
    * lista de jugadores, cartel de fin de partida). El nombre "real" de
    * la cuenta/invitado vive en el JWT y se actualiza aparte vía HTTP
-   * (/auth/update-name) — esto solo mantiene en sincro lo que ya se
+   * (/auth/update-name), esto solo mantiene en sincro lo que ya se
    * está mostrando en una sala sin forzar una reconexión.
    */
   setCosmetics(playerId, selection) {
@@ -609,8 +616,8 @@ class Room {
       this.sendTo(requesterId, MessageType.ERROR, { message: 'Solo se puede cambiar el rol antes de iniciar la partida' });
       return;
     }
-    if (requesterId !== this.hostId) {
-      this.sendTo(requesterId, MessageType.ERROR, { message: 'Solo el host puede asignar quién es el Curador' });
+    if (requesterId !== this.hostId || this.isDefault) {
+      this.sendTo(requesterId, MessageType.ERROR, { message: this.isDefault ? 'En las salas predeterminadas el Curador se vota' : 'Solo el host puede asignar quién es el Curador' });
       return;
     }
     const target = this.players.get(targetPlayerId);
@@ -652,12 +659,70 @@ class Room {
   }
 
   /**
-   * El host elige qué mapa se juega la próxima partida — solo en el
+   * El host elige qué mapa se juega la próxima partida, solo en el
    * lobby. mapId debe existir en el catálogo de GameMap (incluye los
    * mapas guardados desde el editor visual).
    */
+  castVote(playerId, kind, value) {
+    if (!this.isDefault || this.phase !== 'lobby') return;
+    const player = this.players.get(playerId);
+    if (!player || player.isBot || !this.votes[kind]) return;
+    if (kind === 'bots') {
+      if (![0, 4, 8, 12, 16].includes(value)) return;
+    } else if (kind === 'map') {
+      if (!GameMap.MAPS[value] || String(value).startsWith('c_')) return;
+    } else if (kind === 'mutation') {
+      if (!MUTATIONS[value]) return;
+    } else if (kind === 'curator') {
+      const target = this.players.get(value);
+      if (value !== 'random' && (!target || target.isBot)) return;
+    }
+    if (this.votes[kind][playerId] === value) delete this.votes[kind][playerId];
+    else this.votes[kind][playerId] = value;
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, votes: this.votes });
+  }
+
+  voteWinner(kind) {
+    const counts = new Map();
+    for (const v of Object.values(this.votes[kind])) counts.set(v, (counts.get(v) || 0) + 1);
+    if (!counts.size) return null;
+    const top = Math.max(...counts.values());
+    const tied = [...counts.entries()].filter(([, n]) => n === top).map(([v]) => v);
+    return tied[Math.floor(Math.random() * tied.length)];
+  }
+
+  applyVotes() {
+    const map = this.voteWinner('map');
+    if (map) this.mapId = map;
+    const mutation = this.voteWinner('mutation');
+    if (mutation) this.mutation = mutation;
+    const bots = this.voteWinner('bots');
+    if (bots !== null && !this.tutorial) {
+      for (const [id, p] of [...this.players.entries()]) if (p.isBot) this.removePlayer(id);
+      const humans = this.players.size;
+      const target = Math.min(bots, 20 - humans);
+      for (let i = 0; i < target; i++) {
+        this.botCounter = (this.botCounter || 0) + 1;
+        const botId = `bot-${this.botCounter}`;
+        this.addPlayer(botId, { readyState: 0, send() {} }, `Bot ${this.botCounter}`);
+        this.players.get(botId).isBot = true;
+      }
+    }
+    let curator = this.voteWinner('curator');
+    const humanIds = [...this.players.entries()].filter(([, p]) => !p.isBot).map(([id]) => id);
+    if (curator === 'random' && humanIds.length) curator = humanIds[Math.floor(Math.random() * humanIds.length)];
+    if (curator && this.players.has(curator)) {
+      for (const [id, p] of this.players) {
+        const was = p.isAsymRole;
+        p.isAsymRole = id === curator;
+        if (p.isAsymRole && !was && !p.characterId) p.characterId = Characters.DEFAULT_CHARACTER_ID;
+      }
+    }
+    this.votes = { bots: {}, map: {}, mutation: {}, curator: {} };
+  }
+
   setMutation(requesterId, id) {
-    if (this.phase !== 'lobby' || requesterId !== this.hostId || !MUTATIONS[id]) return;
+    if (this.phase !== 'lobby' || requesterId !== this.hostId || this.isDefault || !MUTATIONS[id]) return;
     this.mutation = id;
     this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, mutation: this.mutation });
   }
@@ -671,8 +736,8 @@ class Room {
       this.sendTo(requesterId, MessageType.ERROR, { message: 'Solo se puede cambiar el mapa antes de iniciar la partida' });
       return;
     }
-    if (requesterId !== this.hostId) {
-      this.sendTo(requesterId, MessageType.ERROR, { message: 'Solo el host puede elegir el mapa' });
+    if (requesterId !== this.hostId || this.isDefault) {
+      this.sendTo(requesterId, MessageType.ERROR, { message: this.isDefault ? 'En las salas predeterminadas el mapa se vota' : 'Solo el host puede elegir el mapa' });
       return;
     }
     if (!GameMap.MAPS[mapId]) {
@@ -2515,7 +2580,7 @@ class Room {
   }
 
   /**
-   * M1 del Curador. Reconstruido tras la pérdida del sandbox — esta es
+   * M1 del Curador. Reconstruido tras la pérdida del sandbox, esta es
    * la "hitbox de interacción" que se pidió: no es una zona de colisión
    * continua, es una validación de distancia puntual en el instante del
    * click (confirmado explícitamente que es lo que se quería, no algo
@@ -2556,7 +2621,7 @@ class Room {
   /**
    * Uso de objeto de auto-daño. Misma naturaleza de hitbox que applyCure:
    * validación de distancia puntual contra la posición REAL del objeto
-   * (this.gameState.selfDamageObjectPositions, que sí cambia — a
+   * (this.gameState.selfDamageObjectPositions, que sí cambia, a
    * diferencia de los objetos de colisión, que son estáticos).
    */
   applySelfDamage(playerId, objectId) {
@@ -2778,8 +2843,8 @@ class Room {
     // loop se paraba pero la fase nunca volvía a 'lobby'), así que la sala
     // quedaba trabada: nadie podía iniciar una partida nueva, y con
     // gameOver=true pero phase='action' el estado era incoherente. No
-    // tocamos this.phase acá — seguimos en 'action' mientras se muestra el
-    // resultado — pero dejamos de simular movimiento/física mientras se ve
+    // tocamos this.phase acá, seguimos en 'action' mientras se muestra el
+    // resultado, pero dejamos de simular movimiento/física mientras se ve
     // el cartel de fin de partida, ya que seguir corriendo por el mapa
     // después de terminado no tenía sentido.
     this.gameState.frozen = true;
@@ -2822,7 +2887,7 @@ class Room {
    * Vuelve la sala al lobby después de terminar una partida (o si el host
    * quiere cancelarla a mitad de camino). Esto es lo que faltaba: antes no
    * existía ningún camino de vuelta a 'lobby' una vez que se entraba a
-   * 'action', por eso "se podía seguir jugando" después del game over —
+   * 'action', por eso "se podía seguir jugando" después del game over -
    * en realidad era que la sala nunca salía de ese estado.
    */
   returnToLobby(requesterId) {

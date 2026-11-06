@@ -1,6 +1,7 @@
 const GameMap = require('./GameMap');
 const { Room } = require('./Room');
 
+const MAX_ROOMS = Number(process.env.MAX_ROOMS) || 60;
 const DEFAULT_ALLOWED = ['sala1', 'sala2', 'sala3', 'sala4', 'sala5', 'sala6', 'test1'];
 
 class RoomManager {
@@ -10,8 +11,12 @@ class RoomManager {
     this.allowed = env.length ? env : DEFAULT_ALLOWED;
   }
 
-  isAllowed(roomId) {
+  isDefault(roomId) {
     return this.allowed.includes(roomId);
+  }
+
+  canCreate(roomId) {
+    return this.rooms.has(roomId) || this.rooms.size < MAX_ROOMS;
   }
 
   listRooms() {
@@ -25,6 +30,7 @@ class RoomManager {
     if (!this.rooms.has(roomId)) {
       const room = new Room(roomId);
       room.mapId = GameMap.GENERAL_ID;
+      room.isDefault = this.isDefault(roomId);
       this.rooms.set(roomId, room);
     }
     return this.rooms.get(roomId);

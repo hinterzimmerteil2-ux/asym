@@ -10,11 +10,11 @@ import { OrbitControls } from '@react-three/drei';
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001';
 
-// Tamaño en píxeles del lienzo cuadrado del editor — el área jugable
+// Tamaño en píxeles del lienzo cuadrado del editor, el área jugable
 // (MATCH_AREA, halfSize=30 por defecto en GameMap.js) se dibuja a esta
 // escala, y cada punto que se arrastra ahí adentro se convierte a
 // fracción (-1 a 1) dividiendo por la mitad del lienzo. El halfSize real
-// del mapa NO afecta el editor en sí — el editor siempre trabaja en
+// del mapa NO afecta el editor en sí, el editor siempre trabaja en
 // fracciones, que es justamente el punto: el layout resultante funciona
 // para cualquier tamaño de área que se use después.
 const CANVAS_SIZE = 560;
@@ -161,7 +161,7 @@ const TYPE_COLORS = {
 };
 
 // Mismos criterios usados para verificar a mano el mapa 'default' en
-// GameMap.js — replicados acá para detectar en tiempo real los mismos
+// GameMap.js, replicados acá para detectar en tiempo real los mismos
 // problemas que antes solo se detectaban corriendo un script aparte.
 // Todo en FRACCIONES (el editor nunca trabaja en unidades absolutas).
 const INTERACTION_RADIUS_FRAC = 2.5 / 30; // INTERACTION_RADIUS del server (2.5) / halfSize de referencia (MATCH_AREA=30)
@@ -170,7 +170,7 @@ const PATIENT_RING_RADIUS_FRAC = 0.7; // GameMap.getPatientSpawnPositions usa ha
 const PATIENT_RING_MARGIN_FRAC = 1 / 30;
 
 /**
- * Devuelve un set de ids de objetos con al menos un conflicto — usado
+ * Devuelve un set de ids de objetos con al menos un conflicto, usado
  * para colorear en rojo/advertencia esos marcadores en el lienzo. No
  * bloquea el export (el usuario puede decidir ignorarlo), solo avisa.
  */
@@ -186,7 +186,7 @@ function computeConflicts(selfDamageObjects, collisionObjects) {
       conflicts.add(col.id);
     }
 
-    // vs. anillo de spawn de Pacientes — cualquier objeto cuya distancia
+    // vs. anillo de spawn de Pacientes, cualquier objeto cuya distancia
     // al centro caiga cerca del radio del anillo (sin importar el ángulo,
     // porque no sabemos cuántos Pacientes ni en qué ángulos van a caer)
     if (Math.abs(distToCenter - PATIENT_RING_RADIUS_FRAC) < col.radiusFrac + PATIENT_RING_MARGIN_FRAC) {
@@ -259,7 +259,7 @@ export default function MapEditorPage() {
 
   /**
    * Convierte una posición de click/drag en píxeles del lienzo a
-   * fracción (-1 a 1) relativa al centro — el mismo formato que
+   * fracción (-1 a 1) relativa al centro, el mismo formato que
    * xFrac/zFrac en GameMap.js. Este es el único lugar donde ocurre esa
    * conversión; todo lo demás en el componente trabaja con fracciones.
    */
@@ -386,7 +386,7 @@ export default function MapEditorPage() {
   }
 
   function buildLayout(id, name) {
-    // Mismo formato exacto que DEFAULT_MAP_LAYOUT en GameMap.js — así el
+    // Mismo formato exacto que DEFAULT_MAP_LAYOUT en GameMap.js, así el
     // resultado se puede pegar directo ahí sin transformación adicional,
     // y es exactamente lo que acepta POST /maps en el servidor.
     return {
@@ -513,7 +513,7 @@ export default function MapEditorPage() {
       return;
     }
     if (selfDamageObjects.length === 0 && collisionObjects.length === 0 && platforms.length === 0) {
-      setSaveStatus({ error: 'El mapa está vacío — colocá al menos un objeto antes de guardar.' });
+      setSaveStatus({ error: 'El mapa está vacío, colocá al menos un objeto antes de guardar.' });
       return;
     }
     setSaveStatus('saving');
@@ -833,9 +833,9 @@ export default function MapEditorPage() {
                           {num('Centro Z', 'zFrac', -1, 1, 0.05)}
                           {num('Radio (0 = todo el mapa)', 'rFrac', 0, 2, 0.05)}
                           <label style={styles.countLine}>Altura mínima:{' '}
-                            <input type="number" style={{ width: 60 }} value={e.yMin ?? ''} placeholder="—" onChange={(ev) => upd({ yMin: ev.target.value === '' ? null : parseFloat(ev.target.value) })} />
+                            <input type="number" style={{ width: 60 }} value={e.yMin ?? ''} placeholder="-" onChange={(ev) => upd({ yMin: ev.target.value === '' ? null : parseFloat(ev.target.value) })} />
                             {' '}máxima:{' '}
-                            <input type="number" style={{ width: 60 }} value={e.yMax ?? ''} placeholder="—" onChange={(ev) => upd({ yMax: ev.target.value === '' ? null : parseFloat(ev.target.value) })} />
+                            <input type="number" style={{ width: 60 }} value={e.yMax ?? ''} placeholder="-" onChange={(ev) => upd({ yMax: ev.target.value === '' ? null : parseFloat(ev.target.value) })} />
                           </label>
                         </>
                       )}
@@ -856,7 +856,7 @@ export default function MapEditorPage() {
             {hasAnyConflict && (
               <p style={styles.conflictWarning}>
                 ⚠ {conflicts.size} objeto{conflicts.size !== 1 ? 's' : ''} en conflicto (marcados en
-                amarillo) — muy cerca del centro, del anillo de spawn de Pacientes, o de otro objeto.
+                amarillo), muy cerca del centro, del anillo de spawn de Pacientes, o de otro objeto.
               </p>
             )}
           </div>
@@ -958,7 +958,7 @@ export default function MapEditorPage() {
               </g>
             ))}
 
-            {/* Ejes centrales, más marcados — referencia visual del centro
+            {/* Ejes centrales, más marcados, referencia visual del centro
                 del área (donde spawnea el Curador en el juego real) */}
             <line x1={CANVAS_HALF} y1={0} x2={CANVAS_HALF} y2={CANVAS_SIZE} stroke="#5468ff" strokeWidth={1.5} strokeDasharray="4 4" />
             <line x1={0} y1={CANVAS_HALF} x2={CANVAS_SIZE} y2={CANVAS_HALF} stroke="#5468ff" strokeWidth={1.5} strokeDasharray="4 4" />
@@ -1060,7 +1060,7 @@ export default function MapEditorPage() {
           <Preview3D platforms={platforms} collisionObjects={collisionObjects} selfDamageObjects={selfDamageObjects} onGround={placeAt} onPick={selectedTool === 'edit' ? setSelectedId : null} selectedId={selectedId} MAP_HALF={MAP_HALF} />
           <p style={styles.canvasCaption}>
             El lienzo representa el área de partida completa (MATCH_AREA). Las posiciones
-            se guardan como fracción del centro, no en unidades fijas — el mismo layout
+            se guardan como fracción del centro, no en unidades fijas, el mismo layout
             funciona igual si el área real es más chica o más grande.
           </p>
         </div>
@@ -1072,7 +1072,7 @@ export default function MapEditorPage() {
             <h3 style={styles.exportTitle}>Layout exportado</h3>
             <p style={styles.exportHint}>
               Copiá este bloque y pegalo como una nueva entrada en <code>MAPS</code> dentro de{' '}
-              <code>server/src/GameMap.js</code>. Esto NO se aplica automáticamente al juego —
+              <code>server/src/GameMap.js</code>. Esto NO se aplica automáticamente al juego -
               es un layout generado, listo para copiar a mano.
             </p>
             <textarea readOnly style={styles.exportTextarea} value={exportedJson} onClick={(e) => e.target.select()} />

@@ -1,13 +1,13 @@
 /**
  * Define el/los mapa(s) jugable(s). Las posiciones de objetos se
  * expresan como FRACCIONES del halfSize del área (rango -1 a 1 en cada
- * eje), no como unidades absolutas — así el mismo layout relativo
+ * eje), no como unidades absolutas, así el mismo layout relativo
  * funciona sin cambios si el área crece o se achica. Esto reemplaza el
  * enfoque de coordenadas fijas (ej. {x: 20, z: 20}) que no escalaba a
  * mapas de tamaño distinto sin recalcular cada punto a mano.
  *
  * getSelfDamagePositions(area) / getCollisionObjects(area) convierten
- * las fracciones a unidades reales multiplicando por area.halfSize —
+ * las fracciones a unidades reales multiplicando por area.halfSize -
  * es el único lugar donde ese cálculo ocurre.
  */
 
@@ -33,13 +33,13 @@ const MATCH_AREA = {
 /**
  * Layout base de un mapa: todo en fracciones (-1 a 1), independiente del
  * tamaño real del área. Un mapa nuevo es otro objeto con esta misma
- * forma — no hace falta tocar el resto del archivo para agregarlo.
+ * forma, no hace falta tocar el resto del archivo para agregarlo.
  */
 const DEFAULT_MAP_LAYOUT = {
   id: 'default',
   name: 'Instalación médica abandonada',
 
-  // Objetos de auto-daño — fracciones del halfSize en cada eje.
+  // Objetos de auto-daño, fracciones del halfSize en cada eje.
   selfDamageObjects: [
     { id: 'obj_1', xFrac: 0.667, zFrac: 0.667 },
     { id: 'obj_2', xFrac: -0.667, zFrac: 0.667 },
@@ -50,7 +50,7 @@ const DEFAULT_MAP_LAYOUT = {
   ],
 
   // Elementos de ambientación con colisión. radiusFrac también es
-  // relativo (fracción de halfSize), no una unidad de mundo fija — así
+  // relativo (fracción de halfSize), no una unidad de mundo fija, así
   // un objeto se ve/colisiona proporcionalmente igual sin importar el
   // tamaño del mapa.
   collisionObjects: [
@@ -237,7 +237,7 @@ const HOSPITAL_SPAWNS = [
   [-50, -25], [50, 25], [25, -50], [-25, 50],
 ];
 
-// Catálogo de mapas disponibles — hoy solo uno, agregar otro es otra
+// Catálogo de mapas disponibles, hoy solo uno, agregar otro es otra
 // entrada acá con la misma forma que DEFAULT_MAP_LAYOUT.
 const MAPS = {
   default: DEFAULT_MAP_LAYOUT,
@@ -252,7 +252,7 @@ const DEFAULT_MAP_ID = 'default';
 
 /**
  * Mapas creados desde el editor visual (/editor) y guardados en el
- * servidor. Viven en memoria — igual que las salas — así que no
+ * servidor. Viven en memoria, igual que las salas, así que no
  * requieren Postgres; se pierden si el servidor se reinicia, que es
  * una limitación aceptable para un modo constructor de este alcance.
  */
@@ -389,7 +389,7 @@ function listMaps() {
 /**
  * Convierte el layout relativo de un mapa a coordenadas absolutas reales,
  * para el área dada. Es el único punto donde fracción -> unidad de mundo
- * ocurre — Room.js y el cliente trabajan siempre con el resultado de
+ * ocurre, Room.js y el cliente trabajan siempre con el resultado de
  * esta función, nunca con las fracciones crudas.
  */
 function resolveSelfDamagePositions(mapId, area) {

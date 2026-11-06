@@ -124,7 +124,7 @@ function SideEditor({ side, list, setList, max, library }) {
           {lib.length === 0 && <p style={style.line}>Todavía no hay skills publicadas.</p>}
           {lib.map((x) => (
             <div key={x.id} style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 12 }}>
-              <span style={{ flex: 1, minWidth: 0 }}>{x.name} · {x.author}</span>
+              <span style={{ flex: 1, minWidth: 0 }}>{x.name}, {x.author}</span>
               <button disabled={list.length >= max} onClick={() => add({ ...x.skill, name: x.name })}>Usar</button>
               {x.mine && <button onClick={() => removeFromLibrary(x.id)}>✕</button>}
             </div>

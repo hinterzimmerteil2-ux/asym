@@ -1396,7 +1396,7 @@ function CollisionObject({ obj }) {
  * el mouse orbita alrededor del personaje; la rueda acerca/aleja.
  * Expone el ángulo horizontal actual (yawRef) para que el movimiento
  * WASD sea relativo a hacia dónde mira la cámara, no a los ejes fijos
- * del mundo — así "adelante" siempre es "hacia donde estoy mirando".
+ * del mundo, así "adelante" siempre es "hacia donde estoy mirando".
  */
 function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platforms }) {
   const { camera, gl } = useThree();
@@ -1575,7 +1575,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
   useEffect(() => {
     function handleKeyDown(e) {
       // Disparamos el pulso solo en el flanco de bajada (primera vez que
-      // se detecta la tecla apretada), no en cada repeat del navegador —
+      // se detecta la tecla apretada), no en cada repeat del navegador -
       // si no, mantener Shift apretado mandaría curator_pulse_action sin
       // parar y el servidor lo rechazaría todas las veces salvo la
       // primera (está en cooldown de todos modos, pero no tiene sentido
@@ -1606,7 +1606,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
     const interval = setInterval(() => {
       const keys = keysPressed.current;
       // Ejes LOCALES a la intención del jugador (adelante/atrás/lateral),
-      // rotados después según hacia dónde mira la cámara — así W siempre
+      // rotados después según hacia dónde mira la cámara, así W siempre
       // avanza "hacia adelante en pantalla" en vez de "hacia +Z del mundo",
       // que es lo que hacía que moverse se sintiera desconectado de la
       // cámara libre anterior.

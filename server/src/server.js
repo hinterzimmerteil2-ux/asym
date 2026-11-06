@@ -119,15 +119,15 @@ wss.on('connection', (ws) => {
         // Dos jugadores que escriben "Sala1" y "sala1 " (con espacio o
         // mayúsculas distintas) deben terminar en la MISMA sala. Sin
         // normalizar acá, el Map de RoomManager los trata como salas
-        // distintas y cada uno ve el lobby "vacío" — la causa más común
+        // distintas y cada uno ve el lobby "vacío", la causa más común
         // de "no encuentro al otro jugador".
         const roomId = typeof msg.payload.roomId === 'string' ? msg.payload.roomId.trim().toLowerCase() : '';
         if (!roomId || !token) {
           ws.send(encode(MessageType.ERROR, { message: 'roomId y token son requeridos' }));
           return;
         }
-        if (!roomManager.isAllowed(roomId)) {
-          ws.send(encode(MessageType.ERROR, { message: `Sala no permitida. Elige una de: ${roomManager.allowed.join(', ')}` }));
+        if (!roomManager.canCreate(roomId)) {
+          ws.send(encode(MessageType.ERROR, { message: 'Hay demasiadas salas activas. Entra a una existente.' }));
           return;
         }
         const session = verifyToken(token);
@@ -157,6 +157,8 @@ wss.on('connection', (ws) => {
           characters: Characters.listCharacters(),
           cards: Cards.listCards(),
           mapId: room.mapId,
+          isDefault: room.isDefault,
+          votes: room.votes,
           mutation: room.mutation,
           mutations: Object.entries(Constants.MUTATIONS).map(([id, m]) => ({ id, name: m.name })),
           maps: GameMap.listMaps(),
@@ -220,6 +222,7 @@ wss.on('connection', (ws) => {
           ws.send(encode(MessageType.ERROR, { message: 'Hace falta al menos 1 Curador y 1 Paciente para empezar' }));
           return;
         }
+        if (room.isDefault) room.applyVotes();
         room.switchPhase('action', 'inicio de partida');
         room.broadcast(MessageType.GAME_STARTED, {
           phase: 'action',
@@ -265,6 +268,13 @@ wss.on('connection', (ws) => {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
         room.chooseCard(playerId, msg.payload.slot, msg.payload.cardId);
+        break;
+      }
+
+      case MessageType.VOTE: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.castVote(playerId, msg.payload.kind, msg.payload.value);
         break;
       }
 
@@ -375,7 +385,7 @@ wss.on('close', () => clearInterval(heartbeatInterval));
 
 // El juego principal (lobby, chat, partida, curar/autodañarse) no depende de
 // Postgres: solo lo necesita el login con cuenta (Google/Discord). Si la DB
-// no está configurada o no responde, el servidor sigue arriba igual —
+// no está configurada o no responde, el servidor sigue arriba igual -
 // simplemente el login con cuenta no va a funcionar hasta que se resuelva.
 ensureReady()
   .then(() => {

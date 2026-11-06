@@ -1311,3 +1311,26 @@ test('roles: fuerzan una carta, ofrecen secundarias afines y ocultan al Curador 
   const snaps = sent.a.filter((m) => m.type === 'state_snapshot');
   assert.ok(snaps.length && snaps[snaps.length - 1].payload.entities.c.gone === true);
 });
+
+test('votación en salas predeterminadas: mapa, bots y Curador, con empate aleatorio', () => {
+  const { room } = setup();
+  room.phase = 'lobby';
+  room.isDefault = true;
+  const ids = [...room.players.keys()].filter((id) => !room.players.get(id).isBot);
+  room.castVote(ids[0], 'bots', 4);
+  room.castVote(ids[1], 'bots', 4);
+  room.castVote(ids[0], 'map', 'default');
+  room.castVote(ids[0], 'curator', ids[1]);
+  room.castVote(ids[1], 'curator', ids[1]);
+  room.castVote(ids[0], 'bots', 99);
+  assert.strictEqual(room.voteWinner('bots'), 4);
+  assert.strictEqual(room.voteWinner('curator'), ids[1]);
+  room.setMap(ids[0], 'default');
+  room.applyVotes();
+  assert.strictEqual(room.players.get(ids[1]).isAsymRole, true);
+  assert.strictEqual([...room.players.values()].filter((p) => p.isBot).length, 4);
+  assert.deepStrictEqual(room.votes.bots, {});
+  room.castVote(ids[0], 'bots', 8);
+  room.castVote(ids[1], 'bots', 12);
+  assert.ok([8, 12].includes(room.voteWinner('bots')));
+});

@@ -209,6 +209,8 @@ export default function LobbyPage() {
   const [hitboxes, setHitboxes] = useState({ on: false, opacity: 0.8 });
   const [maps, setMaps] = useState([]);
   const [mutation, setMutation] = useState('none');
+  const [isDefaultRoom, setIsDefaultRoom] = useState(false);
+  const [votes, setVotes] = useState({ bots: {}, map: {}, mutation: {}, curator: {} });
   const [mutations, setMutations] = useState([]);
   const [mapId, setMapId] = useState('default');
   const [editingName, setEditingName] = useState(false);
@@ -273,6 +275,8 @@ export default function LobbyPage() {
             setCharacters(payload.characters || []);
             setCardCatalog(payload.cards || []);
             setMaps(payload.maps || []);
+            setIsDefaultRoom(Boolean(payload.isDefault));
+            setVotes(payload.votes || { bots: {}, map: {}, mutation: {}, curator: {} });
             setLobbyPlatforms(payload.lobbyPlatforms || []);
             setMapId(payload.mapId || 'default');
             setMutation(payload.mutation || 'none');
@@ -283,6 +287,7 @@ export default function LobbyPage() {
             if (payload.hostId !== undefined) setHostId(payload.hostId);
             if (payload.mapId !== undefined) setMapId(payload.mapId);
             if (payload.mutation !== undefined) setMutation(payload.mutation);
+            if (payload.votes !== undefined) setVotes(payload.votes);
             break;
           case 'chat_broadcast':
             setChatMessages((prev) => [...prev, payload]);
@@ -518,7 +523,7 @@ export default function LobbyPage() {
   }, [lastActionFeedback]);
 
   // Refresca el HUD del cooldown del Pulso de Curación mientras está
-  // activo — pulseCooldownUntil es un timestamp fijo, necesitamos un
+  // activo, pulseCooldownUntil es un timestamp fijo, necesitamos un
   // "ahora" que avance para poder mostrar la cuenta regresiva.
   useEffect(() => {
     const interval = setInterval(() => setSkillCooldownNow(Date.now()), 200);
@@ -537,7 +542,7 @@ export default function LobbyPage() {
   }, []);
 
   // Antes un error se quedaba pegado en pantalla para siempre hasta la
-  // próxima acción — ahora se auto-oculta (salvo que el usuario ya lo haya
+  // próxima acción, ahora se auto-oculta (salvo que el usuario ya lo haya
   // cerrado a mano) y además se puede cerrar con el botón de la propia
   // tarjeta de error.
   useEffect(() => {
@@ -682,7 +687,7 @@ export default function LobbyPage() {
       setDisplayName(trimmed);
       sessionTokenRef.current = newToken;
       // Si ya estamos dentro de una sala, avisamos al servidor para que
-      // el nombre se actualice ahí mismo sin tener que reconectar —
+      // el nombre se actualice ahí mismo sin tener que reconectar -
       // el nuevo token solo se usa en la próxima conexión/join_room.
       if (status === 'in_room') {
         connRef.current?.send('set_display_name', { displayName: trimmed });
@@ -775,7 +780,7 @@ export default function LobbyPage() {
 
   const handlePulse = useCallback((skill) => {
     // Validamos en el cliente solo para no spamear el servidor con un
-    // mensaje que de todos modos va a rechazar — la validación real
+    // mensaje que de todos modos va a rechazar, la validación real
     // (rol, cooldown, fase) vive en Room.applyCuratorPulse.
     if (phase !== 'action') return;
     if (!isAsymRole) {
@@ -864,6 +869,10 @@ export default function LobbyPage() {
     if (isAsymRole || phase !== 'action') return;
     connRef.current?.send('reroll_card', { cardId });
   }, [isAsymRole, phase]);
+
+  const handleVote = useCallback((kind, value) => {
+    connRef.current?.send('vote', { kind, value });
+  }, []);
 
   const handleChooseCard = useCallback((slot, cardId) => {
     if (isAsymRole || phase !== 'action') return;
@@ -1023,7 +1032,7 @@ export default function LobbyPage() {
                     {p.id === hostId ? 'Host' : ''} {characterTag}
                     {phase === 'action' && patientInfo ? ` / HP ${fmtHp(patientInfo.hp)}/${fmtHp(patientInfo.maxHp || 120)}` : ''}
                   </span>
-                  {phase === 'lobby' && isHost && !p.isAsymRole && (
+                  {phase === 'lobby' && isHost && !isDefaultRoom && !p.isAsymRole && (
                     <button
                       style={styles.smallButton}
                       onClick={() => handleSetAsymRole(p.id)}
@@ -1088,7 +1097,7 @@ export default function LobbyPage() {
           {phase === 'lobby' && (
             <div style={styles.mapPicker}>
               <p style={styles.characterPickerLabel}>Mapa</p>
-              {isHost ? (
+              {isHost && !isDefaultRoom ? (
                 <select
                   style={styles.mapSelect}
                   value={mapId}
@@ -1110,7 +1119,7 @@ export default function LobbyPage() {
               {mutations.length > 0 && (
                 <>
                   <p style={{ ...styles.characterPickerLabel, marginTop: 8 }}>Mutación</p>
-                  {isHost ? (
+                  {isHost && !isDefaultRoom ? (
                     <select style={styles.mapSelect} value={mutation} onChange={(e) => handleSetMutation(e.target.value)}>
                       {mutations.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
@@ -1123,7 +1132,7 @@ export default function LobbyPage() {
             </div>
           )}
 
-          {phase === 'lobby' && isHost && (
+          {phase === 'lobby' && isHost && !isDefaultRoom && (
             <label style={styles.botRow}>
               <span style={{ minWidth: 56 }}>Bots: {players.filter((pl) => pl.isBot).length}</span>
               <button type="button" style={{ ...styles.smallButton, width: 34, height: 34, padding: 0, fontSize: 18 }} onClick={() => handleBotCount(Math.max(0, players.filter((pl) => pl.isBot).length - 1))} aria-label="Menos bots">-</button>
@@ -1137,6 +1146,35 @@ export default function LobbyPage() {
               />
               <button type="button" style={{ ...styles.smallButton, width: 34, height: 34, padding: 0, fontSize: 18 }} onClick={() => handleBotCount(Math.min(19, players.filter((pl) => pl.isBot).length + 1))} aria-label="Más bots">+</button>
             </label>
+          )}
+
+          {phase === 'lobby' && isDefaultRoom && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 10px', border: '1px solid #2a2d3d', borderRadius: 8, fontSize: 12 }}>
+              <strong>Votación de la sala</strong>
+              {[
+                ['bots', 'Bots', [0, 4, 8, 12, 16].map((n) => ({ id: n, label: String(n) }))],
+                ['map', 'Mapa', maps.filter((m) => !m.id.startsWith('c_')).map((m) => ({ id: m.id, label: m.name }))],
+                ['mutation', 'Modificador', mutations.map((m) => ({ id: m.id, label: m.name }))],
+                ['curator', 'Curador', [{ id: 'random', label: 'Al azar' }, ...players.filter((pl) => !pl.isBot).map((pl) => ({ id: pl.id, label: pl.name }))]],
+              ].map(([kind, title, options]) => {
+                const counts = {};
+                for (const v of Object.values(votes[kind] || {})) counts[v] = (counts[v] || 0) + 1;
+                const mine = (votes[kind] || {})[myPlayerId];
+                return (
+                  <div key={kind}>
+                    <div style={{ opacity: 0.75, marginBottom: 3 }}>{title}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {options.map((o) => (
+                        <button key={String(o.id)} type="button" onClick={() => handleVote(kind, o.id)} style={{ padding: '4px 8px', borderRadius: 6, border: mine === o.id ? '1px solid #f3e9a6' : '1px solid #3a3f55', background: mine === o.id ? '#2a2d3d' : '#1b1d26', color: '#e8e8ee', fontSize: 12, cursor: 'pointer' }}>
+                          {o.label}{counts[o.id] ? ` (${counts[o.id]})` : ''}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              <span style={{ opacity: 0.65 }}>Gana lo más votado. Si hay empate, se elige al azar.</span>
+            </div>
           )}
 
           {phase === 'lobby' && isHost && (
@@ -1175,7 +1213,7 @@ export default function LobbyPage() {
         {phase === 'action' && curatorHp && (
           <div style={sx(styles.curatorHpBar, { ...bar, top: 50 })}>
             <div style={sx(styles.hpBarLabel, { fontSize: 10, marginBottom: 3 })}>
-              {compact ? 'Curador' : 'Salud del Curador'}: {Math.round(curatorHp.hp)}/{curatorHp.max}{!compact && ` · pierde en 0 o en ${curatorHp.max}`}
+              {compact ? 'Curador' : 'Salud del Curador'}: {Math.round(curatorHp.hp)}/{curatorHp.max}{!compact && `, pierde en 0 o en ${curatorHp.max}`}
             </div>
             <div style={styles.hpBarTrack}>
               <div style={styles.curatorHpFill(curatorHp.hp / curatorHp.max)} />
@@ -1208,7 +1246,7 @@ export default function LobbyPage() {
                 <>
                   {steps.map(([k, text], i) => (compact && i !== current ? null : (
                     <div key={k} style={{ color: tutorial.flags[k] ? '#5fd58c' : i === current ? '#f2d154' : '#8a8da3' }}>
-                      {tutorial.flags[k] ? '✓' : i === current ? '→' : '·'} {text}
+                      {tutorial.flags[k] ? '✓' : i === current ? '→' : '-'} {text}
                     </div>
                   )))}
                   {finished && <div style={{ color: '#5fd58c' }}>Tutorial completado. Gana cada Paciente que baja su HP a 0; el Curador gana si los cura a todos. Si la partida termina, el host puede volver al lobby.</div>}
@@ -1291,7 +1329,7 @@ export default function LobbyPage() {
                 const picked = hand.filter((sl) => sl.chosen).length;
                 return (
                   <div key={i} style={sx(styles.draftSlot, { width: 150, padding: 6 })}>
-                    <span style={styles.draftTitle}>Elige 2 ({picked}/2) · {secondsLeft}s · Renovar: {rerolls}</span>
+                    <span style={styles.draftTitle}>Elige 2 ({picked}/2), {secondsLeft}s, Renovar: {rerolls}</span>
                     {slot.options.map((card) => (
                       <div key={card.id} style={{ display: 'flex', gap: 4, alignItems: 'stretch' }}>
                         <button
@@ -1545,7 +1583,7 @@ export default function LobbyPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '6px 0', fontSize: 13 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <img src="/desgracias.png" alt="Desgracias" width={28} height={28} />
-                    <strong>+{Math.round(normQ(awardToQ(lastAward.items)))} ℍ · {formatQ(awardToQ(lastAward.items))}</strong>
+                    <strong>+{Math.round(normQ(awardToQ(lastAward.items)))} ℍ, {formatQ(awardToQ(lastAward.items))}</strong>
                   </div>
                   {lastAward.items.map((it) => (
                     <div key={it.label} style={{ display: 'flex', justifyContent: 'space-between', color: '#8a8da3' }}><span>{it.label}</span><span>+{it.amount}{it.axis && it.axis !== 'r' ? it.axis : ''}</span></div>
@@ -1684,7 +1722,7 @@ export default function LobbyPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '4px 0 8px' }}>
                 {roomList.map((r) => (
                   <button key={r.id} type="button" disabled={joinLoading} onClick={() => setRoomId(r.id)} style={{ padding: '6px 10px', borderRadius: 8, border: roomId.trim().toLowerCase() === r.id ? '1px solid #f3e9a6' : '1px solid #3a3f55', background: '#1b1d26', color: '#e8e8ee', fontSize: 13, cursor: 'pointer' }}>
-                    {r.id} · {r.players}
+                    {r.id} ({r.players})
                   </button>
                 ))}
               </div>

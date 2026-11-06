@@ -22,7 +22,7 @@ export default function StatusColumn({ statuses, compact }) {
             {hovered === status.id && (
               <div style={styles.tooltip}>
                 <div style={{ ...styles.tooltipTitle, color: info.color }}>
-                  {info.label} · {info.dynamic ? `nivel ${status.level}` : 'estático'} · {Math.ceil(status.ms / 1000)}s
+                  {info.label}, {info.dynamic ? `nivel ${status.level}` : 'estático'}, {Math.ceil(status.ms / 1000)}s
                 </div>
                 <div style={styles.tooltipText}>{info.description}</div>
               </div>

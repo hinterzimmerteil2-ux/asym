@@ -16,17 +16,17 @@ const MessageType = {
   GAME_STARTED: 'game_started',     // server -> todos: { phase, state, collisionObjects[] }
 
   // --- Elección de rol y personaje (en el lobby, antes de iniciar) ---
-  SET_ASYM_ROLE: 'set_asym_role',       // client(host) -> server: { targetPlayerId } — asigna quién es el Curador
+  SET_ASYM_ROLE: 'set_asym_role',       // client(host) -> server: { targetPlayerId }, asigna quién es el Curador
   SELECT_CHARACTER: 'select_character', // client(Curador) -> server: { characterId }
   CHARACTER_LIST: 'character_list',     // server -> client (al unirse): { characters[] }
   ADD_BOT: 'add_bot',
   REMOVE_BOT: 'remove_bot',
   SET_MUTATION: 'set_mutation',
-  SET_MAP: 'set_map',                   // client(host) -> server: { mapId } — elige el mapa para la próxima partida
+  SET_MAP: 'set_map',                   // client(host) -> server: { mapId }, elige el mapa para la próxima partida
 
   // --- Nombre de jugador ---
   SET_COSMETICS: 'set_cosmetics',
-  SET_DISPLAY_NAME: 'set_display_name', // client -> server: { displayName } — cambia el nombre visible en la sala actual
+  SET_DISPLAY_NAME: 'set_display_name', // client -> server: { displayName }, cambia el nombre visible en la sala actual
 
   // --- Chat de sala ---
   CHAT_MESSAGE: 'chat_message',
@@ -54,6 +54,7 @@ const MessageType = {
 
   // --- Mano de cartas de los Pacientes ---
   CARD_OFFER: 'card_offer',                 // server -> Paciente: { slots[{options[]}], draftEndsAt }
+  VOTE: 'vote',
   REROLL_CARD: 'reroll_card',
   CHOOSE_CARD_ACTION: 'choose_card_action', // client(Paciente) -> server: { slot, cardId }
   SELECT_ROLE: 'select_role',               // client(Paciente) -> server: { roleId }
@@ -64,7 +65,7 @@ const MessageType = {
 
   // --- Fin de partida ---
   GAME_OVER: 'game_over',
-  RETURN_TO_LOBBY: 'return_to_lobby', // client(host) -> server: {} — vuelve la sala a 'lobby' tras el game over
+  RETURN_TO_LOBBY: 'return_to_lobby', // client(host) -> server: {}, vuelve la sala a 'lobby' tras el game over
 
   // --- Fase turnos (NO usada por las reglas actuales, se deja disponible) ---
   TURN_START: 'turn_start',
