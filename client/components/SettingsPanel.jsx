@@ -102,6 +102,13 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
           <p style={styles.hint}>Recomendado en móvil: oculta las barras del navegador y fija la pantalla en horizontal.</p>
         </div>
 
+        <h3 style={styles.section}>Sonido</h3>
+        <div style={styles.card}>
+          <div style={styles.rowTop}><span>Volumen de sonidos</span><span>{Math.round((s.sfx ?? 0.6) * 100)}%</span></div>
+          <input type="range" min="0" max="1" step="0.05" value={s.sfx ?? 0.6} onChange={(e) => setSettings({ sfx: parseFloat(e.target.value) })} style={{ width: '100%' }} />
+          <p style={styles.hint}>Pasos, lanzas clavadas y curas se oyen según la distancia y el piso. A 0% se silencian.</p>
+        </div>
+
         <h3 style={styles.section}>Modo de teclas</h3>
         <div style={styles.card}>
           {[['shiftMode', 'Shiftlock'], ['slowMode', 'Paso lento']].map(([key, label]) => (

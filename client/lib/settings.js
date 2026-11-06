@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 const STORE = 'asym_settings';
-const DEFAULTS = { quality: 0.5, fps: false, auto: true, shiftMode: 'toggle', slowMode: 'hold' };
+const DEFAULTS = { quality: 0.5, fps: false, auto: true, shiftMode: 'toggle', slowMode: 'hold', sfx: 0.6 };
 const listeners = new Set();
 let cache = null;
 
@@ -14,6 +14,8 @@ function load() {
       const q = Number(raw.quality);
       if (Number.isFinite(q)) cache.quality = Math.max(0.05, Math.min(4, q));
       cache.fps = Boolean(raw.fps);
+      const sv = Number(raw.sfx);
+      if (Number.isFinite(sv)) cache.sfx = Math.max(0, Math.min(1, sv));
       if (typeof raw.auto === 'boolean') cache.auto = raw.auto;
       if (['hold', 'toggle', 'mixed'].includes(raw.shiftMode)) cache.shiftMode = raw.shiftMode;
       if (['hold', 'toggle', 'mixed'].includes(raw.slowMode)) cache.slowMode = raw.slowMode;

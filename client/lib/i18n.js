@@ -491,6 +491,9 @@ const PAIRS = [
 ["Soltar Módulo (Paciente)","Drop Module (Patient)"],
 ["Módulo","Module"],
 ["Soltar","Drop"],
+["Sonido","Sound"],
+["Volumen de sonidos","Sound volume"],
+["Pasos, lanzas clavadas y curas se oyen según la distancia y el piso. A 0% se silencian.","Footsteps, planted spears and cures are heard by distance and floor. At 0% they are muted."],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

@@ -12,6 +12,7 @@ import {
   updateDisplayName,
 } from '../lib/session';
 import GameScene from '../components/GameScene';
+import { play as playSfx, trackSteps, unlockAudio } from '../lib/sfx';
 import SkillIcon from '../components/SkillIcon';
 import HelpPanel from '../components/HelpPanel';
 import StatusColumn from '../components/StatusColumn';
@@ -324,6 +325,7 @@ export default function LobbyPage() {
               myPosRef.current = me ? { x: me.x, y: me.y || 0, z: me.z } : null;
             }
             entitiesRef.current = payload.entities || {};
+            trackSteps(payload.entities, myPlayerIdRef.current);
             {
               const stun = Object.entries(payload.flojera || {}).filter(([, v]) => v.stunned).map(([id]) => id);
               const rag = Object.entries(payload.flojera || {}).filter(([, v]) => v.ragdoll).map(([id]) => id);
@@ -354,6 +356,7 @@ export default function LobbyPage() {
             break;
           case 'curator_pulse_result': {
             const caster = entitiesRef.current[payload.playerId];
+            if (caster && payload.healedPlayerIds?.length) playSfx('cure', caster.x, caster.y || 0, caster.z, payload.playerId === myPlayerIdRef.current);
             if (caster && !payload.silent) {
               const effect = {
                 id: `fx${++effectCounterRef.current}`,
@@ -401,6 +404,7 @@ export default function LobbyPage() {
           }
           case 'card_result': {
             const caster = entitiesRef.current[payload.playerId];
+            if (caster && !payload.silent && payload.cardId === 'lanza_quijote') playSfx('spear', caster.x, caster.y || 0, caster.z, payload.playerId === myPlayerIdRef.current);
             if (caster && !payload.silent) {
               const effect = {
                 id: `fx${++effectCounterRef.current}`,
@@ -797,8 +801,10 @@ export default function LobbyPage() {
       if (keyMatches('shiftlock', e.code)) shiftKeyRef.current.up();
     }
     window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('pointerdown', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
     window.addEventListener('keyup', onKeyUp);
-    return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); };
+    return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); window.removeEventListener('pointerdown', unlockAudio); window.removeEventListener('keydown', unlockAudio); };
   }, [handleUseCard]);
 
   useEffect(() => {

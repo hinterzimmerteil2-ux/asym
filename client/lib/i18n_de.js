@@ -489,4 +489,7 @@ export const DE = [
 "Modul ablegen (Patient)",
 "Modul",
 "Ablegen",
+"Ton",
+"Lautstärke der Geräusche",
+"Schritte, gesetzte Speere und Heilungen sind je nach Entfernung und Etage zu hören. Bei 0 % sind sie stumm.",
 ];

@@ -10,6 +10,7 @@ import { createModeKey } from '../lib/modeKey';
 import HospitalDecor from './HospitalDecor';
 import StaticMerge from './StaticMerge';
 import { useSettings, gfx } from '../lib/settings';
+import { setListener } from '../lib/sfx';
 import { setPolyScale, installLowPoly } from '../lib/lowpoly';
 
 const LOBBY_HALF_SIZE = 15;
@@ -341,6 +342,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
       lastPos.current = [entityState.x, entityState.z];
     }
     FACING.set(playerId, yaw.current);
+    if (isMe) setListener(entityState.x, entityState.y || 0, entityState.z, yaw.current);
     if (bodyRef.current) {
       const body = bodyRef.current;
       const w = walk.current;
