@@ -371,6 +371,11 @@ class Room {
         if (entity) { entity.input.moveX = 0; entity.input.moveZ = 0; }
         continue;
       }
+      if (!entity.role && entity.hand[0] && !entity.hand[0].chosen && now > (player.nextBotPick || 0)) {
+        const picks = ['none', 'loquito', 'hincha', 'cobrador'];
+        this.selectRole(botId, picks[Math.floor(Math.random() * picks.length)]);
+        player.nextBotPick = now + 800;
+      }
       const openSlot = entity.hand.find((slot) => !slot.chosen);
       if (openSlot && openSlot.options.length && now > (player.nextBotPick || 0)) {
         this.chooseCard(botId, 0, openSlot.options[Math.floor(Math.random() * openSlot.options.length)]);
@@ -811,7 +816,7 @@ class Room {
       entity.gone = false;
       this.gameState.ghosts = {};
       entity.hand = player.isAsymRole ? [] : Cards.dealSlots(GameMap.getCustomCards(this.mapId));
-      entity.role = 'none';
+      entity.role = null;
       entity.rerolls = Cards.REROLLS;
       entity.draftEndsAt = player.isAsymRole ? 0 : Date.now() + Cards.DRAFT_DURATION_MS;
     }

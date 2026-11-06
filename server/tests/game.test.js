@@ -1294,3 +1294,20 @@ test('Garra: moverse demasiado cancela la carga y el cooldown de 7s empieza al t
   assert.strictEqual(e.a.astral.state, 'ready');
   assert.ok(e.a.cardCooldowns[0] >= now + 6000);
 });
+
+test('roles: fuerzan una carta, ofrecen secundarias afines y ocultan al Curador hasta liberarlo', () => {
+  const { room, e, sent } = setup();
+  room.gameState.curatorReleaseAt = Date.now() + 5000;
+  room.selectRole('a', 'loquito');
+  assert.strictEqual(e.a.hand[0].chosen, 'agua_rimac');
+  assert.ok(e.a.hand[1].options.length === 3 && !e.a.hand[1].options.includes('grito_animo'));
+  room.selectRole('a', 'hincha');
+  assert.strictEqual(e.a.role, 'loquito');
+  room.selectRole('b', 'none');
+  assert.strictEqual(e.b.role, 'none');
+  assert.ok(!e.b.hand[0].chosen);
+  room.broadcastState && 0;
+  room.tick();
+  const snaps = sent.a.filter((m) => m.type === 'state_snapshot');
+  assert.ok(snaps.length && snaps[snaps.length - 1].payload.entities.c.gone === true);
+});
