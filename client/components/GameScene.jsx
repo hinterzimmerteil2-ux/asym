@@ -342,7 +342,6 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
       lastPos.current = [entityState.x, entityState.z];
     }
     FACING.set(playerId, yaw.current);
-    if (isMe) setListener(entityState.x, entityState.y || 0, entityState.z, yaw.current);
     if (bodyRef.current) {
       const body = bodyRef.current;
       const w = walk.current;
@@ -1492,6 +1491,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId }) {
   useFrame((_, delta) => {
     if (!myEntity) return;
     yawRef.current = yaw.current;
+    setListener(myEntity.x, myEntity.y || 0, myEntity.z, yaw.current + Math.PI);
     CAMERA_LOCK.on = Boolean(shiftLock);
     CAMERA_LOCK.pitch = pitch.current;
     CAMERA_LOCK.yaw = yaw.current;

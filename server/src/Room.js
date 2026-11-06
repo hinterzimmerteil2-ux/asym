@@ -1764,6 +1764,7 @@ class Room {
   adjustCuratorHp(delta) {
     const curator = this.gameState.curator;
     if (!curator || this.gameState.gameOver) return;
+    if (this.gameState.lms && this.gameState.lms.gimmick === 'escudo') delta *= 0.5;
     curator.hp = Math.max(0, Math.min(curator.max, curator.hp + delta));
     if (curator.hp <= 0) this.endGame('curator_depleted', true);
     else if (curator.hp >= curator.max) this.endGame('curator_overhealed', true);
@@ -2420,7 +2421,7 @@ class Room {
     const player = this.players.get(playerId);
     if (!player || player.isBot || !this.gameState.desgracias || this.isPractice()) return;
     const lms = this.gameState.lms;
-    if (lms && lms.gimmick === 'codicia' && lms.survivorId === playerId) amount *= 2;
+    if (lms && lms.gimmick === 'codicia' && (lms.survivorId === playerId || lms.curatorId === playerId)) amount *= 2;
     const book = this.gameState.desgracias[playerId] || (this.gameState.desgracias[playerId] = {});
     book[reason] = (book[reason] || 0) + amount;
   }
@@ -2708,18 +2709,20 @@ class Room {
     gs.lastStanding = true;
     gs.timeRemainingMs = LMS_TIMER_RESET_MS;
     const gimmick = LMS_GIMMICKS[Math.floor(Math.random() * LMS_GIMMICKS.length)];
-    gs.lms = { survivorId, gimmick };
-    const entity = gs.entities[survivorId];
-    const now = Date.now();
-    if (entity && gimmick === 'adrenalina') {
-      entity.allyBoostUntil = now + LMS_TIMER_RESET_MS + 5000;
-      entity.allyBoostLevel = 3;
-    }
-    if (entity && gimmick === 'reflejos') {
-      entity.perezaUntil = now + LMS_TIMER_RESET_MS + 5000;
-      entity.perezaLevel = 3;
-    }
     const curatorId = [...this.players.entries()].find(([, p]) => p.isAsymRole)?.[0] || null;
+    gs.lms = { survivorId, curatorId, gimmick };
+    const now = Date.now();
+    for (const entity of [gs.entities[survivorId], curatorId ? gs.entities[curatorId] : null]) {
+      if (!entity) continue;
+      if (gimmick === 'adrenalina') {
+        entity.allyBoostUntil = now + LMS_TIMER_RESET_MS + 5000;
+        entity.allyBoostLevel = 3;
+      }
+      if (gimmick === 'reflejos') {
+        entity.perezaUntil = now + LMS_TIMER_RESET_MS + 5000;
+        entity.perezaLevel = 3;
+      }
+    }
     this.broadcast(MessageType.LAST_STANDING, { timeRemainingMs: gs.timeRemainingMs, survivorId, curatorId, gimmick });
   }
 

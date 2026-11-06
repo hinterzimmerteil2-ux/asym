@@ -1250,3 +1250,18 @@ test('Poking Don Quixote Cube: empieza con 1 de vida, sube 2/s, el Curador la cu
   room.tickZones(t, 50);
   assert.ok(!room.gameState.zones.some((z) => z.kind === 'spear'));
 });
+
+test('LMS: el gimmick aplica al sobreviviente y también al Curador', () => {
+  const { room, e } = setup();
+  room.tutorial = false;
+  for (const [id, pt] of Object.entries(room.gameState.patients)) if (id !== 'a') pt.status = 'eliminated';
+  room.gameState.patients.a.status = 'alive';
+  const orig = Math.random;
+  Math.random = () => 0;
+  room.checkLastStanding();
+  Math.random = orig;
+  assert.strictEqual(room.gameState.lms.gimmick, 'adrenalina');
+  assert.ok(e.a.allyBoostUntil > Date.now());
+  assert.ok(e.c.allyBoostUntil > Date.now());
+  assert.strictEqual(room.gameState.lms.curatorId, 'c');
+});

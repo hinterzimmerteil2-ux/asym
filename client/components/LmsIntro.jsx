@@ -70,10 +70,10 @@ const LINES = ['LAST', 'MORON', 'STANDING'];
 const TINTS = ['#ffd166', '#ff5d6c', '#5fd58c'];
 
 const GIMMICK_TEXT = {
-  adrenalina: 'Adrenalina: velocidad extra',
-  reflejos: 'Reflejos: recargas más rápidas',
-  escudo: 'Escudo: las curas valen la mitad',
-  codicia: 'Codicia: Desgracias x2',
+  adrenalina: 'Adrenalina: velocidad extra (ambos bandos)',
+  reflejos: 'Reflejos: recargas más rápidas (ambos bandos)',
+  escudo: 'Escudo: las curas y el daño al Curador valen la mitad',
+  codicia: 'Codicia: Desgracias x2 (ambos bandos)',
 };
 
 export default function LmsIntro({ patientCosmetics, curatorCosmetics, gimmick, survivorName }) {
