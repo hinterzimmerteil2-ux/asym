@@ -929,7 +929,7 @@ class Room {
       if (z.kind !== 'spear' || now >= z.until) continue;
       if (Math.abs((owner.y || 0) - (z.y || 0)) > 1.6) continue;
       if (Math.hypot(z.x - px, z.z - pz) > radius + 0.8) continue;
-      z.hp += z.card.spear.curatorHeal;
+      z.hp += CURE_AMOUNT * (owner.cureBoostUntil > now ? owner.cureBoostFactor : 1);
     }
   }
 

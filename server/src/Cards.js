@@ -60,7 +60,7 @@ const CARDS = {
     description: 'MANAGER ESQUIRE',
     rarity: 'uncommon',
     cooldownMs: 18000,
-    spear: { max: 4, maxHp: 91, regenPerSec: 2, curatorHeal: 15, levelScale: [0, 0.4, 0.7, 1], radius: 1.7, toggleRadius: 3.5, tickMs: 700, steal: 0.7, nerf: 0.35 },
+    spear: { max: 4, maxHp: 91, regenPerSec: 2, levelScale: [0, 0.4, 0.7, 1], radius: 1.7, toggleRadius: 3.5, tickMs: 700, steal: 0.7, nerf: 0.35 },
   },
   cascara_platano: {
     id: 'cascara_platano',
