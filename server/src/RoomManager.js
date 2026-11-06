@@ -1,9 +1,24 @@
 const GameMap = require('./GameMap');
 const { Room } = require('./Room');
 
+const DEFAULT_ALLOWED = ['sala1', 'sala2', 'sala3', 'sala4', 'sala5', 'sala6', 'test1'];
+
 class RoomManager {
   constructor() {
     this.rooms = new Map();
+    const env = (process.env.ALLOWED_ROOMS || '').split(',').map((r) => r.trim().toLowerCase()).filter(Boolean);
+    this.allowed = env.length ? env : DEFAULT_ALLOWED;
+  }
+
+  isAllowed(roomId) {
+    return this.allowed.includes(roomId);
+  }
+
+  listRooms() {
+    return this.allowed.map((id) => {
+      const room = this.rooms.get(id);
+      return { id, players: room ? room.playerCount() : 0 };
+    });
   }
 
   getOrCreateRoom(roomId) {

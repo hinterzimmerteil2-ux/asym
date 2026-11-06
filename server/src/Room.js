@@ -458,6 +458,12 @@ class Room {
     return this.players.size >= MAX_PLAYERS;
   }
 
+  playerCount() {
+    let n = 0;
+    for (const pl of this.players.values()) if (!pl.isBot) n++;
+    return n;
+  }
+
   isEmpty() {
     return this.players.size === 0;
   }

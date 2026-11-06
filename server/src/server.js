@@ -50,6 +50,12 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
 
+  if (url.pathname === '/rooms' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ rooms: roomManager.listRooms() }));
+    return;
+  }
+
   if (url.pathname === '/maps' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ maps: GameMap.listMaps() }));
@@ -118,6 +124,10 @@ wss.on('connection', (ws) => {
         const roomId = typeof msg.payload.roomId === 'string' ? msg.payload.roomId.trim().toLowerCase() : '';
         if (!roomId || !token) {
           ws.send(encode(MessageType.ERROR, { message: 'roomId y token son requeridos' }));
+          return;
+        }
+        if (!roomManager.isAllowed(roomId)) {
+          ws.send(encode(MessageType.ERROR, { message: `Sala no permitida. Elige una de: ${roomManager.allowed.join(', ')}` }));
           return;
         }
         const session = verifyToken(token);

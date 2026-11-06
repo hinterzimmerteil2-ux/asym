@@ -81,6 +81,7 @@ export default function LobbyPage() {
   const [displayName, setDisplayName] = useState(null);
   const [guestNameInput, setGuestNameInput] = useState('');
   const [roomId, setRoomId] = useState('');
+  const [roomList, setRoomList] = useState([]);
   const [players, setPlayers] = useState([]);
   const [myPlayerId, setMyPlayerId] = useState(null);
   const [isAsymRole, setIsAsymRole] = useState(false);
@@ -559,6 +560,16 @@ export default function LobbyPage() {
       setGuestLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!sessionToken) return undefined;
+    let dead = false;
+    const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001';
+    const load = () => fetch(`${base}/rooms`).then((r) => r.json()).then((d) => { if (!dead && Array.isArray(d.rooms)) setRoomList(d.rooms); }).catch(() => {});
+    load();
+    const t = setInterval(load, 8000);
+    return () => { dead = true; clearInterval(t); };
+  }, [sessionToken]);
 
   function handleJoin(e) {
     e.preventDefault();
@@ -1664,6 +1675,15 @@ export default function LobbyPage() {
                   cambiar nombre
                 </button>
               </p>
+            )}
+            {roomList.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '4px 0 8px' }}>
+                {roomList.map((r) => (
+                  <button key={r.id} type="button" disabled={joinLoading} onClick={() => setRoomId(r.id)} style={{ padding: '6px 10px', borderRadius: 8, border: roomId.trim().toLowerCase() === r.id ? '1px solid #f3e9a6' : '1px solid #3a3f55', background: '#1b1d26', color: '#e8e8ee', fontSize: 13, cursor: 'pointer' }}>
+                    {r.id} · {r.players}
+                  </button>
+                ))}
+              </div>
             )}
             <label style={styles.label}>
               Sala

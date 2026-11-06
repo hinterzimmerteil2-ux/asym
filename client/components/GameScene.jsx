@@ -1398,7 +1398,7 @@ function CollisionObject({ obj }) {
  * WASD sea relativo a hacia dónde mira la cámara, no a los ejes fijos
  * del mundo — así "adelante" siempre es "hacia donde estoy mirando".
  */
-function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId }) {
+function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platforms }) {
   const { camera, gl } = useThree();
   const yaw = useRef(Math.PI);
   const pitch = useRef(0.5);
@@ -1527,6 +1527,34 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId }) {
       smoothedTarget.current.z + rightZ + Math.cos(yaw.current) * horizontalRadius
     );
     camera.position.y = Math.max(camera.position.y, myEntity.y + 0.35);
+    if (platforms && platforms.length) {
+      const tx = smoothedTarget.current.x + rightX;
+      const ty = smoothedTarget.current.y;
+      const tz = smoothedTarget.current.z + rightZ;
+      const cx = camera.position.x - tx;
+      const cy = camera.position.y - ty;
+      const cz = camera.position.z - tz;
+      const floorY = myEntity.y + 0.6;
+      let hit = -1;
+      for (let k = 1; k <= 14 && hit < 0; k++) {
+        const f = k / 14;
+        const px = tx + cx * f;
+        const py = ty + cy * f;
+        const pz = tz + cz * f;
+        for (let i = 0; i < platforms.length; i++) {
+          const q = platforms[i];
+          if (q.ramp || q.kind === 'pit' || q.kind === 'gate' || q.kind === 'pgate') continue;
+          const top = (q.y0 || 0) + q.h;
+          if (top <= floorY) continue;
+          const bottom = q.slab ? top - q.slab : (q.y0 || 0);
+          if (Math.abs(px - q.x) <= q.hx + 0.2 && Math.abs(pz - q.z) <= q.hz + 0.2 && py > bottom - 0.2 && py < top + 0.2) { hit = k; break; }
+        }
+      }
+      if (hit > 0) {
+        const f = Math.max(0.12, (hit - 1.5) / 14);
+        camera.position.set(tx + cx * f, ty + cy * f, tz + cz * f);
+      }
+    }
     camera.lookAt(smoothedTarget.current.x + rightX, smoothedTarget.current.y, smoothedTarget.current.z + rightZ);
   });
 
@@ -1933,7 +1961,7 @@ export default function GameScene({
       {phase === 'action' && <NightDecor showStars={g.stars} lights={g.lights} lightCount={g.lightCount} />}
       {phase === 'action' && g.decor !== 'none' && <HospitalDecor half={areaHalfSize} platforms={platforms} level={g.decor} dust={g.dust} lightsOn={g.lightCount >= 5} />}
 
-      <FollowCamera focusId={followId || myPlayerId} myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
+      <FollowCamera platforms={phase === 'action' ? platforms : null} focusId={followId || myPlayerId} myEntity={myEntity} yawRef={yawRef} shiftLock={Boolean(shiftLock) && !followId} onLockLost={onShiftLockLost} />
 
       <MGround halfSize={areaHalfSize} themed={phase === 'action'} pits={pits} />
       {pits.map((p) => <MPit key={p.id} p={p} pits={pits} />)}
