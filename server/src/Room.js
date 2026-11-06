@@ -1048,7 +1048,7 @@ class Room {
       }
       return out;
     };
-    const zones = this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, y: z.y || 0, level: z.level || 0, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, armed: z.armedAt === undefined || now >= z.armedAt }));
+    const zones = this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, y: z.y || 0, level: z.level || 0, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, mode: z.mode || null, armed: z.armedAt === undefined || now >= z.armedAt }));
 
     for (const [playerId, player] of this.players) {
       if (player.isBot || player.ws.readyState !== 1) continue;
@@ -1979,6 +1979,31 @@ class Room {
             Status.apply(entity, 'slow', 300, now);
           }
         }
+      } else if (zone.kind === 'spear') {
+        const cfg = zone.card.spear;
+        const count = this.gameState.zones.filter((z) => z.kind === 'spear' && now < z.until).length;
+        const f = 1 / (1 + cfg.nerf * Math.max(0, count - 1));
+        if (now >= zone.nextAt) {
+          for (const [playerId, player] of this.players) {
+            if (!player.isAsymRole) continue;
+            const entity = this.gameState.entities[playerId];
+            if (!entity || this.zoneDistance(entity, zone) > zone.radius) continue;
+            const dx = zone.x - entity.x;
+            const dz = zone.z - entity.z;
+            const l = Math.hypot(dx, dz) || 1;
+            entity.flojera = Math.max(0, entity.flojera - cfg.steal * f);
+            if (zone.mode === 'pull') {
+              Status.push(entity, dx / l, dz / l, 5.5 * f, 350, now);
+              this.endlagSlow(entity, now, Math.round(650 * f));
+            } else {
+              Status.push(entity, -dx / l, -dz / l, 1.6 * f, 200, now);
+              this.endlagSlow(entity, now, Math.round(180 * f));
+            }
+            zone.nextAt = now + cfg.tickMs;
+            const owner = this.gameState.entities[zone.ownerId];
+            if (owner) this.award(zone.ownerId, 1, 'Lanza');
+          }
+        }
       } else if (zone.kind === 'trap' && now >= zone.armedAt) {
         const age = (now - zone.placedAt) / 1000;
         const life = 1 + age;
@@ -2278,6 +2303,14 @@ class Room {
         this.broadcast(MessageType.CARD_RESULT, { playerId, slot: slotIndex, cardId: card.id, cooldownUntil: entity.cardCooldowns[slotIndex], hitRadius: null, center: null, boxes: [] });
       }
       return;
+    }
+    if (card.spear) {
+      const own = this.gameState.zones.find((z) => z.kind === 'spear' && z.ownerId === playerId && now >= (z.toggleAt || 0) && this.zoneDistance(entity, { ...z, y: z.y }) <= card.spear.toggleRadius);
+      if (own) {
+        own.mode = own.mode === 'pull' ? 'push' : 'pull';
+        own.toggleAt = now + 400;
+        return;
+      }
     }
     const cooldownUntil = entity.cardCooldowns[slotIndex] || 0;
     if (cooldownUntil > now) {

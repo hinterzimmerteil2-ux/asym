@@ -1206,3 +1206,26 @@ test('Golpe Aturdidor: cura como el M1, aturde si el Paciente se mueve, endlag m
   room.tickHitWindows(clock.t);
   assert.ok(Status.speedFactor(e.c, clock.t) < 1);
 });
+
+test('Poking Don Quixote Cube: roba Flojera, alterna modo, límite y nerf por cantidad', () => {
+  const { room, e } = setup();
+  e.a.x = 0; e.a.z = 0; e.a.faceX = 1; e.a.faceZ = 0; e.c.x = 40; e.c.z = 40;
+  give(e.a, 0, 'lanza_quijote');
+  room.useCard('a', 0);
+  const zone = room.gameState.zones.find((z) => z.kind === 'spear');
+  assert.strictEqual(zone.mode, 'pull');
+  e.a.cardCooldowns[0] = 0;
+  room.useCard('a', 0);
+  assert.strictEqual(zone.mode, 'push');
+  assert.strictEqual(room.gameState.zones.filter((z) => z.kind === 'spear').length, 1);
+  e.c.x = zone.x + 1; e.c.z = zone.z; e.c.flojera = 50;
+  const now = Date.now() + 1000;
+  room.tickZones(now, 0.05);
+  assert.ok(e.c.flojera < 50);
+  assert.ok(e.c.kbX > 0);
+  for (let i = 0; i < 5; i++) {
+    e.a.x = 10 * (i + 1); e.a.cardCooldowns[0] = 0;
+    room.useCard('a', 0);
+  }
+  assert.ok(room.gameState.zones.filter((z) => z.kind === 'spear' && z.until > Date.now()).length <= 4);
+});

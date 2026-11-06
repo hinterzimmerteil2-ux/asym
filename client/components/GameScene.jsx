@@ -47,6 +47,7 @@ const ANIM_BY_KIND = {
   card_humo_yodo: 'throw',
   card_humo_toxico: 'throw',
   card_cascara_platano: 'throw',
+  card_lanza_quijote: 'throw',
   card_platano_podrido: 'throw',
   card_regalo_envenenado: 'throw',
   skill_somnifero_valeriana: 'throw',
@@ -861,7 +862,7 @@ function CollisionObjectMesh({ type, radius }) {
   }
 }
 
-const ZONE_COLORS = { rimac: '#6b8f3a', puddle: '#5fd58c', trap: '#f2d154', serum: '#54e0c0' };
+const ZONE_COLORS = { spear: '#5fd58c', rimac: '#6b8f3a', puddle: '#5fd58c', trap: '#f2d154', serum: '#54e0c0' };
 
 function BananaMesh({ color, spotted, ghost, fade }) {
   return (
@@ -943,6 +944,16 @@ function ZoneDisc({ zone, ghost, platforms }) {
           <PuddleRipples radius={zone.radius} color={zone.cardId === 'rimac_sin_filtrar' ? '#5f7f20' : '#8fb050'} />
           <BrokenBottle color={color} />
         </>
+      )}
+      {zone.kind === 'spear' && (
+        <group>
+          <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[zone.radius * 0.92, zone.radius, 24]} />
+            <meshBasicMaterial color={zone.mode === 'push' ? '#f2d154' : '#5fd58c'} transparent opacity={0.7} />
+          </mesh>
+          <mesh position={[0, 0.5, 0]}><cylinderGeometry args={[0.28, 0.34, 1, 10]} /><meshStandardMaterial color="#8a8f9c" metalness={0.5} roughness={0.5} /></mesh>
+          <mesh position={[0, 2.3, 0]}><coneGeometry args={[0.3, 2.6, 10]} /><meshStandardMaterial color="#2a2d3d" metalness={0.4} roughness={0.4} /></mesh>
+        </group>
       )}
       {zone.kind === 'puddle' && <PuddleRipples radius={zone.radius} color="#5fd58c" />}
       {zone.kind === 'serum' && (

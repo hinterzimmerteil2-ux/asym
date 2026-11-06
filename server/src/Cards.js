@@ -53,6 +53,15 @@ const CARDS = {
     rarity: 'rare',
     cooldownMs: 30000,
   },
+  lanza_quijote: {
+    id: 'lanza_quijote',
+    keywords: ['defensiva'],
+    displayName: 'Poking Don Quixote Cube',
+    description: 'Clavas una lanza en el suelo (estructura, dura 45s). Si el Curador se acerca, le roba Flojera y lo jala hacia ella o lo empuja un poco. Volver a usar la carta junto a tu lanza alterna el modo (jalar / solo empujar, que da el endlag más leve y casi no mueve). Máximo 4 en el mapa; cuantas más haya, más débil es cada una.',
+    rarity: 'uncommon',
+    cooldownMs: 18000,
+    spear: { max: 4, lifeMs: 45000, radius: 1.7, toggleRadius: 3.5, tickMs: 700, steal: 10, nerf: 0.35 },
+  },
   cascara_platano: {
     id: 'cascara_platano',
     keywords: ['defensiva'],

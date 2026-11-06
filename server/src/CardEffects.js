@@ -64,6 +64,30 @@ const handlers = {
     room.checkGameEndConditions();
   },
 
+  lanza_quijote({ room, playerId, entity, card, now }) {
+    const cfg = card.spear;
+    const half = room.getCurrentArea().halfSize;
+    const mine = room.gameState.zones.filter((z) => z.kind === 'spear');
+    while (mine.length >= cfg.max) {
+      const oldest = mine.shift();
+      oldest.until = now;
+    }
+    room.addZone({
+      kind: 'spear',
+      mode: 'pull',
+      x: Math.max(-half, Math.min(half, entity.x + entity.faceX * 2.2)),
+      z: Math.max(-half, Math.min(half, entity.z + entity.faceZ * 2.2)),
+      radius: cfg.radius,
+      ownerId: playerId,
+      cardId: card.id,
+      placedAt: now,
+      until: now + cfg.lifeMs,
+      nextAt: 0,
+      card,
+    });
+    room.endlagSlow(entity, now, 300);
+  },
+
   cascara_platano({ room, playerId, entity, card, now }) {
     const half = room.getCurrentArea().halfSize;
     room.addZone({
