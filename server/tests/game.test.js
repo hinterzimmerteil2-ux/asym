@@ -1278,3 +1278,15 @@ test('Garra: cancela al curarte y se limpia al reiniciar', () => {
   room.tickAstral(now + 200, 0.05);
   assert.strictEqual(e.a.astral.state, 'ready');
 });
+
+test('Garra: moverse demasiado cancela la carga y el cooldown de 7s empieza al terminar', () => {
+  const Cards = require('../src/Cards');
+  const { room, e } = setup();
+  give(e.a, 0, 'astral_claw');
+  const now = Date.now();
+  room.startAstral('a', e.a, Cards.getCard('astral_claw'), now);
+  e.a.x += 3;
+  room.tickAstral(now + 100, 0.05);
+  assert.strictEqual(e.a.astral.state, 'ready');
+  assert.ok(e.a.cardCooldowns[0] >= now + 6000);
+});

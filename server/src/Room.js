@@ -1812,7 +1812,7 @@ class Room {
 
   startAstral(playerId, entity, card, now) {
     const cfg = card.astral;
-    entity.astral = { card, cfg, startedAt: now, fastMs: 0, charge: 0, state: 'charging', readyAt: 0, hp: (this.gameState.patients[playerId] || {}).hp, slot: entity.hand.findIndex((sl) => sl && sl.chosen === card.id) };
+    entity.astral = { card, cfg, startedAt: now, x0: entity.x, z0: entity.z, fastMs: 0, charge: 0, state: 'charging', readyAt: 0, hp: (this.gameState.patients[playerId] || {}).hp, slot: entity.hand.findIndex((sl) => sl && sl.chosen === card.id) };
     if (cfg.holdMs > 0) Status.apply(entity, 'slow', cfg.holdMs, now, { tag: 'endlag', level: 3 });
   }
 
@@ -1830,6 +1830,8 @@ class Room {
     a.readyAt = now + a.cfg.fireDelayMs;
     if (a.slot >= 0) entity.cardCooldowns[a.slot] = a.readyAt;
     Status.clear(entity, 'slow');
+    const pid = Object.keys(this.gameState.entities).find((k) => this.gameState.entities[k] === entity);
+    if (pid && a.slot >= 0) this.broadcast(MessageType.CARD_RESULT, { playerId: pid, slot: a.slot, cardId: a.card.id, cooldownUntil: a.readyAt, hitRadius: null, center: null, boxes: [], silent: true });
   }
 
   fireAstral(playerId, entity, slotIndex, now) {
@@ -1858,7 +1860,8 @@ class Room {
       if (pt) a.hp = Math.min(a.hp === undefined ? pt.hp : a.hp, pt.hp);
       a.fastMs = (entity.speedNow || 0) > ASTRAL.EXIT_SPEED ? a.fastMs + dt * 1000 : 0;
       const jumped = !entity.onGround && (entity.velocityY || 0) > 0.5;
-      if (healed || jumped || a.fastMs >= ASTRAL.EXIT_FAST_MS) this.exitAstral(entity, now);
+      const moved = Math.hypot(entity.x - a.x0, entity.z - a.z0) > ASTRAL.MOVE_LIMIT;
+      if (healed || jumped || moved || a.fastMs >= ASTRAL.EXIT_FAST_MS) this.exitAstral(entity, now);
       else if (now - a.startedAt >= Math.max(a.cfg.holdMs, a.cfg.chargeMs)) this.readyAstral(entity, now);
     }
     const half = this.getCurrentArea().halfSize;
