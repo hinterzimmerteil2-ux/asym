@@ -27,13 +27,14 @@ const COLOR_EMERGENCY_LIGHT = '#5468ff';
 
 const FACING = new Map();
 const HAND_ANIMS = new Map();
-const ANIM_DURATION = { swing: 650, consume: 1700, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600 };
-const IMPACT_MS = { swing: 260, consume: 1500, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150 };
-const HOLD_MS = { card_tropiezo: 1200, card_paraguayizador: 1000, card_acetilcolina: 1300, card_tajo_carmesi: 800, card_red_mist: 800, skill_melee_stun: 800, card_rodar: 650 };
+const ANIM_DURATION = { swing: 650, swingL: 650, consume: 1700, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600 };
+const IMPACT_MS = { swing: 260, swingL: 260, consume: 1500, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150 };
+const HOLD_MS = { card_tropiezo: 1200, card_paraguayizador: 1000, card_acetilcolina: 1300, card_tajo_carmesi: 800, card_red_mist: 800, skill_melee_stun: 800, skill_golpe_aturdidor: 650, card_rodar: 650 };
 const durOf = (h) => (h && (h.ms || ANIM_DURATION[h.anim])) || 1;
 const STATE_HELD = new Set(['card_chicharron', 'card_goyslop', 'card_astral_claw', 'card_grito_animo']);
 const ANIM_BY_KIND = {
-  skill_melee_stun: 'swing',
+  skill_melee_stun: 'swingL',
+  skill_golpe_aturdidor: 'swingL',
   card_tajo_carmesi: 'swing',
   card_red_mist: 'swing',
   card_tropiezo: 'stumble',
@@ -72,7 +73,12 @@ function HeldItem({ held }) {
     const t = Math.min(1, (Date.now() - held.startedAt) / durOf(held));
     group.visible = t < 1;
     const e = easeOut(t);
-    if (held.anim === 'swing') {
+    if (held.anim === 'swingL') {
+      group.position.set(-0.55, 1.45, 0.15);
+      group.rotation.set(-2.4 + 2.6 * e, 0, 0);
+      group.children[0].position.set(0, -0.75, 0);
+      group.scale.setScalar(1.35);
+    } else if (held.anim === 'swing') {
       group.position.set(0.55, 1.45, 0.1);
       group.rotation.set(-Math.PI + 2.9 * e, 0, 0);
       group.children[0].position.set(0, -0.9, 0);
@@ -360,7 +366,10 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
       const ha = HAND_ANIMS.get(playerId);
       if (ha && durOf(ha) > 1) {
         const ht = Math.min(1, (Date.now() - ha.startedAt) / durOf(ha));
-        if (ha.anim === 'swing') {
+        if (ha.anim === 'swingL') {
+          lax = -2.4 + 2.6 * easeOut(ht);
+          laz = -0.1;
+        } else if (ha.anim === 'swing') {
           rax = -Math.PI + 2.9 * easeOut(ht);
           raz = 0.1;
         } else if (ha.anim === 'shout') {
@@ -1029,7 +1038,7 @@ const FX = {
   skill_pull: { shape: 'leaf', color: '#8f6a3a', count: 14, speed: 3, up: 0.5, gravity: 0, inward: true, prop: 'magnet' },
   skill_boost: { shape: 'spark', color: '#f2a154', count: 12, speed: 1, up: 4, gravity: -3, prop: 'bottle' },
   skill_purge: { shape: 'drop', color: '#54a8f2', count: 14, speed: 3.5, up: 2, gravity: 9, prop: 'drip' },
-  skill_melee_stun: { shape: 'spark', color: '#f2d154', count: 12, speed: 4, up: 2, gravity: 6, prop: 'hammer' },
+  skill_melee_stun: { shape: 'leaf', color: '#5fd58c', count: 12, speed: 4, up: 2, gravity: 6, prop: 'img_golpe_aturdidor' },
   card_acetilcolina: { shape: 'spark', color: '#54d1f2', count: 16, speed: 3, up: 2, gravity: 0, prop: 'img_acetilcolina' },
   card_rodar: { shape: 'smoke', color: '#cfd2e0', count: 8, speed: 2, up: 0.5, gravity: 0, prop: 'img_rodar' },
   card_canon_humano: { shape: 'smoke', color: '#cfd2e0', count: 10, speed: 2.5, up: 0.8, gravity: 0, prop: 'can' },
@@ -1085,6 +1094,7 @@ const PROP_IMG = {
   img_tropiezo: { src: '/props/tropiezo.png', h: 1.1, aspect: 0.57 },
   img_goyslop: { src: '/props/goyslop.png', h: 0.6, aspect: 1.48 },
   img_cascara_platano: { src: '/props/cascara_platano.png', h: 0.4, aspect: 2.08 },
+  img_golpe_aturdidor: { src: '/props/golpe_aturdidor.png', h: 0.95, aspect: 1.03 },
   img_grito_animo: { src: '/props/grito_animo.png', h: 0.7, aspect: 1.04 },
   img_tajo_carmesi: { src: '/props/tajo_carmesi.png', h: 1.1, aspect: 0.34 },
   img_red_mist: { src: '/props/red_mist.png', h: 1.0, aspect: 1.08 },

@@ -110,13 +110,16 @@ const GENERIC_MELEE = {
   id: 'golpe_aturdidor',
   type: 'melee_stun',
   name: 'Golpe Aturdidor',
-  description: 'Aturde 1.2s al Paciente frente a ti (cubo corto desde la mano).',
+  description: 'Sostenido por cierta chica caballo',
   keywords: ['ofensiva'],
-  radius: 0.85,
-  reach: 1.2,
+  radius: 1.1,
+  reach: 1.3,
   windowMs: 450,
-  durationMs: 1200,
-  cooldownMs: 20000,
+  durationMs: 500,
+  cooldownMs: 1800,
+  missEndlagMs: 250,
+  hitBoostMs: 700,
+  hitBoostFactor: 1.06,
 };
 
 const DEFAULT_CHARACTER_ID = 'vorhees_jason';

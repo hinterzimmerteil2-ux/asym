@@ -1185,3 +1185,24 @@ test('Módulos: llevar con G, pasar a un compañero, soltar y Desgracias al que 
   assert.ok(after > before);
   void p; void GameMap;
 });
+
+test('Golpe Aturdidor: cura como el M1, aturde si el Paciente se mueve, endlag mínimo al fallar', () => {
+  const { room, e, p, clock } = setup();
+  const Status = require('../src/Status');
+  e.c.x = 0; e.c.z = 0; e.c.faceX = 1; e.c.faceZ = 0; e.c.y = 0;
+  e.a.x = 1.2; e.a.z = 0; e.a.y = 0;
+  e.a.input.moveX = 1; e.a.input.moveZ = 0; e.a.input.slow = false;
+  p.a.hp = 50;
+  room.gameState.curatorReleaseAt = 0;
+  room.applyCuratorPulse('c', 'melee');
+  room.tickHitWindows(clock.t);
+  assert.ok(p.a.hp > 50);
+  assert.ok(Status.blocksMove(e.a, clock.t) || Status.active(e.a, 'stun', clock.t));
+  assert.ok(e.c.sprintUntil > clock.t);
+  e.c.skillCooldowns.melee = 0;
+  e.a.x = 30;
+  room.applyCuratorPulse('c', 'melee');
+  clock.t += 600;
+  room.tickHitWindows(clock.t);
+  assert.ok(Status.speedFactor(e.c, clock.t) < 1);
+});

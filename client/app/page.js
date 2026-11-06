@@ -354,7 +354,7 @@ export default function LobbyPage() {
             break;
           case 'curator_pulse_result': {
             const caster = entitiesRef.current[payload.playerId];
-            if (caster) {
+            if (caster && !payload.silent) {
               const effect = {
                 id: `fx${++effectCounterRef.current}`,
                 casterId: payload.playerId,

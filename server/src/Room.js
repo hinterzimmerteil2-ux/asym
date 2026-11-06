@@ -1531,6 +1531,7 @@ class Room {
     } else if (skill.type === 'melee_stun') {
       this.hitWindows.push({ kind: 'melee', playerId, skill, index, endsAt: now + (skill.windowMs || HIT_WINDOW_MS) });
       this.broadcast(MessageType.HIT_FX, { playerId, boxes: [handBox(curadorEntity, skill.reach || 0, skill.radius)] });
+      this.broadcastPulse({ playerId, skillIndex: index, skillId: skill.id, skillName: skill.name, skillType: skill.type, radius: 0, center: null, cooldownUntil: curadorEntity.skillCooldowns[index], healedPlayerIds: [], affectedPlayerIds: [] });
     } else {
       for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
         if (patient.status !== 'alive') continue;
@@ -1691,9 +1692,15 @@ class Room {
           }
         }
         if (nearestId) {
-          this.award(win.playerId, 3, 'Aturdiste a un Paciente');
-          this.breakParaguay(nearestId, now);
-          Status.apply(this.gameState.entities[nearestId], 'stun', skill.durationMs, now);
+          const hitEntity = this.gameState.entities[nearestId];
+          const moving = hitEntity && hitEntity.input && Math.hypot(hitEntity.input.moveX, hitEntity.input.moveZ) > 0.3 && !hitEntity.input.slow;
+          this.resolveCure(win.playerId, owner, nearestId, now);
+          if (moving && this.gameState.patients[nearestId] && this.gameState.patients[nearestId].status === 'alive') {
+            this.award(win.playerId, 3, 'Aturdiste a un Paciente');
+            Status.apply(hitEntity, 'stun', skill.durationMs, now);
+          }
+          owner.sprintUntil = now + skill.hitBoostMs;
+          owner.sprintFactor = skill.hitBoostFactor;
           this.broadcastPulse({
             playerId: win.playerId,
             skillIndex: win.index,
@@ -1703,13 +1710,14 @@ class Room {
             radius: skill.radius || 0,
             center: null,
             cooldownUntil: owner.skillCooldowns[win.index],
-            healedPlayerIds: [],
-            affectedPlayerIds: [nearestId],
+            healedPlayerIds: [nearestId],
+            affectedPlayerIds: moving ? [nearestId] : [],
+            silent: true,
           });
           continue;
         }
         if (win.endsAt <= now) {
-          this.endlag(win.playerId, owner, now);
+          this.endlag(win.playerId, owner, now, win.skill.missEndlagMs, 1);
           continue;
         }
       } else {
