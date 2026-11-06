@@ -75,13 +75,14 @@ const handlers = {
     room.addZone({
       kind: 'spear',
       mode: 'pull',
+      hp: 1,
       x: Math.max(-half, Math.min(half, entity.x + entity.faceX * 2.2)),
       z: Math.max(-half, Math.min(half, entity.z + entity.faceZ * 2.2)),
       radius: cfg.radius,
       ownerId: playerId,
       cardId: card.id,
       placedAt: now,
-      until: now + cfg.lifeMs,
+      until: now + 120000,
       nextAt: 0,
       card,
     });

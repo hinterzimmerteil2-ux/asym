@@ -922,6 +922,17 @@ class Room {
     }
   }
 
+  healSpears(owner, reach, radius, around, now) {
+    const px = around ? owner.x : owner.x + (owner.faceX || 0) * reach;
+    const pz = around ? owner.z : owner.z + (owner.faceZ || 1) * reach;
+    for (const z of this.gameState.zones) {
+      if (z.kind !== 'spear' || now >= z.until) continue;
+      if (Math.abs((owner.y || 0) - (z.y || 0)) > 1.6) continue;
+      if (Math.hypot(z.x - px, z.z - pz) > radius + 0.8) continue;
+      z.hp += z.card.spear.curatorHeal;
+    }
+  }
+
   hitPlanks(owner, reach, radius, around, now) {
     const planks = GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)).filter((p) => p.hp > 0 && !(this.gameState.plankBroken || {})[p.id]);
     if (!planks.length) return;
@@ -1087,7 +1098,7 @@ class Room {
         hiddenPlatforms: this.gameState.hiddenPlatforms || [],
         plankHp: this.gameState.plankHp || {},
         spawnMs: player.isAsymRole ? Math.max(0, (this.gameState.curatorReleaseAt || 0) - now) : 0,
-        zones,
+        zones: player.isAsymRole ? zones.map((z) => (z.mode ? { ...z, mode: null } : z)) : zones,
         revealed: player.isAsymRole ? Object.entries(this.gameState.entities).filter(([, e]) => Status.active(e, 'reveal', now) && !this.isInvisible(e, now)).map(([id]) => id) : [],
       };
       this.sendTo(playerId, MessageType.STATE_SNAPSHOT, Delta.diff(player, snapFull, this.tickCount));
@@ -1615,6 +1626,11 @@ class Room {
       if (!owner || this.phase !== 'action' || this.gameState.gameOver || Status.blocksSkills(owner, now)) continue;
       if (!win.planked) {
         win.planked = true;
+        if (this.players.get(win.playerId)?.isAsymRole) {
+          if (win.kind === 'm1') this.healSpears(owner, M1_REACH, M1_RADIUS, false, now);
+          else if (win.kind === 'melee') this.healSpears(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now);
+          else if (win.kind === 'area') this.healSpears(owner, 0, win.skill.radius || 1, true, now);
+        }
         if (win.kind === 'm1') this.hitPlanks(owner, M1_REACH, M1_RADIUS, false, now);
         else if (win.kind === 'melee') this.hitPlanks(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now);
         else if (win.kind === 'area') this.hitPlanks(owner, 0, win.skill.radius || 1, true, now);
@@ -1981,8 +1997,11 @@ class Room {
         }
       } else if (zone.kind === 'spear') {
         const cfg = zone.card.spear;
+        zone.hp = Math.min(cfg.maxHp, zone.hp + cfg.regenPerSec * dt);
+        if (zone.hp >= cfg.maxHp) { zone.until = now; remaining.pop(); continue; }
+        zone.level = zone.hp >= cfg.maxHp * 2 / 3 ? 1 : zone.hp >= cfg.maxHp / 3 ? 2 : 3;
         const count = this.gameState.zones.filter((z) => z.kind === 'spear' && now < z.until).length;
-        const f = 1 / (1 + cfg.nerf * Math.max(0, count - 1));
+        const f = cfg.levelScale[zone.level] / (1 + cfg.nerf * Math.max(0, count - 1));
         if (now >= zone.nextAt) {
           for (const [playerId, player] of this.players) {
             if (!player.isAsymRole) continue;

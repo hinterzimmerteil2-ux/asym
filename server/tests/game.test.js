@@ -1229,3 +1229,24 @@ test('Poking Don Quixote Cube: roba Flojera, alterna modo, límite y nerf por ca
   }
   assert.ok(room.gameState.zones.filter((z) => z.kind === 'spear' && z.until > Date.now()).length <= 4);
 });
+
+test('Poking Don Quixote Cube: empieza con 1 de vida, sube 2/s, el Curador la cura y desaparece a 91', () => {
+  const { room, e } = setup();
+  e.a.x = 0; e.a.z = 0; e.a.faceX = 1; e.a.faceZ = 0; e.c.x = 40; e.c.z = 40;
+  give(e.a, 0, 'lanza_quijote');
+  room.useCard('a', 0);
+  const zone = room.gameState.zones.find((z) => z.kind === 'spear');
+  assert.strictEqual(zone.hp, 1);
+  const t = Date.now();
+  room.tickZones(t, 10);
+  assert.ok(Math.abs(zone.hp - 21) < 0.01);
+  assert.strictEqual(zone.level, 3);
+  room.tickZones(t, 10);
+  assert.strictEqual(zone.level, 2);
+  e.c.x = zone.x - 1.5; e.c.z = zone.z; e.c.faceX = 1; e.c.faceZ = 0; e.c.y = 0;
+  const before = zone.hp;
+  room.healSpears(e.c, 1.3, 1.1, false, t);
+  assert.ok(zone.hp > before);
+  room.tickZones(t, 50);
+  assert.ok(!room.gameState.zones.some((z) => z.kind === 'spear'));
+});
