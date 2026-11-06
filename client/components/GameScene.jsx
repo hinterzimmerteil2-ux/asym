@@ -951,8 +951,12 @@ function ZoneDisc({ zone, ghost, platforms }) {
             <ringGeometry args={[zone.radius * 0.92, zone.radius, 24]} />
             <meshBasicMaterial color={zone.mode === 'push' ? '#f2d154' : '#5fd58c'} transparent opacity={0.7} />
           </mesh>
-          <mesh position={[0, 0.5, 0]}><cylinderGeometry args={[0.28, 0.34, 1, 10]} /><meshStandardMaterial color="#8a8f9c" metalness={0.5} roughness={0.5} /></mesh>
-          <mesh position={[0, 2.3, 0]}><coneGeometry args={[0.3, 2.6, 10]} /><meshStandardMaterial color="#2a2d3d" metalness={0.4} roughness={0.4} /></mesh>
+          <mesh position={[0, 0.5, 0]}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#3a3f55" metalness={0.2} roughness={0.6} /></mesh>
+          <mesh position={[0, 0.5, 0]}><boxGeometry args={[1.04, 0.12, 1.04]} /><meshStandardMaterial color="#5fd58c" emissive="#1f6b3c" /></mesh>
+          <group position={[0, 0.9, 0.3]} rotation={[0.35, 0, 0]}>
+            <mesh position={[0, 0.9, 0]}><cylinderGeometry args={[0.12, 0.14, 1.8, 10]} /><meshStandardMaterial color="#8a8f9c" metalness={0.5} roughness={0.5} /></mesh>
+            <mesh position={[0, 2.75, 0]}><coneGeometry args={[0.22, 1.9, 10]} /><meshStandardMaterial color="#2a2d3d" metalness={0.4} roughness={0.4} /></mesh>
+          </group>
         </group>
       )}
       {zone.kind === 'puddle' && <PuddleRipples radius={zone.radius} color="#5fd58c" />}
