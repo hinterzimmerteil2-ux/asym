@@ -957,7 +957,7 @@ test('Astral Claw: carga con endlag, queda lista al saltar, esfera recta que atu
   room.useCard('a', 0);
   assert.strictEqual(e.a.astral.state, 'charging');
   assert.ok(Status.active(e.a, 'slow', clock.t));
-  clock.t += 2000;
+  clock.t += 2500;
   e.a.onGround = false; e.a.velocityY = 5;
   room.tickAstral(clock.t, 0.05);
   assert.strictEqual(e.a.astral.state, 'ready');
@@ -1264,4 +1264,17 @@ test('LMS: el gimmick aplica al sobreviviente y también al Curador', () => {
   assert.ok(e.a.allyBoostUntil > Date.now());
   assert.ok(e.c.allyBoostUntil > Date.now());
   assert.strictEqual(room.gameState.lms.curatorId, 'c');
+});
+
+test('Garra: cancela al curarte y se limpia al reiniciar', () => {
+  const Cards = require('../src/Cards');
+  const { room, e } = setup();
+  const now = Date.now();
+  const card = Cards.getCard('astral_claw');
+  room.startAstral('a', e.a, card, now);
+  room.gameState.patients.a.hp = Math.max(1, room.gameState.patients.a.hp - 10);
+  room.tickAstral(now + 100, 0.05);
+  room.gameState.patients.a.hp += 5;
+  room.tickAstral(now + 200, 0.05);
+  assert.strictEqual(e.a.astral.state, 'ready');
 });

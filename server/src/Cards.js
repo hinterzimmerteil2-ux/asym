@@ -121,7 +121,7 @@ const CARDS = {
     id: 'astral_claw',
     keywords: ['ofensiva'],
     displayName: 'Detaining Astral Claw de 30 céntimos',
-    description: 'Empuñas la garra: endlag masivo 5s y se carga hasta 4s (100%). Si te curan, se cancela. Sales saltando o yendo rápido más de 1.2s y queda cargada al % alcanzado. Tras 1.2s puedes volver a usarla: lanzas una esfera amarilla pálida en línea recta hacia donde miras (muy largo alcance, no teledirigida). Si choca con el Curador lo aturde hasta 4s según la carga. Lanzarla también da endlag.',
+    description: 'Empuñas la garra: endlag masivo 5s y se carga hasta 5s (100%). Si te curan, se cancela. Sales saltando o yendo rápido más de 1.2s y queda cargada al % alcanzado. Tras 1.2s puedes volver a usarla: lanzas una esfera amarilla pálida en línea recta hacia donde miras (muy largo alcance, no teledirigida). Si choca con el Curador lo aturde hasta 4s según la carga. Lanzarla también da endlag.',
     rarity: 'rare',
     cooldownMs: 52000,
     stunMs: ASTRAL.MAX_STUN_MS,

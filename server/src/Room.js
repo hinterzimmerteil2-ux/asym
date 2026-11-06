@@ -793,6 +793,8 @@ class Room {
       entity.dashUntil = 0;
       entity.kbUntil = 0;
       entity.channel = null;
+      entity.astral = null;
+      entity.eating = null;
       entity.selfDmg = null;
       entity.carry = null;
       entity.perezaLevel = 0;
@@ -1810,7 +1812,7 @@ class Room {
 
   startAstral(playerId, entity, card, now) {
     const cfg = card.astral;
-    entity.astral = { card, cfg, startedAt: now, fastMs: 0, charge: 0, state: 'charging', readyAt: 0, slot: entity.hand.findIndex((sl) => sl && sl.chosen === card.id) };
+    entity.astral = { card, cfg, startedAt: now, fastMs: 0, charge: 0, state: 'charging', readyAt: 0, hp: (this.gameState.patients[playerId] || {}).hp, slot: entity.hand.findIndex((sl) => sl && sl.chosen === card.id) };
     if (cfg.holdMs > 0) Status.apply(entity, 'slow', cfg.holdMs, now, { tag: 'endlag', level: 3 });
   }
 
@@ -1848,12 +1850,15 @@ class Room {
   }
 
   tickAstral(now, dt) {
-    for (const entity of Object.values(this.gameState.entities)) {
+    for (const [id, entity] of Object.entries(this.gameState.entities)) {
       const a = entity.astral;
       if (!a || a.state !== 'charging') continue;
+      const pt = this.gameState.patients[id];
+      const healed = Boolean(pt) && a.hp !== undefined && pt.hp > a.hp + 1e-6;
+      if (pt) a.hp = Math.min(a.hp === undefined ? pt.hp : a.hp, pt.hp);
       a.fastMs = (entity.speedNow || 0) > ASTRAL.EXIT_SPEED ? a.fastMs + dt * 1000 : 0;
       const jumped = !entity.onGround && (entity.velocityY || 0) > 0.5;
-      if (jumped || a.fastMs >= ASTRAL.EXIT_FAST_MS) this.exitAstral(entity, now);
+      if (healed || jumped || a.fastMs >= ASTRAL.EXIT_FAST_MS) this.exitAstral(entity, now);
       else if (now - a.startedAt >= Math.max(a.cfg.holdMs, a.cfg.chargeMs)) this.readyAstral(entity, now);
     }
     const half = this.getCurrentArea().halfSize;
