@@ -979,7 +979,7 @@ function Embers() {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" array={data.pos} count={N} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial color="#ff8a3d" size={0.16} transparent opacity={0.85} depthWrite={false} sizeAttenuation />
+      <pointsMaterial color="#ff8a3d" size={0.12} transparent opacity={0.55} depthWrite={false} sizeAttenuation />
     </points>
   );
 }
@@ -2054,11 +2054,11 @@ export default function GameScene({
 
   return (
     <Canvas key={`${g.antialias}-${g.textures}-${g.poly}`} dpr={coarse ? Math.min(g.dpr, 2) : g.dpr} gl={{ antialias: g.antialias, powerPreference: g.minimal ? 'low-power' : 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
-      <ambientLight intensity={phase === 'action' ? (g.lights ? 0.55 : 0.95) : 0.75} color={phase === 'action' ? '#d9bdb6' : '#cfe0ff'} />
-      <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? 0.7 : 1.1} color={phase === 'action' ? '#ff9a78' : '#ffffff'} />
-      <hemisphereLight args={phase === 'action' ? ['#9a6a78', '#3a2230', 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
-      <color attach="background" args={[phase === 'action' ? '#0c0508' : '#12162e']} />
-      <fog attach="fog" args={phase === 'action' ? ['#1b0b0f', 45, g.fogFar] : ['#12162e', 45, 130]} />
+      <ambientLight intensity={phase === 'action' ? (g.lights ? 0.55 : 0.95) : 0.75} color={phase === 'action' ? '#cfc6c4' : '#cfe0ff'} />
+      <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? 0.7 : 1.1} color={phase === 'action' ? '#ffc0a8' : '#ffffff'} />
+      <hemisphereLight args={phase === 'action' ? ['#8f7c8a', '#33262e', 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
+      <color attach="background" args={[phase === 'action' ? '#090607' : '#12162e']} />
+      <fog attach="fog" args={phase === 'action' ? ['#130b0e', 45, g.fogFar] : ['#12162e', 45, 130]} />
       {phase === 'action' && <Embers />}
       {phase === 'action' && <NightDecor showStars={g.stars} lights={g.lights} lightCount={g.lightCount} />}
       {phase === 'action' && g.decor !== 'none' && <HospitalDecor half={areaHalfSize} platforms={platforms} level={g.decor} dust={g.dust} lightsOn={g.lightCount >= 5} />}
