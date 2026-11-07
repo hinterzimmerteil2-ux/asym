@@ -661,8 +661,8 @@ function Ground({ halfSize, themed, pits }) {
   );
 }
 
-const SD_COLORS = { rhythm: '#ffd166', needle: '#54d1f2', mash: '#e07cf2', meter: '#7dff8a', lock: '#c8a2ff', keys: '#ff9a5a' };
-const SD_TIER = { meter: '#7dff8a', rhythm: '#f2d154', needle: '#f2d154', mash: '#f2d154', lock: '#ff4a4a', keys: '#ff4a4a' };
+const SD_COLORS = { rhythm: '#ffd166', needle: '#54d1f2', mash: '#e07cf2', meter: '#7dff8a', lock: '#c8a2ff', keys: '#ff9a5a', pulso: '#ff6b81', termometro: '#6be3a0', pelota: '#ff9ecb', ampolla: '#ffb347', xilofono: '#6bb6ff', tambores: '#ffd166', boton: '#ff4d4d', manometro: '#a0e0ff', turbina: '#b0ffe0' };
+const SD_TIER = { meter: '#7dff8a', rhythm: '#f2d154', needle: '#f2d154', mash: '#f2d154', lock: '#ff4a4a', keys: '#ff4a4a', pulso: '#7dff8a', termometro: '#7dff8a', pelota: '#7dff8a', ampolla: '#f2d154', xilofono: '#f2d154', tambores: '#f2d154', boton: '#f2d154', manometro: '#f2d154', turbina: '#f2d154' };
 
 function SdModel({ kind, active }) {
   const spin = useRef();
@@ -671,13 +671,99 @@ function SdModel({ kind, active }) {
     const t = clock.elapsedTime;
     if (spin.current) spin.current.rotation.y = t * (active ? 3 : 1);
     if (mover.current) {
-      if (kind === 'meter') mover.current.position.y = 0.35 + (0.5 + 0.5 * Math.sin(t * 2.4)) * 0.55;
+      if (kind === 'pulso') mover.current.scale.setScalar(1 + Math.max(0, Math.sin(t * 6)) * 0.35);
+      else if (kind === 'pelota') mover.current.scale.set(1 + Math.sin(t * 3) * 0.12, 1 - Math.sin(t * 3) * 0.12, 1 + Math.sin(t * 3) * 0.12);
+      else if (kind === 'turbina') mover.current.rotation.y = t * 9;
+      else if (kind === 'manometro') mover.current.rotation.z = -0.9 + (0.5 + 0.5 * Math.sin(t * 2.2)) * 1.8;
+      else if (kind === 'meter') mover.current.position.y = 0.35 + (0.5 + 0.5 * Math.sin(t * 2.4)) * 0.55;
       else if (kind === 'mash') mover.current.position.y = 0.42 + Math.abs(Math.sin(t * 4)) * 0.07;
       else if (kind === 'rhythm') mover.current.rotation.z = Math.sin(t * 8) * 0.35;
     }
   });
   const c = SD_COLORS[kind] || '#ffd166';
   const glow = active ? 0.9 : 0.35;
+  if (kind === 'pulso') {
+    return (
+      <group>
+        <mesh position={[0, 0.2, 0]}><boxGeometry args={[0.9, 0.4, 0.6]} /><meshStandardMaterial color="#2a2d3a" roughness={0.6} /></mesh>
+        <mesh position={[0, 0.55, -0.05]} rotation={[-0.4, 0, 0]}><boxGeometry args={[0.8, 0.5, 0.05]} /><meshStandardMaterial color="#0e1218" emissive={c} emissiveIntensity={glow * 0.4} /></mesh>
+        <group ref={mover} position={[0, 0.58, 0.02]}><mesh position={[-0.06, 0, 0]}><sphereGeometry args={[0.1, 10, 10]} /><meshStandardMaterial color={c} emissive={c} emissiveIntensity={glow + 0.4} /></mesh><mesh position={[0.06, 0, 0]}><sphereGeometry args={[0.1, 10, 10]} /><meshStandardMaterial color={c} emissive={c} emissiveIntensity={glow + 0.4} /></mesh></group>
+      </group>
+    );
+  }
+  if (kind === 'termometro') {
+    return (
+      <group>
+        <mesh position={[0, 0.7, 0]}><cylinderGeometry args={[0.1, 0.1, 1.2, 12]} /><meshStandardMaterial color="#dff3f0" transparent opacity={0.7} /></mesh>
+        <mesh position={[0, 0.5, 0]}><cylinderGeometry args={[0.055, 0.055, 0.7, 10]} /><meshStandardMaterial color="#e0555f" emissive="#e0555f" emissiveIntensity={glow} /></mesh>
+        <mesh position={[0, 0.12, 0]}><sphereGeometry args={[0.2, 14, 12]} /><meshStandardMaterial color="#e0555f" emissive="#e0555f" emissiveIntensity={glow} /></mesh>
+        <mesh position={[0, 0.02, 0]}><cylinderGeometry args={[0.4, 0.45, 0.04, 14]} /><meshStandardMaterial color="#3d3f55" /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'pelota') {
+    return (
+      <group>
+        <mesh position={[0, 0.12, 0]}><cylinderGeometry args={[0.38, 0.45, 0.24, 16]} /><meshStandardMaterial color="#3d3f55" /></mesh>
+        <mesh ref={mover} position={[0, 0.5, 0]}><sphereGeometry args={[0.3, 16, 14]} /><meshStandardMaterial color={c} emissive={c} emissiveIntensity={glow * 0.6} roughness={0.9} /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'ampolla') {
+    return (
+      <group ref={spin} position={[0, 0.5, 0]}>
+        <mesh><coneGeometry args={[0.3, 0.8, 14]} /><meshStandardMaterial color="#e9f4ff" transparent opacity={0.65} roughness={0.15} /></mesh>
+        <mesh position={[0, -0.15, 0]}><coneGeometry args={[0.22, 0.45, 14]} /><meshStandardMaterial color={c} emissive={c} emissiveIntensity={glow} /></mesh>
+        <mesh position={[0, 0.5, 0]}><cylinderGeometry args={[0.09, 0.09, 0.22, 10]} /><meshStandardMaterial color="#b9b4cc" metalness={0.7} /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'xilofono') {
+    return (
+      <group>
+        {[0, 1, 2, 3].map((i) => <mesh key={i} position={[-0.42 + i * 0.28, 0.25 + i * 0.03, 0]}><boxGeometry args={[0.2, 0.08, 0.7 - i * 0.08]} /><meshStandardMaterial color={['#e0555f', '#f2d154', '#7dff8a', '#6bb6ff'][i]} emissive={c} emissiveIntensity={glow * 0.3} /></mesh>)}
+        <mesh position={[0, 0.1, 0.25]}><boxGeometry args={[1.2, 0.06, 0.06]} /><meshStandardMaterial color="#5a4632" /></mesh>
+        <mesh position={[0, 0.1, -0.25]}><boxGeometry args={[1.2, 0.06, 0.06]} /><meshStandardMaterial color="#5a4632" /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'tambores') {
+    return (
+      <group>
+        <group position={[-0.28, 0, 0]} scale={0.8}><mesh position={[0, 0.3, 0]}><cylinderGeometry args={[0.32, 0.32, 0.5, 16]} /><meshStandardMaterial color={c} roughness={0.55} /></mesh><mesh position={[0, 0.56, 0]}><cylinderGeometry args={[0.33, 0.33, 0.04, 16]} /><meshStandardMaterial color="#f4ecd8" /></mesh></group>
+        <group ref={mover} position={[0.3, 0, 0]} scale={0.65}><mesh position={[0, 0.3, 0]}><cylinderGeometry args={[0.32, 0.32, 0.5, 16]} /><meshStandardMaterial color="#e0555f" roughness={0.55} /></mesh><mesh position={[0, 0.56, 0]}><cylinderGeometry args={[0.33, 0.33, 0.04, 16]} /><meshStandardMaterial color="#f4ecd8" /></mesh></group>
+      </group>
+    );
+  }
+  if (kind === 'boton') {
+    return (
+      <group>
+        <mesh position={[0, 0.35, 0]}><cylinderGeometry args={[0.22, 0.4, 0.7, 12]} /><meshStandardMaterial color="#3d3f55" /></mesh>
+        <mesh ref={mover} position={[0, 0.42, 0]}><sphereGeometry args={[0.4, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={c} emissive={c} emissiveIntensity={glow + 0.2} /></mesh>
+        <mesh position={[0, 0.72, 0]}><torusGeometry args={[0.42, 0.05, 8, 20]} /><meshStandardMaterial color="#f2d154" emissive="#f2d154" emissiveIntensity={0.4} /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'manometro') {
+    return (
+      <group>
+        <mesh position={[0, 0.3, 0]}><cylinderGeometry args={[0.1, 0.16, 0.6, 10]} /><meshStandardMaterial color="#3d3f55" /></mesh>
+        <mesh position={[0, 0.8, 0]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.46, 0.46, 0.12, 24]} /><meshStandardMaterial color="#e8ecf2" metalness={0.3} /></mesh>
+        <mesh position={[0, 0.8, 0.07]}><torusGeometry args={[0.4, 0.025, 6, 24, Math.PI]} /><meshStandardMaterial color="#e0555f" /></mesh>
+        <group position={[0, 0.8, 0.09]}><group ref={mover}><mesh position={[0, 0.2, 0]}><boxGeometry args={[0.03, 0.4, 0.02]} /><meshStandardMaterial color="#111" /></mesh></group></group>
+      </group>
+    );
+  }
+  if (kind === 'turbina') {
+    return (
+      <group>
+        <mesh position={[0, 0.08, 0]}><cylinderGeometry args={[0.45, 0.5, 0.16, 8]} /><meshStandardMaterial color="#3d3f55" /></mesh>
+        <group ref={mover} position={[0, 0.55, 0]}>
+          {[0, 1, 2, 3].map((i) => <mesh key={i} rotation={[0, (i * Math.PI) / 2, 0.5]} position={[0.2 * Math.cos((i * Math.PI) / 2), 0, -0.2 * Math.sin((i * Math.PI) / 2)]}><boxGeometry args={[0.4, 0.04, 0.16]} /><meshStandardMaterial color={c} emissive={c} emissiveIntensity={glow} /></mesh>)}
+        </group>
+      </group>
+    );
+  }
   if (kind === 'lock') {
     return (
       <group>

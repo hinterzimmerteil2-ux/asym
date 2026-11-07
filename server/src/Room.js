@@ -167,6 +167,26 @@ const DESGRACIA_AXES = {
   'Escapaste': 'k', 'Victoria del Curador': 'k',
 };
 
+const SD_VARIANTS = {
+  pulso: { base: 'rhythm', tier: 'easy', beats: 1, tol: 1.3, scale: 0.5 },
+  termometro: { base: 'meter', tier: 'easy', div: 0.36, scale: 0.5 },
+  pelota: { base: 'mash', tier: 'easy', target: 4, ms: 4000, scale: 0.5 },
+  rhythm: { base: 'rhythm', tier: 'normal' },
+  needle: { base: 'needle', tier: 'normal' },
+  mash: { base: 'mash', tier: 'normal' },
+  meter: { base: 'meter', tier: 'normal' },
+  ampolla: { base: 'needle', tier: 'normal', stages: 2, width: 0.2 },
+  xilofono: { base: 'rhythm', tier: 'normal', beats: 4 },
+  tambores: { base: 'rhythm', tier: 'normal', double: true },
+  boton: { base: 'mash', tier: 'normal', target: 9, ms: 3000 },
+  manometro: { base: 'meter', tier: 'normal', div: 0.2 },
+  turbina: { base: 'meter', tier: 'normal', period: 1500 },
+  lock: { base: 'lock', tier: 'hard' },
+  keys: { base: 'keys', tier: 'hard' },
+};
+const SD_EASY = ['pulso', 'termometro', 'pelota'];
+const SD_NORMAL = ['rhythm', 'needle', 'mash', 'meter', 'ampolla', 'xilofono', 'tambores', 'boton', 'manometro', 'turbina'];
+const MODULE_RELOCATE_MS = 2000;
 const LOCK_DAMAGE = 20;
 const KEYS_PARTS = [1, 2, 3, 4, 4, 4];
 const KEYS_LEN = [3, 3, 4, 4, 5, 5];
@@ -1121,9 +1141,10 @@ class Room {
   randomMinigame(objectId) {
     const fixed = objectId && this.fixedMinigames && this.fixedMinigames[objectId];
     if (fixed) return fixed;
-    if (Math.random() < 0.12) return Math.random() < 0.5 ? 'lock' : 'keys';
-    const kinds = ['rhythm', 'needle', 'mash', 'meter'];
-    return kinds[Math.floor(Math.random() * kinds.length)];
+    const roll = Math.random();
+    if (roll < 0.1) return Math.random() < 0.5 ? 'lock' : 'keys';
+    const list = roll < 0.3 ? SD_EASY : SD_NORMAL;
+    return list[Math.floor(Math.random() * list.length)];
   }
 
   startMatch() {
@@ -2096,7 +2117,20 @@ class Room {
     }
   }
 
+  tickModuleRelocations(now) {
+    const rel = this.gameState.moduleRelocate;
+    if (!rel) return;
+    for (const [id, at] of Object.entries(rel)) {
+      if (now < at) continue;
+      delete rel[id];
+      const newPos = this.pickModuleSpot(this.selfDamageCandidates(), id);
+      if (newPos) this.gameState.selfDamageObjectPositions[id] = { x: newPos.x, y: newPos.y, z: newPos.z };
+      this.gameState.selfDamageTypes[id] = this.randomMinigame(id);
+    }
+  }
+
   tickZones(now, dt) {
+    this.tickModuleRelocations(now);
     let statusChanged = false;
     for (const [playerId, entity] of Object.entries(this.gameState.entities)) {
       const dot = entity.rimacDot;
@@ -2752,23 +2786,31 @@ class Room {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Suelta el Módulo que llevas para usarlo' });
       return;
     }
+    if (this.gameState.moduleRelocate && this.gameState.moduleRelocate[objectId]) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Ese Módulo se está reiniciando' });
+      return;
+    }
     this.takeOverModule(objectId, playerId, now);
-    const type = this.gameState.selfDamageTypes[objectId] || 'rhythm';
+    const variantId = this.gameState.selfDamageTypes[objectId] || 'rhythm';
+    const vr = SD_VARIANTS[variantId] || SD_VARIANTS.rhythm;
+    const type = vr.base;
     if ((type === 'lock' || type === 'keys') && this.players.get(playerId)?.isBot) return;
+    const tol = Math.round(SD_TOLERANCE_MS * (vr.tol || 1));
+    const extra = { tol, scale: vr.scale || 1, kindId: variantId };
     if (type === 'rhythm') {
       const beats = [];
-      const double = Math.random() < 0.35;
-      const count = double ? SD_BEATS + 1 : SD_BEATS;
+      const double = vr.double || (!vr.beats && Math.random() < 0.35);
+      const count = vr.beats || (double ? SD_BEATS + 1 : SD_BEATS);
       let at = 1000 + Math.random() * 200;
       for (let i = 0; i < count; i++) {
         beats.push(Math.round(at));
         at += (double ? 675 : 765) + Math.random() * 360;
       }
-      playerEntity.selfDmg = { type, objectId, variant: double ? 'doble' : 'normal', startedAt: now, endsAt: now + beats[beats.length - 1] + SD_TOLERANCE_MS + 150, beats, scored: [], hits: 0 };
+      playerEntity.selfDmg = { type, objectId, ...extra, variant: double ? 'doble' : 'normal', startedAt: now, endsAt: now + beats[beats.length - 1] + tol + 150, beats, scored: [], hits: 0 };
     } else if (type === 'meter') {
-      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 7000, period: 2000, score: 0, hits: 0 };
+      playerEntity.selfDmg = { type, objectId, ...extra, div: vr.div || 0.27, startedAt: now, endsAt: now + 7000, period: vr.period || 2000, score: 0, hits: 0 };
     } else if (type === 'needle') {
-      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 10000, period: 2340, stage: 0, hits: 0, zones: [0, 1, 2].map(() => 0.2 + Math.random() * 0.6), width: 0.17 };
+      playerEntity.selfDmg = { type, objectId, ...extra, startedAt: now, endsAt: now + 10000, period: 2340, stage: 0, hits: 0, zones: Array.from({ length: vr.stages || 3 }, () => 0.2 + Math.random() * 0.6), width: vr.width || 0.17 };
     } else if (type === 'lock') {
       const pins = [2200, 1800, 1500].map((period) => ({ period, zone: 0.2 + Math.random() * 0.6 }));
       playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 18000, pins, stage: 0, pinAt: now, width: 0.11, phase: 'pins', handUntil: 0, done: false, hits: 0 };
@@ -2776,7 +2818,7 @@ class Room {
       this.endlagSlow(playerEntity, now, 700);
       playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 90000, phase: 'connect', phaseUntil: now + 900, round: 0, fails: 0, dealt: 0, seq: [], idx: 0, hits: 0 };
     } else {
-      playerEntity.selfDmg = { type: 'mash', objectId, startedAt: now, endsAt: now + 1900, count: 0, target: 6, hits: 0 };
+      playerEntity.selfDmg = { type: 'mash', objectId, ...extra, startedAt: now, endsAt: now + (vr.ms || 1900), count: 0, target: vr.target || 6, hits: 0 };
     }
   }
 
@@ -2786,8 +2828,8 @@ class Room {
   }
 
   sdView(game, now) {
-    const base = { type: game.type, objectId: game.objectId, elapsed: now - game.startedAt, total: game.endsAt - game.startedAt };
-    if (game.type === 'rhythm') return { ...base, variant: game.variant, beats: game.beats, scored: game.scored, tolerance: SD_TOLERANCE_MS };
+    const base = { type: game.type, kindId: game.kindId, objectId: game.objectId, elapsed: now - game.startedAt, total: game.endsAt - game.startedAt };
+    if (game.type === 'rhythm') return { ...base, variant: game.variant, beats: game.beats, scored: game.scored, tolerance: game.tol || SD_TOLERANCE_MS, kindId: game.kindId };
     if (game.type === 'needle') return { ...base, period: game.period, zone: game.zones[game.stage], width: game.width, stage: game.stage, stages: game.zones.length };
     if (game.type === 'lock') {
       const pin = game.pins[Math.min(game.stage, game.pins.length - 1)];
@@ -2877,7 +2919,7 @@ class Room {
     }
     if (game.type === 'meter') {
       const pos = this.needlePos(game, now);
-      game.score = Math.max(0, 1 - Math.abs(pos - 0.5) / 0.27);
+      game.score = Math.max(0, 1 - Math.abs(pos - 0.5) / (game.div || 0.27));
       if (game.score > 0.85) this.award(playerId, 1, 'Auto-daño');
       this.finishSelfDamage(playerId, entity, now);
       return;
@@ -2900,7 +2942,7 @@ class Room {
       const gap = Math.abs(t - b);
       if (gap < bestGap) { bestGap = gap; bestIdx = i; }
     });
-    if (bestIdx >= 0 && bestGap <= SD_TOLERANCE_MS) {
+    if (bestIdx >= 0 && bestGap <= (game.tol || SD_TOLERANCE_MS)) {
       game.scored.push(bestIdx);
       game.hits += 1;
       this.award(playerId, 1, 'Auto-daño');
@@ -2924,7 +2966,7 @@ class Room {
     }
     if (game.type === 'rhythm') {
       const t = now - game.startedAt;
-      const missed = game.beats.some((b, i) => !game.scored.includes(i) && t > b + SD_TOLERANCE_MS);
+      const missed = game.beats.some((b, i) => !game.scored.includes(i) && t > b + (game.tol || SD_TOLERANCE_MS));
       if (missed || now >= game.endsAt) this.finishSelfDamage(playerId, entity, now);
     } else if (now >= game.endsAt) {
       this.finishSelfDamage(playerId, entity, now);
@@ -2934,10 +2976,12 @@ class Room {
   sdDamage(game) {
     if (game.type === 'lock') return game.done ? LOCK_DAMAGE : 0;
     if (game.type === 'keys') return game.dealt;
-    if (game.type === 'mash') return Math.min(SD_MAX_DAMAGE, Math.round((game.count / game.target) * SD_MAX_DAMAGE));
-    if (game.type === 'needle') return Math.round((game.hits / game.zones.length) * SD_MAX_DAMAGE);
-    if (game.type === 'meter') return Math.round(game.score * SD_MAX_DAMAGE);
-    return Math.round((game.hits / game.beats.length) * SD_MAX_DAMAGE);
+    let d;
+    if (game.type === 'mash') d = Math.min(SD_MAX_DAMAGE, (game.count / game.target) * SD_MAX_DAMAGE);
+    else if (game.type === 'needle') d = (game.hits / game.zones.length) * SD_MAX_DAMAGE;
+    else if (game.type === 'meter') d = game.score * SD_MAX_DAMAGE;
+    else d = (game.hits / game.beats.length) * SD_MAX_DAMAGE;
+    return Math.round(d * (game.scale || 1));
   }
 
   finishSelfDamage(playerId, entity, now, failed = false) {
@@ -2946,7 +2990,7 @@ class Room {
     const patient = this.gameState.patients[playerId];
     if (!game || !patient || (patient.status !== 'alive' && game.type !== 'keys')) return;
     const damage = this.sdDamage(game);
-    const perfect = game.type === 'keys' ? game.round >= KEYS_PARTS.length : damage >= SD_MAX_DAMAGE;
+    const perfect = game.type === 'keys' ? game.round >= KEYS_PARTS.length : damage >= Math.round(SD_MAX_DAMAGE * (game.scale || 1));
     if (perfect) this.award(playerId, 4, 'Auto-daño perfecto');
     const handler = this.gameState.moduleHandler && this.gameState.moduleHandler[game.objectId];
     if (damage > 0 && handler && handler !== playerId) {
@@ -2958,10 +3002,8 @@ class Room {
         patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - damage);
         if (patient.hp <= PATIENT_HP_MIN) patient.status = 'self_won';
       }
-      const allPositions = this.selfDamageCandidates();
-      const newPos = this.pickModuleSpot(allPositions, game.objectId);
-      if (newPos) this.gameState.selfDamageObjectPositions[game.objectId] = { x: newPos.x, y: newPos.y, z: newPos.z };
-      this.gameState.selfDamageTypes[game.objectId] = this.randomMinigame(game.objectId);
+      if (!this.gameState.moduleRelocate) this.gameState.moduleRelocate = {};
+      this.gameState.moduleRelocate[game.objectId] = now + MODULE_RELOCATE_MS;
     }
     this.sendTo(playerId, MessageType.SELF_DAMAGE_RESULT, {
       playerId,

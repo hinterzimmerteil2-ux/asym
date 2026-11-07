@@ -643,10 +643,10 @@ test('auto-daño: minijuego de ritmo, perfecto hace más daño y fallar corta', 
   const { room, clock, e, p } = setup();
   room.mapId = 'hospital';
   room.gameState.selfDamageObjectPositions = { o1: { x: 0, y: 0, z: 0 } };
-  room.gameState.selfDamageTypes = { o1: 'rhythm' };
+  room.gameState.selfDamageTypes = { o1: 'rhythm' }; room.gameState.moduleRelocate = {};
   const run = (hitAll) => {
     room.gameState.selfDamageObjectPositions = { o1: { x: 0, y: 0, z: 0 } };
-    room.gameState.selfDamageTypes = { o1: 'rhythm' };
+    room.gameState.selfDamageTypes = { o1: 'rhythm' }; room.gameState.moduleRelocate = {};
     e.a.x = 0; e.a.z = 0; e.a.y = 0;
     p.a.hp = 60; p.a.status = 'alive';
     room.applySelfDamage('a', 'o1');
@@ -695,7 +695,7 @@ test('auto-daño: aguja y machacar dan hasta 12 de daño', () => {
   const { room, clock, e, p } = setup();
   const reset = (type) => {
     room.gameState.selfDamageObjectPositions = { o1: { x: 0, y: 0, z: 0 } };
-    room.gameState.selfDamageTypes = { o1: type };
+    room.gameState.selfDamageTypes = { o1: type }; room.gameState.moduleRelocate = {};
     e.a.x = 0; e.a.z = 0; e.a.y = 0;
     p.a.hp = 60; p.a.status = 'alive';
     e.a.selfDmg = null;
@@ -813,7 +813,7 @@ test('minijuegos: clic suelto no penaliza en ritmo y el medidor da daño según 
   const { room, clock, e, p } = setup();
   const reset = (type) => {
     room.gameState.selfDamageObjectPositions = { o1: { x: 0, y: 0, z: 0 } };
-    room.gameState.selfDamageTypes = { o1: type };
+    room.gameState.selfDamageTypes = { o1: type }; room.gameState.moduleRelocate = {};
     e.a.x = 0; e.a.z = 0; e.a.y = 0;
     p.a.hp = 60; p.a.status = 'alive';
     e.a.selfDmg = null;
@@ -1374,7 +1374,7 @@ test('modulos dificiles: cerradura (tres pernos y mano en 2 s) y secuencia de te
   const { room, clock, e, p } = setup();
   const reset = (type) => {
     room.gameState.selfDamageObjectPositions = { o1: { x: 0, y: 0, z: 0 } };
-    room.gameState.selfDamageTypes = { o1: type };
+    room.gameState.selfDamageTypes = { o1: type }; room.gameState.moduleRelocate = {};
     e.a.x = 0; e.a.z = 0; e.a.y = 0;
     p.a.hp = 100; p.a.status = 'alive';
     e.a.selfDmg = null;
