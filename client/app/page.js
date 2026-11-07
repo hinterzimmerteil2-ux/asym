@@ -1339,26 +1339,23 @@ export default function LobbyPage() {
                 const secondsLeft = Math.max(0, Math.ceil((draftEndsAt - Math.max(draftNow, Date.now())) / 1000));
                 const picked = hand.filter((sl) => sl.chosen).length;
                 return (
-                  <div key={i} style={sx(styles.draftSlot, { width: 150, padding: 6 })}>
+                  <div key={i} className="draft-overlay" style={styles.draftOverlay}>
                     <span style={styles.draftTitle}>Elige 2 ({picked}/2), {secondsLeft}s, Renovar: {rerolls}</span>
-                    {slot.options.map((card) => (
-                      <div key={card.id} style={{ display: 'flex', gap: 4, alignItems: 'stretch' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleChooseCard(i, card.id)}
-                          style={sx(styles.draftOption(card.rarity, card.corrupt), { flex: 1 })}
-                          title={card.description}
-                        >
-                          <span style={styles.draftHeader}><SkillIcon id={card.id} size={26} /><span style={styles.cardButtonName}>{card.displayName}</span></span>
-                          {card.corrupt && !compact && <span style={styles.draftDeck}>corrupto</span>}
-                          {!compact && <span style={styles.draftDescription}>{card.description}</span>}
-                          <span style={styles.keywordRow}>
-                            {(card.keywords || []).slice(0, 2).map((k) => <KeywordChip key={k} id={k} />)}
-                          </span>
-                        </button>
-                        <button type="button" disabled={rerolls <= 0} onClick={() => handleReroll(card.id)} title="Renovar esta carta" style={{ width: 26, background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 6, cursor: rerolls > 0 ? 'pointer' : 'default', opacity: rerolls > 0 ? 1 : 0.35 }}>↻</button>
-                      </div>
-                    ))}
+                    <div style={styles.draftRow}>
+                      {slot.options.map((card, n) => (
+                        <div key={card.id} className="draft-card" style={styles.draftCard(card.rarity, card.corrupt, n)}>
+                          <button type="button" className="draft-face" onClick={() => handleChooseCard(i, card.id)} title={card.description} style={styles.draftFace}>
+                            <SkillIcon id={card.id} size={44} />
+                            <span style={styles.cardButtonName}>{card.displayName}</span>
+                            {card.corrupt && <span style={styles.draftDeck}>corrupto</span>}
+                            <span style={styles.keywordRow}>
+                              {(card.keywords || []).slice(0, 2).map((k) => <KeywordChip key={k} id={k} />)}
+                            </span>
+                          </button>
+                          <button type="button" disabled={rerolls <= 0} onClick={() => handleReroll(card.id)} title="Renovar esta carta" style={styles.draftReroll(rerolls > 0)}>↻</button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 );
               }
@@ -2248,6 +2245,20 @@ const styles = {
     border: '1px solid #3d2c33',
     width: 170,
   },
+  draftOverlay: { position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, maxWidth: '96vw' },
+  draftRow: { display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' },
+  draftCard: (rarity, corrupt, n) => ({
+    position: 'relative',
+    width: 118,
+    height: 168,
+    borderRadius: 12,
+    border: `2px solid ${corrupt ? '#d94fd0' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#d94a52' : '#3d2c33'}`,
+    background: 'linear-gradient(160deg, #241a20, #14151d)',
+    boxShadow: '0 8px 22px rgba(0,0,0,0.55)',
+    animationDelay: `${n * 90}ms`,
+  }),
+  draftFace: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', height: '100%', padding: '10px 6px', background: 'transparent', border: 'none', color: '#e8e9f0', cursor: 'pointer', borderRadius: 10, boxSizing: 'border-box', textAlign: 'center' },
+  draftReroll: (on) => ({ position: 'absolute', top: 4, right: 4, width: 24, height: 24, padding: 0, background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 12, cursor: on ? 'pointer' : 'default', opacity: on ? 1 : 0.35 }),
   draftTitle: { fontSize: 11, color: '#a8959a', textAlign: 'center' },
   draftOption: (rarity, corrupt) => ({
     display: 'flex',
