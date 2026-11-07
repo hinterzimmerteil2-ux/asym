@@ -342,7 +342,7 @@ class Room {
         const sx = z.x - entity.x;
         const sz = z.z - entity.z;
         const sd = Math.hypot(sx, sz);
-        if (z.kind === 'spear' && Math.hypot(z.x - target.entity.x, z.z - target.entity.z) <= zr + 1) {
+        if (Math.hypot(z.x - target.entity.x, z.z - target.entity.z) <= zr + 1) {
           if (sd > 1.6) { goal.x = z.x; goal.z = z.z; }
           if (sd <= zr && now > (player.nextBotHeal || 0)) {
             player.nextBotHeal = now + 550;
@@ -1036,10 +1036,12 @@ class Room {
     const px = around ? owner.x : owner.x + (owner.faceX || 0) * reach;
     const pz = around ? owner.z : owner.z + (owner.faceZ || 1) * reach;
     for (const z of this.gameState.zones) {
-      if (z.kind !== 'spear' || now >= z.until) continue;
+      if ((z.kind !== 'spear' && z.kind !== 'trap') || now >= z.until) continue;
       if (Math.abs((owner.y || 0) - (z.y || 0)) > 1.6) continue;
       if (Math.hypot(z.x - px, z.z - pz) > radius + 0.8) continue;
-      z.hp += CURE_AMOUNT * (owner.cureBoostUntil > now ? owner.cureBoostFactor : 1);
+      const amount = CURE_AMOUNT * (owner.cureBoostUntil > now ? owner.cureBoostFactor : 1);
+      if (z.kind === 'trap') z.healBonus = (z.healBonus || 0) + amount;
+      else z.hp += amount;
     }
   }
 
@@ -2182,7 +2184,7 @@ class Room {
           }
         }
       } else if (zone.kind === 'trap' && now >= zone.armedAt) {
-        const age = (now - zone.placedAt) / 1000;
+        const age = (now - zone.placedAt) / 1000 + (zone.healBonus || 0);
         const life = 1 + age;
         zone.level = life >= TRAP_PEAK_LIFE ? 1 : life >= 31 ? 2 : 3;
         if (life >= TRAP_PEAK_LIFE) zone.charges = 0;
