@@ -28,8 +28,8 @@ const COLOR_EMERGENCY_LIGHT = '#5468ff';
 
 const FACING = new Map();
 const HAND_ANIMS = new Map();
-const ANIM_DURATION = { swing: 650, swingL: 650, consume: 1700, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600 };
-const IMPACT_MS = { swing: 260, swingL: 260, consume: 1500, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150 };
+const ANIM_DURATION = { swing: 650, swingL: 650, consume: 1700, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600, plant: 900 };
+const IMPACT_MS = { swing: 260, swingL: 260, consume: 1500, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150, plant: 520 };
 const HOLD_MS = { card_tropiezo: 1200, card_paraguayizador: 1000, card_acetilcolina: 1300, card_tajo_carmesi: 800, card_red_mist: 800, skill_melee_stun: 800, skill_golpe_aturdidor: 650, card_rodar: 650 };
 const durOf = (h) => (h && (h.ms || ANIM_DURATION[h.anim])) || 1;
 const STATE_HELD = new Set(['card_chicharron', 'card_goyslop', 'card_astral_claw', 'card_grito_animo']);
@@ -48,7 +48,7 @@ const ANIM_BY_KIND = {
   card_humo_yodo: 'throw',
   card_humo_toxico: 'throw',
   card_cascara_platano: 'throw',
-  card_lanza_quijote: 'throw',
+  card_lanza_quijote: 'plant',
   card_platano_podrido: 'throw',
   card_regalo_envenenado: 'throw',
   skill_somnifero_valeriana: 'throw',
@@ -102,6 +102,13 @@ function HeldItem({ held }) {
       group.rotation.set(0, 0, -0.6 * easeOut(toMouth));
       group.children[0].position.set(0, 0, 0);
       group.scale.setScalar(1.3 * bites);
+    } else if (held.anim === 'plant') {
+      const up = Math.min(1, t / 0.4);
+      const down = t < 0.4 ? 0 : Math.min(1, (t - 0.4) / 0.2);
+      group.position.set(0, 2.3 * easeOut(up) - 2.0 * down, 0.5 + 0.7 * down);
+      group.rotation.set(0.2 * down, 0, 0);
+      group.children[0].position.set(0, 0, 0);
+      group.scale.setScalar(t < 0.7 ? 1.3 : Math.max(0.01, 1.3 - (t - 0.7) * 4));
     } else if (held.anim === 'throw') {
       const wind = Math.min(1, t / 0.3);
       const fly = t < 0.3 ? 0 : (t - 0.3) / 0.7;
@@ -133,6 +140,7 @@ function StateHeld({ holdRef }) {
   const claw = useRef();
   const food = useRef();
   const horn = useRef();
+  const aura = useRef();
   const last = useRef({ key: null, at: 0 });
   useFrame(({ clock }) => {
     const hold = holdRef.current || null;
@@ -145,11 +153,17 @@ function StateHeld({ holdRef }) {
       claw.current.visible = on;
       if (on) {
         const ready = hold === 'claw_ready';
-        const k = ready ? 1.35 : 0.7 + 0.65 * Math.min(1, el / 4000);
-        claw.current.position.set(ready ? 0.45 : 0.55, (ready ? 2.0 : 1.55) + Math.sin(T * (ready ? 9 : 5)) * 0.05, ready ? 0.15 : 0.5);
-        claw.current.rotation.set(0.3, T * (ready ? 4 : 1.2), Math.sin(T * 14) * (ready ? 0.04 : 0.12));
-        claw.current.scale.setScalar(k * (1 + (ready ? 0.1 : 0.05) * Math.sin(T * 18)));
-      }
+        const emerge = easeOut(Math.min(1, el / 700));
+        const charge = Math.min(1, el / 5000);
+        const k = (ready ? 1.35 : 0.5 + 0.8 * charge) * emerge;
+        claw.current.position.set(0.5 - 0.5 * emerge, 1.0 + 0.3 * emerge + Math.sin(T * (ready ? 9 : 5)) * 0.04, 0.2 + 0.55 * emerge);
+        claw.current.rotation.set(Math.PI, T * (ready ? 4 : 1.5), Math.sin(T * 16) * (0.03 + 0.1 * charge));
+        claw.current.scale.setScalar(Math.max(0.01, k * (1 + (ready ? 0.1 : 0.06 * charge + 0.03) * Math.sin(T * 18))));
+        if (aura.current) {
+          aura.current.visible = true;
+          aura.current.scale.setScalar((0.3 + 1.0 * (ready ? 1 : charge)) * (1 + 0.15 * Math.sin(T * 14)));
+        }
+      } else if (aura.current) aura.current.visible = false;
     }
     if (food.current) {
       const on = hold && hold.startsWith('eat_');
@@ -159,8 +173,9 @@ function StateHeld({ holdRef }) {
         const up = easeOut(Math.min(1, t / 0.3));
         const bites = t < 0.35 ? 1 : Math.max(0.12, 1 - (t - 0.35) * 1.5);
         const chew = t > 0.35 ? Math.sin(t * 60) * 0.04 : 0;
-        food.current.position.set(0.5 - 0.5 * up, 0.95 + 0.8 * up + chew, 0.35 + 0.1 * up);
-        food.current.rotation.set(0.3 * up, 0, -0.6 * up + (t > 0.35 ? Math.sin(t * 40) * 0.12 : 0));
+        const bite = t > 0.2 ? Math.max(0, Math.sin(T * 11)) : 0;
+        food.current.position.set(0.5 - 0.5 * up, 0.95 + 0.8 * up + chew - 0.08 * bite, 0.35 + 0.15 * up);
+        food.current.rotation.set(0.5 * up, 0, -0.6 * up + (t > 0.35 ? Math.sin(t * 40) * 0.12 : 0));
         food.current.scale.setScalar(1.2 * bites);
         food.current.children[0].visible = hold === 'eat_chicharron';
         food.current.children[1].visible = hold !== 'eat_chicharron';
@@ -179,7 +194,10 @@ function StateHeld({ holdRef }) {
   });
   return (
     <>
-      <group ref={claw} visible={false}><PropMesh kind="claw" color="#b57cff" /></group>
+      <group ref={claw} visible={false}>
+        <PropMesh kind="claw" color="#aeb8d4" />
+        <mesh ref={aura} position={[0, 0.3, 0]}><sphereGeometry args={[0.35, 16, 12]} /><meshBasicMaterial color="#b57cff" transparent opacity={0.55} /></mesh>
+      </group>
       <group ref={food} visible={false}>
         <group><PropMesh kind="img_chicharron" color="#c98a3a" /></group>
         <group><PropMesh kind="img_goyslop" color="#8f8f4a" /></group>
@@ -389,9 +407,17 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
           rax = -2.8;
           laz = -0.15;
           raz = 0.15;
+        } else if (ha.anim === 'plant') {
+          const up = easeOut(Math.min(1, ht / 0.4));
+          const dn = ht < 0.4 ? 0 : easeOut(Math.min(1, (ht - 0.4) / 0.2));
+          lax = rax = -3.0 * up + 2.3 * dn;
+          laz = -0.12;
+          raz = 0.12;
         } else if (ha.anim === 'consume') {
-          rax = -1.9 * easeOut(Math.min(1, ht / 0.45));
-          raz = 0.2;
+          const mouth = easeOut(Math.min(1, ht / 0.35));
+          rax = -2.1 * mouth + (ht > 0.5 ? Math.sin(ht * 70) * 0.1 : 0);
+          lax = -0.5 * mouth;
+          raz = -0.25 * mouth;
         } else if (ha.anim === 'throw') {
           const wind = Math.min(1, ht / 0.3);
           const fly = ht < 0.3 ? 0 : (ht - 0.3) / 0.7;
@@ -411,17 +437,19 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
       if (hold) {
         const hel = Date.now() - hs.at;
         if (hold === 'claw') {
-          lax = -1.5; rax = -1.5; laz = -0.25; raz = 0.25;
+          { const em = easeOut(Math.min(1, hel / 700)); lax = -1.55 * em; rax = -1.55 * em; laz = -0.2 * em; raz = 0.2 * em; }
         } else if (hold === 'claw_ready') {
-          lax = -2.5; rax = -2.5 + Math.sin(w.t * 9) * 0.1; laz = -0.2; raz = 0.2;
+          lax = -1.6; rax = -1.6 + Math.sin(w.t * 9) * 0.08; laz = -0.2; raz = 0.2;
         } else if (hold === 'module') {
           lax = -1.25; rax = -1.25; laz = -0.15; raz = 0.15;
         } else if (hold === 'horn') {
           rax = -1.8; raz = 0.1; lax = -0.5 + Math.sin(w.t * 7) * 0.1;
         } else if (hold.startsWith('eat_')) {
-          const up = easeOut(Math.min(1, hel / 450));
-          rax = -1.9 * up + (hel > 600 ? Math.sin(w.t * 25) * 0.12 : 0);
-          raz = 0.2;
+          const up = easeOut(Math.min(1, hel / 380));
+          const bite = hel > 500 ? Math.max(0, Math.sin(w.t * 11)) : 0;
+          rax = -2.15 * up + bite * 0.35;
+          raz = -0.3 * up;
+          lax = -0.45 * up;
         }
       }
       const r6 = rig.current;

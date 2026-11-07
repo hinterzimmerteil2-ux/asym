@@ -237,7 +237,7 @@ function build(seed, REF_HALF, sanitizeEvents) {
   roomSerum(2, 'su_6');
 
   const events = sanitizeEvents([
-    { id: 'ev_blackout_base', kind: 'blackout', startSec: 60, warnSec: 8, durSec: 40, repeatSec: 100, rFrac: 0, yMax: -0.5 },
+    { id: 'ev_blackout_base', kind: 'blackout', startSec: 60, warnSec: 8, durSec: 90, repeatSec: 100, rFrac: 0, yMax: -0.5 },
     { id: 'ev_alarm', kind: 'alarm', startSec: 130, warnSec: 6, durSec: 15, repeatSec: 140 },
     { id: 'ev_shuffle', kind: 'shuffle', startSec: 120, warnSec: 5, durSec: 1, repeatSec: 120 },
     { id: 'ev_collapse_1', kind: 'collapse', targetId: 'stB_w', startSec: 75, warnSec: 8, durSec: 40, repeatSec: 130 },

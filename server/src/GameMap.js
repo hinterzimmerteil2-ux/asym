@@ -221,7 +221,7 @@ const HOSPITAL_LAYOUT = (() => {
   sd('sd_base_3', 22, -1.5);
   sd('sd_plaza', 0, 8);
   const events = sanitizeEvents([
-    { id: 'ev_blackout_base', kind: 'blackout', startSec: 60, warnSec: 8, durSec: 40, repeatSec: 100, rFrac: 0, yMax: -0.5 },
+    { id: 'ev_blackout_base', kind: 'blackout', startSec: 60, warnSec: 8, durSec: 90, repeatSec: 100, rFrac: 0, yMax: -0.5 },
     { id: 'ev_gates_lock', kind: 'gates', mode: 'lock', startSec: 90, warnSec: 8, durSec: 35, repeatSec: 130 },
     { id: 'ev_alarm', kind: 'alarm', startSec: 130, warnSec: 6, durSec: 15, repeatSec: 140 },
     { id: 'ev_shuffle', kind: 'shuffle', startSec: 120, warnSec: 5, durSec: 1, repeatSec: 120 },
