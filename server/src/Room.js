@@ -336,16 +336,26 @@ class Room {
         y: target.entity.y || 0,
       };
       for (const z of this.gameState.zones) {
-        if (z.kind !== 'spear' || now >= z.until) continue;
+        if ((z.kind !== 'spear' && z.kind !== 'trap') || now >= z.until) continue;
+        if (z.kind === 'trap' && (now < z.armedAt || !(z.charges > 0))) continue;
+        const zr = z.kind === 'trap' ? (z.radius || 1) : z.radius;
         const sx = z.x - entity.x;
         const sz = z.z - entity.z;
         const sd = Math.hypot(sx, sz);
-        if (sd > z.radius + 3.5 || sd < 0.01) continue;
+        if (z.kind === 'spear' && Math.hypot(z.x - target.entity.x, z.z - target.entity.z) <= zr + 1) {
+          if (sd > 1.6) { goal.x = z.x; goal.z = z.z; }
+          if (sd <= zr && now > (player.nextBotHeal || 0)) {
+            player.nextBotHeal = now + 550;
+            this.healSpears(entity, 0, zr, true, now);
+          }
+          break;
+        }
+        if (sd > zr + 0.8 || sd < 0.01) continue;
         const gx = goal.x - entity.x;
         const gz = goal.z - entity.z;
-        const side = sx * gz - sz * gx >= 0 ? -1 : 1;
-        goal.x = entity.x + (-sz / sd) * side * -4 + gx * 0.2;
-        goal.z = entity.z + (sx / sd) * side * -4 + gz * 0.2;
+        const side = sx * gz - sz * gx >= 0 ? 1 : -1;
+        goal.x += (sz / sd) * side * 1.5;
+        goal.z += (-sx / sd) * side * 1.5;
         break;
       }
       this.botSteer(player, entity, goal, now, 0.15);
