@@ -215,6 +215,9 @@ export default function LobbyPage() {
   const [votes, setVotes] = useState({ bots: {}, map: {}, mutation: {}, curator: {} });
   const [mutations, setMutations] = useState([]);
   const [mapId, setMapId] = useState('default');
+  const [mapSeedWanted, setMapSeedWanted] = useState(null);
+  const [seedInput, setSeedInput] = useState('');
+  const [matchSeed, setMatchSeed] = useState(null);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [nameSaving, setNameSaving] = useState(false);
@@ -282,6 +285,7 @@ export default function LobbyPage() {
             setVotes(payload.votes || { bots: {}, map: {}, mutation: {}, curator: {} });
             setLobbyPlatforms(payload.lobbyPlatforms || []);
             setMapId(payload.mapId || 'default');
+            setMapSeedWanted(payload.mapSeedWanted ?? null);
             setMutation(payload.mutation || 'none');
             setMutations(payload.mutations || []);
             break;
@@ -289,6 +293,7 @@ export default function LobbyPage() {
             setPlayers(payload.players);
             if (payload.hostId !== undefined) setHostId(payload.hostId);
             if (payload.mapId !== undefined) setMapId(payload.mapId);
+            if (payload.mapSeedWanted !== undefined) setMapSeedWanted(payload.mapSeedWanted);
             if (payload.mutation !== undefined) setMutation(payload.mutation);
             if (payload.votes !== undefined) setVotes(payload.votes);
             if (payload.startAt !== undefined) setStartAt(payload.startAt);
@@ -453,6 +458,7 @@ export default function LobbyPage() {
             break;
           case 'game_started':
             setPhase(payload.phase);
+            setMatchSeed(payload.mapSeed ?? null);
             setLmsInfo(null);
             setLmsUntil(0);
             frameBuf.current = [];
@@ -666,8 +672,8 @@ export default function LobbyPage() {
     connRef.current?.send('set_mutation', { mutation: id });
   }
 
-  function handleSetMap(newMapId) {
-    connRef.current?.send('set_map', { mapId: newMapId });
+  function handleSetMap(newMapId, seed) {
+    connRef.current?.send('set_map', { mapId: newMapId, seed });
   }
 
   function handleReturnToLobby() {
@@ -1111,7 +1117,7 @@ export default function LobbyPage() {
                 <select
                   style={styles.mapSelect}
                   value={mapId}
-                  onChange={(e) => handleSetMap(e.target.value)}
+                  onChange={(e) => handleSetMap(e.target.value, e.target.value === 'random' ? seedInput : undefined)}
                 >
                   {maps.filter((m) => !m.id.startsWith('c_')).map((m) => (
                     <option key={m.id} value={m.id}>
@@ -1124,6 +1130,17 @@ export default function LobbyPage() {
                   {maps.find((m) => m.id === mapId)?.name || communityName[mapId] || mapId}
                 </p>
               )}
+              {mapId === 'random' && (isHost && !isDefaultRoom ? (
+                <input
+                  style={sx(styles.mapSelect, { marginTop: 6 })}
+                  inputMode="numeric"
+                  placeholder="Semilla (vacío: al azar)"
+                  value={seedInput}
+                  onChange={(e) => { const v = e.target.value.replace(/\D/g, '').slice(0, 9); setSeedInput(v); handleSetMap('random', v); }}
+                />
+              ) : mapSeedWanted != null ? (
+                <p style={styles.mapReadOnly}>Semilla: {mapSeedWanted}</p>
+              ) : null)}
               {mapId.startsWith('c_') && <p style={styles.mapReadOnly}>Mapa de la comunidad: <span translate="no">{communityName[mapId] || maps.find((m) => m.id === mapId)?.name || ''}</span></p>}
               <button type="button" style={{ ...styles.smallButton, width: '100%', marginTop: 4 }} onClick={() => setCommunityOpen(true)}>Mapas de la comunidad</button>
               {mutations.length > 0 && (
@@ -1274,6 +1291,7 @@ export default function LobbyPage() {
             <div style={{ height: '100%', width: `${Math.round(flojera.astral.charge * 100)}%`, background: flojera.astral.state === 'charging' ? '#f3e9a6' : '#f2b84a' }} />
           </div>
         )}
+        {phase === 'action' && matchSeed != null && <div style={{ position: 'absolute', left: 8, bottom: 8, fontSize: 11, color: '#a8959a', pointerEvents: 'none', userSelect: 'text' }}>Semilla: {matchSeed}</div>}
         {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} onPress={() => pressMinigameRef.current()} />}
         {phase === 'action' && <EventLayer events={mapEvents} posRef={myPosRef} />}
         {phase === 'action' && lmsUntil > 0 && lmsInfo && (

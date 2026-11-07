@@ -719,7 +719,7 @@ class Room {
   prepareMap() {
     this.mapChoice = this.mapId;
     if (this.mapId === 'random') {
-      this.mapSeed = Math.floor(Math.random() * 1000000000);
+      this.mapSeed = this.mapSeedWanted != null ? this.mapSeedWanted : Math.floor(Math.random() * 1000000000);
       this.mapId = GameMap.generateMap(this.mapSeed);
     }
   }
@@ -765,7 +765,7 @@ class Room {
     this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, mutation: this.mutation });
   }
 
-  setMap(requesterId, mapId, loaded) {
+  setMap(requesterId, mapId, loaded, seed) {
     if (!loaded && !GameMap.MAPS[mapId] && typeof mapId === 'string' && mapId.startsWith('c_')) {
       require('./community').ensureMap(mapId).then(() => this.setMap(requesterId, mapId, true)).catch(() => this.sendTo(requesterId, MessageType.ERROR, { message: 'Ese mapa no existe' }));
       return;
@@ -783,10 +783,13 @@ class Room {
       return;
     }
     this.mapId = mapId;
+    const n = Math.floor(Number(seed));
+    this.mapSeedWanted = mapId === 'random' && Number.isFinite(n) && n >= 0 && n < 1e9 ? n : null;
     this.broadcast(MessageType.ROOM_UPDATE, {
       players: this.getPlayersSummary(),
       hostId: this.hostId,
       mapId: this.mapId,
+      mapSeedWanted: this.mapSeedWanted,
     });
   }
 
@@ -1125,6 +1128,7 @@ class Room {
     this.startAt = null;
     this.broadcast(MessageType.GAME_STARTED, {
       phase: 'action',
+      mapSeed: this.mapChoice === 'random' ? this.mapSeed : null,
       state: this.gameState,
       collisionObjects: GameMap.resolveCollisionObjects(this.mapId, GameMap.areaFor(this.mapId)),
       platforms: GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)),

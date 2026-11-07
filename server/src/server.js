@@ -157,6 +157,7 @@ wss.on('connection', (ws) => {
           characters: Characters.listCharacters(),
           cards: Cards.listCards(),
           mapId: room.mapId,
+          mapSeedWanted: room.mapSeedWanted == null ? null : room.mapSeedWanted,
           isDefault: room.isDefault,
           startAt: room.startAt || null,
           votes: room.votes,
@@ -208,7 +209,7 @@ wss.on('connection', (ws) => {
       case MessageType.SET_MAP: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
-        room.setMap(playerId, msg.payload.mapId);
+        room.setMap(playerId, msg.payload.mapId, false, msg.payload.seed);
         break;
       }
 
