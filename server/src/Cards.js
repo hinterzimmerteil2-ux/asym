@@ -141,7 +141,7 @@ const SLOT_COUNT = 2;
 const OPTIONS_PER_SLOT = 3;
 const POOL_SIZE = 5;
 const REROLLS = 2;
-const DRAFT_DURATION_MS = 12000;
+const DRAFT_DURATION_MS = 24000;
 
 for (const card of Object.values(CARDS)) card.weight = RARITY_WEIGHTS[card.rarity] || RARITY_WEIGHTS.common;
 
