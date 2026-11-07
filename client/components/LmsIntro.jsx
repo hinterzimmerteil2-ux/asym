@@ -33,9 +33,9 @@ function Fighter({ color, side, cosmetics }) {
       <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
       <group position={[0, 1.62, 0]}>
         <mesh><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
-        <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
-        <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
-        <mesh position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+        <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#1a1215" /></mesh>
+        <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#1a1215" /></mesh>
+        <mesh position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#1a1215" /></mesh>
         <CosmeticPieces slot="head" cosmetics={cosmetics} />
       </group>
       <CosmeticPieces slot="torso" cosmetics={cosmetics} />
@@ -103,8 +103,8 @@ export default function LmsIntro({ patientCosmetics, curatorCosmetics, gimmick, 
                     textTransform: 'uppercase',
                     fontSize: li === 1 ? 'min(18vw, 108px)' : 'min(13vw, 78px)',
                     color: TINTS[li],
-                    WebkitTextStroke: '3px #12131a',
-                    textShadow: '0 5px 0 #12131a, 0 10px 0 rgba(0,0,0,0.5), 0 0 28px ' + TINTS[li],
+                    WebkitTextStroke: '3px #1a1215',
+                    textShadow: '0 5px 0 #1a1215, 0 10px 0 rgba(0,0,0,0.5), 0 0 28px ' + TINTS[li],
                     letterSpacing: 2,
                     transform: `rotate(${r * 2.2}deg)`,
                     animation: `lmsSlam .6s ${li * 0.35 + i * 0.05}s both cubic-bezier(.2,1.4,.4,1)`,
@@ -118,7 +118,7 @@ export default function LmsIntro({ patientCosmetics, curatorCosmetics, gimmick, 
         ))}
       </div>
       {gimmick && (
-        <div style={{ position: 'absolute', left: 0, right: 0, top: '45%', textAlign: 'center', color: '#fff', fontWeight: 800, fontSize: 'min(5vw, 22px)', textShadow: '0 2px 0 #12131a, 0 0 14px #ffd166', animation: 'lmsSlam .5s 1.2s both' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: '45%', textAlign: 'center', color: '#fff', fontWeight: 800, fontSize: 'min(5vw, 22px)', textShadow: '0 2px 0 #1a1215, 0 0 14px #ffd166', animation: 'lmsSlam .5s 1.2s both' }}>
           {survivorName ? <span translate="no">{survivorName}: </span> : null}{GIMMICK_TEXT[gimmick]}
         </div>
       )}

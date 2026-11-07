@@ -136,17 +136,17 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
 
 const styles = {
   backdrop: { position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(10, 11, 16, 0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  panel: { width: '100%', maxWidth: 640, maxHeight: '88vh', overflowY: 'auto', background: '#12131a', border: '1px solid #2a2d3d', borderRadius: 12, padding: '16px 20px 20px', color: '#e8e9f0' },
+  panel: { width: '100%', maxWidth: 640, maxHeight: '88vh', overflowY: 'auto', background: '#1a1215', border: '1px solid #3d2c33', borderRadius: 12, padding: '16px 20px 20px', color: '#e8e9f0' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   title: { margin: 0, fontSize: 20 },
-  close: { background: 'none', border: 'none', color: '#8a8da3', fontSize: 26, cursor: 'pointer', lineHeight: 1 },
-  section: { margin: '18px 0 8px', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.6, color: '#8a8da3' },
-  card: { background: '#181a24', border: '1px solid #2a2d3d', borderRadius: 10, padding: 12 },
+  close: { background: 'none', border: 'none', color: '#a8959a', fontSize: 26, cursor: 'pointer', lineHeight: 1 },
+  section: { margin: '18px 0 8px', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.6, color: '#a8959a' },
+  card: { background: '#181a24', border: '1px solid #3d2c33', borderRadius: 10, padding: 12 },
   rowTop: { display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 14 },
   presets: { display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  preset: (on) => ({ background: on ? '#5468ff' : '#242738', color: '#e8e9f0', border: '1px solid #3a3d52', borderRadius: 6, padding: '4px 8px', fontSize: 12, cursor: 'pointer' }),
+  preset: (on) => ({ background: on ? '#d94a52' : '#242738', color: '#e8e9f0', border: '1px solid #3a3d52', borderRadius: 6, padding: '4px 8px', fontSize: 12, cursor: 'pointer' }),
   list: { margin: '10px 0 0', paddingLeft: 18, fontSize: 12, color: '#b9bbcc', lineHeight: 1.6 },
-  hint: { fontSize: 12, color: '#8a8da3', margin: '8px 0 0' },
+  hint: { fontSize: 12, color: '#a8959a', margin: '8px 0 0' },
   check: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 13 },
   reset: { marginTop: 8, background: '#242738', color: '#e8e9f0', border: '1px solid #3a3d52', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' },
 };

@@ -28,12 +28,12 @@ export default function RhythmBar({ channelRef }) {
         Grito de Ánimo, pulsa [E] al ritmo, {ch.hits}/{ch.beats}, {remaining}s
       </div>
       <div style={{ position: 'relative', height: 18, borderRadius: 9, background: '#1b1f2b' }}>
-        <div style={{ position: 'absolute', left: `${(0.5 - zoneHalf) * 100}%`, width: `${zoneHalf * 200}%`, top: 0, bottom: 0, background: '#54d1f2', opacity: 0.55, borderRadius: 9 }} />
+        <div style={{ position: 'absolute', left: `${(0.5 - zoneHalf) * 100}%`, width: `${zoneHalf * 200}%`, top: 0, bottom: 0, background: '#f0c26b', opacity: 0.55, borderRadius: 9 }} />
         <div style={{ position: 'absolute', left: `calc(${phase * 100}% - 6px)`, top: -3, width: 12, height: 24, borderRadius: 4, background: '#f2d154' }} />
       </div>
       <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 8 }}>
         {Array.from({ length: ch.beats }, (_, i) => (
-          <span key={i} style={{ width: 14, height: 6, borderRadius: 3, background: ch.scored.includes(i + 1) ? '#54d1f2' : i + 1 < beat ? '#5a2a30' : '#2a2f3d' }} />
+          <span key={i} style={{ width: 14, height: 6, borderRadius: 3, background: ch.scored.includes(i + 1) ? '#f0c26b' : i + 1 < beat ? '#5a2a30' : '#2a2f3d' }} />
         ))}
       </div>
     </div>
