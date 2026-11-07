@@ -29,6 +29,7 @@ function build(seed, REF_HALF, sanitizeEvents) {
     return pairs[0][0];
   };
 
+  const doorCount = { open: 0, gate: 0, pgate: 0 };
   const platforms = [];
   const collisionObjects = [];
   const selfDamageObjects = [];
@@ -53,8 +54,15 @@ function build(seed, REF_HALF, sanitizeEvents) {
 
   plat('w_n', 0, -32, 40, 0.5, 24, null, 'wall');
   plat('w_s', 0, 32, 40, 0.5, 24, null, 'wall');
-  plat('w_w', -40, 0, 0.5, 32, 24, null, 'wall');
-  plat('w_e', 40, 0, 0.5, 32, 24, null, 'wall');
+  [-1, 1].forEach((sx) => {
+    const id = sx < 0 ? 'w_w' : 'w_e';
+    const zc = rnd(-6, 6);
+    const type = weighted([['open', 3], ['pgate', 1]]);
+    doorCount[type]++;
+    plat(`${id}_a`, sx * 40, (-32 + zc - 3) / 2, 0.5, (zc - 3 + 32) / 2, 24, null, 'wall');
+    plat(`${id}_b`, sx * 40, (zc + 3 + 32) / 2, 0.5, (32 - zc - 3) / 2, 24, null, 'wall');
+    if (type !== 'open') plat(`dge_${id}`, sx * 40, zc, 0.35, 3, WALL_H, null, type);
+  });
 
   [[F2, 'f2'], [F3, 'f3'], [ROOF, 'rf']].forEach(([top, p]) => {
     slab(`${p}_n`, 0, -22, 40, 10, top);
@@ -86,7 +94,6 @@ function build(seed, REF_HALF, sanitizeEvents) {
 
   const floors = [0, F2, F3];
   const roomsByFloor = [];
-  const doorCount = { open: 0, gate: 0, pgate: 0 };
 
   floors.forEach((y0, f) => {
     const t = f + 1;
