@@ -1366,7 +1366,7 @@ export default function LobbyPage() {
                 <button
                   key={i}
                   type="button"
-                  disabled={onCooldown}
+                  disabled={onCooldown && !slot.chosen.spear && slot.chosen.id !== 'lanza_quijote'}
                   onClick={() => handleUseCard(i)}
                   style={styles.cardButton(onCooldown)}
                   title={slot.chosen.description}

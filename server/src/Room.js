@@ -335,6 +335,19 @@ class Room {
         z: target.entity.z + (target.entity.input?.moveZ || 0) * lead,
         y: target.entity.y || 0,
       };
+      for (const z of this.gameState.zones) {
+        if (z.kind !== 'spear' || now >= z.until) continue;
+        const sx = z.x - entity.x;
+        const sz = z.z - entity.z;
+        const sd = Math.hypot(sx, sz);
+        if (sd > z.radius + 3.5 || sd < 0.01) continue;
+        const gx = goal.x - entity.x;
+        const gz = goal.z - entity.z;
+        const side = sx * gz - sz * gx >= 0 ? -1 : 1;
+        goal.x = entity.x + (-sz / sd) * side * -4 + gx * 0.2;
+        goal.z = entity.z + (sx / sd) * side * -4 + gz * 0.2;
+        break;
+      }
       this.botSteer(player, entity, goal, now, 0.15);
       entity.input.slow = entity.flojera < 12;
     } else {

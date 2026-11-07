@@ -918,6 +918,49 @@ function BrokenBottle({ color }) {
   );
 }
 
+function SpearMesh({ zone }) {
+  const arm = useRef();
+  const lance = useRef();
+  const ring = useRef();
+  const push = zone.mode === 'push';
+  const col = push ? '#f2d154' : '#5fd58c';
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    if (arm.current) arm.current.rotation.y = t * (push ? 3.4 : 1.8);
+    if (lance.current) {
+      const thrust = Math.max(0, Math.sin(t * (push ? 7 : 4)));
+      lance.current.position.y = 0.3 + (push ? thrust * 0.6 : (1 - thrust) * 0.6);
+    }
+    if (ring.current) {
+      const k = 0.55 + 0.45 * Math.abs(Math.sin(t * (push ? 3.5 : 2)));
+      ring.current.material.opacity = k;
+    }
+  });
+  const r = zone.radius;
+  return (
+    <group>
+      <mesh ref={ring} position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[r * 0.9, r, 40]} />
+        <meshBasicMaterial color={col} transparent opacity={0.7} />
+      </mesh>
+      <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[r * 0.9, 40]} />
+        <meshBasicMaterial color={col} transparent opacity={0.12} />
+      </mesh>
+      <mesh position={[0, 0.5, 0]}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#3a3f55" metalness={0.2} roughness={0.6} /></mesh>
+      <mesh position={[0, 0.5, 0]}><boxGeometry args={[1.06, 0.14, 1.06]} /><meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.6} /></mesh>
+      <group ref={arm} position={[0, 1.0, 0]}>
+        <group rotation={[Math.PI / 2 - 0.25, 0, 0]}>
+          <group ref={lance} position={[0, 0.3, 0]}>
+            <mesh position={[0, r * 0.45, 0]}><cylinderGeometry args={[0.1, 0.12, r * 0.9, 10]} /><meshStandardMaterial color="#8a8f9c" metalness={0.5} roughness={0.5} /></mesh>
+            <mesh position={[0, r * 0.9 + 0.35, 0]}><coneGeometry args={[0.2, 0.9, 10]} /><meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.5} /></mesh>
+          </group>
+        </group>
+      </group>
+    </group>
+  );
+}
+
 function ZoneDisc({ zone, ghost, platforms }) {
   const ramp = (platforms || []).find((p) => p.ramp && Math.abs(zone.x - p.x) <= p.hx && Math.abs(zone.z - p.z) <= p.hz);
   const tilt = ramp ? Math.atan2(ramp.h, ramp.hx * 2) * (ramp.ramp === '+x' ? 1 : -1) : 0;
@@ -946,20 +989,7 @@ function ZoneDisc({ zone, ghost, platforms }) {
           <BrokenBottle color={color} />
         </>
       )}
-      {zone.kind === 'spear' && (
-        <group>
-          <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[zone.radius * 0.92, zone.radius, 24]} />
-            <meshBasicMaterial color={zone.mode === 'push' ? '#f2d154' : '#5fd58c'} transparent opacity={0.7} />
-          </mesh>
-          <mesh position={[0, 0.5, 0]}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#3a3f55" metalness={0.2} roughness={0.6} /></mesh>
-          <mesh position={[0, 0.5, 0]}><boxGeometry args={[1.04, 0.12, 1.04]} /><meshStandardMaterial color="#5fd58c" emissive="#1f6b3c" /></mesh>
-          <group position={[0, 0.9, 0.3]} rotation={[0.35, 0, 0]}>
-            <mesh position={[0, 0.9, 0]}><cylinderGeometry args={[0.12, 0.14, 1.8, 10]} /><meshStandardMaterial color="#8a8f9c" metalness={0.5} roughness={0.5} /></mesh>
-            <mesh position={[0, 2.75, 0]}><coneGeometry args={[0.22, 1.9, 10]} /><meshStandardMaterial color="#2a2d3d" metalness={0.4} roughness={0.4} /></mesh>
-          </group>
-        </group>
-      )}
+      {zone.kind === 'spear' && <SpearMesh zone={zone} />}
       {zone.kind === 'puddle' && <PuddleRipples radius={zone.radius} color="#5fd58c" />}
       {zone.kind === 'serum' && (
         <group>
