@@ -1054,6 +1054,7 @@ class Room {
       if (p.ev.kind === 'shuffle' && !this.gameState.eventsFired[key]) {
         this.gameState.eventsFired[key] = true;
         this.relocateSelfDamageObjects(now);
+        this.gameState.selfDamageTypes = {};
         for (const id of Object.keys(this.gameState.selfDamageObjectPositions)) this.gameState.selfDamageTypes[id] = this.randomMinigame(id);
       }
     }
@@ -1141,10 +1142,17 @@ class Room {
   randomMinigame(objectId) {
     const fixed = objectId && this.fixedMinigames && this.fixedMinigames[objectId];
     if (fixed) return fixed;
+    const used = Object.entries(this.gameState.selfDamageTypes || {}).filter(([id]) => id !== objectId).map(([, t]) => t);
+    const count = (list) => used.filter((t) => list.includes(t)).length;
+    const hard = ['lock', 'keys'];
     const roll = Math.random();
-    if (roll < 0.1) return Math.random() < 0.5 ? 'lock' : 'keys';
-    const list = roll < 0.3 ? SD_EASY : SD_NORMAL;
-    return list[Math.floor(Math.random() * list.length)];
+    let pool = roll < 0.1 ? hard : roll < 0.3 ? SD_EASY : SD_NORMAL;
+    if (pool === hard && count(hard) >= 2) pool = SD_NORMAL;
+    if (pool === SD_EASY && count(SD_EASY) >= 2) pool = SD_NORMAL;
+    let free = pool.filter((t) => !used.includes(t));
+    if (!free.length) free = [...SD_NORMAL, ...SD_EASY].filter((t) => !used.includes(t));
+    if (!free.length) free = pool;
+    return free[Math.floor(Math.random() * free.length)];
   }
 
   startMatch() {

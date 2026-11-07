@@ -1422,3 +1422,17 @@ test('modulos dificiles: cerradura (tres pernos y mano en 2 s) y secuencia de te
   assert.strictEqual(g.fails, 1);
   assert.strictEqual(p.a.hp, 100);
 });
+
+test('modulos: nunca hay dos del mismo tipo a la vez ni mas de 2 faciles o 2 dificiles', () => {
+  const { room } = setup();
+  for (let n = 0; n < 200; n++) {
+    room.fixedMinigames = {};
+    room.gameState.selfDamageTypes = {};
+    const ids = Array.from({ length: 10 }, (_, i) => `m${i}`);
+    for (const id of ids) room.gameState.selfDamageTypes[id] = room.randomMinigame(id);
+    const list = Object.values(room.gameState.selfDamageTypes);
+    assert.strictEqual(new Set(list).size, list.length);
+    assert.ok(list.filter((t) => ['pulso', 'termometro', 'pelota'].includes(t)).length <= 2);
+    assert.ok(list.filter((t) => t === 'lock' || t === 'keys').length <= 2);
+  }
+});
