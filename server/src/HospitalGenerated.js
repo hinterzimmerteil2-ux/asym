@@ -58,7 +58,6 @@ function build(seed, REF_HALF, sanitizeEvents) {
     const id = sx < 0 ? 'w_w' : 'w_e';
     const zc = rnd(-6, 6);
     const type = weighted([['open', 3], ['pgate', 1]]);
-    doorCount[type]++;
     plat(`${id}_a`, sx * 40, (-32 + zc - 3) / 2, 0.5, (zc - 3 + 32) / 2, 24, null, 'wall');
     plat(`${id}_b`, sx * 40, (zc + 3 + 32) / 2, 0.5, (32 - zc - 3) / 2, 24, null, 'wall');
     if (type !== 'open') plat(`dge_${id}`, sx * 40, zc, 0.35, 3, WALL_H, null, type);
