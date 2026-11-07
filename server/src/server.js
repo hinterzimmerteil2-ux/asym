@@ -158,6 +158,7 @@ wss.on('connection', (ws) => {
           cards: Cards.listCards(),
           mapId: room.mapId,
           isDefault: room.isDefault,
+          startAt: room.startAt || null,
           votes: room.votes,
           mutation: room.mutation,
           mutations: Object.entries(Constants.MUTATIONS).map(([id, m]) => ({ id, name: m.name })),
@@ -222,18 +223,7 @@ wss.on('connection', (ws) => {
           ws.send(encode(MessageType.ERROR, { message: 'Hace falta al menos 1 Curador y 1 Paciente para empezar' }));
           return;
         }
-        if (room.isDefault) room.applyVotes();
-        room.prepareMap();
-        room.switchPhase('action', 'inicio de partida');
-        room.broadcast(MessageType.GAME_STARTED, {
-          phase: 'action',
-          state: room.gameState,
-          collisionObjects: GameMap.resolveCollisionObjects(room.mapId, GameMap.areaFor(room.mapId)),
-          platforms: GameMap.resolvePlatforms(room.mapId, GameMap.areaFor(room.mapId)),
-          halfSize: GameMap.areaFor(room.mapId).halfSize,
-          roles: Roles.list(Cards),
-          hitbox: { half: Constants.PLAYER_HALF, height: Constants.PLAYER_HEIGHT, interact: Constants.INTERACTION_RADIUS },
-        });
+        room.startMatch();
         break;
       }
 

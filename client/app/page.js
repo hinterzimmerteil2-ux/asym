@@ -210,6 +210,8 @@ export default function LobbyPage() {
   const [maps, setMaps] = useState([]);
   const [mutation, setMutation] = useState('none');
   const [isDefaultRoom, setIsDefaultRoom] = useState(false);
+  const [startAt, setStartAt] = useState(null);
+  const [lobbyNow, setLobbyNow] = useState(Date.now());
   const [votes, setVotes] = useState({ bots: {}, map: {}, mutation: {}, curator: {} });
   const [mutations, setMutations] = useState([]);
   const [mapId, setMapId] = useState('default');
@@ -276,6 +278,7 @@ export default function LobbyPage() {
             setCardCatalog(payload.cards || []);
             setMaps(payload.maps || []);
             setIsDefaultRoom(Boolean(payload.isDefault));
+            setStartAt(payload.startAt || null);
             setVotes(payload.votes || { bots: {}, map: {}, mutation: {}, curator: {} });
             setLobbyPlatforms(payload.lobbyPlatforms || []);
             setMapId(payload.mapId || 'default');
@@ -288,6 +291,7 @@ export default function LobbyPage() {
             if (payload.mapId !== undefined) setMapId(payload.mapId);
             if (payload.mutation !== undefined) setMutation(payload.mutation);
             if (payload.votes !== undefined) setVotes(payload.votes);
+            if (payload.startAt !== undefined) setStartAt(payload.startAt);
             break;
           case 'chat_broadcast':
             setChatMessages((prev) => [...prev, payload]);
@@ -870,6 +874,12 @@ export default function LobbyPage() {
     connRef.current?.send('reroll_card', { cardId });
   }, [isAsymRole, phase]);
 
+  useEffect(() => {
+    if (!isDefaultRoom || phase !== 'lobby' || !startAt) return undefined;
+    const t = setInterval(() => setLobbyNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, [isDefaultRoom, phase, startAt]);
+
   const handleVote = useCallback((kind, value) => {
     connRef.current?.send('vote', { kind, value });
   }, []);
@@ -1151,6 +1161,7 @@ export default function LobbyPage() {
           {phase === 'lobby' && isDefaultRoom && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 10px', border: '1px solid #3d2c33', borderRadius: 8, fontSize: 12 }}>
               <strong>Votación de la sala</strong>
+              {startAt && <span style={{ color: '#f0c26b' }}>Inicio automático en {Math.max(0, Math.ceil((startAt - lobbyNow) / 1000))} s</span>}
               {[
                 ['bots', 'Bots', [0, 4, 8, 12, 16].map((n) => ({ id: n, label: String(n) }))],
                 ['map', 'Mapa', maps.filter((m) => !m.id.startsWith('c_')).map((m) => ({ id: m.id, label: m.name }))],

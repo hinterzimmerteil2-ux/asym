@@ -136,6 +136,7 @@ const {
   PARAGUAY_DRAIN_FACTOR,
   ACETIL_DRAIN_FACTOR,
 } = require('./Constants');
+const LOBBY_WAIT_MS = Number(process.env.LOBBY_WAIT_MS) || 60000;
 const Status = require('./Status');
 const LMS_GIMMICKS = ['adrenalina', 'reflejos', 'escudo', 'codicia'];
 
@@ -172,6 +173,7 @@ class Room {
     this.players = new Map();
     this.hostId = null;
     this.isDefault = false;
+    this.startAt = null;
     this.votes = { bots: {}, map: {}, mutation: {}, curator: {} };
     this.phase = 'lobby';
     this.hitWindows = [];
@@ -1091,9 +1093,50 @@ class Room {
     return kinds[Math.floor(Math.random() * kinds.length)];
   }
 
+  startMatch() {
+    if (this.isDefault) this.applyVotes();
+    this.prepareMap();
+    this.switchPhase('action', 'inicio de partida');
+    this.startAt = null;
+    this.broadcast(MessageType.GAME_STARTED, {
+      phase: 'action',
+      state: this.gameState,
+      collisionObjects: GameMap.resolveCollisionObjects(this.mapId, GameMap.areaFor(this.mapId)),
+      platforms: GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)),
+      halfSize: GameMap.areaFor(this.mapId).halfSize,
+      roles: Roles.list(Cards),
+      hitbox: { half: PLAYER_HALF, height: PLAYER_HEIGHT, interact: INTERACTION_RADIUS },
+    });
+  }
+
+  tickLobbyTimer(now) {
+    const humans = this.playerCount();
+    if (humans === 0 || this.tutorial) {
+      if (this.startAt) {
+        this.startAt = null;
+        this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, startAt: null });
+      }
+      return;
+    }
+    if (!this.startAt) {
+      this.startAt = now + LOBBY_WAIT_MS;
+      this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, startAt: this.startAt });
+      return;
+    }
+    if (now < this.startAt) return;
+    const wouldBe = this.players.size + (this.voteWinner('bots') || 0);
+    if (wouldBe < 2) {
+      this.startAt = now + LOBBY_WAIT_MS;
+      this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, startAt: this.startAt });
+      return;
+    }
+    this.startMatch();
+  }
+
   tick() {
     this.tickCount++;
     const now = Date.now();
+    if (this.isDefault && this.phase === 'lobby') this.tickLobbyTimer(now);
     const elapsedMs = now - (this.lastTickAt || now);
     const dt = Math.min(elapsedMs, 100) / 1000;
     this.lastTickAt = now;
@@ -2914,6 +2957,7 @@ class Room {
     this.gameState.zones = [];
     this.tutorial = false;
     this.restoreMap();
+    this.startAt = null;
     this.switchPhase('lobby', 'vuelta al lobby');
   }
 

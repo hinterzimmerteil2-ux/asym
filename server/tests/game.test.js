@@ -1352,3 +1352,20 @@ test('hospital aleatorio: sin salas selladas, 3 puertas de Curador por 1 de Paci
   assert.ok(total.gate > total.pgate * 2 && total.gate < total.pgate * 5);
   assert.ok(total.open > total.gate);
 });
+
+test('sala predeterminada: espera de un minuto solo con jugadores dentro y arranca sola', () => {
+  const { room } = setup();
+  room.phase = 'lobby';
+  room.isDefault = true;
+  const t = 5000000000;
+  room.tickLobbyTimer(t);
+  assert.strictEqual(room.startAt, t + 60000);
+  room.tickLobbyTimer(t + 59000);
+  assert.strictEqual(room.phase, 'lobby');
+  room.tickLobbyTimer(t + 61000);
+  assert.strictEqual(room.phase, 'action');
+  const empty = new Room('vacia');
+  empty.isDefault = true;
+  empty.tickLobbyTimer(t);
+  assert.strictEqual(empty.startAt, null);
+});
