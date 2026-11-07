@@ -946,6 +946,44 @@ function BrokenBottle({ color }) {
   );
 }
 
+function Embers() {
+  const ref = useRef();
+  const { camera } = useThree();
+  const N = 220;
+  const data = useMemo(() => {
+    const pos = new Float32Array(N * 3);
+    const spd = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 70;
+      pos[i * 3 + 1] = Math.random() * 28;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 70;
+      spd[i] = 0.6 + Math.random() * 1.6;
+    }
+    return { pos, spd };
+  }, []);
+  useFrame((_, dt) => {
+    const pts = ref.current;
+    if (!pts) return;
+    const a = pts.geometry.attributes.position.array;
+    const t = performance.now() / 1000;
+    for (let i = 0; i < N; i++) {
+      a[i * 3 + 1] += data.spd[i] * dt;
+      a[i * 3] += Math.sin(t * 0.8 + i) * dt * 0.8;
+      if (a[i * 3 + 1] > 28) a[i * 3 + 1] = 0;
+    }
+    pts.geometry.attributes.position.needsUpdate = true;
+    pts.position.set(Math.round(camera.position.x / 35) * 35 - 0, Math.floor(camera.position.y / 28) * 28 - 4, Math.round(camera.position.z / 35) * 35);
+  });
+  return (
+    <points ref={ref} frustumCulled={false}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" array={data.pos} count={N} itemSize={3} />
+      </bufferGeometry>
+      <pointsMaterial color="#ff8a3d" size={0.16} transparent opacity={0.85} depthWrite={false} sizeAttenuation />
+    </points>
+  );
+}
+
 function SpearMesh({ zone }) {
   const arm = useRef();
   const lance = useRef();
@@ -2016,11 +2054,12 @@ export default function GameScene({
 
   return (
     <Canvas key={`${g.antialias}-${g.textures}-${g.poly}`} dpr={coarse ? Math.min(g.dpr, 2) : g.dpr} gl={{ antialias: g.antialias, powerPreference: g.minimal ? 'low-power' : 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
-      <ambientLight intensity={phase === 'action' ? (g.lights ? 0.55 : 0.95) : 0.75} color={phase === 'action' ? '#c4dcd2' : '#cfe0ff'} />
-      <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? 0.7 : 1.1} color={phase === 'action' ? '#d6e2ff' : '#ffffff'} />
-      <hemisphereLight args={phase === 'action' ? ['#8fb4e8', '#4a4f66', 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
-      <color attach="background" args={[phase === 'action' ? '#060a0c' : '#12162e']} />
-      <fog attach="fog" args={phase === 'action' ? ['#0a1214', 45, g.fogFar] : ['#12162e', 45, 130]} />
+      <ambientLight intensity={phase === 'action' ? (g.lights ? 0.55 : 0.95) : 0.75} color={phase === 'action' ? '#d9bdb6' : '#cfe0ff'} />
+      <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? 0.7 : 1.1} color={phase === 'action' ? '#ff9a78' : '#ffffff'} />
+      <hemisphereLight args={phase === 'action' ? ['#9a6a78', '#3a2230', 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
+      <color attach="background" args={[phase === 'action' ? '#0c0508' : '#12162e']} />
+      <fog attach="fog" args={phase === 'action' ? ['#1b0b0f', 45, g.fogFar] : ['#12162e', 45, 130]} />
+      {phase === 'action' && <Embers />}
       {phase === 'action' && <NightDecor showStars={g.stars} lights={g.lights} lightCount={g.lightCount} />}
       {phase === 'action' && g.decor !== 'none' && <HospitalDecor half={areaHalfSize} platforms={platforms} level={g.decor} dust={g.dust} lightsOn={g.lightCount >= 5} />}
 

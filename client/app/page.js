@@ -1293,6 +1293,7 @@ export default function LobbyPage() {
           );
         })()}
 
+        {phase === 'action' && <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2, background: 'radial-gradient(ellipse at 50% 55%, rgba(0,0,0,0) 45%, rgba(18,2,6,0.55) 100%), linear-gradient(0deg, rgba(180,30,20,0.16), rgba(0,0,0,0) 28%)' }} />}
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
         {phase === 'action' && flojera?.astral && (
