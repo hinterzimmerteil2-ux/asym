@@ -1334,3 +1334,21 @@ test('votación en salas predeterminadas: mapa, bots y Curador, con empate aleat
   room.castVote(ids[1], 'bots', 12);
   assert.ok([8, 12].includes(room.voteWinner('bots')));
 });
+
+test('hospital aleatorio: sin salas selladas, 3 puertas de Curador por 1 de Paciente y mapa válido', () => {
+  const GameMap = require('../src/GameMap');
+  const total = { open: 0, gate: 0, pgate: 0 };
+  for (let seed = 1; seed <= 60; seed++) {
+    const id = GameMap.generateMap(seed);
+    const m = GameMap.MAPS[id];
+    for (const k of Object.keys(total)) total[k] += m.doorCount[k];
+    const plats = GameMap.resolvePlatforms(id, GameMap.areaFor(id));
+    assert.ok(plats.length > 100);
+    const ids = new Set(plats.map((p) => p.id));
+    assert.strictEqual(ids.size, plats.length);
+    const hallDoors = m.platforms.filter((p) => p.id.startsWith('wh_')).length;
+    assert.ok(hallDoors > 0);
+  }
+  assert.ok(total.gate > total.pgate * 2 && total.gate < total.pgate * 5);
+  assert.ok(total.open > total.gate);
+});

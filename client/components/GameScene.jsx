@@ -1723,21 +1723,26 @@ function NightDecor({ showStars = true, lights = true, lightCount = 5 }) {
 function GateMesh({ p }) {
   const c = p.kind === 'pgate' ? '#5fd58c' : '#f2a154';
   const c2 = p.kind === 'pgate' ? '#2e8a55' : '#c97a2e';
-  const bars = Math.max(2, Math.round(p.hz * 2 / 0.6));
+  const alongX = p.hx > p.hz;
+  const len = (alongX ? p.hx : p.hz) * 2;
+  const bars = Math.max(2, Math.round(len / 0.6));
   return (
     <group position={[p.x, p.y0 || 0, p.z]}>
       <mesh position={[0, p.h / 2, 0]}>
         <boxGeometry args={[p.hx * 2, p.h, p.hz * 2]} />
         <meshBasicMaterial color={c} transparent opacity={0.18} depthWrite={false} />
       </mesh>
-      {Array.from({ length: bars + 1 }, (_, i) => (
-        <mesh key={i} position={[0, p.h / 2, -p.hz + (i * p.hz * 2) / bars]}>
-          <boxGeometry args={[p.hx * 2 + 0.1, p.h, 0.08]} />
-          <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.5} />
-        </mesh>
-      ))}
+      {Array.from({ length: bars + 1 }, (_, i) => {
+        const o = -len / 2 + (i * len) / bars;
+        return (
+          <mesh key={i} position={alongX ? [o, p.h / 2, 0] : [0, p.h / 2, o]}>
+            <boxGeometry args={alongX ? [0.08, p.h, p.hz * 2 + 0.1] : [p.hx * 2 + 0.1, p.h, 0.08]} />
+            <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.5} />
+          </mesh>
+        );
+      })}
       {[0.1, p.h - 0.1].map((y) => (
-        <mesh key={y} position={[0, y, 0]}><boxGeometry args={[p.hx * 2 + 0.1, 0.12, p.hz * 2]} /><meshStandardMaterial color={c2} /></mesh>
+        <mesh key={y} position={[0, y, 0]}><boxGeometry args={[p.hx * 2 + 0.1, 0.12, p.hz * 2 + 0.1]} /><meshStandardMaterial color={c2} /></mesh>
       ))}
     </group>
   );

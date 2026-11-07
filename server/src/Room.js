@@ -691,6 +691,19 @@ class Room {
     return tied[Math.floor(Math.random() * tied.length)];
   }
 
+  prepareMap() {
+    this.mapChoice = this.mapId;
+    if (this.mapId === 'random') {
+      this.mapSeed = Math.floor(Math.random() * 1000000000);
+      this.mapId = GameMap.generateMap(this.mapSeed);
+    }
+  }
+
+  restoreMap() {
+    if (this.mapChoice) this.mapId = this.mapChoice;
+    this.mapChoice = null;
+  }
+
   applyVotes() {
     const map = this.voteWinner('map');
     if (map) this.mapId = map;
@@ -2900,6 +2913,7 @@ class Room {
     this.gameState.patients = {};
     this.gameState.zones = [];
     this.tutorial = false;
+    this.restoreMap();
     this.switchPhase('lobby', 'vuelta al lobby');
   }
 

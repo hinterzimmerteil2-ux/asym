@@ -245,6 +245,19 @@ const MAPS = {
 };
 
 MAPS.general = require('./HospitalGeneral').build(REF_HALF, sanitizeEvents);
+MAPS.random = { ...MAPS.general, id: 'random', name: 'Hospital aleatorio (semilla)' };
+const generatedOrder = [];
+function generateMap(seed) {
+  const id = `gen_${seed}`;
+  const map = require('./HospitalGenerated').build(seed, REF_HALF, sanitizeEvents);
+  map.id = id;
+  map.name = `Hospital aleatorio ${seed}`;
+  map.hidden = true;
+  MAPS[id] = map;
+  generatedOrder.push(id);
+  while (generatedOrder.length > 64) delete MAPS[generatedOrder.shift()];
+  return id;
+}
 const HOSPITAL_ID = 'hospital';
 const GENERAL_ID = 'general';
 
@@ -383,7 +396,7 @@ function allowsModuleOverlap(mapId) {
 }
 
 function listMaps() {
-  return Object.values(MAPS).map((m) => ({ id: m.id, name: m.name, custom: Boolean(m.custom) }));
+  return Object.values(MAPS).filter((m) => !m.hidden).map((m) => ({ id: m.id, name: m.name, custom: Boolean(m.custom) }));
 }
 
 /**
@@ -503,6 +516,7 @@ module.exports = {
   DEFAULT_MAP_ID,
   HOSPITAL_ID,
   GENERAL_ID,
+  generateMap,
   resolveSerums,
   resolveSelfDamagePositions,
   resolveCollisionObjects,

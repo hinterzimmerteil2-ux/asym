@@ -223,6 +223,7 @@ wss.on('connection', (ws) => {
           return;
         }
         if (room.isDefault) room.applyVotes();
+        room.prepareMap();
         room.switchPhase('action', 'inicio de partida');
         room.broadcast(MessageType.GAME_STARTED, {
           phase: 'action',
