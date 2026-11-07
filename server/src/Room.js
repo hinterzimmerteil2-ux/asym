@@ -2768,15 +2768,15 @@ class Room {
     } else if (type === 'meter') {
       playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 7000, period: 2000, score: 0, hits: 0 };
     } else if (type === 'needle') {
-      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 10000, period: 2340, stage: 0, hits: 0, zones: [0, 1, 2].map(() => 0.2 + Math.random() * 0.6), width: 0.18 };
+      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 10000, period: 2340, stage: 0, hits: 0, zones: [0, 1, 2].map(() => 0.2 + Math.random() * 0.6), width: 0.17 };
     } else if (type === 'lock') {
       const pins = [2200, 1800, 1500].map((period) => ({ period, zone: 0.2 + Math.random() * 0.6 }));
-      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 18000, pins, stage: 0, pinAt: now, width: 0.12, phase: 'pins', handUntil: 0, done: false, hits: 0 };
+      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 18000, pins, stage: 0, pinAt: now, width: 0.11, phase: 'pins', handUntil: 0, done: false, hits: 0 };
     } else if (type === 'keys') {
       this.endlagSlow(playerEntity, now, 700);
       playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 90000, phase: 'connect', phaseUntil: now + 900, round: 0, fails: 0, dealt: 0, seq: [], idx: 0, hits: 0 };
     } else {
-      playerEntity.selfDmg = { type: 'mash', objectId, startedAt: now, endsAt: now + 2000, count: 0, target: 6, hits: 0 };
+      playerEntity.selfDmg = { type: 'mash', objectId, startedAt: now, endsAt: now + 1900, count: 0, target: 6, hits: 0 };
     }
   }
 
@@ -2844,7 +2844,7 @@ class Room {
         this.award(playerId, 1, 'Auto-daño');
         if (game.stage >= game.pins.length) {
           game.phase = 'hand';
-          game.handUntil = now + 2000;
+          game.handUntil = now + 1800;
           game.endsAt = game.handUntil;
         }
       } else {
@@ -2877,7 +2877,7 @@ class Room {
     }
     if (game.type === 'meter') {
       const pos = this.needlePos(game, now);
-      game.score = Math.max(0, 1 - Math.abs(pos - 0.5) / 0.24);
+      game.score = Math.max(0, 1 - Math.abs(pos - 0.5) / 0.27);
       if (game.score > 0.85) this.award(playerId, 1, 'Auto-daño');
       this.finishSelfDamage(playerId, entity, now);
       return;
@@ -2918,7 +2918,7 @@ class Room {
     }
     if (game.type === 'keys') {
       if (game.phase === 'connect' && now >= game.phaseUntil) this.keysNewRound(game, now);
-      else if (game.phase === 'show' && now >= game.phaseUntil) { game.phase = 'input'; game.phaseUntil = now + 3500 + game.seq.length * 600; }
+      else if (game.phase === 'show' && now >= game.phaseUntil) { game.phase = 'input'; game.phaseUntil = now + 3200 + game.seq.length * 550; }
       else if (game.phase === 'input' && now >= game.phaseUntil) this.keysFail(playerId, entity, patient, game, now);
       return;
     }

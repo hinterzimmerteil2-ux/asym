@@ -661,7 +661,8 @@ function Ground({ halfSize, themed, pits }) {
   );
 }
 
-const SD_COLORS = { rhythm: '#ffd166', needle: '#54d1f2', mash: '#e07cf2', meter: '#7dff8a' };
+const SD_COLORS = { rhythm: '#ffd166', needle: '#54d1f2', mash: '#e07cf2', meter: '#7dff8a', lock: '#c8a2ff', keys: '#ff9a5a' };
+const SD_TIER = { meter: '#7dff8a', rhythm: '#f2d154', needle: '#f2d154', mash: '#f2d154', lock: '#ff4a4a', keys: '#ff4a4a' };
 
 function SdModel({ kind, active }) {
   const spin = useRef();
@@ -677,6 +678,30 @@ function SdModel({ kind, active }) {
   });
   const c = SD_COLORS[kind] || '#ffd166';
   const glow = active ? 0.9 : 0.35;
+  if (kind === 'lock') {
+    return (
+      <group>
+        <mesh position={[0, 0.2, 0]}><cylinderGeometry args={[0.5, 0.55, 0.4, 6]} /><meshStandardMaterial color="#2a2438" metalness={0.6} roughness={0.4} /></mesh>
+        <mesh position={[0, 0.62, 0]}><boxGeometry args={[0.62, 0.46, 0.34]} /><meshStandardMaterial color="#8d86a8" metalness={0.8} roughness={0.3} /></mesh>
+        <mesh position={[0, 0.98, 0]}><torusGeometry args={[0.2, 0.06, 8, 18, Math.PI]} /><meshStandardMaterial color="#b9b4cc" metalness={0.9} roughness={0.2} /></mesh>
+        <mesh position={[0, 0.62, 0.18]}><boxGeometry args={[0.1, 0.18, 0.04]} /><meshStandardMaterial color={c} emissive={c} emissiveIntensity={glow + 0.3} /></mesh>
+        <group ref={spin} position={[0, 0.18, 0]}>
+          {[0, 1, 2].map((i) => <mesh key={i} position={[0.42 * Math.cos(i * 2.09), 0.2, 0.42 * Math.sin(i * 2.09)]}><sphereGeometry args={[0.07, 8, 8]} /><meshStandardMaterial color={c} emissive={c} emissiveIntensity={glow + 0.4} /></mesh>)}
+        </group>
+      </group>
+    );
+  }
+  if (kind === 'keys') {
+    return (
+      <group>
+        <mesh position={[0, 0.14, 0]}><boxGeometry args={[1.1, 0.28, 0.8]} /><meshStandardMaterial color="#2c2a30" roughness={0.6} /></mesh>
+        <mesh position={[0, 0.45, -0.15]} rotation={[-0.5, 0, 0]}><boxGeometry args={[1.0, 0.5, 0.06]} /><meshStandardMaterial color="#12141c" emissive={c} emissiveIntensity={glow * 0.5} /></mesh>
+        {[[0, 0.18], [-0.26, 0], [0.26, 0], [0, -0.18]].map(([x, z], i) => (
+          <mesh key={i} position={[x, 0.31, 0.12 + z]}><boxGeometry args={[0.2, 0.06, 0.16]} /><meshStandardMaterial color={c} emissive={c} emissiveIntensity={glow + (active ? 0.4 : 0)} /></mesh>
+        ))}
+      </group>
+    );
+  }
   if (kind === 'needle') {
     return (
       <group ref={spin} position={[0, 0.55, 0]} rotation={[0, 0, 0.35]}>
@@ -746,6 +771,10 @@ function SelfDamageObject({ position, near, active, kind }) {
 
   return (
     <group ref={groupRef} position={targetPos.current}>
+      <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.72, kind === 'lock' || kind === 'keys' ? 0.86 : 0.8, 32]} />
+        <meshBasicMaterial color={SD_TIER[kind] || '#f2d154'} transparent opacity={0.75} side={DoubleSide} />
+      </mesh>
       <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.7, 24]} />
         <meshBasicMaterial color={SD_COLORS[kind] || '#ffd166'} transparent opacity={0.28} />

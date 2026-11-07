@@ -129,7 +129,7 @@ export default function SelfDamageBar({ gameRef, onPress, onDir }) {
           <style>{CSS}</style>
           <Head title="Cerradura abierta" color="#ff5a5a" right={`${(hl / 1000).toFixed(1)} s`}>pulsa<Key />para poner la mano</Head>
           <div className="sd-anim" style={{ height: 70, borderRadius: 14, background: 'linear-gradient(90deg,#7a1d24,#ff5a5a)', animation: 'sdTap 0.35s infinite', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 900 }}>MANO</div>
-          <TimeBar left={hl / 2000} color="#ff5a5a" />
+          <TimeBar left={hl / 1800} color="#ff5a5a" />
           <TapButton onPress={onPress} color="#ff5a5a" />
         </div>
       );
@@ -169,7 +169,7 @@ export default function SelfDamageBar({ gameRef, onPress, onDir }) {
             </span>
           ))}
         </div>
-        {g.phase !== 'connect' && <TimeBar left={pl / (g.phase === 'show' ? 1000 + g.len * 350 : 3500 + g.len * 600)} color={col} />}
+        {g.phase !== 'connect' && <TimeBar left={pl / (g.phase === 'show' ? 1000 + g.len * 350 : 3200 + g.len * 550)} color={col} />}
         {g.phase === 'input' && <DirPad onDir={onDir} />}
       </div>
     );
