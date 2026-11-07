@@ -1436,3 +1436,14 @@ test('modulos: nunca hay dos del mismo tipo a la vez ni mas de 2 faciles o 2 dif
     assert.ok(list.filter((t) => t === 'lock' || t === 'keys').length <= 2);
   }
 });
+
+test('modulos solapados se separan solos', () => {
+  const { room } = setup();
+  room.mapId = 'hospital';
+  const cands = room.selfDamageCandidates();
+  room.gameState.selfDamageObjectPositions = { m1: { x: cands[0].x, y: cands[0].y, z: cands[0].z }, m2: { x: cands[0].x + 0.5, y: cands[0].y, z: cands[0].z } };
+  room.gameState.moduleCarry = {};
+  room.separateModules(Date.now());
+  const [a, b] = Object.values(room.gameState.selfDamageObjectPositions);
+  assert.ok(Math.hypot(a.x - b.x, a.z - b.z) > 3);
+});

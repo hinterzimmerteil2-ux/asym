@@ -2125,7 +2125,31 @@ class Room {
     }
   }
 
+  separateModules(now) {
+    if (GameMap.allowsModuleOverlap(this.mapId)) return;
+    const pos = this.gameState.selfDamageObjectPositions;
+    const carry = this.gameState.moduleCarry || {};
+    const minD = Math.min(MODULE_MIN_DIST, this.getCurrentArea().halfSize * 0.15) * 0.6;
+    const ids = Object.keys(pos);
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = pos[ids[i]];
+        const b = pos[ids[j]];
+        const close = Math.hypot(a.x - b.x, a.z - b.z) < (Math.abs((a.y || 0) - (b.y || 0)) < 3 ? minD : 2.5);
+        if (!close) continue;
+        const mover = carry[ids[j]] ? ids[i] : ids[j];
+        if (carry[mover]) continue;
+        const spot = this.pickModuleSpot(this.selfDamageCandidates(), mover);
+        if (spot) pos[mover] = { x: spot.x, y: spot.y, z: spot.z };
+      }
+    }
+  }
+
   tickModuleRelocations(now) {
+    if (!this.nextSeparateAt || now >= this.nextSeparateAt) {
+      this.nextSeparateAt = now + 1000;
+      this.separateModules(now);
+    }
     const rel = this.gameState.moduleRelocate;
     if (!rel) return;
     for (const [id, at] of Object.entries(rel)) {
@@ -2279,7 +2303,8 @@ class Room {
       if (GameMap.allowsModuleOverlap(this.mapId)) return true;
       for (const [id, pos] of Object.entries(positions)) {
         if (id === movingId) continue;
-        if (Math.hypot(c.x - pos.x, c.z - pos.z) < minD && Math.abs((c.y || 0) - (pos.y || 0)) < 3) return false;
+        const d = Math.hypot(c.x - pos.x, c.z - pos.z);
+        if (d < (Math.abs((c.y || 0) - (pos.y || 0)) < 3 ? minD : 5)) return false;
       }
       return true;
     });
