@@ -167,6 +167,10 @@ const DESGRACIA_AXES = {
   'Escapaste': 'k', 'Victoria del Curador': 'k',
 };
 
+const LOCK_DAMAGE = 20;
+const KEYS_PARTS = [1, 2, 3, 4, 4, 4];
+const KEYS_LEN = [3, 3, 4, 4, 5, 5];
+
 class Room {
   constructor(roomId) {
     this.roomId = roomId;
@@ -1117,6 +1121,7 @@ class Room {
   randomMinigame(objectId) {
     const fixed = objectId && this.fixedMinigames && this.fixedMinigames[objectId];
     if (fixed) return fixed;
+    if (Math.random() < 0.12) return Math.random() < 0.5 ? 'lock' : 'keys';
     const kinds = ['rhythm', 'needle', 'mash', 'meter'];
     return kinds[Math.floor(Math.random() * kinds.length)];
   }
@@ -2709,7 +2714,7 @@ class Room {
    * (this.gameState.selfDamageObjectPositions, que sí cambia, a
    * diferencia de los objetos de colisión, que son estáticos).
    */
-  applySelfDamage(playerId, objectId) {
+  applySelfDamage(playerId, objectId, dir) {
     if (this.gameState.gameOver) return;
 
     const patient = this.gameState.patients[playerId];
@@ -2725,7 +2730,7 @@ class Room {
     const now = Date.now();
     const game = playerEntity.selfDmg;
     if (game) {
-      this.pressSelfDamage(playerId, playerEntity, patient, game, now);
+      this.pressSelfDamage(playerId, playerEntity, patient, game, now, dir);
       return;
     }
 
@@ -2749,6 +2754,7 @@ class Room {
     }
     this.takeOverModule(objectId, playerId, now);
     const type = this.gameState.selfDamageTypes[objectId] || 'rhythm';
+    if ((type === 'lock' || type === 'keys') && this.players.get(playerId)?.isBot) return;
     if (type === 'rhythm') {
       const beats = [];
       const double = Math.random() < 0.35;
@@ -2762,9 +2768,15 @@ class Room {
     } else if (type === 'meter') {
       playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 7000, period: 2000, score: 0, hits: 0 };
     } else if (type === 'needle') {
-      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 10000, period: 2340, stage: 0, hits: 0, zones: [0, 1, 2].map(() => 0.2 + Math.random() * 0.6), width: 0.243 };
+      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 10000, period: 2340, stage: 0, hits: 0, zones: [0, 1, 2].map(() => 0.2 + Math.random() * 0.6), width: 0.18 };
+    } else if (type === 'lock') {
+      const pins = [2200, 1800, 1500].map((period) => ({ period, zone: 0.2 + Math.random() * 0.6 }));
+      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 18000, pins, stage: 0, pinAt: now, width: 0.12, phase: 'pins', handUntil: 0, done: false, hits: 0 };
+    } else if (type === 'keys') {
+      this.endlagSlow(playerEntity, now, 700);
+      playerEntity.selfDmg = { type, objectId, startedAt: now, endsAt: now + 90000, phase: 'connect', phaseUntil: now + 900, round: 0, fails: 0, dealt: 0, seq: [], idx: 0, hits: 0 };
     } else {
-      playerEntity.selfDmg = { type: 'mash', objectId, startedAt: now, endsAt: now + 3600, count: 0, target: 7, hits: 0 };
+      playerEntity.selfDmg = { type: 'mash', objectId, startedAt: now, endsAt: now + 2000, count: 0, target: 6, hits: 0 };
     }
   }
 
@@ -2777,11 +2789,85 @@ class Room {
     const base = { type: game.type, objectId: game.objectId, elapsed: now - game.startedAt, total: game.endsAt - game.startedAt };
     if (game.type === 'rhythm') return { ...base, variant: game.variant, beats: game.beats, scored: game.scored, tolerance: SD_TOLERANCE_MS };
     if (game.type === 'needle') return { ...base, period: game.period, zone: game.zones[game.stage], width: game.width, stage: game.stage, stages: game.zones.length };
+    if (game.type === 'lock') {
+      const pin = game.pins[Math.min(game.stage, game.pins.length - 1)];
+      return { ...base, phase: game.phase, period: pin.period, zone: pin.zone, width: game.width, stage: game.stage, stages: game.pins.length, pinElapsed: now - game.pinAt, handMs: game.phase === 'hand' ? Math.max(0, game.handUntil - now) : 0 };
+    }
+    if (game.type === 'keys') {
+      return { ...base, phase: game.phase, phaseMs: Math.max(0, game.phaseUntil - now), round: game.round, rounds: KEYS_PARTS.length, fails: game.fails, maxFails: 3, len: game.seq.length, idx: game.idx, seq: game.phase === 'show' ? game.seq : null, dealt: game.dealt };
+    }
     if (game.type === 'meter') return { ...base, period: game.period };
     return { ...base, count: game.count, target: game.target };
   }
 
-  pressSelfDamage(playerId, entity, patient, game, now) {
+  sdHp(playerId, patient, delta, now) {
+    const max = patient.maxHp || patient.hp;
+    patient.hp = delta < 0 ? Math.max(PATIENT_HP_MIN, patient.hp + delta) : Math.min(max, patient.hp + delta);
+    if (patient.hp <= PATIENT_HP_MIN && patient.status === 'alive') patient.status = 'self_won';
+  }
+
+  keysNewRound(game, now) {
+    const len = KEYS_LEN[Math.min(game.round, KEYS_LEN.length - 1)];
+    game.seq = Array.from({ length: len }, () => Math.floor(Math.random() * 4));
+    game.idx = 0;
+    game.phase = 'show';
+    game.phaseUntil = now + 1000 + len * 350;
+  }
+
+  keysFail(playerId, entity, patient, game, now) {
+    game.fails += 1;
+    this.sdHp(playerId, patient, 1, now);
+    if (game.fails > 3) {
+      this.sdHp(playerId, patient, 6, now);
+      this.finishSelfDamage(playerId, entity, now, true);
+      return;
+    }
+    this.keysNewRound(game, now);
+  }
+
+  pressSelfDamage(playerId, entity, patient, game, now, dir) {
+    if (game.type === 'lock') {
+      if (game.phase === 'hand') {
+        if (now <= game.handUntil) {
+          game.done = true;
+          game.hits = 3;
+          this.finishSelfDamage(playerId, entity, now);
+        }
+        return;
+      }
+      const pin = game.pins[game.stage];
+      const ph = (((now - game.pinAt) / pin.period) % 1 + 1) % 1;
+      const pos = ph < 0.5 ? ph * 2 : 2 - ph * 2;
+      if (Math.abs(pos - pin.zone) <= game.width) {
+        game.stage += 1;
+        game.pinAt = now;
+        this.award(playerId, 1, 'Auto-daño');
+        if (game.stage >= game.pins.length) {
+          game.phase = 'hand';
+          game.handUntil = now + 2000;
+          game.endsAt = game.handUntil;
+        }
+      } else {
+        game.stage = 0;
+        game.pinAt = now;
+      }
+      return;
+    }
+    if (game.type === 'keys') {
+      if (game.phase !== 'input' || !Number.isInteger(dir) || dir < 0 || dir > 3) return;
+      if (dir !== game.seq[game.idx]) { this.keysFail(playerId, entity, patient, game, now); return; }
+      game.idx += 1;
+      if (game.idx < game.seq.length) return;
+      const dmg = KEYS_PARTS[game.round];
+      game.dealt += dmg;
+      game.hits += 1;
+      this.sdHp(playerId, patient, -dmg, now);
+      this.award(playerId, 1, 'Auto-daño');
+      game.round += 1;
+      if (patient.status !== 'alive' || game.round >= KEYS_PARTS.length) { this.finishSelfDamage(playerId, entity, now); return; }
+      this.keysNewRound(game, now);
+      return;
+    }
     if (game.type === 'mash') {
       game.count += 1;
       game.hits = game.count;
@@ -2791,7 +2877,7 @@ class Room {
     }
     if (game.type === 'meter') {
       const pos = this.needlePos(game, now);
-      game.score = Math.max(0, 1 - Math.abs(pos - 0.5) / 0.315);
+      game.score = Math.max(0, 1 - Math.abs(pos - 0.5) / 0.24);
       if (game.score > 0.85) this.award(playerId, 1, 'Auto-daño');
       this.finishSelfDamage(playerId, entity, now);
       return;
@@ -2830,6 +2916,12 @@ class Room {
       entity.selfDmg = null;
       return;
     }
+    if (game.type === 'keys') {
+      if (game.phase === 'connect' && now >= game.phaseUntil) this.keysNewRound(game, now);
+      else if (game.phase === 'show' && now >= game.phaseUntil) { game.phase = 'input'; game.phaseUntil = now + 3500 + game.seq.length * 600; }
+      else if (game.phase === 'input' && now >= game.phaseUntil) this.keysFail(playerId, entity, patient, game, now);
+      return;
+    }
     if (game.type === 'rhythm') {
       const t = now - game.startedAt;
       const missed = game.beats.some((b, i) => !game.scored.includes(i) && t > b + SD_TOLERANCE_MS);
@@ -2840,6 +2932,8 @@ class Room {
   }
 
   sdDamage(game) {
+    if (game.type === 'lock') return game.done ? LOCK_DAMAGE : 0;
+    if (game.type === 'keys') return game.dealt;
     if (game.type === 'mash') return Math.min(SD_MAX_DAMAGE, Math.round((game.count / game.target) * SD_MAX_DAMAGE));
     if (game.type === 'needle') return Math.round((game.hits / game.zones.length) * SD_MAX_DAMAGE);
     if (game.type === 'meter') return Math.round(game.score * SD_MAX_DAMAGE);
@@ -2850,9 +2944,9 @@ class Room {
     const game = entity.selfDmg;
     entity.selfDmg = null;
     const patient = this.gameState.patients[playerId];
-    if (!game || !patient || patient.status !== 'alive') return;
+    if (!game || !patient || (patient.status !== 'alive' && game.type !== 'keys')) return;
     const damage = this.sdDamage(game);
-    const perfect = damage >= SD_MAX_DAMAGE;
+    const perfect = game.type === 'keys' ? game.round >= KEYS_PARTS.length : damage >= SD_MAX_DAMAGE;
     if (perfect) this.award(playerId, 4, 'Auto-daño perfecto');
     const handler = this.gameState.moduleHandler && this.gameState.moduleHandler[game.objectId];
     if (damage > 0 && handler && handler !== playerId) {
@@ -2860,8 +2954,10 @@ class Room {
       delete this.gameState.moduleHandler[game.objectId];
     }
     if (damage > 0) {
-      patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - damage);
-      if (patient.hp <= PATIENT_HP_MIN) patient.status = 'self_won';
+      if (game.type !== 'keys') {
+        patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - damage);
+        if (patient.hp <= PATIENT_HP_MIN) patient.status = 'self_won';
+      }
       const allPositions = this.selfDamageCandidates();
       const newPos = this.pickModuleSpot(allPositions, game.objectId);
       if (newPos) this.gameState.selfDamageObjectPositions[game.objectId] = { x: newPos.x, y: newPos.y, z: newPos.z };

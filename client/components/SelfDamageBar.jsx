@@ -9,6 +9,7 @@ const CSS = `
 @keyframes sdKey{0%,100%{transform:translateY(0);box-shadow:0 3px 0 #11131c}50%{transform:translateY(2px);box-shadow:0 1px 0 #11131c}}
 @keyframes sdHit{0%{transform:scale(1);filter:brightness(1)}35%{transform:scale(1.07);filter:brightness(1.8)}100%{transform:scale(1);filter:brightness(1)}}
 @keyframes sdPulse{0%,100%{box-shadow:0 0 6px var(--c)}50%{box-shadow:0 0 22px var(--c)}}
+@keyframes sdIn2{from{opacity:0;transform:scale(0.4) rotate(-12deg)}to{opacity:1;transform:none}}
 @keyframes sdFlash{0%{opacity:0.85}100%{opacity:0}}
 @keyframes sdShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 @media (prefers-reduced-motion: reduce){.sd-anim{animation:none !important}}
@@ -56,7 +57,15 @@ function TapButton({ onPress, color }) {
   );
 }
 
-export default function SelfDamageBar({ gameRef, onPress }) {
+function DirPad({ onDir }) {
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => { setCoarse(window.matchMedia('(pointer: coarse)').matches); }, []);
+  if (!coarse) return <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>usa las flechas del teclado</div>;
+  const b = (d, t, pos) => <button key={d} type="button" onPointerDown={(e) => { e.preventDefault(); onDir && onDir(d); }} style={{ pointerEvents: 'auto', width: 64, height: 56, borderRadius: 12, border: '2px solid #ff9a5a', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 26, fontWeight: 800, touchAction: 'none', gridArea: pos }}>{t}</button>;
+  return <div style={{ display: 'grid', gridTemplateAreas: '". u ." "l . r" ". d ."', gap: 6, justifyContent: 'center', marginTop: 10 }}>{[b(0, '↑', 'u'), b(3, '←', 'l'), b(1, '→', 'r'), b(2, '↓', 'd')]}</div>;
+}
+
+export default function SelfDamageBar({ gameRef, onPress, onDir }) {
   const [, setTick] = useState(0);
   const prev = useRef({ key: '', n: 0, hitAt: 0 });
   useEffect(() => {
@@ -105,6 +114,63 @@ export default function SelfDamageBar({ gameRef, onPress }) {
         </div>
         <TimeBar left={left} color="#54d1f2" />
         <TapButton onPress={onPress} color="#54d1f2" />
+      </div>
+    );
+  }
+  if (g.type === 'lock') {
+    const pe = g.pinElapsed + (now - g.at);
+    const ph = (((pe / g.period) % 1) + 1) % 1;
+    const needle = ph < 0.5 ? ph * 2 : 2 - ph * 2;
+    const inZone = Math.abs(needle - g.zone) <= g.width;
+    if (g.phase === 'hand') {
+      const hl = Math.max(0, g.handMs - (now - g.at));
+      return (
+        <div style={frame('#ff5a5a')}>
+          <style>{CSS}</style>
+          <Head title="Cerradura abierta" color="#ff5a5a" right={`${(hl / 1000).toFixed(1)} s`}>pulsa<Key />para poner la mano</Head>
+          <div className="sd-anim" style={{ height: 70, borderRadius: 14, background: 'linear-gradient(90deg,#7a1d24,#ff5a5a)', animation: 'sdTap 0.35s infinite', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 900 }}>MANO</div>
+          <TimeBar left={hl / 2000} color="#ff5a5a" />
+          <TapButton onPress={onPress} color="#ff5a5a" />
+        </div>
+      );
+    }
+    return (
+      <div style={frame('#c8a2ff')}>
+        <style>{CSS}</style>
+        {flash('#7dff8a22')}
+        <Head title="Cerradura" color="#c8a2ff" right={`${g.stage}/${g.stages}`}>pulsa<Key />en la zona, un fallo reinicia</Head>
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 10 }}>
+          {Array.from({ length: g.stages }).map((_, i) => (
+            <span key={i} style={{ width: 34, height: 10, borderRadius: 5, background: i < g.stage ? '#7dff8a' : '#2a2f40' }} />
+          ))}
+        </div>
+        <div style={{ ...TRACK, ...hitAnim }} className="sd-anim">
+          <div className="sd-anim" style={{ '--c': inZone ? '#7dff8a' : '#c8a2ff', position: 'absolute', left: `${(g.zone - g.width) * 100}%`, width: `${g.width * 200}%`, top: 0, bottom: 0, background: inZone ? '#7dff8a' : '#c8a2ff', opacity: inZone ? 0.95 : 0.55, borderRadius: 12, animation: 'sdPulse 0.6s ease-in-out infinite' }} />
+          <div style={{ position: 'absolute', left: `calc(${needle * 100}% - 4px)`, top: 0, width: 8, height: 52, borderRadius: 4, background: '#f2d154', boxShadow: '0 0 12px #f2d154, -14px 0 14px rgba(242,209,84,0.35)' }} />
+        </div>
+        <TapButton onPress={onPress} color="#c8a2ff" />
+      </div>
+    );
+  }
+  if (g.type === 'keys') {
+    const ARROWS = ['↑', '→', '↓', '←'];
+    const pl = Math.max(0, g.phaseMs - (now - g.at));
+    const title = g.phase === 'connect' ? 'Conectando' : g.phase === 'show' ? 'Memoriza' : 'Repite';
+    const col = g.phase === 'show' ? '#ffd166' : g.phase === 'input' ? '#7dff8a' : '#ff9a5a';
+    return (
+      <div style={frame('#ff9a5a')}>
+        <style>{CSS}</style>
+        {flash('#7dff8a22')}
+        <Head title={title} color={col} right={`${g.round}/${g.rounds}`}>fallos {g.fails}/{g.maxFails}, daño {g.dealt}</Head>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', minHeight: 56 }}>
+          {g.phase === 'connect' ? <span className="sd-anim" style={{ fontSize: 22, fontWeight: 800, animation: 'sdTap 0.5s infinite' }}>...</span> : Array.from({ length: g.len }).map((_, i) => (
+            <span key={i} className={g.phase === 'show' ? 'sd-anim' : undefined} style={{ width: 48, height: 52, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 900, background: i < g.idx ? '#2f7a4a' : '#232838', border: `2px solid ${g.phase === 'show' ? '#ffd166' : i === g.idx ? '#7dff8a' : '#454c66'}`, animation: g.phase === 'show' ? `sdIn2 300ms ${i * 140}ms both` : 'none' }}>
+              {g.phase === 'show' ? ARROWS[g.seq[i]] : i < g.idx ? 'ok' : '?'}
+            </span>
+          ))}
+        </div>
+        {g.phase !== 'connect' && <TimeBar left={pl / (g.phase === 'show' ? 1000 + g.len * 350 : 3500 + g.len * 600)} color={col} />}
+        {g.phase === 'input' && <DirPad onDir={onDir} />}
       </div>
     );
   }

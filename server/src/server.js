@@ -316,7 +316,7 @@ wss.on('connection', (ws) => {
       case MessageType.SELF_DAMAGE_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room || room.phase !== 'action') return;
-        room.applySelfDamage(playerId, msg.payload.objectId);
+        room.applySelfDamage(playerId, msg.payload.objectId, msg.payload.dir);
         break;
       }
 

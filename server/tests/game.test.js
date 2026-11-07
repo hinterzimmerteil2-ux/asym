@@ -1369,3 +1369,56 @@ test('sala predeterminada: espera de un minuto solo con jugadores dentro y arran
   empty.tickLobbyTimer(t);
   assert.strictEqual(empty.startAt, null);
 });
+
+test('modulos dificiles: cerradura (tres pernos y mano en 2 s) y secuencia de teclas (daño por partes, curas al fallar)', () => {
+  const { room, clock, e, p } = setup();
+  const reset = (type) => {
+    room.gameState.selfDamageObjectPositions = { o1: { x: 0, y: 0, z: 0 } };
+    room.gameState.selfDamageTypes = { o1: type };
+    e.a.x = 0; e.a.z = 0; e.a.y = 0;
+    p.a.hp = 100; p.a.status = 'alive';
+    e.a.selfDmg = null;
+  };
+  reset('lock');
+  room.applySelfDamage('a', 'o1');
+  let g = e.a.selfDmg;
+  for (let i = 0; i < 3; i++) {
+    const pin = g.pins[i];
+    clock.t = g.pinAt + Math.round(pin.period * pin.zone / 2);
+    room.applySelfDamage('a', 'o1');
+  }
+  assert.strictEqual(g.phase, 'hand');
+  clock.t += 500;
+  room.applySelfDamage('a', 'o1');
+  assert.strictEqual(p.a.hp, 80);
+  reset('lock');
+  room.applySelfDamage('a', 'o1');
+  g = e.a.selfDmg;
+  for (let i = 0; i < 3; i++) {
+    const pin = g.pins[i];
+    clock.t = g.pinAt + Math.round(pin.period * pin.zone / 2);
+    room.applySelfDamage('a', 'o1');
+  }
+  clock.t += 2100;
+  room.tickSelfDamage('a', e.a, clock.t);
+  assert.strictEqual(p.a.hp, 100);
+  reset('keys');
+  room.applySelfDamage('a', 'o1');
+  g = e.a.selfDmg;
+  clock.t = g.phaseUntil + 1;
+  room.tickSelfDamage('a', e.a, clock.t);
+  clock.t = g.phaseUntil + 1;
+  room.tickSelfDamage('a', e.a, clock.t);
+  assert.strictEqual(g.phase, 'input');
+  for (const d of g.seq) room.applySelfDamage('a', 'o1', d);
+  assert.strictEqual(p.a.hp, 99);
+  room.applySelfDamage('a', 'o1', (g.seq[0] + 1) % 4);
+  assert.strictEqual(g.fails, 0);
+  clock.t = g.phaseUntil + 1;
+  room.tickSelfDamage('a', e.a, clock.t);
+  clock.t = g.phaseUntil + 1;
+  room.tickSelfDamage('a', e.a, clock.t);
+  room.applySelfDamage('a', 'o1', (g.seq[0] + 1) % 4);
+  assert.strictEqual(g.fails, 1);
+  assert.strictEqual(p.a.hp, 100);
+});

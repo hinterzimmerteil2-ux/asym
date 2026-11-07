@@ -179,6 +179,7 @@ export default function LobbyPage() {
   const channelRef = useRef(null);
   const sdRef = useRef(null);
   const pressMinigameRef = useRef(() => {});
+  const pressDirRef = useRef(() => {});
   const entitiesRef = useRef({});
   const effectCounterRef = useRef(0);
   const [collisionObjects, setCollisionObjects] = useState([]);
@@ -813,6 +814,10 @@ export default function LobbyPage() {
       else if (keyMatches('shiftlock', e.code)) { if (!e.repeat) shiftKeyRef.current.down(); }
       else if (keyMatches('hitboxes', e.code)) setHitboxes((prev) => ({ ...prev, on: !prev.on }));
       else if (e.code === 'Escape') setHelpOpen(false);
+      else if (sdRef.current?.type === 'keys' && ['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.code)) {
+        e.preventDefault();
+        if (!e.repeat) pressDirRef.current(['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].indexOf(e.code));
+      }
       else if (keyMatches('minigame', e.code)) {
         if (sdRef.current) { if (!e.repeat) pressMinigameRef.current(); return; }
         const ch = channelRef.current;
@@ -937,6 +942,10 @@ export default function LobbyPage() {
       for (const [id, pos] of Object.entries(selfDamageObjects || {})) consider(id, pos);
       if (best) handleSendAction('self_damage_action', { objectId: best });
     }
+  };
+  pressDirRef.current = (dir) => {
+    const g = sdRef.current;
+    if (g && g.objectId) handleSendAction('self_damage_action', { objectId: g.objectId, dir });
   };
   pressMinigameRef.current = () => {
     const g = sdRef.current;
@@ -1292,7 +1301,7 @@ export default function LobbyPage() {
           </div>
         )}
         {phase === 'action' && matchSeed != null && <div style={{ position: 'absolute', left: 8, bottom: 8, fontSize: 11, color: '#a8959a', pointerEvents: 'none', userSelect: 'text' }}>Semilla: {matchSeed}</div>}
-        {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} onPress={() => pressMinigameRef.current()} />}
+        {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} onPress={() => pressMinigameRef.current()} onDir={(d) => pressDirRef.current(d)} />}
         {phase === 'action' && <EventLayer events={mapEvents} posRef={myPosRef} />}
         {phase === 'action' && lmsUntil > 0 && lmsInfo && (
           <LmsIntro
