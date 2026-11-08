@@ -30,6 +30,68 @@ import { loadDesgracias, saveDesgracias, priceOf, FREE_ITEMS, emptyQ, addQ, norm
 
 const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
+const KIT_STYLE = {
+  loquito: { color: '#e0555f', stats: [2, 4, 3] },
+  hincha: { color: '#f2d154', stats: [4, 2, 2] },
+  cobrador: { color: '#54d1f2', stats: [5, 3, 4] },
+};
+
+function KitPicker({ roles, onPick }) {
+  const [sel, setSel] = useState(0);
+  const r = roles[Math.min(sel, roles.length - 1)];
+  const st = KIT_STYLE[r.id] || { color: '#c8a2ff', stats: [3, 3, 3] };
+  const labels = ['Movilidad', 'Control', 'Daño'];
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(6,3,5,0.72)', padding: 12 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, width: 'min(680px, 100%)', maxHeight: '100%', overflowY: 'auto', padding: 14, borderRadius: 16, background: 'linear-gradient(160deg, #1d1319, #12141c)', border: `2px solid ${st.color}`, boxShadow: `0 0 40px ${st.color}44` }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: '1 1 190px' }}>
+          <strong style={{ fontSize: 15 }}>Elige tu kit</strong>
+          {roles.map((k, i) => {
+            const c = (KIT_STYLE[k.id] || {}).color || '#c8a2ff';
+            return (
+              <button key={k.id} type="button" onClick={() => setSel(i)} style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', color: '#e8e9f0', background: i === sel ? `${c}33` : 'rgba(255,255,255,0.04)', border: `2px solid ${i === sel ? c : '#3d2c33'}`, transition: 'transform 140ms, background 140ms', transform: i === sel ? 'translateX(6px)' : 'none' }}>
+                <div style={{ fontWeight: 800, fontSize: 14 }}>{k.name}</div>
+                <div style={{ fontSize: 11, opacity: 0.7 }}>{k.tagline}</div>
+              </button>
+            );
+          })}
+          <button type="button" onClick={() => onPick('none')} style={{ marginTop: 4, padding: 8, borderRadius: 10, cursor: 'pointer', color: '#cfe8fa', background: 'transparent', border: '1px dashed #4a6a8a' }}>Cartas sueltas, sin kit</button>
+        </div>
+        <div key={r.id} style={{ flex: '2 1 280px', display: 'flex', flexDirection: 'column', gap: 10, animation: 'dealIn 360ms cubic-bezier(.2,.9,.3,1.1) both' }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div style={{ width: 84, height: 112, flex: 'none', borderRadius: 12, border: `2px solid ${st.color}`, background: '#14151d', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center', padding: 4, boxShadow: '0 8px 20px rgba(0,0,0,0.5)' }}>
+              {r.card?.id && <SkillIcon id={r.card.id} size={40} />}
+              <span style={{ fontSize: 11, fontWeight: 800 }}>{r.card?.displayName}</span>
+            </div>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: st.color }}>{r.name}</div>
+              <div style={{ fontSize: 13, opacity: 0.85 }}>{r.tagline}</div>
+              <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>Carta inicial incluida</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {labels.map((l, i) => (
+              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                <span style={{ width: 70, opacity: 0.8 }}>{l}</span>
+                <div style={{ flex: 1, height: 8, borderRadius: 4, background: '#232838' }}>
+                  <div style={{ height: 8, borderRadius: 4, width: `${st.stats[i] * 20}%`, background: st.color, transition: 'width 400ms' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div>
+            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 4 }}>Segunda carta, a elegir entre:</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {(r.pool || []).map((n) => <span key={n} style={{ padding: '3px 8px', borderRadius: 999, fontSize: 11, background: `${st.color}22`, border: `1px solid ${st.color}88` }}>{n}</span>)}
+            </div>
+          </div>
+          <button type="button" onClick={() => onPick(r.id)} style={{ marginTop: 'auto', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 800, color: '#10131c', background: st.color, boxShadow: `0 6px 18px ${st.color}66` }}>Elegir este kit</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LiveScene({ store, replay, waiting, ...props }) {
   const [, bump] = useReducer((n) => n + 1, 0);
   useEffect(() => {
@@ -1399,22 +1461,7 @@ export default function LobbyPage() {
           </div>
         )}
         {phase === 'action' && !isAsymRole && roles.length > 0 && !myRole && hand[0] && !hand[0].chosen && (
-          <div style={{ ...styles.draftOverlay, top: 'auto', bottom: 90, transform: 'translateX(-50%)', zIndex: 31 }}>
-            <span style={styles.draftTitle}>Elige tu kit o roba cartas sueltas</span>
-            <div style={styles.draftRow}>
-              {roles.map((r, n) => (
-                <button key={r.id} type="button" className="draft-card" onClick={() => handleSelectRole(r.id)} title={(r.pool || []).join(', ')} style={{ ...styles.draftCard('uncommon', false, n), width: 128, height: 150, color: '#e8e9f0', cursor: 'pointer', padding: '10px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
-                  {r.card?.id && <SkillIcon id={r.card.id} size={38} />}
-                  <span style={{ fontWeight: 800, fontSize: 14 }}>{r.name}</span>
-                  <span style={{ fontSize: 11, opacity: 0.8 }}>{r.tagline}</span>
-                  <span style={{ fontSize: 10, opacity: 0.55 }}>{r.card?.displayName}</span>
-                </button>
-              ))}
-              <button type="button" className="draft-card" onClick={() => handleSelectRole('none')} style={{ ...styles.draftCard('common', false, roles.length), width: 128, height: 150, color: '#cfe8fa', cursor: 'pointer', borderStyle: 'dashed', padding: 8 }}>
-                Sin kit: cinco cartas sueltas
-              </button>
-            </div>
-          </div>
+          <KitPicker roles={roles} onPick={handleSelectRole} />
         )}
 
         {phase === 'action' && !isAsymRole && hand.length > 0 && (
