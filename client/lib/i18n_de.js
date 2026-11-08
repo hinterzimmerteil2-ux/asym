@@ -586,4 +586,12 @@ export const DE = [
 "Medizinischer Thunfisch",
 "Medizinischer Thunfisch (Heiler)",
 "Heilt den Patienten vor dir und betäubt ihn 1,2 s, wenn er sich bewegt.",
+"Er war's",
+"Küstentanz",
+"Eure Majestät",
+"Bitte, bitte",
+"Schau mich nicht an",
+"Keine Ahnung",
+"Ich mach das schon",
+"Puls",
 ];

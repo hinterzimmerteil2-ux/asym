@@ -588,6 +588,14 @@ const PAIRS = [
 ["Atún Medicinal","Medicinal Tuna"],
 ["Atún Medicinal (Curador)","Medicinal Tuna (Healer)"],
 ["Cura y aturde 1.2s al Paciente frente a ti si se está moviendo.","Heals and stuns the Patient in front of you for 1.2s if they are moving."],
+["Fue él","It was him"],
+["Costeñas","Coastal sway"],
+["Su majestad","Your majesty"],
+["Ya pues","Come on"],
+["Ni me mires","Don't look at me"],
+["Ni idea","No idea"],
+["Yo me encargo","I've got this"],
+["Pulso","Pulse"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

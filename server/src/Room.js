@@ -139,6 +139,11 @@ const {
 const LOBBY_WAIT_MS = Number(process.env.LOBBY_WAIT_MS) || 60000;
 const BotBrain = require('./BotBrain');
 const Status = require('./Status');
+const EMOTES = {
+  fue_el: 1800, schadenfreude: 2200, costenas: 2600, su_majestad: 1800,
+  ya_pues: 2000, ni_me_mires: 2000, ni_idea: 1400, yo_me_encargo: 1800, pulso: 1800,
+};
+const EMOTE_COOLDOWN_MS = 7000;
 const FIELD_KINDS = new Set(['herbs', 'drip', 'gas', 'rootshot', 'dart', 'gurney']);
 const LMS_GIMMICKS = ['adrenalina', 'reflejos', 'escudo', 'codicia'];
 
@@ -363,6 +368,7 @@ class Room {
     if (target && (!prog || prog.id !== target.id)) player.curProgress = { id: target.id, hp: this.gameState.patients[target.id].hp, at: now };
     mind.frustration = Math.max(0, mind.frustration - 0.004);
     player.curTarget = target ? target.id : null;
+    this.botEmote(botId, player, entity, mind, now, targetDist, 'curator');
     if (!target) {
       entity.input.moveX = 0;
       entity.input.moveZ = 0;
@@ -463,6 +469,7 @@ class Room {
       let fallen = 0;
       for (const pt of Object.values(this.gameState.patients)) if (pt.status !== 'alive') fallen++;
       BotBrain.feel(mind, { dist: curatorDist, hp: patient.hp, fallen }, now);
+      this.botEmote(botId, player, entity, mind, now, curatorDist, 'patient');
       const [wantWork, wantEvade, wantRest] = BotBrain.think(mind, { dist: curatorDist, hpFrac: patient.hp / (patient.maxHp || 100), flo: entity.flojera / (entity.flojeraMax || 100) });
       let best = null;
       let bestDist = Infinity;
@@ -1461,6 +1468,7 @@ class Room {
         gone: Boolean(entity.gone),
         invis: this.isInvisible(entity, now),
         carry: entity.carry || undefined,
+        emote: entity.emote && Status.active(entity, 'emote', now) ? { id: entity.emote.id } : undefined,
         hold: entity.astral ? (entity.astral.state === 'charging' ? 'claw' : 'claw_ready') : entity.eating ? `eat_${entity.eating.cardId}` : entity.channel && entity.channel.endsAt > now ? 'horn' : entity.carry ? 'module' : undefined,
         rag: entity.rag ? { p: RagdollBody.serialize(entity.rag, entity) } : null,
       };
@@ -1862,6 +1870,7 @@ class Room {
     entity.input.moveX = clampUnit(input.moveX);
     entity.input.moveZ = clampUnit(input.moveZ);
     entity.input.jump = Boolean(input.jump);
+    if (entity.input.jump && entity.emote) { Status.clear(entity, 'emote'); entity.emote = null; }
     entity.input.slow = Boolean(input.slow);
     const aim = Number(input.aim);
     entity.aim = Number.isFinite(aim) ? Math.max(-1.1, Math.min(1.1, aim)) : 0;
@@ -2140,6 +2149,53 @@ class Room {
       }
     }
     return changed;
+  }
+
+  useEmote(playerId, emoteId) {
+    const entity = this.gameState.entities[playerId];
+    if (!entity || this.gameState.gameOver) return;
+    if (!emoteId) {
+      if (entity.emote) { Status.clear(entity, 'emote'); entity.emote = null; }
+      return;
+    }
+    this.startEmote(playerId, entity, emoteId, Date.now());
+  }
+
+  startEmote(playerId, entity, emoteId, now) {
+    const ms = EMOTES[emoteId];
+    const player = this.players.get(playerId);
+    if (!ms || !player || entity.emote) return false;
+    if (emoteId === 'pulso' && !player.isAsymRole) return false;
+    const patient = this.gameState.patients[playerId];
+    if (!player.isAsymRole && (!patient || patient.status !== 'alive')) return false;
+    if (now < (entity.emoteCdUntil || 0)) return false;
+    if (Status.blocksMove(entity, now) || Status.blocksSkills(entity, now)) return false;
+    if (entity.eating || entity.astral || entity.selfDmg || entity.channel) return false;
+    entity.emote = { id: emoteId, until: now + ms };
+    entity.emoteCdUntil = now + ms + EMOTE_COOLDOWN_MS;
+    Status.apply(entity, 'emote', ms, now);
+    return true;
+  }
+
+  botEmote(botId, player, entity, mind, now, dist, role) {
+    const dt = mind.pressAt ? Math.min(0.5, (now - mind.pressAt) / 1000) : 0.1;
+    mind.pressAt = now;
+    const near = dist < 6;
+    mind.pressure = Math.max(0, Math.min(1.5, (mind.pressure || 0) + (near ? (1 - dist / 6) * 0.5 : -0.25) * dt));
+    if (entity.emote || now < (entity.emoteCdUntil || 0) || now < (player.nextEmoteTry || 0)) return;
+    player.nextEmoteTry = now + 700;
+    const calm = dist > 12 && mind.confidence > 0.6 && Math.random() < 0.012;
+    if (!calm && Math.random() >= mind.pressure * (0.04 + 0.08 * (1 - mind.patience))) return;
+    let pool;
+    if (calm) pool = ['costenas'];
+    else if (mind.fear > 0.6) pool = ['ya_pues', 'ni_me_mires'];
+    else if (mind.type === 'valiente') pool = ['schadenfreude', 'yo_me_encargo', 'fue_el'];
+    else if (mind.type === 'temerario') pool = ['schadenfreude', 'fue_el', 'costenas'];
+    else if (mind.type === 'miedoso') pool = ['ya_pues', 'ni_me_mires', 'ni_idea'];
+    else if (mind.type === 'calculador') pool = [role === 'curator' ? 'pulso' : 'su_majestad', 'ni_idea'];
+    else pool = ['ni_idea', 'fue_el', 'ya_pues'];
+    if (role === 'curator' && Math.random() < 0.3) pool = ['pulso', 'su_majestad', 'schadenfreude'];
+    if (this.startEmote(botId, entity, pool[Math.floor(Math.random() * pool.length)], now)) mind.pressure *= 0.4;
   }
 
   broadcastPulse(pulseResult) {
@@ -3123,6 +3179,8 @@ class Room {
 
   resolveCure(curadorId, curadorEntity, targetPlayerId, now) {
     this.breakParaguay(targetPlayerId, now);
+    const hitE = this.gameState.entities[targetPlayerId];
+    if (hitE && hitE.emote) { Status.clear(hitE, 'emote'); hitE.emote = null; }
     const patient = this.gameState.patients[targetPlayerId];
     const targetEntity = this.gameState.entities[targetPlayerId];
     const boost = curadorEntity.cureBoostUntil > now ? curadorEntity.cureBoostFactor : 1;

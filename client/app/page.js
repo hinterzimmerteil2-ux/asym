@@ -237,6 +237,9 @@ export default function LobbyPage() {
   const [curatorHp, setCuratorHp] = useState(null);
   const [effects, setEffects] = useState([]);
   const [stunnedIds, setStunnedIds] = useState([]);
+  const [emoteOpen, setEmoteOpen] = useState(false);
+  const emoteOpenRef = useRef(false);
+  emoteOpenRef.current = emoteOpen;
   const [ragdollIds, setRagdollIds] = useState([]);
   const [channelNow, setChannelNow] = useState(0);
   const channelRef = useRef(null);
@@ -907,7 +910,15 @@ export default function LobbyPage() {
       if (keyMatches('help', e.code)) setHelpOpen((open) => !open);
       else if (keyMatches('shiftlock', e.code)) { if (!e.repeat) shiftKeyRef.current.down(); }
       else if (keyMatches('hitboxes', e.code)) setHitboxes((prev) => ({ ...prev, on: !prev.on }));
-      else if (e.code === 'Escape') setHelpOpen(false);
+      else if (e.code === 'Escape') { setHelpOpen(false); setEmoteOpen(false); }
+      else if (keyMatches('emote', e.code)) { if (!e.repeat) setEmoteOpen((o) => !o); }
+      else if (emoteOpenRef.current && /^(Digit|Numpad)[1-9]$/.test(e.code)) {
+        e.preventDefault();
+        const list = EMOTE_LIST.filter((m) => !m.curator || isAsymRoleRef.current);
+        const pick = list[Number(e.code.slice(-1)) - 1];
+        if (pick) connRef.current?.send('emote', { id: pick.id });
+        setEmoteOpen(false);
+      }
       else if (sdRef.current?.type === 'keys' && (/^(Digit|Numpad)[1-6]$/.test(e.code) || e.code === 'Backspace')) {
         e.preventDefault();
         window.dispatchEvent(new CustomEvent('sd-keys', { detail: e.code }));
@@ -1447,6 +1458,20 @@ export default function LobbyPage() {
           />
         )}
         {phase === 'lobby' && <TouchControls lobby />}
+        {phase === 'action' && emoteOpen && !spectating && (
+          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 60, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(96px, 1fr))', gap: 8, padding: 12, borderRadius: 14, background: 'rgba(14,12,18,0.92)', border: '1px solid rgba(255,255,255,0.14)', maxWidth: '92vw' }}>
+            {EMOTE_LIST.filter((m) => !m.curator || isAsymRole).map((m, i) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => { connRef.current?.send('emote', { id: m.id }); setEmoteOpen(false); }}
+                style={{ padding: '14px 8px', minHeight: 52, borderRadius: 10, border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.07)', color: '#e8eaf2', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+              >
+                <span style={{ opacity: 0.55, marginRight: 6 }}>{i + 1}</span>{m.name}
+              </button>
+            ))}
+          </div>
+        )}
         {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} getCarry={getCarryRef.current} />}
 
         {phase === 'action' && flojera && (
@@ -1955,6 +1980,18 @@ function Wordmark() {
     </div>
   );
 }
+
+const EMOTE_LIST = [
+  { id: 'fue_el', name: 'Fue él' },
+  { id: 'schadenfreude', name: 'Schadenfreude' },
+  { id: 'costenas', name: 'Costeñas' },
+  { id: 'su_majestad', name: 'Su majestad' },
+  { id: 'ya_pues', name: 'Ya pues' },
+  { id: 'ni_me_mires', name: 'Ni me mires' },
+  { id: 'ni_idea', name: 'Ni idea' },
+  { id: 'yo_me_encargo', name: 'Yo me encargo' },
+  { id: 'pulso', name: 'Pulso', curator: true },
+];
 
 const MODE_LIST = [
   { id: 'normal', name: 'Normal' },

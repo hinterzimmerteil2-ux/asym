@@ -25,6 +25,7 @@ const MessageType = {
   SET_MODE: 'set_mode',
   MODE_EVENT: 'mode_event',
   HEARTBEAT: 'heartbeat',
+  EMOTE: 'emote',
   REPAIR_BLOCK: 'repair_block',
   SET_MAP: 'set_map',                   // client(host) -> server: { mapId }, elige el mapa para la próxima partida
 

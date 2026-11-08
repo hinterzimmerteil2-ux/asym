@@ -1589,3 +1589,22 @@ test('M1 golpea bloques en cualquier direccion aunque no haya Pacientes cerca', 
   }
   assert.ok(gs.blockHp[blk.id] > before);
 });
+
+test('emotes: bloquean habilidades, ralentizan 8%, se cancelan con aturdimiento y salto', () => {
+  const { room, e, p } = setup();
+  const now = Date.now();
+  assert.ok(room.startEmote('a', e.a, 'schadenfreude', now));
+  assert.ok(Status.blocksSkills(e.a, now));
+  assert.ok(Math.abs(Status.speedFactor(e.a, now) - 0.92) < 1e-9);
+  assert.ok(!room.startEmote('a', e.a, 'fue_el', now));
+  Status.apply(e.a, 'stun', 500, now);
+  assert.strictEqual(e.a.emote, null);
+  e.a.fx = {}; e.a.emoteCdUntil = 0;
+  assert.ok(room.startEmote('a', e.a, 'ya_pues', now));
+  room.applyPlayerInput('a', { jump: true });
+  assert.strictEqual(e.a.emote, null);
+  e.a.emoteCdUntil = 0;
+  assert.ok(!room.startEmote('a', e.a, 'pulso', now));
+  p.a.status = 'eliminated';
+  assert.ok(!room.startEmote('a', e.a, 'ya_pues', now));
+});

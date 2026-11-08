@@ -5,6 +5,7 @@ const KINDS = {
   ragdoll: { blocksMove: true, blocksSkills: true, id: 'ragdoll' },
   slow: { blocksMove: false, blocksSkills: false, id: 'ralentizado' },
   reveal: { blocksMove: false, blocksSkills: false, id: 'revelado' },
+  emote: { blocksMove: false, blocksSkills: true, id: 'emote', hidden: true },
 };
 
 function fx(entity) {
@@ -26,6 +27,10 @@ function level(entity, kind, now) {
 
 function apply(entity, kind, ms, now, opts = {}) {
   const store = fx(entity);
+  if (kind === 'stun' || kind === 'ragdoll') {
+    delete store.emote;
+    entity.emote = null;
+  }
   const cur = store[kind];
   const live = Boolean(cur) && cur.until > now;
   const base = opts.chain && live ? cur.until : now;
@@ -53,7 +58,7 @@ function blocksSkills(entity, now) {
 
 function speedFactor(entity, now) {
   const lv = level(entity, 'slow', now);
-  return lv ? SLOW_BY_LEVEL[Math.min(3, lv)] : 1;
+  return (lv ? SLOW_BY_LEVEL[Math.min(3, lv)] : 1) * (active(entity, 'emote', now) ? 0.92 : 1);
 }
 
 function push(entity, dx, dz, speed, ms, now) {
@@ -65,7 +70,7 @@ function push(entity, dx, dz, speed, ms, now) {
 function list(entity, now) {
   const out = [];
   for (const kind of Object.keys(KINDS)) {
-    if (!active(entity, kind, now)) continue;
+    if (KINDS[kind].hidden || !active(entity, kind, now)) continue;
     const f = entity.fx[kind];
     out.push({ id: kind === 'slow' && f.tag === 'endlag' ? 'endlag' : KINDS[kind].id, level: f.level, ms: f.until - now });
   }

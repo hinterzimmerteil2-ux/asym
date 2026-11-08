@@ -15,6 +15,7 @@ export const ACTIONS = [
   { id: 'dropmod', label: 'Soltar Módulo (Paciente)', def: 'KeyT' },
   { id: 'card1', label: 'Carta 1', def: 'Digit1' },
   { id: 'card2', label: 'Carta 2', def: 'Digit2' },
+  { id: 'emote', label: 'Emotes', def: 'KeyV' },
   { id: 'help', label: 'Ayuda', def: 'KeyH' },
   { id: 'hitboxes', label: 'Hitboxes', def: 'KeyB' },
   { id: 'shiftlock', label: 'Shiftlock', def: 'ControlLeft' },

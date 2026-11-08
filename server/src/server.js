@@ -324,6 +324,13 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.EMOTE: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.useEmote(playerId, msg.payload && msg.payload.id);
+        break;
+      }
+
       case MessageType.REPAIR_BLOCK: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;

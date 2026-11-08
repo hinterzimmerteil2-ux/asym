@@ -167,6 +167,7 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-end' }}>
             {actions}
             <Btn label="Salto" act="jump" size={sz} style={{ fontSize: 11 }} />
+            <Btn label="Emote" act="emote" size={sz} style={{ fontSize: 11 }} />
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             {useBtn}
@@ -183,6 +184,7 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
         <div style={{ display: 'flex', gap: 10 }}>{actions}</div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
           {useBtn}
+          <Btn label="Emote" act="emote" size={48} style={{ fontSize: 11 }} />
           <Btn label="Salto" act="jump" size={60} style={{ fontSize: 12 }} />
           <Btn label="Lento" act="slow" size={76} style={{ fontSize: 14 }} />
         </div>

@@ -360,6 +360,52 @@ function HerbStaff() {
   );
 }
 
+const EMOTE_MS = { fue_el: 1.8, schadenfreude: 2.2, costenas: 2.6, su_majestad: 1.8, ya_pues: 2.0, ni_me_mires: 2.0, ni_idea: 1.4, yo_me_encargo: 1.8, pulso: 1.8 };
+const lerpK = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+const EMOTE_POSES = {
+  fue_el: (t) => {
+    const wind = lerpK(t, 0, 0.3);
+    const slap = Math.max(0, Math.sin(lerpK(t, 0.3, 0.55) * Math.PI));
+    const point = lerpK(t, 0.55, 0.85);
+    const hand = t < 0.55 ? -2.2 + 0.3 * slap : -2.2 + 0.65 * point;
+    return { rax: hand * Math.max(wind, 1) + (t > 0.85 ? Math.sin(t * 14) * 0.08 : 0), raz: -0.85 * (1 - point), lax: -0.3 * point, pitch: 0.1 * point, hy: t > 0.3 && t < 0.7 ? Math.sin((t - 0.3) * 22) * 0.7 * (1 - lerpK(t, 0.5, 0.7)) : 0, yaw: slap * 0.25 };
+  },
+  schadenfreude: (t) => {
+    const k = Math.sin(t * 18);
+    const on = Math.min(1, t / 0.2);
+    return { lax: -1.5 + k * 0.15, rax: -1.5 - k * 0.15, laz: -0.15, raz: 0.15, pitch: (0.35 + k * 0.1) * on, hx: -0.4 * on, offY: Math.abs(k) * 0.04 };
+  },
+  costenas: (t) => {
+    const k = Math.sin(t * 5);
+    return { lax: -2.6 + k * 0.4, rax: -2.6 - k * 0.4, laz: -0.4, raz: 0.4, legL: k * 0.35, legR: -k * 0.35, roll: k * 0.12, yaw: k * 0.25, offY: Math.abs(k) * 0.05 };
+  },
+  su_majestad: (t) => {
+    const b = Math.sin(lerpK(t, 0, 0.6) * Math.PI / 2) * (1 - lerpK(t, 1.2, 1.8));
+    return { pitch: 0.9 * b, rax: -1.2, raz: -1.1, lax: 0.6, hx: 0.2 * b };
+  },
+  ya_pues: (t) => {
+    const k = Math.sin(t * 20) * 0.12;
+    const down = Math.min(1, t / 0.25);
+    return { offY: -0.35 * down, legL: -0.4 * down, legR: -1.4 * down, lax: -1.4 + k, rax: -1.4 - k, laz: -0.35, raz: 0.35, pitch: 0.15 * down, hx: 0.2 * down };
+  },
+  ni_me_mires: (t) => {
+    const down = Math.min(1, t / 0.2);
+    return { offY: -0.3 * down, pitch: 0.5 * down, lax: -2.9, rax: -2.9, laz: -0.5, raz: 0.5, roll: Math.sin(t * 30) * 0.03, legL: -0.5 * down, legR: -0.5 * down };
+  },
+  ni_idea: (t) => {
+    const up = Math.min(1, t / 0.25) * (1 - lerpK(t, 1.1, 1.4));
+    return { lax: -0.2, rax: -0.2, laz: -0.9 * up, raz: 0.9 * up, offY: 0.05 * Math.sin(up * Math.PI), hz: 0.3 * Math.sin(t * 6) * up };
+  },
+  yo_me_encargo: (t) => {
+    const on = Math.min(1, t / 0.25) * (1 - lerpK(t, 1.6, 1.8));
+    return { lax: -0.15 * on, rax: -0.15 * on, laz: -0.65 * on, raz: 0.65 * on, pitch: -0.12 * on, hx: -0.2 * on, lz: -0.18 * on, rz: 0.18 * on };
+  },
+  pulso: (t) => {
+    const on = Math.min(1, t / 0.3) * (1 - lerpK(t, 1.5, 1.8));
+    return { lax: -1.4 * on, laz: 0.2 * on, rax: -1.35 * on, raz: -0.9 * on, hx: 0.3 * on + (t > 1.2 ? Math.sin((t - 1.2) * 12) * 0.12 : 0) };
+  },
+};
+
 function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned, ragdoll, ghost, ghostOpacity = 0.65, cosmetics }) {
   const bodyRef = useRef();
   const lastPos = useRef([entityState.x, entityState.z]);
@@ -373,6 +419,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
   const rag = useRef({ on: false });
   const limbRefs = useRef([]);
   const rig = useRef({});
+  const headRef = useRef();
+  const emo = useRef({ id: null, start: 0 });
   const walk = useRef({ phase: 0, amp: 0, px: entityState.x, pz: entityState.z, py: entityState.y, air: 0, t: 0 });
   const targetPos = useRef([entityState.x, entityState.y, entityState.z]);
 
@@ -550,6 +598,16 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
       }
       const r6 = rig.current;
       let stompLeg = null;
+      const eid = entityState.emote ? entityState.emote.id : null;
+      if (eid !== emo.current.id) emo.current = { id: eid, start: performance.now() };
+      let ep = null;
+      let ew = 0;
+      if (eid && EMOTE_POSES[eid]) {
+        const et = (performance.now() - emo.current.start) / 1000;
+        ew = Math.max(0, Math.min(1, et / 0.15, (EMOTE_MS[eid] + 0.1 - et) / 0.15));
+        ep = EMOTE_POSES[eid](Math.min(et, EMOTE_MS[eid]));
+      }
+      const mix = (a, b) => (b === undefined ? a : a * (1 - ew) + b * ew);
       if (ha && ha.anim === 'stumble') {
         const st = Math.min(1, (Date.now() - ha.startedAt) / durOf(ha));
         stompLeg = st < 0.3 ? -1.5 * easeOut(st / 0.3) : -1.5 * Math.max(0, 1 - (st - 0.3) / 0.08);
@@ -559,13 +617,18 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         raz = 0.5;
       }
       if (r6.legL) {
-        r6.legL.rotation.x = swing * 1.1 + 0.5 * w.air;
-        r6.legR.rotation.x = stompLeg !== null ? stompLeg : -swing * 1.1 - 0.3 * w.air;
-        r6.armL.rotation.x = lax;
-        r6.armR.rotation.x = rax;
-        r6.armL.rotation.z = laz;
-        r6.armR.rotation.z = raz;
+        const lLeg = swing * 1.1 + 0.5 * w.air;
+        const rLeg = stompLeg !== null ? stompLeg : -swing * 1.1 - 0.3 * w.air;
+        r6.legL.rotation.x = ep ? mix(lLeg, ep.legL) : lLeg;
+        r6.legR.rotation.x = ep ? mix(rLeg, ep.legR) : rLeg;
+        r6.legL.rotation.z = ep ? mix(0, ep.lz) : 0;
+        r6.legR.rotation.z = ep ? mix(0, ep.rz) : 0;
+        r6.armL.rotation.x = ep ? mix(lax, ep.lax) : lax;
+        r6.armR.rotation.x = ep ? mix(rax, ep.rax) : rax;
+        r6.armL.rotation.z = ep ? mix(laz, ep.laz) : laz;
+        r6.armR.rotation.z = ep ? mix(raz, ep.raz) : raz;
       }
+      if (headRef.current) headRef.current.rotation.set(ep ? mix(0, ep.hx) : 0, ep ? mix(0, ep.hy) : 0, ep ? mix(0, ep.hz) : 0);
       const showRag = Boolean(ragdoll && entityState.rag && entityState.rag.p);
       body.visible = !showRag;
       const pa = HAND_ANIMS.get(playerId);
@@ -592,8 +655,12 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
           pitch = -0.3 * Math.sin(Math.min(1, pt * 3) * Math.PI / 2) * (1 - Math.max(0, pt - 0.7) / 0.3);
         }
       }
+      if (ep) {
+        pitch = mix(pitch, ep.pitch === undefined ? pitch : pitch + ep.pitch);
+        offY = mix(offY, ep.offY === undefined ? offY : offY + ep.offY);
+      }
       body.rotation.order = 'YXZ';
-      body.rotation.set(pitch, yaw.current, 0);
+      body.rotation.set(pitch, yaw.current + (ep && ep.yaw ? ep.yaw * ew : 0), ep && ep.roll ? ep.roll * ew : 0);
       body.position.set(Math.sin(yaw.current) * offF, offY, Math.cos(yaw.current) * offF);
       limbRefs.current.forEach((limb) => { if (limb) limb.visible = false; });
     }
@@ -618,7 +685,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
     <group ref={groupRef} position={targetPos.current}>
       <group ref={bodyRef}>
         <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
-        <group position={[0, 1.62, 0]}>
+        <group ref={headRef} position={[0, 1.62, 0]}>
           <mesh><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
           <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
           <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
