@@ -312,6 +312,7 @@ function registerMap(layout, dryRun) {
       ramp: ['+x', '-x', '+z', '-z'].includes(p.ramp) ? p.ramp : null,
       hp: Math.max(0, Math.min(40, Math.round(Number(p.hp) || 0))),
       regenMs: Math.max(0, Math.min(180000, Math.round(Number(p.regenMs) || 0))),
+      blockMax: Math.max(0, Math.min(200, Math.round(Number(p.blockMax) || 0))),
       kind: ['pit', 'gate', 'pgate', 'mezzanine', 'wall', 'partition', 'tower', 'roof', 'ramp'].includes(p.kind) ? p.kind : null,
       slab: p.kind === 'mezzanine' ? 0.4 : 0,
       y0: Math.max(0, Math.min(80, Number(p.y0) || 0)),
@@ -485,6 +486,7 @@ function resolvePlatforms(mapId, area) {
     stairs: p.stairs === true,
     hp: p.hp || 0,
     regenMs: p.regenMs || 0,
+    blockMax: p.blockMax || 0,
   }));
 }
 

@@ -1466,3 +1466,25 @@ test('modos: doble Curador asimetrico y cuerpos compartidos', () => {
   room.matchCount = 3;
   assert.ok(room.modeVoteOpen());
 });
+
+test('bloques: la cura los lleva al maximo y se rompen sin colision; el daño los repara', () => {
+  const GameMap = require('../src/GameMap');
+  const { room, e, p } = setup();
+  room.mapId = 'random';
+  const id = GameMap.generateMap(7);
+  room.mapId = id;
+  room.initGameState();
+  const blk = GameMap.resolvePlatforms(id, GameMap.areaFor(id)).find((x) => x.blockMax > 0);
+  assert.ok(blk);
+  const gs = room.gameState;
+  assert.ok(gs.blockHp[blk.id] < blk.blockMax);
+  const owner = { x: blk.x, z: blk.z, y: blk.y0 || 0, faceX: 0, faceZ: 1 };
+  for (let i = 0; i < 12; i++) room.healBlocks(owner, 0, 2, true, Date.now());
+  assert.ok(gs.blockBroken[blk.id]);
+  assert.ok(gs.hiddenPlatforms.includes(blk.id));
+  gs.entities.a.x = blk.x; gs.entities.a.z = blk.z; gs.entities.a.y = blk.y0 || 0;
+  p.a.status = 'alive';
+  room.players.get('a').isAsymRole = false;
+  for (let i = 0; i < 12; i++) { gs.entities.a.nextRepairAt = 0; room.repairBlock('a'); }
+  assert.ok(!gs.blockBroken[blk.id]);
+});

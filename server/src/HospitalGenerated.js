@@ -34,6 +34,7 @@ function build(seed, REF_HALF, sanitizeEvents) {
   const collisionObjects = [];
   const selfDamageObjects = [];
   const serums = [];
+  const blockRnd = () => rnd(0, 1);
   const plat = (id, x, z, hx, hz, h, ramp, kind, extra) =>
     platforms.push({ id, xFrac: x / HALF, zFrac: z / HALF, hxFrac: hx / REF_HALF, hzFrac: hz / REF_HALF, h, ramp: ramp || null, kind, ...(extra || {}) });
   const radii = { gurney: 0.04, shelf: 0.05, cart: 0.03, pillar: 0.033, bed: 0.045, vending: 0.03, mri: 0.08, wheelchair: 0.025, iv: 0.015, desk: 0.04, crate: 0.035, tank: 0.04, plant: 0.02 };
@@ -180,6 +181,11 @@ function build(seed, REF_HALF, sanitizeEvents) {
       const id = `${f}${room.row}${ri}`;
       const far = s * 28;
       const mid = s * 22;
+      if (blockRnd() < 0.7) {
+        const shape = [[1.1, 0.55, 0.9], [0.6, 0.6, 1.1], [1.2, 0.18, 1.7]][Math.floor(blockRnd() * 3)];
+        const left = blockRnd() < 0.5;
+        plat(`blk${id}`, left ? room.xa + 2.6 : room.xb - 2.6, s * 20.5, shape[0], shape[1], shape[2], null, null, { y0: f === 0 ? 0 : y0, blockMax: 60, tex: 'metal' });
+      }
       if (f === 0) {
         const types = { ward: ['bed', 'iv', 'wheelchair'], op: ['mri', 'iv', 'cart'], office: ['desk', 'plant', 'desk'], storage: ['shelf', 'crate', 'tank'] }[kind];
         let k = 0;

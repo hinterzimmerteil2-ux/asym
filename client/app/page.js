@@ -268,6 +268,8 @@ export default function LobbyPage() {
   const [lmsInfo, setLmsInfo] = useState(null);
   const [hiddenPlatforms, setHiddenPlatforms] = useState([]);
   const [plankHp, setPlankHp] = useState({});
+  const [blockHp, setBlockHp] = useState({});
+  const [blockBroken, setBlockBroken] = useState({});
   const [communityName, setCommunityName] = useState({});
   const myPosRef = useRef(null);
   const [hitboxes, setHitboxes] = useState({ on: false, opacity: 0.8 });
@@ -420,6 +422,8 @@ export default function LobbyPage() {
             setCuratorHp(payload.curator || null);
             setSpawnMs(payload.spawnMs || 0);
             setPlankHp((prev) => (sameValue(prev, payload.plankHp || {}) ? prev : payload.plankHp || {}));
+            setBlockHp((prev) => (sameValue(prev, payload.blockHp || {}) ? prev : payload.blockHp || {}));
+            setBlockBroken((prev) => (sameValue(prev, payload.blockBroken || {}) ? prev : payload.blockBroken || {}));
             setHiddenPlatforms((prev) => (sameValue(prev, payload.hiddenPlatforms || []) ? prev : payload.hiddenPlatforms || []));
             setMapEvents((prev) => (sameValue(prev, payload.events || []) ? prev : payload.events || []));
             {
@@ -1039,6 +1043,7 @@ export default function LobbyPage() {
   pressMinigameRef.current = () => {
     const g = sdRef.current;
     if (g && g.objectId) handleSendAction('self_damage_action', { objectId: g.objectId });
+    else if (!isAsymRole) connRef.current?.send('repair_block', {});
   };
   const goFullscreen = () => {
     const el = document.documentElement;
@@ -1073,6 +1078,8 @@ export default function LobbyPage() {
             platforms={phase === 'action' && !(isAsymRole && spawnMs > 0) ? visiblePlatforms : lobbyPlatforms}
             shakeIds={shakeIds}
             plankHp={plankHp}
+            blockHp={blockHp}
+            ghostBlocks={platforms.filter((pl) => pl.blockMax > 0 && blockBroken[pl.id])}
             sendInput={handleSendInput}
             sendAction={handleSendAction}
             onPulse={handlePulse}

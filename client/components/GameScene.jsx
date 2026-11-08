@@ -2152,6 +2152,8 @@ export default function GameScene({
   onShiftLockLost,
   shakeIds,
   plankHp,
+  blockHp,
+  ghostBlocks,
 }) {
   const settings = useSettings();
   const g = gfx(settings.quality);
@@ -2204,16 +2206,22 @@ export default function GameScene({
         />
       )}
 
+      {(ghostBlocks || []).map((p) => (
+        <mesh key={`gb${p.id}`} position={[p.x, (p.y0 || 0) + p.h / 2, p.z]}>
+          <boxGeometry args={[p.hx * 2, p.h, p.hz * 2]} />
+          <meshBasicMaterial color="#ff5a6e" transparent opacity={0.22} wireframe />
+        </mesh>
+      ))}
       {(() => {
         const solid = (platforms || []).filter((p) => p.kind !== 'pit');
-        const loose = (p) => p.tex || p.hp > 0 || p.kind === 'gate' || p.kind === 'pgate' || (shakeIds && shakeIds.includes(p.id));
+        const loose = (p) => p.tex || p.hp > 0 || p.blockMax > 0 || p.kind === 'gate' || p.kind === 'pgate' || (shakeIds && shakeIds.includes(p.id));
         const fixed = solid.filter((p) => !loose(p));
         return (
           <>
             <StaticMerge key={fixed.map((p) => p.id).join(',')} enabled={g.q < 4}>
               {fixed.map((p) => <MPlatform key={p.id} p={p} />)}
             </StaticMerge>
-            {solid.filter(loose).map((p) => <ShakeGroup key={p.id} on={Boolean(shakeIds && shakeIds.includes(p.id)) || (p.hp > 0 && plankHp && plankHp[p.id] !== undefined && plankHp[p.id] < p.hp && plankHp[p.id] > 0)}><MPlatform p={p.hp > 0 ? { ...p, dmg: 1 - (plankHp && plankHp[p.id] !== undefined ? plankHp[p.id] : p.hp) / p.hp } : p} /></ShakeGroup>)}
+            {solid.filter(loose).map((p) => <ShakeGroup key={p.id} on={Boolean(shakeIds && shakeIds.includes(p.id)) || (p.hp > 0 && plankHp && plankHp[p.id] !== undefined && plankHp[p.id] < p.hp && plankHp[p.id] > 0)}><MPlatform p={p.hp > 0 ? { ...p, dmg: 1 - (plankHp && plankHp[p.id] !== undefined ? plankHp[p.id] : p.hp) / p.hp } : p.blockMax > 0 ? { ...p, dmg: Math.min(1, (blockHp && blockHp[p.id] !== undefined ? blockHp[p.id] : p.blockMax * 0.35) / p.blockMax) } : p} /></ShakeGroup>)}
           </>
         );
       })()}

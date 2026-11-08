@@ -1118,6 +1118,11 @@ class Room {
     this.gameState.moduleHandler = {};
     this.gameState.plankHp = {};
     this.gameState.plankBroken = {};
+    this.gameState.blockHp = {};
+    this.gameState.blockBroken = {};
+    for (const bp of GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId))) {
+      if (bp.blockMax > 0) this.gameState.blockHp[bp.id] = Math.round(bp.blockMax * 0.35);
+    }
     for (const obj of selfDamagePositions) {
       this.gameState.selfDamageObjectPositions[obj.id] = { x: obj.x, y: obj.y, z: obj.z };
       this.gameState.selfDamageTypes[obj.id] = this.randomMinigame(obj.id);
@@ -1172,6 +1177,7 @@ class Room {
       const active = phases.some((p) => p.ev === ev && p.phase === 'active');
       if ((ev.kind === 'collapse' && active) || (ev.kind === 'appear' && !active)) hidden.push(ev.targetId);
     }
+    for (const id of Object.keys(this.gameState.blockBroken || {})) hidden.push(id);
     const broken = this.gameState.plankBroken || {};
     for (const id of Object.keys(broken)) {
       if (broken[id] <= now) {
@@ -1199,6 +1205,56 @@ class Room {
         this.gameState.selfDamageTypes = {};
         for (const id of Object.keys(this.gameState.selfDamageObjectPositions)) this.gameState.selfDamageTypes[id] = this.randomMinigame(id);
       }
+    }
+  }
+
+  blockNear(px, pz, y, radius) {
+    const out = [];
+    for (const p of GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId))) {
+      if (!(p.blockMax > 0)) continue;
+      const y0 = p.y0 || 0;
+      if (y > y0 + p.h + 0.6 || y + 2 < y0) continue;
+      const nx = Math.max(p.x - p.hx, Math.min(p.x + p.hx, px));
+      const nz = Math.max(p.z - p.hz, Math.min(p.z + p.hz, pz));
+      if (Math.hypot(nx - px, nz - pz) <= radius) out.push(p);
+    }
+    return out;
+  }
+
+  healBlocks(owner, reach, radius, around, now) {
+    const gs = this.gameState;
+    if (!gs.blockHp) return;
+    const px = around ? owner.x : owner.x + (owner.faceX || 0) * reach;
+    const pz = around ? owner.z : owner.z + (owner.faceZ || 1) * reach;
+    const amount = CURE_AMOUNT * (owner.cureBoostUntil > now ? owner.cureBoostFactor : 1);
+    for (const p of this.blockNear(px, pz, owner.y || 0, radius + 0.3)) {
+      if (gs.blockBroken[p.id]) continue;
+      gs.blockHp[p.id] = Math.min(p.blockMax, (gs.blockHp[p.id] ?? 0) + amount);
+      if (gs.blockHp[p.id] >= p.blockMax) {
+        gs.blockBroken[p.id] = true;
+        gs.hiddenPlatforms = [...new Set([...(gs.hiddenPlatforms || []), p.id])];
+        this.navCache = null;
+      }
+    }
+  }
+
+  repairBlock(playerId) {
+    const gs = this.gameState;
+    const entity = gs.entities[playerId];
+    const patient = gs.patients[playerId];
+    if (!entity || !patient || patient.status !== 'alive' || this.players.get(playerId)?.isAsymRole) return;
+    const now = Date.now();
+    if (now < (entity.nextRepairAt || 0)) return;
+    const near = this.blockNear(entity.x, entity.z, entity.y || 0, 2.2);
+    if (!near.length) return;
+    entity.nextRepairAt = now + 300;
+    const p = near[0];
+    gs.blockHp[p.id] = Math.max(0, (gs.blockHp[p.id] ?? 0) - 9);
+    if (gs.blockBroken[p.id] && gs.blockHp[p.id] <= p.blockMax * 0.5) {
+      delete gs.blockBroken[p.id];
+      gs.hiddenPlatforms = (gs.hiddenPlatforms || []).filter((id) => id !== p.id);
+      this.liftFromAppeared([p.id]);
+      this.navCache = null;
     }
   }
 
@@ -1432,6 +1488,8 @@ class Room {
         events: this.eventsFor(),
         hiddenPlatforms: this.gameState.hiddenPlatforms || [],
         plankHp: this.gameState.plankHp || {},
+        blockHp: this.gameState.blockHp || {},
+        blockBroken: this.gameState.blockBroken || {},
         spawnMs: player.isAsymRole ? Math.max(0, (this.gameState.curatorReleaseAt || 0) - now) : 0,
         zones: player.isAsymRole ? zones.map((z) => (z.mode ? { ...z, mode: null } : z)) : zones,
         revealed: player.isAsymRole ? Object.entries(this.gameState.entities).filter(([, e]) => Status.active(e, 'reveal', now) && !this.isInvisible(e, now)).map(([id]) => id) : [],
@@ -1964,9 +2022,9 @@ class Room {
       if (!win.planked) {
         win.planked = true;
         if (this.players.get(win.playerId)?.isAsymRole) {
-          if (win.kind === 'm1') this.healSpears(owner, M1_REACH, M1_RADIUS, false, now);
-          else if (win.kind === 'melee') this.healSpears(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now);
-          else if (win.kind === 'area') this.healSpears(owner, 0, win.skill.radius || 1, true, now);
+          if (win.kind === 'm1') { this.healSpears(owner, M1_REACH, M1_RADIUS, false, now); this.healBlocks(owner, M1_REACH, M1_RADIUS, false, now); }
+          else if (win.kind === 'melee') { this.healSpears(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now); this.healBlocks(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now); }
+          else if (win.kind === 'area') { this.healSpears(owner, 0, win.skill.radius || 1, true, now); this.healBlocks(owner, 0, win.skill.radius || 1, true, now); }
         }
         if (win.kind === 'm1') this.hitPlanks(owner, M1_REACH, M1_RADIUS, false, now);
         else if (win.kind === 'melee') this.hitPlanks(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now);

@@ -324,6 +324,13 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.REPAIR_BLOCK: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.repairBlock(playerId);
+        break;
+      }
+
       case MessageType.SELF_DAMAGE_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room || room.phase !== 'action') return;
