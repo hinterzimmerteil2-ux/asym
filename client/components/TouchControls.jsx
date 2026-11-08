@@ -119,8 +119,8 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
         <Stick />
         <div style={{ position: 'absolute', right: SAFE_R, bottom: SAFE_B, display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-          <Btn label="Lento" act="slow" size={60} style={{ fontSize: 12 }} />
-          <Btn label="Salto" act="jump" size={76} style={{ fontSize: 14 }} />
+          <Btn label="Salto" act="jump" size={60} style={{ fontSize: 12 }} />
+          <Btn label="Lento" act="slow" size={76} style={{ fontSize: 14 }} />
         </div>
       </div>
     );
@@ -166,11 +166,11 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
         <div style={{ position: 'absolute', right: SAFE_R, bottom: SAFE_B, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end', maxWidth: '52%' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-end' }}>
             {actions}
-            <Btn label="Lento" act="slow" size={sz} style={{ fontSize: 11 }} />
+            <Btn label="Salto" act="jump" size={sz} style={{ fontSize: 11 }} />
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             {useBtn}
-            <Btn label="Salto" act="jump" size={84} style={{ fontSize: 14 }} />
+            <Btn label="Lento" act="slow" size={84} style={{ fontSize: 14 }} />
           </div>
         </div>
       </div>
@@ -183,8 +183,8 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
         <div style={{ display: 'flex', gap: 10 }}>{actions}</div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
           {useBtn}
-          <Btn label="Lento" act="slow" size={60} style={{ fontSize: 12 }} />
-          <Btn label="Salto" act="jump" size={76} style={{ fontSize: 14 }} />
+          <Btn label="Salto" act="jump" size={60} style={{ fontSize: 12 }} />
+          <Btn label="Lento" act="slow" size={76} style={{ fontSize: 14 }} />
         </div>
       </div>
     </div>
