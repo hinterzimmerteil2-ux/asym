@@ -28,8 +28,8 @@ const COLOR_EMERGENCY_LIGHT = '#5468ff';
 
 const FACING = new Map();
 const HAND_ANIMS = new Map();
-const ANIM_DURATION = { swing: 650, swingL: 650, consume: 1700, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600, plant: 900 };
-const IMPACT_MS = { swing: 260, swingL: 260, consume: 1500, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150, plant: 520 };
+const ANIM_DURATION = { swing: 650, swingL: 650, consume: 1700, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600, plant: 900, vanish: 1000, pulse: 900, point: 750, pull: 900 };
+const IMPACT_MS = { swing: 260, swingL: 260, consume: 1500, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150, plant: 520, vanish: 400, pulse: 350, point: 300, pull: 450 };
 const HOLD_MS = { card_tropiezo: 1200, card_paraguayizador: 1000, card_acetilcolina: 1300, card_tajo_carmesi: 800, card_red_mist: 800, skill_melee_stun: 800, skill_golpe_aturdidor: 650, card_rodar: 650 };
 const durOf = (h) => (h && (h.ms || ANIM_DURATION[h.anim])) || 1;
 const STATE_HELD = new Set(['card_chicharron', 'card_goyslop', 'card_astral_claw', 'card_grito_animo']);
@@ -54,13 +54,19 @@ const ANIM_BY_KIND = {
   skill_somnifero_valeriana: 'throw',
   skill_ronda_suero: 'throw',
   skill_desinfectante: 'throw',
-  skill_pulso_hierbas: 'cast',
-  skill_anestesia: 'cast',
-  skill_camilla_magnetica: 'cast',
+  skill_pulso_hierbas: 'pulse',
+  skill_pulse: 'pulse',
+  skill_anestesia: 'point',
+  skill_stun: 'point',
+  skill_camilla_magnetica: 'pull',
+  skill_pull: 'pull',
+  skill_raiz_atrayente: 'plant',
+  skill_boost: 'consume',
+  skill_purge: 'throw',
   card_grito_animo: 'cast',
   card_risa_enlatada: 'cast',
   card_risa_macabra: 'cast',
-  card_paraguayizador: 'cast',
+  card_paraguayizador: 'vanish',
 };
 
 function easeOut(t) {
@@ -90,6 +96,29 @@ function HeldItem({ held }) {
       group.rotation.set(0, 0, 0);
       group.children[0].position.set(0, 0, 0);
       group.scale.setScalar(0.9 + 0.12 * Math.sin(t * 40));
+    } else if (held.anim === 'vanish') {
+      group.visible = t < 0.45;
+      group.position.set(0.1, 1.2 + t * 0.6, 0.55);
+      group.rotation.set(0, t * 14, 0);
+      group.children[0].position.set(0, 0, 0);
+      group.scale.setScalar(Math.max(0.01, 1.2 * (1 - t / 0.45)));
+    } else if (held.anim === 'pulse') {
+      group.position.set(0, 1.35, 0.5 + 0.5 * easeOut(t));
+      group.rotation.set(0, t * 8, 0);
+      group.children[0].position.set(0, 0, 0);
+      group.scale.setScalar(Math.max(0.01, (0.7 + 0.8 * easeOut(t)) * (1 - t * 0.6)));
+    } else if (held.anim === 'point') {
+      const go = t < 0.4 ? 0 : (t - 0.4) / 0.6;
+      group.position.set(0.5, 1.15, 0.5 + 2.4 * go);
+      group.rotation.set(0, 0, go * 6);
+      group.children[0].position.set(0, 0, 0);
+      group.scale.setScalar(Math.max(0.01, 1.0 * (1 - go * 0.7)));
+    } else if (held.anim === 'pull') {
+      const back = t < 0.35 ? 0 : (t - 0.35) / 0.65;
+      group.position.set(0, 1.2, 1.8 - 1.4 * easeOut(back));
+      group.rotation.set(0, t * 6, 0);
+      group.children[0].position.set(0, 0, 0);
+      group.scale.setScalar(Math.max(0.01, 1.2 * (1 - back * 0.6)));
     } else if (held.anim === 'stumble' || held.anim === 'roll') {
       group.position.set(0, 2.5 + 0.12 * Math.sin(t * 14), 0);
       group.rotation.set(0, 0, 0);
@@ -124,7 +153,7 @@ function HeldItem({ held }) {
       group.scale.setScalar(1.3 + 0.3 * Math.sin(t * 12));
     }
   });
-  if (!held) return null;
+  if (!held || !held.prop) return null;
   return (
     <group ref={groupRef}>
       <group>
@@ -159,10 +188,10 @@ function StateHeld({ holdRef }) {
         const emerge = easeOut(Math.min(1, el / 700));
         const charge = ready ? 1 : Math.min(1, el / 5000);
         if (ready) {
-          claw.current.position.set(0.54, 1.98, 0.5);
-          claw.current.rotation.set(-1.0, 0, 0);
+          claw.current.position.set(0.54, 2.0, 0.5);
+          claw.current.rotation.set(-1.2, 0, 0);
         } else {
-          claw.current.position.set(0.54, 1.12 + Math.sin(T * 3) * 0.015, 0.66 * emerge);
+          claw.current.position.set(0.54, 1.3 + Math.sin(T * 3) * 0.015, 0.66 * emerge);
           claw.current.rotation.set(0, 0, 0);
         }
         claw.current.scale.setScalar(Math.max(0.01, emerge * (ready ? 1.25 : 1)));
@@ -171,17 +200,13 @@ function StateHeld({ holdRef }) {
           orb.current.scale.setScalar((0.03 + 0.15 * charge) * pulse);
           orb.current.material.color.setRGB(0.72 + 0.28 * charge, 0.5 + 0.45 * charge, 1 - 0.55 * charge);
         }
-        if (talons.current) talons.current.children.forEach((tl, i) => {
-          const base = (i - 1.5) * -0.2;
-          tl.rotation.z = base * (1 - 0.35 * charge) + Math.sin(T * 14 + i) * 0.015 * charge;
-        });
         const rate = 0.7 + 1.5 * charge;
         motes.current.forEach((m, i) => {
           if (!m) return;
           const ph = (T * rate + i / motes.current.length) % 1;
           const r = 0.75 * (1 - ph) + 0.02;
           const a = i * 2.4 + T * (2 + 3 * charge);
-          m.position.set(Math.cos(a) * r, -0.22 + Math.sin(i * 1.7) * r * 0.7, Math.sin(a) * r);
+          m.position.set(Math.cos(a) * r, -0.64 + Math.sin(i * 1.7) * r * 0.7, Math.sin(a) * r);
           m.scale.setScalar((0.022 + 0.03 * ph) * (0.4 + charge));
           m.visible = ph > 0.05;
         });
@@ -217,18 +242,19 @@ function StateHeld({ holdRef }) {
   return (
     <>
       <group ref={claw} visible={false}>
-        <mesh position={[0, 0.02, 0]}><boxGeometry args={[0.24, 0.1, 0.24]} /><meshStandardMaterial color="#363b52" metalness={0.9} roughness={0.28} /></mesh>
-        <mesh position={[0, 0.09, 0]}><boxGeometry args={[0.3, 0.04, 0.3]} /><meshStandardMaterial color="#8d9bd6" metalness={1} roughness={0.18} emissive="#5a3fd0" emissiveIntensity={0.35} /></mesh>
-        <mesh position={[0, 0.02, 0]}><boxGeometry args={[0.26, 0.015, 0.26]} /><meshBasicMaterial color="#9a7bff" /></mesh>
-        <group ref={talons} position={[0, -0.04, 0]}>
-          {[0, 1, 2, 3].map((i) => (
-            <group key={i} position={[(i - 1.5) * 0.08, 0, 0]}>
-              <mesh position={[0, -0.17, 0]} rotation={[Math.PI, 0, 0]}><coneGeometry args={[0.038, 0.36, 5]} /><meshStandardMaterial color="#d6dcff" metalness={1} roughness={0.15} emissive="#6a4cff" emissiveIntensity={0.45} /></mesh>
-              <mesh position={[0, -0.345, 0]}><sphereGeometry args={[0.02, 6, 5]} /><meshBasicMaterial color="#ffe9a8" /></mesh>
-            </group>
-          ))}
+        <mesh position={[0, 0.02, 0]}><boxGeometry args={[0.1, 0.16, 0.1]} /><meshStandardMaterial color="#2b2e3d" metalness={0.8} roughness={0.35} /></mesh>
+        <mesh position={[0, 0.12, 0]}><sphereGeometry args={[0.07, 8, 6]} /><meshStandardMaterial color="#1c1e29" metalness={0.8} roughness={0.4} /></mesh>
+        {[0, 1, 2].map((i) => (
+          <mesh key={i} position={[0, -0.12 - i * 0.16, 0]}><boxGeometry args={[0.07 - i * 0.008, 0.15, 0.07 - i * 0.008]} /><meshStandardMaterial color={i % 2 ? '#3a3f55' : '#242736'} metalness={0.9} roughness={0.3} emissive="#4a30b0" emissiveIntensity={0.25} /></mesh>
+        ))}
+        <group ref={talons} position={[0, -0.64, 0]}>
+          <group rotation={[0, 0, -0.62]}>
+            <mesh><torusGeometry args={[0.15, 0.032, 8, 20, 4.4]} /><meshStandardMaterial color="#2c2f40" metalness={1} roughness={0.22} emissive="#6a4cff" emissiveIntensity={0.4} /></mesh>
+            <mesh position={[0.15, 0, 0]}><sphereGeometry args={[0.04, 8, 6]} /><meshStandardMaterial color="#b85a2a" metalness={0.6} roughness={0.5} emissive="#ff8a3a" emissiveIntensity={0.5} /></mesh>
+            <mesh position={[Math.cos(4.4) * 0.15, Math.sin(4.4) * 0.15, 0]}><sphereGeometry args={[0.04, 8, 6]} /><meshStandardMaterial color="#b85a2a" metalness={0.6} roughness={0.5} emissive="#ff8a3a" emissiveIntensity={0.5} /></mesh>
+          </group>
         </group>
-        <mesh ref={orb} position={[0, -0.22, 0]}><sphereGeometry args={[1, 14, 10]} /><meshBasicMaterial color="#b88cff" transparent opacity={0.9} depthWrite={false} /></mesh>
+        <mesh ref={orb} position={[0, -0.64, 0]}><sphereGeometry args={[1, 14, 10]} /><meshBasicMaterial color="#b88cff" transparent opacity={0.9} depthWrite={false} /></mesh>
         {Array.from({ length: 10 }, (_, i) => (
           <mesh key={i} ref={(el) => { motes.current[i] = el; }} visible={false}><octahedronGeometry args={[1, 0]} /><meshBasicMaterial color={i % 2 ? '#ffe9a8' : '#b88cff'} transparent opacity={0.9} depthWrite={false} /></mesh>
         ))}
@@ -437,6 +463,27 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
           rax = 1.4 * Math.sin(ht * 14);
           laz = -0.8;
           raz = 0.8;
+        } else if (ha.anim === 'vanish') {
+          const wr = easeOut(Math.min(1, ht / 0.3));
+          lax = rax = -0.9 * wr;
+          laz = 0.65 * wr;
+          raz = -0.65 * wr;
+        } else if (ha.anim === 'pulse') {
+          const fw = easeOut(Math.min(1, ht / 0.3));
+          const sp = ht < 0.3 ? 0 : easeOut(Math.min(1, (ht - 0.3) / 0.4));
+          lax = rax = -1.5 * fw;
+          laz = -0.1 - 0.9 * sp;
+          raz = 0.1 + 0.9 * sp;
+        } else if (ha.anim === 'point') {
+          const up = easeOut(Math.min(1, ht / 0.35));
+          rax = -1.55 * up;
+          lax = -0.3 * up;
+        } else if (ha.anim === 'pull') {
+          const ex = easeOut(Math.min(1, ht / 0.35));
+          const rt = ht < 0.35 ? 0 : easeOut(Math.min(1, (ht - 0.35) / 0.5));
+          lax = rax = -1.6 * ex + 1.0 * rt;
+          laz = -0.15;
+          raz = 0.15;
         } else if (ha.anim === 'roll') {
           lax = -2.8;
           rax = -2.8;
@@ -534,6 +581,13 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         } else if (pa.anim === 'stumble') {
           pitch = pt < 0.3 ? -0.18 * (pt / 0.3) : 0.2 * Math.max(0, 1 - (pt - 0.3) / 0.25);
           offY = pt >= 0.3 && pt < 0.4 ? -0.08 : 0;
+        } else if (pa.anim === 'vanish') {
+          offY = -0.12 * Math.sin(Math.min(1, pt / 0.4) * Math.PI / 2);
+          pitch = 0.15 * Math.sin(Math.min(1, pt / 0.4) * Math.PI / 2);
+        } else if (pa.anim === 'pull') {
+          pitch = pt < 0.35 ? 0.1 * (pt / 0.35) : 0.1 - 0.35 * Math.min(1, (pt - 0.35) / 0.5);
+        } else if (pa.anim === 'point') {
+          pitch = 0.12 * Math.sin(Math.min(1, pt / 0.5) * Math.PI);
         } else if (pa.anim === 'shout') {
           pitch = -0.3 * Math.sin(Math.min(1, pt * 3) * Math.PI / 2) * (1 - Math.max(0, pt - 0.7) / 0.3);
         }
@@ -1495,7 +1549,7 @@ function PropMesh({ kind, color }) {
 function Particles({ effect, fx }) {
   const refs = useRef([]);
   const propRef = useRef();
-  const anim = fx.prop && fx.prop !== 'roots' && !STATE_HELD.has(effect.kind) ? ANIM_BY_KIND[effect.kind] || 'cast' : null;
+  const anim = fx.prop && !STATE_HELD.has(effect.kind) ? ANIM_BY_KIND[effect.kind] || (fx.prop === 'roots' ? 'plant' : 'cast') : null;
   const duration = fx.prop ? 1300 : 900;
   const impact = fx.prop === 'roots' ? 0.25 : anim ? IMPACT_MS[anim] / duration : fx.prop ? 0.4 : 0;
   const yawAtCast = FACING.get(effect.casterId) || 0;
@@ -1504,7 +1558,7 @@ function Particles({ effect, fx }) {
 
   useEffect(() => {
     if (anim && effect.casterId) {
-      HAND_ANIMS.set(effect.casterId, { id: effect.id, anim, ms: HOLD_MS[effect.kind], prop: fx.prop, color: fx.liquid || fx.color, startedAt: effect.startedAt });
+      HAND_ANIMS.set(effect.casterId, { id: effect.id, anim, ms: HOLD_MS[effect.kind], prop: fx.prop === 'roots' ? null : fx.prop, color: fx.liquid || fx.color, startedAt: effect.startedAt });
     }
   }, []);
   const particles = Array.from({ length: fx.count }, (_, i) => {
@@ -1523,7 +1577,7 @@ function Particles({ effect, fx }) {
 
   useFrame(() => {
     const t = (Date.now() - effect.startedAt) / duration;
-    if (propRef.current && !anim) {
+    if (propRef.current && (!anim || fx.prop === 'roots')) {
       const fall = Math.max(0, Math.min(1, (t - 0.18) / (impact - 0.18)));
       propRef.current.visible = t < impact;
       if (fx.prop === 'roots') {
@@ -1559,7 +1613,7 @@ function Particles({ effect, fx }) {
 
   return (
     <group position={[effect.x + originX, 0, effect.z + originZ]}>
-      {fx.prop && !anim && <group ref={propRef}><PropMesh kind={fx.prop} color={fx.liquid || fx.color} /></group>}
+      {fx.prop && (!anim || fx.prop === 'roots') && <group ref={propRef}><PropMesh kind={fx.prop} color={fx.liquid || fx.color} /></group>}
       {particles.map((p, i) => (
         <mesh key={i} ref={(el) => { refs.current[i] = el; }} visible={false}>
           {fx.shape === 'shard' && <tetrahedronGeometry args={[p.size * 1.4, 0]} />}
