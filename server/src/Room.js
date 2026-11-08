@@ -186,6 +186,7 @@ const SD_VARIANTS = {
 };
 const SD_EASY = ['pulso', 'termometro', 'pelota'];
 const SD_NORMAL = ['rhythm', 'needle', 'mash', 'meter', 'ampolla', 'xilofono', 'tambores', 'boton', 'manometro', 'turbina'];
+const HEART_RANGE = 32;
 const MODES = ['normal', 'dual', 'shared', 'infection', 'lights', 'gravity'];
 const MODULE_RELOCATE_MS = 2000;
 const LOCK_DAMAGE = 20;
@@ -823,6 +824,21 @@ class Room {
       const near = infected.some(([iid]) => gs.entities[iid] && distanceBetween(e, gs.entities[iid]) < 2.5);
       p.contagion = near ? (p.contagion || 0) + dt : Math.max(0, (p.contagion || 0) - dt);
       if (p.contagion >= 4) { p.infected = true; p.contagion = 0; }
+    }
+  }
+
+  sendHeartbeats() {
+    const gs = this.gameState;
+    const curators = [...this.players.entries()].filter(([, p]) => p.isAsymRole).map(([id]) => gs.entities[id]).filter(Boolean);
+    for (const [id, p] of this.players) {
+      if (p.isBot || p.isAsymRole) continue;
+      const patient = gs.patients[id];
+      const entity = gs.entities[id];
+      if (!patient || patient.status !== 'alive' || !entity) continue;
+      let d = Infinity;
+      for (const c of curators) d = Math.min(d, distanceBetween(entity, c));
+      const level = d >= HEART_RANGE ? 0 : Math.round((1 - d / HEART_RANGE) * 100) / 100;
+      this.sendTo(id, MessageType.HEARTBEAT, { level });
     }
   }
 
@@ -2294,6 +2310,10 @@ class Room {
   tickZones(now, dt) {
     this.tickModuleRelocations(now);
     this.tickMode(now, dt);
+    if (this.phase === 'action' && !this.tutorial && (!this.nextHeartAt || now >= this.nextHeartAt)) {
+      this.nextHeartAt = now + 250;
+      this.sendHeartbeats();
+    }
     let statusChanged = false;
     for (const [playerId, entity] of Object.entries(this.gameState.entities)) {
       const dot = entity.rimacDot;

@@ -284,6 +284,7 @@ export default function LobbyPage() {
   const [secondCuratorId, setSecondCuratorId] = useState(null);
   const [modeVoteOpen, setModeVoteOpen] = useState(false);
   const [gravityFactor, setGravityFactor] = useState(1);
+  const [heartLevel, setHeartLevel] = useState(0);
   const [modeBanner, setModeBanner] = useState('');
   const [seedInput, setSeedInput] = useState('');
   const [matchSeed, setMatchSeed] = useState(null);
@@ -360,6 +361,9 @@ export default function LobbyPage() {
             setModeVoteOpen(Boolean(payload.modeVoteOpen));
             setMutation(payload.mutation || 'none');
             setMutations(payload.mutations || []);
+            break;
+          case 'heartbeat':
+            setHeartLevel(payload.level || 0);
             break;
           case 'mode_event':
             if (payload.kind === 'gravity') {
@@ -1451,6 +1455,9 @@ export default function LobbyPage() {
           </div>
         )}
 
+        {phase === 'action' && !isAsymRole && heartLevel > 0.03 && patients[myPlayerId]?.status === 'alive' && (
+          <div aria-hidden className="heart-pulse" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3, '--lvl': heartLevel, animationDuration: `${(1.25 - 0.8 * heartLevel).toFixed(2)}s`, boxShadow: `inset 0 0 ${60 + 120 * heartLevel}px rgba(255,40,60,${(0.15 + 0.6 * heartLevel).toFixed(2)})` }} />
+        )}
         {phase === 'action' && mode === 'gravity' && (modeBanner || gravityFactor !== 1) && (
           <div className="beat" style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 35, padding: '6px 14px', borderRadius: 10, background: 'rgba(20,10,16,0.8)', border: `1px solid ${gravityFactor < 1 ? '#54d1f2' : '#ff9a5a'}`, color: '#fff', fontWeight: 800, pointerEvents: 'none' }}>
             {modeBanner || (gravityFactor < 1 ? 'Gravedad baja' : 'Gravedad alta')}

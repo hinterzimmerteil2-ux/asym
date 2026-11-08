@@ -24,6 +24,7 @@ const MessageType = {
   SET_MUTATION: 'set_mutation',
   SET_MODE: 'set_mode',
   MODE_EVENT: 'mode_event',
+  HEARTBEAT: 'heartbeat',
   SET_MAP: 'set_map',                   // client(host) -> server: { mapId }, elige el mapa para la próxima partida
 
   // --- Nombre de jugador ---
