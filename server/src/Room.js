@@ -2646,7 +2646,7 @@ class Room {
   sendCardOffer(playerId, entity) {
     this.sendTo(playerId, MessageType.CARD_OFFER, {
       slots: entity.hand.map((slot) => ({
-        options: slot.options.map((id) => Cards.getCard(id)),
+        options: (slot.options || []).map((id) => Cards.getCard(id)),
         chosen: slot.chosen ? Cards.getCard(slot.chosen) : null,
       })),
       draftEndsAt: entity.draftEndsAt,
@@ -2660,7 +2660,9 @@ class Room {
       for (let guard = 0; guard < entity.hand.length; guard++) {
         const index = entity.hand.findIndex((slot) => !slot.chosen);
         if (index === -1) break;
-        this.takeCard(playerId, entity, index, entity.hand[index].options[0]);
+        const first = (entity.hand[index].options || [])[0];
+        if (!first) break;
+        this.takeCard(playerId, entity, index, first);
       }
       entity.draftEndsAt = 0;
     }
@@ -2719,7 +2721,7 @@ class Room {
 
   takeCard(playerId, entity, index, cardId) {
     this.finalizeChoice(playerId, index, cardId);
-    for (const sl of entity.hand) if (!sl.chosen) sl.options = sl.options.filter((id) => id !== cardId);
+    for (const sl of entity.hand) if (!sl.chosen && sl.options) sl.options = sl.options.filter((id) => id !== cardId);
     if (entity.hand.every((sl) => sl.chosen)) entity.draftEndsAt = 0;
     this.sendCardOffer(playerId, entity);
   }
