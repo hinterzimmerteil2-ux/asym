@@ -34,6 +34,10 @@ const KIT_STYLE = {
   loquito: { color: '#e0555f', stats: [2, 4, 3] },
   hincha: { color: '#f2d154', stats: [4, 2, 2] },
   cobrador: { color: '#54d1f2', stats: [5, 3, 4] },
+  cheff: { color: '#ff9a5a', stats: [2, 2, 3] },
+  quijote: { color: '#7dff8a', stats: [3, 5, 2] },
+  paragua: { color: '#e07cf2', stats: [3, 4, 3] },
+  enfermero: { color: '#9ad0ff', stats: [4, 3, 5] },
 };
 
 function KitPicker({ roles, onPick }) {

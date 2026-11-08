@@ -20,6 +20,34 @@ const ROLES = [
     card: 'tajo_carmesi',
     pool: ['tropiezo', 'rodar', 'acetilcolina', 'red_mist'],
   },
+  {
+    id: 'cheff',
+    name: 'Cocinero de Carretilla',
+    tagline: 'Comida y aguante',
+    card: 'goyslop',
+    pool: ['chicharron', 'acetilcolina', 'rodar', 'cascara_platano'],
+  },
+  {
+    id: 'quijote',
+    name: 'Gerente Quijote del Paradero',
+    tagline: 'Lanzas y estorbos',
+    card: 'lanza_quijote',
+    pool: ['tropiezo', 'rodar', 'grito_animo', 'red_mist'],
+  },
+  {
+    id: 'paragua',
+    name: 'Paragüero de Madrugada',
+    tagline: 'Paraguas y sorpresas',
+    card: 'paraguayizador',
+    pool: ['agua_rimac', 'tropiezo', 'acetilcolina', 'rodar'],
+  },
+  {
+    id: 'enfermero',
+    name: 'Enfermero de la Garra',
+    tagline: 'Garra y sigilo',
+    card: 'astral_claw',
+    pool: ['red_mist', 'tajo_carmesi', 'rodar', 'tropiezo'],
+  },
 ];
 
 function getRole(id) {
