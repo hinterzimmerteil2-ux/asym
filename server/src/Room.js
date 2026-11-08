@@ -137,6 +137,7 @@ const {
   ACETIL_DRAIN_FACTOR,
 } = require('./Constants');
 const LOBBY_WAIT_MS = Number(process.env.LOBBY_WAIT_MS) || 60000;
+const BotBrain = require('./BotBrain');
 const Status = require('./Status');
 const FIELD_KINDS = new Set(['herbs', 'drip', 'gas', 'rootshot', 'dart', 'gurney']);
 const LMS_GIMMICKS = ['adrenalina', 'reflejos', 'escudo', 'codicia'];
@@ -258,16 +259,15 @@ class Room {
     if (!this.navCache) this.navCache = new Map();
     let entry = this.navCache.get(key);
     if (!entry) {
-      if (this.navCache.size > 24) this.navCache.clear();
+      if (this.navCache.size > 3) this.navCache.clear();
       const area = GameMap.areaFor(this.mapId);
       const objects = GameMap.resolveCollisionObjects(this.mapId, area);
       const all = GameMap.resolvePlatforms(this.mapId, area).filter((p) => !hidden.includes(p.id));
       const cur = gates === 'lock' ? all : all.filter((p) => p.kind !== 'gate');
       const pat = (gates === 'open' ? cur : all).filter((p) => p.kind !== 'pgate');
-      entry = {
-        grid: Pathfinding.buildGrid(area.halfSize, objects, pat),
-        gridCur: Pathfinding.buildGrid(area.halfSize, objects, cur),
-      };
+      const grid = Pathfinding.buildGrid(area.halfSize, objects, pat);
+      const sameSides = !all.some((p) => p.kind === 'gate' || p.kind === 'pgate');
+      entry = { grid, gridCur: sameSides ? grid : Pathfinding.buildGrid(area.halfSize, objects, cur) };
       this.navCache.set(key, entry);
     }
     this.nav = entry;
@@ -352,7 +352,16 @@ class Room {
       if (patientId === player.curTarget) kept = { id: patientId, entity: other, d };
       if (d < targetDist) { targetDist = d; target = { id: patientId, entity: other }; }
     }
-    if (kept && kept.d <= targetDist * 1.3 + 2) { target = { id: kept.id, entity: kept.entity }; targetDist = kept.d; }
+    const mind = player.mind || (player.mind = BotBrain.createMind());
+    const prog = player.curProgress;
+    if (kept && prog && prog.id === kept.id) {
+      const hpNow = this.gameState.patients[kept.id].hp;
+      if (hpNow > prog.hp + 0.5) { prog.hp = hpNow; prog.at = now; mind.confidence = Math.min(1, mind.confidence + 0.08); mind.frustration = Math.max(0, mind.frustration - 0.1); }
+      else if (now - prog.at > 1800 + 2500 * mind.patience) { mind.frustration = Math.min(1, mind.frustration + 0.35); prog.at = now; kept = null; }
+    }
+    if (kept && kept.d <= targetDist * (1.1 + 0.6 * mind.patience) + 2) { target = { id: kept.id, entity: kept.entity }; targetDist = kept.d; }
+    if (target && (!prog || prog.id !== target.id)) player.curProgress = { id: target.id, hp: this.gameState.patients[target.id].hp, at: now };
+    mind.frustration = Math.max(0, mind.frustration - 0.004);
     player.curTarget = target ? target.id : null;
     if (!target) {
       entity.input.moveX = 0;
@@ -403,11 +412,11 @@ class Room {
       player.nextBotAct = now + 550;
     }
     if (now > (player.nextBotCard || 0)) {
-      player.nextBotCard = now + 1200 + Math.random() * 1500;
+      player.nextBotCard = now + 900 + 1300 * (1 - mind.bravery) + 600 * mind.frustration + Math.random() * 1500;
       const bl = Math.hypot(target.entity.x - entity.x, target.entity.z - entity.z) || 1;
       entity.faceX = (target.entity.x - entity.x) / bl;
       entity.faceZ = (target.entity.z - entity.z) / bl;
-      const skillIndex = targetDist <= 2.5 && Math.random() < 0.4 ? 'melee' : Math.floor(Math.random() * 4);
+      const skillIndex = targetDist <= 2.5 && Math.random() < 0.2 + 0.4 * mind.bravery ? 'melee' : Math.floor(Math.random() * 4);
       this.applyCuratorPulse(botId, skillIndex);
     }
   }
@@ -450,6 +459,11 @@ class Room {
         const ce = this.gameState.entities[otherId];
         if (ce) { curatorEntity = ce; curatorDist = euclid(entity, ce); }
       }
+      const mind = player.mind || (player.mind = BotBrain.createMind());
+      let fallen = 0;
+      for (const pt of Object.values(this.gameState.patients)) if (pt.status !== 'alive') fallen++;
+      BotBrain.feel(mind, { dist: curatorDist, hp: patient.hp, fallen }, now);
+      const [wantWork, wantEvade, wantRest] = BotBrain.think(mind, { dist: curatorDist, hpFrac: patient.hp / (patient.maxHp || 100), flo: entity.flojera / (entity.flojeraMax || 100) });
       let best = null;
       let bestDist = Infinity;
       let bestScore = Infinity;
@@ -457,7 +471,7 @@ class Room {
       for (const [objectId, pos] of Object.entries(this.gameState.selfDamageObjectPositions)) {
         const d = distanceBetween(entity, pos);
         const danger = curatorEntity ? Math.max(0, 14 - euclid(curatorEntity, pos)) : 0;
-        const score = d + danger * 1.5;
+        const score = d + danger * (0.6 + 1.8 * mind.caution);
         if (objectId === player.sdTarget) keptTarget = { objectId, pos, d, score };
         if (score < bestScore) { bestScore = score; bestDist = d; best = { objectId, pos }; }
       }
@@ -467,7 +481,13 @@ class Room {
       }
       if (!best) continue;
       player.sdTarget = best.objectId;
-      if (bestDist <= INTERACTION_RADIUS - 0.3) {
+      if (wantRest > 0.55 && curatorDist > 8 && bestDist > INTERACTION_RADIUS) {
+        entity.input.moveX = 0;
+        entity.input.moveZ = 0;
+        entity.input.slow = true;
+        continue;
+      }
+      if (bestDist <= INTERACTION_RADIUS - 0.3 && !(wantEvade > 0.7 && curatorDist < 5 && !entity.selfDmg)) {
         entity.input.moveX = 0;
         entity.input.moveZ = 0;
         const sg = entity.selfDmg;
@@ -489,11 +509,12 @@ class Room {
         }
       } else {
         this.botSteer(player, entity, best.pos, now, 0.15);
-        if (curatorEntity && curatorDist < 6) {
+        const fleeRange = 3 + 7 * wantEvade;
+        if (curatorEntity && curatorDist < fleeRange) {
           const ax = entity.x - curatorEntity.x;
           const az = entity.z - curatorEntity.z;
           const al = Math.hypot(ax, az) || 1;
-          const w = 1.4 * (1 - curatorDist / 6);
+          const w = (0.6 + 1.6 * wantEvade) * (1 - curatorDist / fleeRange);
           const mx = entity.input.moveX + (ax / al) * w;
           const mz = entity.input.moveZ + (az / al) * w;
           const ml = Math.hypot(mx, mz) || 1;
@@ -502,12 +523,12 @@ class Room {
         }
         entity.input.slow = curatorDist > 9 && (entity.flojera < 20 || entity.flojeraLockedUntil > now);
       }
-      if (curatorEntity && curatorDist < 3.2) {
+      if (curatorEntity && curatorDist < 2 + 2.5 * mind.fear) {
         const rollSlot = entity.hand.findIndex((sl) => sl && sl.chosen === 'rodar');
         if (rollSlot >= 0) this.useCard(botId, rollSlot);
       }
       if (now > (player.nextBotCard || 0)) {
-        player.nextBotCard = now + 3000 + Math.random() * 4000;
+        player.nextBotCard = now + (2200 + 2500 * (1 - mind.confidence)) + Math.random() * 3500;
         const slotIndex = Math.floor(Math.random() * entity.hand.length);
         if (entity.hand[slotIndex]?.chosen) this.useCard(botId, slotIndex);
       }
@@ -3512,6 +3533,11 @@ class Room {
 
   switchPhase(newPhase, reason = '') {
     this.phase = newPhase;
+    if (newPhase === 'lobby') {
+      this.navCache = null;
+      this.nav = null;
+      for (const pl of this.players.values()) if (pl.nav) pl.nav = null;
+    }
     if (newPhase === 'action') {
       this.initGameState();
       for (const [playerId, player] of this.players) {

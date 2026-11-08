@@ -239,14 +239,16 @@ function lineClear(grid, a, b) {
   return Math.abs(y - b.y) <= STEP + 0.01;
 }
 
+let SCRATCH = null;
+
 function findPath(grid, from, to) {
   const start = nearestNode(grid, from.x, from.z, from.y);
   const goal = nearestNode(grid, to.x, to.z, to.y);
   if (start < 0 || goal < 0) return [];
   if (start === goal) return [{ x: to.x, y: grid.ys[goal], z: to.z }];
   const total = grid.n * grid.n * grid.K;
-  if (!grid.scratch) grid.scratch = { g: new Float32Array(total), came: new Int32Array(total), mark: new Uint32Array(total), stamp: 0 };
-  const sc = grid.scratch;
+  if (!SCRATCH || SCRATCH.g.length < total) SCRATCH = { g: new Float32Array(total), came: new Int32Array(total), mark: new Uint32Array(total), stamp: 0 };
+  const sc = SCRATCH;
   sc.stamp++;
   const stamp = sc.stamp;
   const gScore = sc.g;
