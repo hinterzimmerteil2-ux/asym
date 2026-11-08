@@ -1534,7 +1534,7 @@ export default function LobbyPage() {
         {phase === 'action' && !touch && isAsymRole && mySkills.length > 0 && (
           <div style={styles.skillBar}>
             {[...mySkills.map((skill, i) => ({ id: skill.id, name: skill.name, description: skill.description, key: ['Q', 'E', 'R', 'F'][i], index: i, cooldownKey: i })),
-              { id: 'golpe_aturdidor', name: 'Golpe Aturdidor', description: 'Aturde 1.2s al Paciente frente a ti (cubo corto desde la mano).', key: 'G', index: 'melee', cooldownKey: 'melee' }].map((skill) => {
+              { id: 'golpe_aturdidor', name: 'Atún Medicinal', description: 'Aturde 1.2s al Paciente frente a ti (cubo corto desde la mano).', key: 'G', index: 'melee', cooldownKey: 'melee' }].map((skill) => {
               const until = skillCooldowns[skill.cooldownKey] || 0;
               const onCooldown = until > skillCooldownNow;
               return (

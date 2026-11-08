@@ -585,6 +585,9 @@ const PAIRS = [
 ["QUIRÓFANO","OPERATING THEATRE"],
 ["RADIOLOGÍA","RADIOLOGY"],
 ["Módulo desinfectado, espera un momento","Module disinfected, wait a moment"],
+["Atún Medicinal","Medicinal Tuna"],
+["Atún Medicinal (Curador)","Medicinal Tuna (Healer)"],
+["Cura y aturde 1.2s al Paciente frente a ti si se está moviendo.","Heals and stuns the Patient in front of you for 1.2s if they are moving."],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

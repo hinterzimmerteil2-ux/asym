@@ -1569,3 +1569,23 @@ test('Desinfectante bloquea los Módulos cercanos', () => {
   assert.ok(room.gameState.moduleLock && room.gameState.moduleLock.until > clock.t);
   void sent;
 });
+
+test('M1 golpea bloques en cualquier direccion aunque no haya Pacientes cerca', () => {
+  const GameMap = require('../src/GameMap');
+  const { room } = setup();
+  room.mapId = 'random';
+  const id = GameMap.generateMap(7);
+  room.mapId = id;
+  room.initGameState();
+  const blk = GameMap.resolvePlatforms(id, GameMap.areaFor(id)).find((x) => x.blockMax > 0);
+  const gs = room.gameState;
+  const before = gs.blockHp[blk.id];
+  for (const [fx, fz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const hp0 = gs.blockHp[blk.id];
+    if (gs.blockBroken[blk.id]) break;
+    const owner = { x: blk.x - fx * 1.0, z: blk.z - fz * 1.0, y: blk.y0 || 0, faceX: fx, faceZ: fz };
+    room.healBlocks(owner, 1.2, 0.85, false, Date.now());
+    assert.ok(gs.blockHp[blk.id] > hp0, `direccion ${fx},${fz}`);
+  }
+  assert.ok(gs.blockHp[blk.id] > before);
+});

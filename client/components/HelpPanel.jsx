@@ -8,7 +8,7 @@ const CONTROLS = [
   ['Shift', 'Paso normal (mantener), sin gastar Flojera'],
   ['Click', 'Curar (Curador) / auto-dañarte en un objeto de auto-daño, y pulsar durante el minijuego (Paciente)'],
   ['Q E R F', 'Habilidades del Curador'],
-  ['G', 'Golpe Aturdidor (Curador)'],
+  ['G', 'Atún Medicinal (Curador)'],
   ['E', 'Acertar el ritmo de Grito de Ánimo y pulsar en los minijuegos de auto-daño'],
   ['1 2', 'Usar carta (Paciente)'],
   ['H', 'Abrir o cerrar esta ayuda'],
@@ -63,8 +63,8 @@ export default function HelpPanel({ characters, cards, onClose }) {
           <div style={styles.item}>
             <SkillIcon id="golpe_aturdidor" size={24} />
             <span style={styles.itemKey}>G</span>
-            <span style={styles.itemName}>Golpe Aturdidor</span>
-            <span style={styles.itemText}>Aturde 1.2s al Paciente frente a ti. Su versión corrupta es IS THAT THE RED MIST?</span>
+            <span style={styles.itemName}>Atún Medicinal</span>
+            <span style={styles.itemText}>Cura y aturde 1.2s al Paciente frente a ti si se está moviendo.</span>
           </div>
         </div>
 

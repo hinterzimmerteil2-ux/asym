@@ -583,4 +583,7 @@ export const DE = [
 "OPERATIONSSAAL",
 "RADIOLOGIE",
 "Modul desinfiziert, warte einen Moment",
+"Medizinischer Thunfisch",
+"Medizinischer Thunfisch (Heiler)",
+"Heilt den Patienten vor dir und betäubt ihn 1,2 s, wenn er sich bewegt.",
 ];

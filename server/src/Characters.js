@@ -122,7 +122,7 @@ const CHARACTERS = {
 const GENERIC_MELEE = {
   id: 'golpe_aturdidor',
   type: 'melee_stun',
-  name: 'Golpe Aturdidor',
+  name: 'Atún Medicinal',
   description: 'Sostenido por cierta chica caballo',
   keywords: ['ofensiva'],
   radius: 1.1,

@@ -1250,7 +1250,7 @@ class Room {
     const gs = this.gameState;
     if (!gs.blockHp) return;
     const px = around ? owner.x : owner.x + (owner.faceX || 0) * reach;
-    const pz = around ? owner.z : owner.z + (owner.faceZ || 1) * reach;
+    const pz = around ? owner.z : owner.z + (owner.faceX || owner.faceZ ? owner.faceZ || 0 : 1) * reach;
     const amount = CURE_AMOUNT * (owner.cureBoostUntil > now ? owner.cureBoostFactor : 1);
     for (const p of this.blockNear(px, pz, owner.y || 0, radius + 0.3)) {
       if (gs.blockBroken[p.id]) continue;
@@ -1285,7 +1285,7 @@ class Room {
 
   healSpears(owner, reach, radius, around, now) {
     const px = around ? owner.x : owner.x + (owner.faceX || 0) * reach;
-    const pz = around ? owner.z : owner.z + (owner.faceZ || 1) * reach;
+    const pz = around ? owner.z : owner.z + (owner.faceX || owner.faceZ ? owner.faceZ || 0 : 1) * reach;
     for (const z of this.gameState.zones) {
       if ((z.kind !== 'spear' && z.kind !== 'trap') || now >= z.until) continue;
       if (Math.abs((owner.y || 0) - (z.y || 0)) > 1.6) continue;
@@ -1300,7 +1300,7 @@ class Room {
     const planks = GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)).filter((p) => p.hp > 0 && !(this.gameState.plankBroken || {})[p.id]);
     if (!planks.length) return;
     const fx = owner.faceX || 0;
-    const fz = owner.faceZ || 1;
+    const fz = owner.faceX || owner.faceZ ? owner.faceZ || 0 : 1;
     const px = around ? owner.x : owner.x + fx * reach;
     const pz = around ? owner.z : owner.z + fz * reach;
     for (const p of planks) {
