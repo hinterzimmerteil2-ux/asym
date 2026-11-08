@@ -162,6 +162,10 @@ wss.on('connection', (ws) => {
           startAt: room.startAt || null,
           votes: room.votes,
           mutation: room.mutation,
+          mode: room.mode,
+          secondCuratorId: room.secondCuratorId,
+          secondCuratorRandom: Boolean(room.secondCuratorRandom),
+          modeVoteOpen: room.modeVoteOpen(),
           mutations: Object.entries(Constants.MUTATIONS).map(([id, m]) => ({ id, name: m.name })),
           maps: GameMap.listMaps(),
           lobbyPlatforms: GameMap.LOBBY_PLATFORMS,
@@ -196,6 +200,13 @@ wss.on('connection', (ws) => {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
         room.removeBot(playerId);
+        break;
+      }
+
+      case MessageType.SET_MODE: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.setMode(playerId, msg.payload.mode, msg.payload.secondId);
         break;
       }
 
@@ -316,7 +327,7 @@ wss.on('connection', (ws) => {
       case MessageType.SELF_DAMAGE_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room || room.phase !== 'action') return;
-        room.applySelfDamage(playerId, msg.payload.objectId, msg.payload.dir);
+        room.applySelfDamage(playerId, msg.payload.objectId, msg.payload.order);
         break;
       }
 

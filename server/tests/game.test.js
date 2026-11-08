@@ -1410,15 +1410,12 @@ test('modulos dificiles: cerradura (tres pernos y mano en 2 s) y secuencia de te
   clock.t = g.phaseUntil + 1;
   room.tickSelfDamage('a', e.a, clock.t);
   assert.strictEqual(g.phase, 'input');
-  for (const d of g.seq) room.applySelfDamage('a', 'o1', d);
+  room.applySelfDamage('a', 'o1', [...g.seq]);
   assert.strictEqual(p.a.hp, 99);
-  room.applySelfDamage('a', 'o1', (g.seq[0] + 1) % 4);
-  assert.strictEqual(g.fails, 0);
   clock.t = g.phaseUntil + 1;
   room.tickSelfDamage('a', e.a, clock.t);
-  clock.t = g.phaseUntil + 1;
-  room.tickSelfDamage('a', e.a, clock.t);
-  room.applySelfDamage('a', 'o1', (g.seq[0] + 1) % 4);
+  assert.strictEqual(g.phase, 'input');
+  room.applySelfDamage('a', 'o1', [...g.seq].reverse());
   assert.strictEqual(g.fails, 1);
   assert.strictEqual(p.a.hp, 100);
 });
@@ -1446,4 +1443,26 @@ test('modulos solapados se separan solos', () => {
   room.separateModules(Date.now());
   const [a, b] = Object.values(room.gameState.selfDamageObjectPositions);
   assert.ok(Math.hypot(a.x - b.x, a.z - b.z) > 3);
+});
+
+test('modos: doble Curador asimetrico y cuerpos compartidos', () => {
+  const { room, p } = setup();
+  room.phase = 'lobby';
+  room.hostId = 'a';
+  room.mode = 'dual';
+  room.applyMode();
+  const asym = [...room.players.values()].filter((x) => x.isAsymRole);
+  assert.strictEqual(asym.length, room.players.size > 1 ? 2 : 1);
+  room.clearSecondCurator();
+  assert.strictEqual([...room.players.values()].filter((x) => x.isAsymRole).length, 1);
+  room.mode = 'shared';
+  room.phase = 'action';
+  const ids = Object.keys(room.gameState.patients);
+  for (const id of ids) { room.gameState.patients[id].status = 'alive'; room.gameState.patients[id].hp = 60; }
+  room.sharedHp = 60;
+  room.gameState.patients[ids[0]].hp = 50;
+  room.tickMode(Date.now());
+  for (const id of ids) assert.strictEqual(room.gameState.patients[id].hp, 50);
+  room.matchCount = 3;
+  assert.ok(room.modeVoteOpen());
 });

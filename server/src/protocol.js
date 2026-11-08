@@ -22,6 +22,7 @@ const MessageType = {
   ADD_BOT: 'add_bot',
   REMOVE_BOT: 'remove_bot',
   SET_MUTATION: 'set_mutation',
+  SET_MODE: 'set_mode',
   SET_MAP: 'set_map',                   // client(host) -> server: { mapId }, elige el mapa para la próxima partida
 
   // --- Nombre de jugador ---

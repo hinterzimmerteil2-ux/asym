@@ -217,6 +217,9 @@ export default function LobbyPage() {
   const [mutations, setMutations] = useState([]);
   const [mapId, setMapId] = useState('default');
   const [mapSeedWanted, setMapSeedWanted] = useState(null);
+  const [mode, setMode] = useState('normal');
+  const [secondCuratorId, setSecondCuratorId] = useState(null);
+  const [modeVoteOpen, setModeVoteOpen] = useState(false);
   const [seedInput, setSeedInput] = useState('');
   const [matchSeed, setMatchSeed] = useState(null);
   const [editingName, setEditingName] = useState(false);
@@ -287,6 +290,9 @@ export default function LobbyPage() {
             setLobbyPlatforms(payload.lobbyPlatforms || []);
             setMapId(payload.mapId || 'default');
             setMapSeedWanted(payload.mapSeedWanted ?? null);
+            setMode(payload.mode || 'normal');
+            setSecondCuratorId(payload.secondCuratorRandom ? 'random' : payload.secondCuratorId || null);
+            setModeVoteOpen(Boolean(payload.modeVoteOpen));
             setMutation(payload.mutation || 'none');
             setMutations(payload.mutations || []);
             break;
@@ -295,6 +301,9 @@ export default function LobbyPage() {
             if (payload.hostId !== undefined) setHostId(payload.hostId);
             if (payload.mapId !== undefined) setMapId(payload.mapId);
             if (payload.mapSeedWanted !== undefined) setMapSeedWanted(payload.mapSeedWanted);
+            if (payload.mode !== undefined) setMode(payload.mode);
+            if (payload.secondCuratorId !== undefined || payload.secondCuratorRandom !== undefined) setSecondCuratorId(payload.secondCuratorRandom ? 'random' : payload.secondCuratorId || null);
+            if (payload.modeVoteOpen !== undefined) setModeVoteOpen(Boolean(payload.modeVoteOpen));
             if (payload.mutation !== undefined) setMutation(payload.mutation);
             if (payload.votes !== undefined) setVotes(payload.votes);
             if (payload.startAt !== undefined) setStartAt(payload.startAt);
@@ -669,6 +678,10 @@ export default function LobbyPage() {
     connRef.current?.send('select_character', { characterId });
   }
 
+  function handleSetMode(newMode, secondId) {
+    connRef.current?.send('set_mode', { mode: newMode, secondId });
+  }
+
   function handleSetMutation(id) {
     connRef.current?.send('set_mutation', { mutation: id });
   }
@@ -814,9 +827,9 @@ export default function LobbyPage() {
       else if (keyMatches('shiftlock', e.code)) { if (!e.repeat) shiftKeyRef.current.down(); }
       else if (keyMatches('hitboxes', e.code)) setHitboxes((prev) => ({ ...prev, on: !prev.on }));
       else if (e.code === 'Escape') setHelpOpen(false);
-      else if (sdRef.current?.type === 'keys' && ['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.code)) {
+      else if (sdRef.current?.type === 'keys' && (/^(Digit|Numpad)[1-6]$/.test(e.code) || e.code === 'Backspace')) {
         e.preventDefault();
-        if (!e.repeat) pressDirRef.current(['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].indexOf(e.code));
+        window.dispatchEvent(new CustomEvent('sd-keys', { detail: e.code }));
       }
       else if (keyMatches('minigame', e.code)) {
         if (sdRef.current) { if (!e.repeat) pressMinigameRef.current(); return; }
@@ -943,9 +956,9 @@ export default function LobbyPage() {
       if (best) handleSendAction('self_damage_action', { objectId: best });
     }
   };
-  pressDirRef.current = (dir) => {
+  pressDirRef.current = (order) => {
     const g = sdRef.current;
-    if (g && g.objectId) handleSendAction('self_damage_action', { objectId: g.objectId, dir });
+    if (g && g.objectId) handleSendAction('self_damage_action', { objectId: g.objectId, order });
   };
   pressMinigameRef.current = () => {
     const g = sdRef.current;
@@ -1070,6 +1083,9 @@ export default function LobbyPage() {
               );
             })}
           </ul>
+          {phase === 'lobby' && isHost && !isDefaultRoom && players.filter((pl) => !pl.isBot).length > 1 && (
+            <button type="button" style={{ ...styles.smallButton, width: '100%', marginTop: 6 }} onClick={() => handleSetAsymRole('random')}>Curador al azar</button>
+          )}
 
           {phase === 'lobby' && isAsymRole && characters.length > 0 && (
             <div style={styles.characterPicker}>
@@ -1141,7 +1157,7 @@ export default function LobbyPage() {
               )}
               {mapId === 'random' && (isHost && !isDefaultRoom ? (
                 <input
-                  style={sx(styles.mapSelect, { marginTop: 6 })}
+                  style={{ ...styles.mapSelect, marginTop: 6 }}
                   inputMode="numeric"
                   placeholder="Semilla (vacío: al azar)"
                   value={seedInput}
@@ -1163,6 +1179,22 @@ export default function LobbyPage() {
                     <p style={styles.mapReadOnly}>{mutations.find((m) => m.id === mutation)?.name || ''}</p>
                   )}
                 </>
+              )}
+              <p style={{ ...styles.characterPickerLabel, marginTop: 8 }}>Modo</p>
+              {isHost && !isDefaultRoom ? (
+                <>
+                  <select style={styles.mapSelect} value={mode} onChange={(e) => handleSetMode(e.target.value, e.target.value === 'dual' ? 'random' : undefined)}>
+                    {MODE_LIST.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                  {mode === 'dual' && (
+                    <select style={{ ...styles.mapSelect, marginTop: 6 }} value={secondCuratorId || 'random'} onChange={(e) => handleSetMode('dual', e.target.value)}>
+                      <option value="random">Segundo Curador: al azar</option>
+                      {players.filter((pl) => !pl.isAsymRole).map((pl) => <option key={pl.id} value={pl.id}>Segundo Curador: {pl.name}</option>)}
+                    </select>
+                  )}
+                </>
+              ) : (
+                <p style={styles.mapReadOnly}>{MODE_LIST.find((m) => m.id === mode)?.name || ''}</p>
               )}
               <Link href="/editor" style={styles.editorLink}>Crear mapa nuevo →</Link>
             </div>
@@ -1192,6 +1224,7 @@ export default function LobbyPage() {
                 ['bots', 'Bots', [0, 4, 8, 12, 16].map((n) => ({ id: n, label: String(n) }))],
                 ['map', 'Mapa', maps.filter((m) => !m.id.startsWith('c_')).map((m) => ({ id: m.id, label: m.name }))],
                 ['mutation', 'Modificador', mutations.map((m) => ({ id: m.id, label: m.name }))],
+                ...(modeVoteOpen ? [['mode', 'Modo de esta ronda', MODE_LIST.map((m) => ({ id: m.id, label: m.name }))]] : []),
                 ['curator', 'Curador', [{ id: 'random', label: 'Al azar' }, ...players.filter((pl) => !pl.isBot).map((pl) => ({ id: pl.id, label: pl.name }))]],
               ].map(([kind, title, options]) => {
                 const counts = {};
@@ -1833,6 +1866,12 @@ function Wordmark() {
     </div>
   );
 }
+
+const MODE_LIST = [
+  { id: 'normal', name: 'Normal' },
+  { id: 'dual', name: 'Doble Curador' },
+  { id: 'shared', name: 'Cuerpos compartidos' },
+];
 
 const styles = {
   main: {

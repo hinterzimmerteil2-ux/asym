@@ -57,12 +57,53 @@ function TapButton({ onPress, color }) {
   );
 }
 
-function DirPad({ onDir }) {
-  const [coarse, setCoarse] = useState(false);
-  useEffect(() => { setCoarse(window.matchMedia('(pointer: coarse)').matches); }, []);
-  if (!coarse) return <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>usa las flechas del teclado</div>;
-  const b = (d, t, pos) => <button key={d} type="button" onPointerDown={(e) => { e.preventDefault(); onDir && onDir(d); }} style={{ pointerEvents: 'auto', width: 64, height: 56, borderRadius: 12, border: '2px solid #ff9a5a', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 26, fontWeight: 800, touchAction: 'none', gridArea: pos }}>{t}</button>;
-  return <div style={{ display: 'grid', gridTemplateAreas: '". u ." "l . r" ". d ."', gap: 6, justifyContent: 'center', marginTop: 10 }}>{[b(0, '↑', 'u'), b(3, '←', 'l'), b(1, '→', 'r'), b(2, '↓', 'd')]}</div>;
+const CARDS = [
+  { g: 'A', c: '#e0555f' },
+  { g: 'B', c: '#f2d154' },
+  { g: 'C', c: '#7dff8a' },
+  { g: 'D', c: '#54d1f2' },
+  { g: 'E', c: '#e07cf2' },
+  { g: 'F', c: '#ff9a5a' },
+];
+
+function cardStyle(c, extra) {
+  return { width: 54, height: 70, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#10131c', background: CARDS[c].c, boxShadow: '0 4px 10px rgba(0,0,0,0.5)', userSelect: 'none', ...extra };
+}
+
+function KeysInput({ pool, onOrder }) {
+  const [placed, setPlaced] = useState([]);
+  const sent = useRef(false);
+  const put = (c) => setPlaced((p) => (p.includes(c) || p.length >= pool.length ? p : [...p, c]));
+  useEffect(() => {
+    if (placed.length === pool.length && !sent.current) { sent.current = true; onOrder && onOrder(placed); }
+  }, [placed]);
+  useEffect(() => {
+    const h = (e) => {
+      if (e.detail === 'Backspace') { if (!sent.current) setPlaced((p) => p.slice(0, -1)); return; }
+      const n = Number(e.detail.slice(-1)) - 1;
+      if (!sent.current && pool[n] !== undefined) put(pool[n]);
+    };
+    window.addEventListener('sd-keys', h);
+    return () => window.removeEventListener('sd-keys', h);
+  }, [pool]);
+  const slotDrop = (e) => { e.preventDefault(); const c = Number(e.dataTransfer.getData('text/plain')); if (Number.isInteger(c) && pool.includes(c)) put(c); };
+  return (
+    <div style={{ pointerEvents: 'auto' }}>
+      <div onDragOver={(e) => e.preventDefault()} onDrop={slotDrop} style={{ display: 'flex', gap: 8, justifyContent: 'center', minHeight: 76, padding: 4, borderRadius: 12, background: 'rgba(255,255,255,0.05)' }}>
+        {pool.map((_, i) => placed[i] !== undefined
+          ? <button type="button" key={i} onClick={() => !sent.current && setPlaced((p) => p.filter((x) => x !== placed[i]))} style={{ ...cardStyle(placed[i]), border: 'none', cursor: 'pointer' }}>{CARDS[placed[i]].g}</button>
+          : <div key={i} style={{ width: 54, height: 70, borderRadius: 10, border: '2px dashed #6a7396', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6a7396', fontWeight: 800 }}>{i + 1}</div>)}
+      </div>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10 }}>
+        {pool.map((c, i) => (
+          <button type="button" key={c} draggable onDragStart={(e) => e.dataTransfer.setData('text/plain', String(c))} onClick={() => put(c)} disabled={placed.includes(c)} style={{ ...cardStyle(c), border: 'none', cursor: 'grab', opacity: placed.includes(c) ? 0.25 : 1, transition: 'transform 120ms' }}>
+            {CARDS[c].g}
+          </button>
+        ))}
+      </div>
+      <div style={{ marginTop: 6, fontSize: 12, opacity: 0.8 }}>arrastra o pulsa las tarjetas en orden. Teclas 1 a {pool.length} y Retroceso</div>
+    </div>
+  );
 }
 
 export default function SelfDamageBar({ gameRef, onPress, onDir }) {
@@ -153,24 +194,22 @@ export default function SelfDamageBar({ gameRef, onPress, onDir }) {
     );
   }
   if (g.type === 'keys') {
-    const ARROWS = ['↑', '→', '↓', '←'];
     const pl = Math.max(0, g.phaseMs - (now - g.at));
-    const title = g.phase === 'connect' ? 'Conectando' : g.phase === 'show' ? 'Memoriza' : 'Repite';
+    const title = g.phase === 'connect' ? 'Conectando' : g.phase === 'show' ? 'Memoriza el orden' : 'Ordena las tarjetas';
     const col = g.phase === 'show' ? '#ffd166' : g.phase === 'input' ? '#7dff8a' : '#ff9a5a';
     return (
       <div style={frame('#ff9a5a')}>
         <style>{CSS}</style>
         {flash('#7dff8a22')}
         <Head title={title} color={col} right={`${g.round}/${g.rounds}`}>fallos {g.fails}/{g.maxFails}, daño {g.dealt}</Head>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', minHeight: 56 }}>
-          {g.phase === 'connect' ? <span className="sd-anim" style={{ fontSize: 22, fontWeight: 800, animation: 'sdTap 0.5s infinite' }}>...</span> : Array.from({ length: g.len }).map((_, i) => (
-            <span key={i} className={g.phase === 'show' ? 'sd-anim' : undefined} style={{ width: 48, height: 52, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 900, background: i < g.idx ? '#2f7a4a' : '#232838', border: `2px solid ${g.phase === 'show' ? '#ffd166' : i === g.idx ? '#7dff8a' : '#454c66'}`, animation: g.phase === 'show' ? `sdIn2 300ms ${i * 140}ms both` : 'none' }}>
-              {g.phase === 'show' ? ARROWS[g.seq[i]] : i < g.idx ? 'ok' : '?'}
-            </span>
-          ))}
-        </div>
+        {g.phase === 'connect' && <div className="sd-anim" style={{ minHeight: 76, fontSize: 22, fontWeight: 800, animation: 'sdTap 0.5s infinite' }}>...</div>}
+        {g.phase === 'show' && (
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', minHeight: 76 }}>
+            {g.seq.map((c, i) => <div key={i} className="sd-anim" style={{ ...cardStyle(c), animation: `sdIn2 300ms ${i * 140}ms both` }}>{CARDS[c].g}</div>)}
+          </div>
+        )}
+        {g.phase === 'input' && <KeysInput key={`${g.round}:${g.fails}:${g.pool.join('')}`} pool={g.pool} onOrder={onDir} />}
         {g.phase !== 'connect' && <TimeBar left={pl / (g.phase === 'show' ? 1000 + g.len * 350 : 3200 + g.len * 550)} color={col} />}
-        {g.phase === 'input' && <DirPad onDir={onDir} />}
       </div>
     );
   }

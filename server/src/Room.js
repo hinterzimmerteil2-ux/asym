@@ -186,6 +186,7 @@ const SD_VARIANTS = {
 };
 const SD_EASY = ['pulso', 'termometro', 'pelota'];
 const SD_NORMAL = ['rhythm', 'needle', 'mash', 'meter', 'ampolla', 'xilofono', 'tambores', 'boton', 'manometro', 'turbina'];
+const MODES = ['normal', 'dual', 'shared'];
 const MODULE_RELOCATE_MS = 2000;
 const LOCK_DAMAGE = 20;
 const KEYS_PARTS = [1, 2, 3, 4, 4, 4];
@@ -198,12 +199,16 @@ class Room {
     this.hostId = null;
     this.isDefault = false;
     this.startAt = null;
-    this.votes = { bots: {}, map: {}, mutation: {}, curator: {} };
+    this.votes = { bots: {}, map: {}, mutation: {}, curator: {}, mode: {} };
     this.phase = 'lobby';
     this.hitWindows = [];
     this.tickInterval = null;
     this.tickCount = 0;
     this.mutation = 'none';
+    this.mode = 'normal';
+    this.secondCuratorId = null;
+    this.matchCount = 0;
+    this.sharedHp = null;
     this.mapId = GameMap.DEFAULT_MAP_ID; // qué mapa usa esta sala, hoy siempre 'default', preparado para elegir otro cuando exista el creador
 
     this.chatHistory = [];
@@ -669,6 +674,10 @@ class Room {
       this.sendTo(requesterId, MessageType.ERROR, { message: this.isDefault ? 'En las salas predeterminadas el Curador se vota' : 'Solo el host puede asignar quién es el Curador' });
       return;
     }
+    if (targetPlayerId === 'random') {
+      const hs = [...this.players.entries()].filter(([, p]) => !p.isBot).map(([id]) => id);
+      if (hs.length) targetPlayerId = hs[Math.floor(Math.random() * hs.length)];
+    }
     const target = this.players.get(targetPlayerId);
     if (!target) {
       this.sendTo(requesterId, MessageType.ERROR, { message: 'Ese jugador ya no está en la sala' });
@@ -722,13 +731,84 @@ class Room {
       if (!GameMap.MAPS[value] || String(value).startsWith('c_')) return;
     } else if (kind === 'mutation') {
       if (!MUTATIONS[value]) return;
+    } else if (kind === 'mode') {
+      if (!MODES.includes(value) || !this.modeVoteOpen()) return;
     } else if (kind === 'curator') {
       const target = this.players.get(value);
       if (value !== 'random' && (!target || target.isBot)) return;
     }
     if (this.votes[kind][playerId] === value) delete this.votes[kind][playerId];
     else this.votes[kind][playerId] = value;
-    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, votes: this.votes });
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, votes: this.votes, modeVoteOpen: this.modeVoteOpen() });
+  }
+
+  modeVoteOpen() {
+    return (this.matchCount + 1) % 4 === 0;
+  }
+
+  setMode(requesterId, mode, secondId) {
+    if (this.phase !== 'lobby' || requesterId !== this.hostId || this.isDefault || !MODES.includes(mode)) return;
+    this.mode = mode;
+    this.secondCuratorId = mode === 'dual' && secondId && secondId !== 'random' && this.players.has(secondId) ? secondId : null;
+    this.secondCuratorRandom = mode === 'dual' && (!secondId || secondId === 'random');
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, mode: this.mode, secondCuratorId: this.secondCuratorId, secondCuratorRandom: Boolean(this.secondCuratorRandom) });
+  }
+
+  clearSecondCurator() {
+    for (const p of this.players.values()) {
+      if (p.isSecondCurator) { p.isAsymRole = false; p.isSecondCurator = false; }
+      p.curatorMult = 1;
+      p.curatorSpeed = 1;
+    }
+  }
+
+  applyMode() {
+    this.clearSecondCurator();
+    this.sharedHp = null;
+    if (this.mode !== 'dual') return;
+    const main = [...this.players.entries()].find(([, p]) => p.isAsymRole);
+    if (!main) return;
+    let second = this.secondCuratorId && this.secondCuratorId !== main[0] && this.players.has(this.secondCuratorId) ? this.secondCuratorId : null;
+    if (!second) {
+      const cands = [...this.players.entries()].filter(([id, p]) => id !== main[0] && !p.isBot).map(([id]) => id);
+      const bots = [...this.players.entries()].filter(([id, p]) => id !== main[0] && p.isBot).map(([id]) => id);
+      const list = cands.length ? cands : bots;
+      second = list.length ? list[Math.floor(Math.random() * list.length)] : null;
+    }
+    if (!second) { this.mode = 'normal'; return; }
+    const sp = this.players.get(second);
+    sp.isAsymRole = true;
+    sp.isSecondCurator = true;
+    if (!sp.characterId) sp.characterId = Characters.DEFAULT_CHARACTER_ID;
+    main[1].curatorMult = 1.3; main[1].curatorSpeed = 0.88;
+    sp.curatorMult = 0.7; sp.curatorSpeed = 1.12;
+  }
+
+  tickMode(now) {
+    if (this.mode !== 'shared' || this.phase !== 'action') return;
+    const entries = Object.values(this.gameState.patients);
+    const alive = entries.filter((p) => p.status === 'alive');
+    if (!alive.length) return;
+    const ended = entries.find((p) => p.status === 'eliminated' || p.status === 'self_won');
+    if (ended) {
+      for (const p of alive) {
+        p.status = ended.status;
+        p.hp = ended.hp;
+        if (ended.status === 'eliminated') this.onPatientFullyCured();
+      }
+      this.checkGameEndConditions();
+      return;
+    }
+    let shared = this.sharedHp == null ? alive[0].hp : this.sharedHp;
+    let sum = 0;
+    for (const p of alive) sum += p.hp - shared;
+    shared = Math.max(PATIENT_HP_MIN, Math.min(alive[0].maxHp, shared + sum));
+    for (const p of alive) p.hp = shared;
+    this.sharedHp = shared;
+    if (shared <= PATIENT_HP_MIN) for (const p of alive) p.status = 'self_won';
+    else if (shared >= alive[0].maxHp) { for (const p of alive) { p.status = 'eliminated'; this.onPatientFullyCured(); } }
+    else return;
+    this.checkGameEndConditions();
   }
 
   voteWinner(kind) {
@@ -758,6 +838,7 @@ class Room {
     if (map) this.mapId = map;
     const mutation = this.voteWinner('mutation');
     if (mutation) this.mutation = mutation;
+    this.mode = this.modeVoteOpen() ? (this.voteWinner('mode') || 'normal') : 'normal';
     const bots = this.voteWinner('bots');
     if (bots !== null && !this.tutorial) {
       for (const [id, p] of [...this.players.entries()]) if (p.isBot) this.removePlayer(id);
@@ -780,7 +861,7 @@ class Room {
         if (p.isAsymRole && !was && !p.characterId) p.characterId = Characters.DEFAULT_CHARACTER_ID;
       }
     }
-    this.votes = { bots: {}, map: {}, mutation: {}, curator: {} };
+    this.votes = { bots: {}, map: {}, mutation: {}, curator: {}, mode: {} };
   }
 
   setMutation(requesterId, id) {
@@ -1157,6 +1238,8 @@ class Room {
 
   startMatch() {
     if (this.isDefault) this.applyVotes();
+    this.matchCount += 1;
+    this.applyMode();
     this.prepareMap();
     this.switchPhase('action', 'inicio de partida');
     this.startAt = null;
@@ -1474,6 +1557,7 @@ class Room {
       }
       speedMultiplier *= Status.speedFactor(entity, now);
       if (!this.players.get(entityPlayerId)?.isAsymRole) speedMultiplier *= MUTATIONS[this.mutation].speed;
+      else speedMultiplier *= this.players.get(entityPlayerId)?.curatorSpeed || 1;
       if (entity.channel || entity.selfDmg) speedMultiplier *= CHANNEL_SLOW;
       if (entity.carry) speedMultiplier *= MODULE_CARRY_SLOW;
       if (entity.acetilUntil <= now && entity.fatigueUntil > now) speedMultiplier *= ACETIL_FATIGUE_FACTOR;
@@ -1743,7 +1827,7 @@ class Room {
         if (dist > skill.radius) continue;
 
         if (skill.type === 'pulse') {
-          patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, skill.cureAmount, now));
+          patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, skill.cureAmount * (this.players.get(playerId)?.curatorMult || 1), now));
           if (targetEntity) this.exitAstral(targetEntity, now);
           if (patient.hp >= patient.maxHp) {
             patient.status = 'eliminated';
@@ -2163,6 +2247,7 @@ class Room {
 
   tickZones(now, dt) {
     this.tickModuleRelocations(now);
+    this.tickMode(now);
     let statusChanged = false;
     for (const [playerId, entity] of Object.entries(this.gameState.entities)) {
       const dot = entity.rimacDot;
@@ -2869,7 +2954,7 @@ class Room {
       return { ...base, phase: game.phase, period: pin.period, zone: pin.zone, width: game.width, stage: game.stage, stages: game.pins.length, pinElapsed: now - game.pinAt, handMs: game.phase === 'hand' ? Math.max(0, game.handUntil - now) : 0 };
     }
     if (game.type === 'keys') {
-      return { ...base, phase: game.phase, phaseMs: Math.max(0, game.phaseUntil - now), round: game.round, rounds: KEYS_PARTS.length, fails: game.fails, maxFails: 3, len: game.seq.length, idx: game.idx, seq: game.phase === 'show' ? game.seq : null, dealt: game.dealt };
+      return { ...base, phase: game.phase, phaseMs: Math.max(0, game.phaseUntil - now), round: game.round, rounds: KEYS_PARTS.length, fails: game.fails, maxFails: 3, len: game.seq.length, idx: game.idx, seq: game.phase === 'show' ? game.seq : null, pool: game.phase === 'input' ? game.pool : null, dealt: game.dealt };
     }
     if (game.type === 'meter') return { ...base, period: game.period };
     return { ...base, count: game.count, target: game.target };
@@ -2883,7 +2968,10 @@ class Room {
 
   keysNewRound(game, now) {
     const len = KEYS_LEN[Math.min(game.round, KEYS_LEN.length - 1)];
-    game.seq = Array.from({ length: len }, () => Math.floor(Math.random() * 4));
+    const deck = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - 0.5);
+    game.seq = deck.slice(0, len);
+    game.pool = [...game.seq].sort(() => Math.random() - 0.5);
+    if (game.pool.every((v, i) => v === game.seq[i])) game.pool.reverse();
     game.idx = 0;
     game.phase = 'show';
     game.phaseUntil = now + 1000 + len * 350;
@@ -2929,10 +3017,8 @@ class Room {
       return;
     }
     if (game.type === 'keys') {
-      if (game.phase !== 'input' || !Number.isInteger(dir) || dir < 0 || dir > 3) return;
-      if (dir !== game.seq[game.idx]) { this.keysFail(playerId, entity, patient, game, now); return; }
-      game.idx += 1;
-      if (game.idx < game.seq.length) return;
+      if (game.phase !== 'input' || !Array.isArray(dir) || dir.length !== game.seq.length) return;
+      if (!dir.every((v, i) => v === game.seq[i])) { this.keysFail(playerId, entity, patient, game, now); return; }
       const dmg = KEYS_PARTS[game.round];
       game.dealt += dmg;
       game.hits += 1;
@@ -3156,6 +3242,7 @@ class Room {
     this.gameState.patients = {};
     this.gameState.zones = [];
     this.tutorial = false;
+    this.clearSecondCurator();
     this.restoreMap();
     this.startAt = null;
     this.switchPhase('lobby', 'vuelta al lobby');
