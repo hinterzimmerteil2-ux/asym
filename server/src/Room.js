@@ -138,6 +138,7 @@ const {
 } = require('./Constants');
 const LOBBY_WAIT_MS = Number(process.env.LOBBY_WAIT_MS) || 60000;
 const Status = require('./Status');
+const FIELD_KINDS = new Set(['herbs', 'drip', 'gas', 'rootshot', 'dart', 'gurney']);
 const LMS_GIMMICKS = ['adrenalina', 'reflejos', 'escudo', 'codicia'];
 
 function ownHidden(playerId, player, publicEntities, room, now) {
@@ -403,6 +404,9 @@ class Room {
     }
     if (now > (player.nextBotCard || 0)) {
       player.nextBotCard = now + 1200 + Math.random() * 1500;
+      const bl = Math.hypot(target.entity.x - entity.x, target.entity.z - entity.z) || 1;
+      entity.faceX = (target.entity.x - entity.x) / bl;
+      entity.faceZ = (target.entity.z - entity.z) / bl;
       const skillIndex = targetDist <= 2.5 && Math.random() < 0.4 ? 'melee' : Math.floor(Math.random() * 4);
       this.applyCuratorPulse(botId, skillIndex);
     }
@@ -1450,7 +1454,7 @@ class Room {
       }
       return out;
     };
-    const zones = this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, y: z.y || 0, level: z.level || 0, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, mode: z.mode || null, armed: z.armedAt === undefined || now >= z.armedAt }));
+    const zones = this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, y: z.y || 0, level: z.level || 0, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, mode: z.mode || null, dx: z.dx || 0, dz: z.dz || 0, armed: z.armedAt === undefined || now >= z.armedAt }));
 
     for (const [playerId, player] of this.players) {
       if (player.isBot || player.ws.readyState !== 1) continue;
@@ -1931,6 +1935,10 @@ class Room {
       curadorEntity.cureBoostUntil = now + skill.durationMs;
       curadorEntity.cureBoostFactor = skill.factor;
       if (skill.selfHeal) this.adjustCuratorHp(skill.selfHeal);
+      if (skill.slowMs) Status.apply(curadorEntity, 'slow', skill.slowMs, now, { level: skill.slowLevel || 1 });
+    } else if (skill.type === 'zone' || skill.type === 'gas' || skill.type === 'root' || skill.type === 'dart' || skill.type === 'gurney') {
+      this.castFieldSkill(playerId, curadorEntity, skill, now, affectedPlayerIds);
+      healedAny = affectedPlayerIds.length > 0 && skill.type === 'zone';
     } else if (skill.type === 'stun' || skill.type === 'pull') {
       this.hitWindows.push({ kind: 'area', playerId, skill, index, endsAt: now + (skill.windowMs || HIT_WINDOW_MS) });
     } else if (skill.type === 'melee_stun') {
@@ -1980,7 +1988,9 @@ class Room {
       }
     }
 
-    if (skill.type !== 'boost' && skill.type !== 'melee_stun' && skill.type !== 'stun' && skill.type !== 'pull' && affectedPlayerIds.length === 0) this.endlag(playerId, curadorEntity, now);
+    if (skill.lockMs) this.gameState.moduleLock = { until: now + skill.lockMs, x: curadorEntity.x, z: curadorEntity.z, r: skill.radius };
+    const fieldTypes = ['zone', 'gas', 'root', 'dart', 'gurney'];
+    if (skill.type !== 'boost' && skill.type !== 'melee_stun' && skill.type !== 'stun' && skill.type !== 'pull' && !fieldTypes.includes(skill.type) && affectedPlayerIds.length === 0) this.endlag(playerId, curadorEntity, now);
 
     if (skill.type === 'pulse' && skill.selfHeal) this.adjustCuratorHp(skill.selfHeal * affectedPlayerIds.length);
 
@@ -1999,6 +2009,116 @@ class Room {
     this.broadcastPulse(pulseResult);
     if (healedAny) this.checkGameEndConditions();
     if (skill.type === 'melee_stun' || skill.type === 'stun' || skill.type === 'pull') this.tickHitWindows(now);
+  }
+
+  pulseHeal(playerId, targetId, amount, now) {
+    const patient = this.gameState.patients[targetId];
+    const targetEntity = this.gameState.entities[targetId];
+    if (!patient || !targetEntity || patient.status !== 'alive') return false;
+    patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, amount * (this.players.get(playerId)?.curatorMult || 1), now));
+    if (patient.infected && !(this.gameState.lms && this.mode === 'infection')) { patient.infected = false; patient.contagion = 0; }
+    this.exitAstral(targetEntity, now);
+    if (patient.hp >= patient.maxHp) {
+      patient.status = 'eliminated';
+      this.onPatientFullyCured();
+    }
+    return true;
+  }
+
+  castFieldSkill(playerId, owner, skill, now, affected) {
+    const fx = owner.faceX || 0;
+    const fz = owner.faceZ || 0;
+    const fl = Math.hypot(fx, fz) || 1;
+    const dx = fx / fl;
+    const dz = fz === 0 && fx === 0 ? 1 : fz / fl;
+    const half = this.getCurrentArea().halfSize;
+    const clamp = (v) => Math.max(-half + 1, Math.min(half - 1, v));
+    if (skill.type === 'zone') {
+      this.addZone({ kind: skill.zoneKind, skillId: skill.id, x: owner.x, z: owner.z, radius: skill.radius, ownerId: playerId, perSecond: skill.perSecond || 0, placedAt: now, until: now + skill.durationMs });
+      if (skill.cureAmount) {
+        for (const [id, patient] of Object.entries(this.gameState.patients)) {
+          const e = this.gameState.entities[id];
+          if (patient.status !== 'alive' || !e || distanceBetween(owner, e) > (skill.burstRadius || skill.radius)) continue;
+          if (this.pulseHeal(playerId, id, skill.cureAmount, now)) { this.breakParaguay(id, now); affected.push(id); }
+        }
+      }
+    } else if (skill.type === 'gas') {
+      this.addZone({ kind: 'gas', skillId: skill.id, x: clamp(owner.x + dx * skill.reach), z: clamp(owner.z + dz * skill.reach), radius: skill.radius, ownerId: playerId, sleepAfterMs: skill.sleepAfterMs, stunMs: skill.stunMs, inside: {}, slept: {}, placedAt: now, until: now + skill.durationMs });
+    } else {
+      this.addZone({ kind: skill.type === 'root' ? 'rootshot' : skill.type === 'dart' ? 'dart' : 'gurney', skillId: skill.id, x: owner.x + dx * 0.8, z: owner.z + dz * 0.8, radius: skill.radius, ownerId: playerId, dx, dz, speed: skill.speed, left: skill.range, h: (owner.y || 0) + 0.9, skill, carried: {}, placedAt: now, until: now + (skill.range / skill.speed) * 1000 + 200 });
+    }
+    this.award(playerId, 1, skill.name);
+  }
+
+  tickFieldZone(zone, now, dt) {
+    let changed = false;
+    const owner = this.gameState.entities[zone.ownerId];
+    if (zone.kind === 'herbs' || zone.kind === 'drip') {
+      for (const [id, patient] of Object.entries(this.gameState.patients)) {
+        if (patient.status !== 'alive') continue;
+        const e = this.gameState.entities[id];
+        if (!e || this.zoneDistance(e, zone) > zone.radius) continue;
+        if (!this.isInvisible(e, now)) Status.apply(e, 'reveal', 700, now);
+        if (zone.perSecond > 0 && this.pulseHeal(zone.ownerId, id, zone.perSecond * dt, now)) changed = true;
+      }
+    } else if (zone.kind === 'gas') {
+      for (const [id, patient] of Object.entries(this.gameState.patients)) {
+        if (patient.status !== 'alive') continue;
+        const e = this.gameState.entities[id];
+        if (!e || this.zoneDistance(e, zone) > zone.radius) continue;
+        Status.apply(e, 'slow', 350, now, { level: 2 });
+        zone.inside[id] = (zone.inside[id] || 0) + dt * 1000;
+        if (!zone.slept[id] && zone.inside[id] >= zone.sleepAfterMs) {
+          zone.slept[id] = true;
+          this.breakParaguay(id, now);
+          Status.apply(e, 'stun', zone.stunMs, now);
+        }
+      }
+    } else {
+      const step = zone.speed * dt;
+      zone.x += zone.dx * step;
+      zone.z += zone.dz * step;
+      zone.left -= step;
+      zone.h += 0;
+      const half = this.getCurrentArea().halfSize;
+      const platforms = GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId));
+      const ground = groundAt(platforms, zone.x, zone.z, zone.h, 0.2);
+      if (zone.left <= 0 || Math.abs(zone.x) > half || Math.abs(zone.z) > half || zone.h < ground + 0.15) { zone.until = now; return false; }
+      zone.y = Math.max(0, ground);
+      for (const [id, patient] of Object.entries(this.gameState.patients)) {
+        if (patient.status !== 'alive') continue;
+        const e = this.gameState.entities[id];
+        if (!e) continue;
+        const d = Math.hypot(e.x - zone.x, e.z - zone.z);
+        if (zone.kind === 'gurney') {
+          if (!zone.carried[id] && d <= zone.radius + 0.4 && Math.abs((e.y || 0) - zone.y) < 1.6) zone.carried[id] = true;
+          if (zone.carried[id] && d <= zone.radius * 1.8) {
+            const nx = e.x + zone.dx * step;
+            const nz = e.z + zone.dz * step;
+            if (groundAt(platforms, nx, nz, e.y || 0, 0.7) <= (e.y || 0) + 0.7) { e.x = nx; e.z = nz; }
+            this.breakParaguay(id, now);
+          }
+          continue;
+        }
+        if (d > zone.radius + 0.45 || Math.abs((e.y || 0) + 0.9 - zone.h) > 1.6) continue;
+        const s = zone.skill;
+        this.breakParaguay(id, now);
+        if (zone.kind === 'rootshot') {
+          const ox = owner ? owner.x - e.x : 0;
+          const oz = owner ? owner.z - e.z : 0;
+          const ol = Math.hypot(ox, oz) || 1;
+          Status.push(e, ox / ol, oz / ol, s.pullStrength, 450, now);
+          Status.apply(e, 'stun', s.stunMs, now);
+        } else {
+          Status.apply(e, 'slow', s.slowMs, now, { level: 3 });
+          e.sedate = { at: now + s.sleepMs, ms: s.stunMs };
+        }
+        this.award(zone.ownerId, 3, s.name);
+        zone.until = now;
+        break;
+      }
+    }
+    return changed;
   }
 
   broadcastPulse(pulseResult) {
@@ -2373,6 +2493,12 @@ class Room {
       this.sendHeartbeats();
     }
     let statusChanged = false;
+    for (const entity of Object.values(this.gameState.entities)) {
+      if (entity.sedate && now >= entity.sedate.at) {
+        Status.apply(entity, 'stun', entity.sedate.ms, now);
+        entity.sedate = null;
+      }
+    }
     for (const [playerId, entity] of Object.entries(this.gameState.entities)) {
       const dot = entity.rimacDot;
       if (!dot) continue;
@@ -2392,6 +2518,10 @@ class Room {
 
       if (zone.kind === 'serum') {
         this.tickSerum(zone, now, dt);
+        continue;
+      }
+      if (FIELD_KINDS.has(zone.kind)) {
+        if (this.tickFieldZone(zone, now, dt)) statusChanged = true;
         continue;
       }
       if (zone.kind === 'rimac') {
@@ -3026,6 +3156,11 @@ class Room {
       return;
     }
     if (Status.blocksSkills(playerEntity, now)) return;
+    const lock = this.gameState.moduleLock;
+    if (lock && now < lock.until && Math.hypot(objectPos.x - lock.x, objectPos.z - lock.z) <= lock.r) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Módulo desinfectado, espera un momento' });
+      return;
+    }
     if (playerEntity.carry) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Suelta el Módulo que llevas para usarlo' });
       return;

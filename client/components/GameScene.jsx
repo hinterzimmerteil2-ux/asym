@@ -1118,7 +1118,7 @@ function CollisionObjectMesh({ type, radius }) {
   }
 }
 
-const ZONE_COLORS = { spear: '#5fd58c', rimac: '#6b8f3a', puddle: '#5fd58c', trap: '#f2d154', serum: '#54e0c0' };
+const ZONE_COLORS = { herbs: '#5fd58c', drip: '#54e0c0', gas: '#b07cf2', spear: '#5fd58c', rimac: '#6b8f3a', puddle: '#5fd58c', trap: '#f2d154', serum: '#54e0c0' };
 
 function BananaMesh({ color, spotted, ghost, fade }) {
   return (
@@ -1254,6 +1254,106 @@ function SpearMesh({ zone }) {
   );
 }
 
+function HerbsField({ radius }) {
+  const refs = useRef([]);
+  useFrame(({ clock }) => {
+    const T = clock.elapsedTime;
+    refs.current.forEach((m, i) => {
+      if (!m) return;
+      const ph = (T * 0.35 + i / 14) % 1;
+      const a = i * 2.4;
+      const r = radius * (0.25 + 0.7 * ((i * 0.37) % 1));
+      m.position.set(Math.cos(a) * r, 0.1 + ph * 2.2, Math.sin(a) * r);
+      m.rotation.set(T * 2 + i, T * 1.5, 0);
+      m.scale.setScalar(Math.sin(ph * Math.PI) * 1.2 + 0.01);
+    });
+  });
+  return (
+    <group>
+      <PuddleRipples radius={radius} color="#5fd58c" />
+      <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[radius * 0.96, radius, 40]} /><meshBasicMaterial color="#8fffb0" transparent opacity={0.7} side={2} depthWrite={false} /></mesh>
+      {Array.from({ length: 14 }, (_, i) => (
+        <mesh key={i} ref={(el) => { refs.current[i] = el; }}><boxGeometry args={[0.16, 0.03, 0.09]} /><meshBasicMaterial color={i % 2 ? '#6fd58c' : '#b6f5a0'} transparent opacity={0.85} depthWrite={false} /></mesh>
+      ))}
+    </group>
+  );
+}
+
+function DripStand({ radius }) {
+  const drop = useRef();
+  useFrame(({ clock }) => {
+    if (!drop.current) return;
+    const ph = (clock.elapsedTime * 1.4) % 1;
+    drop.current.position.y = 1.7 - ph * 1.3;
+    drop.current.visible = ph < 0.9;
+  });
+  return (
+    <group>
+      <PuddleRipples radius={radius} color="#54e0c0" />
+      <mesh position={[0, 0.9, 0]}><cylinderGeometry args={[0.03, 0.03, 1.8, 6]} /><meshStandardMaterial color="#b8c4c8" metalness={0.7} roughness={0.35} /></mesh>
+      <mesh position={[0, 0.05, 0]}><cylinderGeometry args={[0.4, 0.4, 0.06, 10]} /><meshStandardMaterial color="#4a4f58" /></mesh>
+      <mesh position={[0, 2.0, 0]}><boxGeometry args={[0.28, 0.5, 0.12]} /><meshStandardMaterial color="#9fe9d8" transparent opacity={0.8} emissive="#2fd0b0" emissiveIntensity={0.8} /></mesh>
+      <mesh ref={drop} position={[0, 1.5, 0]}><sphereGeometry args={[0.05, 8, 6]} /><meshBasicMaterial color="#7ff5d8" /></mesh>
+    </group>
+  );
+}
+
+function GasCloud({ radius }) {
+  const refs = useRef([]);
+  useFrame(({ clock }) => {
+    const T = clock.elapsedTime;
+    refs.current.forEach((m, i) => {
+      if (!m) return;
+      const a = i * 1.3 + T * 0.25 * (i % 2 ? 1 : -1);
+      const r = radius * 0.55 * (0.5 + ((i * 0.31) % 0.6));
+      m.position.set(Math.cos(a) * r, 0.7 + Math.sin(T * 0.8 + i) * 0.25 + (i % 3) * 0.3, Math.sin(a) * r);
+      m.scale.setScalar(radius * (0.34 + 0.05 * Math.sin(T * 1.5 + i)));
+    });
+  });
+  return (
+    <group>
+      {Array.from({ length: 9 }, (_, i) => (
+        <mesh key={i} ref={(el) => { refs.current[i] = el; }}><sphereGeometry args={[1, 12, 9]} /><meshBasicMaterial color={i % 2 ? '#a487e8' : '#c9b2f5'} transparent opacity={0.28} depthWrite={false} /></mesh>
+      ))}
+    </group>
+  );
+}
+
+function FieldShot({ zone }) {
+  const yaw = Math.atan2(zone.dx || 0, zone.dz || 1);
+  if (zone.kind === 'gurney') {
+    return (
+      <group rotation={[0, yaw, 0]} position={[0, 0.25, 0]}>
+        <mesh position={[0, 0.55, 0]}><boxGeometry args={[1.0, 0.12, 2.2]} /><meshStandardMaterial color="#d8dde8" metalness={0.3} roughness={0.5} /></mesh>
+        <mesh position={[0, 0.63, -0.5]}><boxGeometry args={[0.9, 0.06, 0.8]} /><meshStandardMaterial color="#e0555f" /></mesh>
+        <mesh position={[0, 0.3, 0]}><boxGeometry args={[0.7, 0.35, 1.8]} /><meshStandardMaterial color="#6a7388" metalness={0.6} roughness={0.4} emissive="#3a2aa0" emissiveIntensity={0.5} /></mesh>
+        {[[-0.45, 0.75], [0.45, 0.75], [-0.45, -0.75], [0.45, -0.75]].map(([x, z], i) => (
+          <mesh key={i} position={[x, 0.08, z]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.16, 0.16, 0.1, 10]} /><meshStandardMaterial color="#1b1d29" /></mesh>
+        ))}
+        <mesh position={[0, 0.2, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[0.8, 1.1, 24]} /><meshBasicMaterial color="#9a7bff" transparent opacity={0.35} side={2} depthWrite={false} /></mesh>
+      </group>
+    );
+  }
+  if (zone.kind === 'dart') {
+    return (
+      <group rotation={[0, yaw, 0]} position={[0, 0.9, 0]}>
+        <mesh rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.07, 0.07, 0.6, 8]} /><meshStandardMaterial color="#cfeaf2" transparent opacity={0.9} /></mesh>
+        <mesh position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}><coneGeometry args={[0.05, 0.4, 8]} /><meshStandardMaterial color="#e8eef2" metalness={1} roughness={0.2} /></mesh>
+        <mesh position={[0, 0, -0.38]}><boxGeometry args={[0.28, 0.02, 0.2]} /><meshBasicMaterial color="#b07cf2" /></mesh>
+        <mesh position={[0, 0, -0.38]}><boxGeometry args={[0.02, 0.28, 0.2]} /><meshBasicMaterial color="#b07cf2" /></mesh>
+      </group>
+    );
+  }
+  return (
+    <group rotation={[0, yaw, 0]} position={[0, 0.6, 0]}>
+      <mesh position={[0, 0, 0.4]} rotation={[Math.PI / 2, 0, 0]}><coneGeometry args={[0.28, 1.3, 7]} /><meshStandardMaterial color="#7a5a32" roughness={0.9} /></mesh>
+      <mesh position={[0, 0.05, -0.3]} rotation={[Math.PI / 2 - 0.15, 0.4, 0]}><coneGeometry args={[0.18, 1.0, 6]} /><meshStandardMaterial color="#5a4024" roughness={0.9} /></mesh>
+      <mesh position={[0.15, -0.05, -0.8]} rotation={[Math.PI / 2 + 0.2, -0.5, 0]}><coneGeometry args={[0.12, 0.8, 6]} /><meshStandardMaterial color="#6b4a2a" roughness={0.9} /></mesh>
+      <mesh position={[0, 0, 1.1]}><sphereGeometry args={[0.1, 6, 5]} /><meshBasicMaterial color="#7ff08a" /></mesh>
+    </group>
+  );
+}
+
 function ZoneDisc({ zone, ghost, platforms }) {
   const ramp = (platforms || []).find((p) => p.ramp && Math.abs(zone.x - p.x) <= p.hx && Math.abs(zone.z - p.z) <= p.hz);
   const tilt = ramp ? Math.atan2(ramp.h, ramp.hx * 2) * (ramp.ramp === '+x' ? 1 : -1) : 0;
@@ -1282,6 +1382,10 @@ function ZoneDisc({ zone, ghost, platforms }) {
           <BrokenBottle color={color} />
         </>
       )}
+      {zone.kind === 'herbs' && <HerbsField radius={zone.radius} />}
+      {zone.kind === 'drip' && <DripStand radius={zone.radius} />}
+      {zone.kind === 'gas' && <GasCloud radius={zone.radius} />}
+      {(zone.kind === 'rootshot' || zone.kind === 'dart' || zone.kind === 'gurney') && <FieldShot zone={zone} />}
       {zone.kind === 'spear' && <SpearMesh zone={zone} />}
       {zone.kind === 'puddle' && <PuddleRipples radius={zone.radius} color="#5fd58c" />}
       {zone.kind === 'serum' && (

@@ -1488,3 +1488,84 @@ test('bloques: la cura los lleva al maximo y se rompen sin colision; el daño lo
   for (let i = 0; i < 12; i++) { gs.entities.a.nextRepairAt = 0; room.repairBlock('a'); }
   assert.ok(!gs.blockBroken[blk.id]);
 });
+
+function tz(room, step, n) {
+  for (let i = 0; i < n; i++) { step(1); room.tickZones(Date.now(), 0.05); }
+}
+
+function curatorAt(e, room) {
+  e.c.x = 0; e.c.z = 0; e.c.y = 0; e.c.faceX = 1; e.c.faceZ = 0;
+  room.gameState.curatorReleaseAt = 0;
+  e.c.skillCooldowns = {};
+}
+
+test('Pulso de Hierbas: zona que cura y revela mientras estés dentro', () => {
+  const { room, e, p, step } = setup();
+  curatorAt(e, room);
+  e.a.x = 2; e.a.z = 0; e.a.y = 0; p.a.hp = 50;
+  room.applyCuratorPulse('c', 0);
+  const hp0 = p.a.hp;
+  tz(room, step, 20);
+  assert.ok(p.a.hp > hp0);
+  assert.ok(Status.until(e.a, 'reveal') > Date.now());
+  e.a.x = 30;
+  const hp1 = p.a.hp;
+  tz(room, step, 10);
+  assert.strictEqual(p.a.hp, hp1);
+});
+
+test('Somnífero: nube que ralentiza y duerme tras respirar', () => {
+  const { room, e, step } = setup();
+  curatorAt(e, room);
+  room.applyCuratorPulse('c', 1);
+  const z = room.gameState.zones.find((q) => q.kind === 'gas');
+  e.a.x = z.x; e.a.z = z.z; e.a.y = 0;
+  tz(room, step, 4);
+  assert.ok(Status.speedFactor(e.a, Date.now()) < 1);
+  tz(room, step, 14);
+  assert.ok(Status.active(e.a, 'stun', Date.now()));
+});
+
+test('Raíz Atrayente: proyectil que arrastra y atrapa al primer Paciente', () => {
+  const { room, e, step } = setup();
+  curatorAt(e, room);
+  e.a.x = 7; e.a.z = 0; e.a.y = 0;
+  e.b.x = 30; e.b.z = 30;
+  room.applyCuratorPulse('c', 2);
+  tz(room, step, 20);
+  assert.ok(Status.active(e.a, 'stun', Date.now()) || e.a.x < 7);
+  assert.ok(!Status.active(e.b, 'stun', Date.now()));
+});
+
+test('Anestesia: dardo que ralentiza y luego desmaya', () => {
+  const { room, e, step } = setup();
+  const Characters = require('../src/Characters');
+  room.players.get('c').characterId = 'enfermera_buenaventura';
+  curatorAt(e, room);
+  e.a.x = 8; e.a.z = 0; e.a.y = 0;
+  room.applyCuratorPulse('c', 1);
+  tz(room, step, 8);
+  assert.ok(Status.speedFactor(e.a, Date.now()) < 1);
+  tz(room, step, 40);
+  assert.ok(e.a.sedate === null || Status.active(e.a, 'stun', Date.now()) || Status.until(e.a, 'stun') > 0);
+  void Characters;
+});
+
+test('Camilla Magnética: se lleva a los Pacientes que toca', () => {
+  const { room, e, step } = setup();
+  room.players.get('c').characterId = 'enfermera_buenaventura';
+  curatorAt(e, room);
+  e.a.x = 4; e.a.z = 0; e.a.y = 0;
+  room.applyCuratorPulse('c', 2);
+  tz(room, step, 20);
+  assert.ok(e.a.x > 6);
+});
+
+test('Desinfectante bloquea los Módulos cercanos', () => {
+  const { room, e, sent, clock } = setup();
+  room.players.get('c').characterId = 'enfermera_buenaventura';
+  curatorAt(e, room);
+  room.applyCuratorPulse('c', 3);
+  assert.ok(room.gameState.moduleLock && room.gameState.moduleLock.until > clock.t);
+  void sent;
+});
