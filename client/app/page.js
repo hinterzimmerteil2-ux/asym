@@ -55,7 +55,7 @@ function KitPicker({ roles, onPick }) {
               </button>
             );
           })}
-          <button type="button" onClick={() => onPick('none')} style={{ marginTop: 4, padding: 8, borderRadius: 10, cursor: 'pointer', color: '#cfe8fa', background: 'transparent', border: '1px dashed #4a6a8a' }}>Cartas sueltas, sin kit</button>
+          <button type="button" onClick={() => onPick('none')} style={{ marginTop: 4, padding: 8, borderRadius: 10, cursor: 'pointer', color: '#cfe8fa', background: 'transparent', border: '1px dashed #4a6a8a' }}>Sin Kit</button>
         </div>
         <div key={r.id} style={{ flex: '2 1 280px', display: 'flex', flexDirection: 'column', gap: 10, animation: 'dealIn 360ms cubic-bezier(.2,.9,.3,1.1) both' }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
