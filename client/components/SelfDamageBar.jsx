@@ -66,11 +66,11 @@ const CARDS = [
   { g: 'F', c: '#ff9a5a' },
 ];
 
-function cardStyle(c, extra) {
-  return { width: 54, height: 70, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#10131c', background: CARDS[c].c, boxShadow: '0 4px 10px rgba(0,0,0,0.5)', userSelect: 'none', ...extra };
+function cardStyle(c, extra, cw = 54) {
+  return { width: cw, height: Math.round(cw * 1.3), flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(cw * 0.52), fontWeight: 900, color: '#10131c', background: CARDS[c].c, boxShadow: '0 4px 10px rgba(0,0,0,0.5)', userSelect: 'none', ...extra };
 }
 
-function KeysInput({ pool, onOrder }) {
+function KeysInput({ pool, onOrder, cw = 54 }) {
   const [placed, setPlaced] = useState([]);
   const sent = useRef(false);
   const put = (c) => setPlaced((p) => (p.includes(c) || p.length >= pool.length ? p : [...p, c]));
@@ -89,14 +89,14 @@ function KeysInput({ pool, onOrder }) {
   const slotDrop = (e) => { e.preventDefault(); const c = Number(e.dataTransfer.getData('text/plain')); if (Number.isInteger(c) && pool.includes(c)) put(c); };
   return (
     <div style={{ pointerEvents: 'auto' }}>
-      <div onDragOver={(e) => e.preventDefault()} onDrop={slotDrop} style={{ display: 'flex', gap: 8, justifyContent: 'center', minHeight: 76, padding: 4, borderRadius: 12, background: 'rgba(255,255,255,0.05)' }}>
+      <div onDragOver={(e) => e.preventDefault()} onDrop={slotDrop} style={{ display: 'flex', gap: 8, justifyContent: 'center', minHeight: Math.round(cw * 1.3) + 8, padding: 4, borderRadius: 12, background: 'rgba(255,255,255,0.05)' }}>
         {pool.map((_, i) => placed[i] !== undefined
-          ? <button type="button" key={i} onClick={() => !sent.current && setPlaced((p) => p.filter((x) => x !== placed[i]))} style={{ ...cardStyle(placed[i]), border: 'none', cursor: 'pointer' }}>{CARDS[placed[i]].g}</button>
-          : <div key={i} style={{ width: 54, height: 70, borderRadius: 10, border: '2px dashed #6a7396', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6a7396', fontWeight: 800 }}>{i + 1}</div>)}
+          ? <button type="button" key={i} onClick={() => !sent.current && setPlaced((p) => p.filter((x) => x !== placed[i]))} style={{ ...cardStyle(placed[i], null, cw), border: 'none', cursor: 'pointer' }}>{CARDS[placed[i]].g}</button>
+          : <div key={i} style={{ width: cw, height: Math.round(cw * 1.3), flexShrink: 0, borderRadius: 10, border: '2px dashed #6a7396', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6a7396', fontWeight: 800 }}>{i + 1}</div>)}
       </div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10 }}>
         {pool.map((c, i) => (
-          <button type="button" key={c} draggable onDragStart={(e) => e.dataTransfer.setData('text/plain', String(c))} onClick={() => put(c)} disabled={placed.includes(c)} style={{ ...cardStyle(c), border: 'none', cursor: 'grab', opacity: placed.includes(c) ? 0.25 : 1, transition: 'transform 120ms' }}>
+          <button type="button" key={c} draggable onDragStart={(e) => e.dataTransfer.setData('text/plain', String(c))} onClick={() => put(c)} disabled={placed.includes(c)} style={{ ...cardStyle(c, null, cw), border: 'none', cursor: 'grab', opacity: placed.includes(c) ? 0.25 : 1, transition: 'transform 120ms' }}>
             {CARDS[c].g}
           </button>
         ))}
@@ -131,7 +131,14 @@ export default function SelfDamageBar({ gameRef, onPress, onDir }) {
   const sinceHit = now - prev.current.hitAt;
   const hitting = prev.current.hitAt > 0 && sinceHit < 420;
   const hitAnim = hitting ? { animation: 'sdHit 420ms ease-out' } : null;
-  const frame = (color) => ({ ...BOX, border: `2px solid ${color}`, boxShadow: `0 0 34px ${color}55, 0 10px 30px rgba(0,0,0,0.5)` });
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 400;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+  const short = vh < 520;
+  const boxW = short ? Math.max(260, Math.min(520, vw - 330)) : Math.min(520, vw * 0.9);
+  const cwShow = (n) => Math.max(30, Math.min(54, Math.floor((boxW - 32 - 8 * (n - 1)) / n)));
+  const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+  const shortBox = !short && coarse ? { bottom: Math.min(250, Math.max(150, vh - 360)) } : short ? { bottom: 8, width: boxW, padding: '8px 12px 10px', maxHeight: vh - 16, overflow: 'hidden' } : null;
+  const frame = (color) => ({ ...BOX, ...shortBox, border: `2px solid ${color}`, boxShadow: `0 0 34px ${color}55, 0 10px 30px rgba(0,0,0,0.5)` });
   const flash = (color) => hitting ? <div className="sd-anim" key={prev.current.hitAt} style={{ position: 'absolute', inset: 0, background: color, animation: 'sdFlash 420ms ease-out forwards', pointerEvents: 'none' }} /> : null;
   const left = 1 - pos;
 
@@ -205,10 +212,10 @@ export default function SelfDamageBar({ gameRef, onPress, onDir }) {
         {g.phase === 'connect' && <div className="sd-anim" style={{ minHeight: 76, fontSize: 22, fontWeight: 800, animation: 'sdTap 0.5s infinite' }}>...</div>}
         {g.phase === 'show' && (
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center', minHeight: 76 }}>
-            {g.seq.map((c, i) => <div key={i} className="sd-anim" style={{ ...cardStyle(c), animation: `sdIn2 300ms ${i * 140}ms both` }}>{CARDS[c].g}</div>)}
+            {g.seq.map((c, i) => <div key={i} className="sd-anim" style={{ ...cardStyle(c, null, cwShow(g.seq.length)), animation: `sdIn2 300ms ${i * 140}ms both` }}>{CARDS[c].g}</div>)}
           </div>
         )}
-        {g.phase === 'input' && <KeysInput key={`${g.round}:${g.fails}:${g.pool.join('')}`} pool={g.pool} onOrder={onDir} />}
+        {g.phase === 'input' && <KeysInput key={`${g.round}:${g.fails}:${g.pool.join('')}`} pool={g.pool} onOrder={onDir} cw={cwShow(g.pool.length)} />}
         {g.phase !== 'connect' && <TimeBar left={pl / (g.phase === 'show' ? 1000 + g.len * 350 : 3200 + g.len * 550)} color={col} />}
       </div>
     );
