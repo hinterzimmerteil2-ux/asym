@@ -2123,6 +2123,8 @@ const MCollisionObject = memo(CollisionObject);
 const MSelfDamageObject = memo(SelfDamageObject, (a, b) => a.position.x === b.position.x && a.position.y === b.position.y && a.position.z === b.position.z && a.near === b.near && a.active === b.active && a.kind === b.kind);
 
 export default function GameScene({
+  gameMode,
+  lmsActive,
   entities,
   players,
   myPlayerId,
@@ -2169,11 +2171,11 @@ export default function GameScene({
 
   return (
     <Canvas key={`${g.antialias}-${g.textures}-${g.poly}`} dpr={coarse ? Math.min(g.dpr, 2) : g.dpr} gl={{ antialias: g.antialias, powerPreference: g.minimal ? 'low-power' : 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
-      <ambientLight intensity={phase === 'action' ? (g.lights ? 0.55 : 0.95) : 0.75} color={phase === 'action' ? '#cfc6c4' : '#cfe0ff'} />
-      <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? 0.7 : 1.1} color={phase === 'action' ? '#ffc0a8' : '#ffffff'} />
-      <hemisphereLight args={phase === 'action' ? ['#8f7c8a', '#33262e', 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
+      <ambientLight intensity={phase === 'action' ? (gameMode === 'lights' ? 0.22 : g.lights ? 0.55 : 0.95) : 0.75} color={phase === 'action' ? '#cfc6c4' : '#cfe0ff'} />
+      <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? (gameMode === 'lights' ? 0.12 : 0.7) : 1.1} color={phase === 'action' ? '#ffc0a8' : '#ffffff'} />
+      <hemisphereLight args={phase === 'action' ? ['#8f7c8a', '#33262e', gameMode === 'lights' ? 0.12 : 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
       <color attach="background" args={[phase === 'action' ? '#090607' : '#12162e']} />
-      <fog attach="fog" args={phase === 'action' ? ['#130b0e', 45, g.fogFar] : ['#12162e', 45, 130]} />
+      <fog attach="fog" args={phase === 'action' ? (gameMode === 'lights' ? ['#030203', 2, (playerById.get(myPlayerId)?.isAsymRole ? 34 : 22) * (lmsActive ? 0.6 : 1)] : ['#130b0e', 45, g.fogFar]) : ['#12162e', 45, 130]} />
       {phase === 'action' && <Embers />}
       {phase === 'action' && <NightDecor showStars={g.stars} lights={g.lights} lightCount={g.lightCount} />}
       {phase === 'action' && g.decor !== 'none' && <HospitalDecor half={areaHalfSize} platforms={platforms} level={g.decor} dust={g.dust} lightsOn={g.lightCount >= 5} />}

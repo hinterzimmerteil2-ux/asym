@@ -220,6 +220,8 @@ export default function LobbyPage() {
   const [mode, setMode] = useState('normal');
   const [secondCuratorId, setSecondCuratorId] = useState(null);
   const [modeVoteOpen, setModeVoteOpen] = useState(false);
+  const [gravityFactor, setGravityFactor] = useState(1);
+  const [modeBanner, setModeBanner] = useState('');
   const [seedInput, setSeedInput] = useState('');
   const [matchSeed, setMatchSeed] = useState(null);
   const [editingName, setEditingName] = useState(false);
@@ -295,6 +297,13 @@ export default function LobbyPage() {
             setModeVoteOpen(Boolean(payload.modeVoteOpen));
             setMutation(payload.mutation || 'none');
             setMutations(payload.mutations || []);
+            break;
+          case 'mode_event':
+            if (payload.kind === 'gravity') {
+              setGravityFactor(payload.factor);
+              setModeBanner(payload.factor < 1 ? 'Gravedad baja' : payload.factor > 1 ? 'Gravedad alta' : 'Gravedad normal');
+              setTimeout(() => setModeBanner(''), 3000);
+            }
             break;
           case 'room_update':
             setPlayers(payload.players);
@@ -977,6 +986,8 @@ export default function LobbyPage() {
       <main style={styles.gameMain}>
         <div style={styles.sceneContainer}>
           <LiveScene
+            gameMode={mode}
+            lmsActive={lmsUntil > 0}
             store={sceneStore}
             replay={replay}
             players={players}
@@ -1068,7 +1079,7 @@ export default function LobbyPage() {
                   </span>
                   <span style={styles.playerTag}>
                     {p.id === hostId ? 'Host' : ''} {characterTag}
-                    {phase === 'action' && patientInfo ? ` / HP ${fmtHp(patientInfo.hp)}/${fmtHp(patientInfo.maxHp || 120)}` : ''}
+                    {phase === 'action' && patientInfo ? ` / HP ${fmtHp(patientInfo.hp)}/${fmtHp(patientInfo.maxHp || 120)}${patientInfo.infected ? ' / infectado' : ''}` : ''}
                   </span>
                   {phase === 'lobby' && isHost && !isDefaultRoom && !p.isAsymRole && (
                     <button
@@ -1377,17 +1388,32 @@ export default function LobbyPage() {
           </div>
         )}
 
+        {phase === 'action' && mode === 'gravity' && (modeBanner || gravityFactor !== 1) && (
+          <div className="beat" style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 35, padding: '6px 14px', borderRadius: 10, background: 'rgba(20,10,16,0.8)', border: `1px solid ${gravityFactor < 1 ? '#54d1f2' : '#ff9a5a'}`, color: '#fff', fontWeight: 800, pointerEvents: 'none' }}>
+            {modeBanner || (gravityFactor < 1 ? 'Gravedad baja' : 'Gravedad alta')}
+          </div>
+        )}
+        {phase === 'action' && mode === 'infection' && !isAsymRole && patients[myPlayerId]?.infected && (
+          <div style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 35, padding: '6px 14px', borderRadius: 10, background: 'rgba(60,10,40,0.85)', border: '1px solid #e07cf2', color: '#fff', fontWeight: 800, pointerEvents: 'none' }}>
+            Estás infectado. Pierdes vida y contagias. La cura del Curador te limpia.
+          </div>
+        )}
         {phase === 'action' && !isAsymRole && roles.length > 0 && !myRole && hand[0] && !hand[0].chosen && (
-          <div style={{ position: 'absolute', top: 50, left: '50%', transform: 'translateX(-50%)', zIndex: 40, maxHeight: 'calc(100% - 64px)', overflowY: 'auto', overscrollBehavior: 'contain', display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(20,24,40,0.92)', border: '1px solid #8fc6ea', borderRadius: 10, padding: 10, width: 'min(94vw, 460px)', maxHeight: 'calc(100% - 70px)', overflow: 'auto' }}>
-            <strong style={{ color: '#cfe8fa', fontSize: 14 }}>Elige tu rol</strong>
-            {roles.map((r) => (
-              <button key={r.id} type="button" onClick={() => handleSelectRole(r.id)} style={{ textAlign: 'left', background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 8, padding: 8, cursor: 'pointer' }}>
-                <div style={{ fontWeight: 700 }}>{r.name}</div>
-                <div style={{ fontSize: 12, opacity: 0.85 }}>{r.tagline} / {r.card?.displayName}</div>
-                <div style={{ fontSize: 11, opacity: 0.65 }}>{(r.pool || []).join(' / ')}</div>
+          <div style={{ ...styles.draftOverlay, top: 'auto', bottom: 90, transform: 'translateX(-50%)', zIndex: 31 }}>
+            <span style={styles.draftTitle}>Elige tu kit o roba cartas sueltas</span>
+            <div style={styles.draftRow}>
+              {roles.map((r, n) => (
+                <button key={r.id} type="button" className="draft-card" onClick={() => handleSelectRole(r.id)} title={(r.pool || []).join(', ')} style={{ ...styles.draftCard('uncommon', false, n), width: 128, height: 150, color: '#e8e9f0', cursor: 'pointer', padding: '10px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
+                  {r.card?.id && <SkillIcon id={r.card.id} size={38} />}
+                  <span style={{ fontWeight: 800, fontSize: 14 }}>{r.name}</span>
+                  <span style={{ fontSize: 11, opacity: 0.8 }}>{r.tagline}</span>
+                  <span style={{ fontSize: 10, opacity: 0.55 }}>{r.card?.displayName}</span>
+                </button>
+              ))}
+              <button type="button" className="draft-card" onClick={() => handleSelectRole('none')} style={{ ...styles.draftCard('common', false, roles.length), width: 128, height: 150, color: '#cfe8fa', cursor: 'pointer', borderStyle: 'dashed', padding: 8 }}>
+                Sin kit: cinco cartas sueltas
               </button>
-            ))}
-            <button type="button" onClick={() => handleSelectRole('none')} style={{ background: 'transparent', color: '#cfe8fa', border: '1px dashed #4a6a8a', borderRadius: 8, padding: 8, cursor: 'pointer' }}>Sin rol (elegir cartas libremente)</button>
+            </div>
           </div>
         )}
 
@@ -1871,6 +1897,9 @@ const MODE_LIST = [
   { id: 'normal', name: 'Normal' },
   { id: 'dual', name: 'Doble Curador' },
   { id: 'shared', name: 'Cuerpos compartidos' },
+  { id: 'infection', name: 'Infección' },
+  { id: 'lights', name: 'Linternas' },
+  { id: 'gravity', name: 'Gravedad variable' },
 ];
 
 const styles = {

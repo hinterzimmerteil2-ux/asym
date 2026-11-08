@@ -186,7 +186,7 @@ const SD_VARIANTS = {
 };
 const SD_EASY = ['pulso', 'termometro', 'pelota'];
 const SD_NORMAL = ['rhythm', 'needle', 'mash', 'meter', 'ampolla', 'xilofono', 'tambores', 'boton', 'manometro', 'turbina'];
-const MODES = ['normal', 'dual', 'shared'];
+const MODES = ['normal', 'dual', 'shared', 'infection', 'lights', 'gravity'];
 const MODULE_RELOCATE_MS = 2000;
 const LOCK_DAMAGE = 20;
 const KEYS_PARTS = [1, 2, 3, 4, 4, 4];
@@ -765,6 +765,10 @@ class Room {
   applyMode() {
     this.clearSecondCurator();
     this.sharedHp = null;
+    this.modeStart = Date.now();
+    this.infectionInit = false;
+    this.infectionLms = false;
+    this.lastGravityFactor = 1;
     if (this.mode !== 'dual') return;
     const main = [...this.players.entries()].find(([, p]) => p.isAsymRole);
     if (!main) return;
@@ -784,8 +788,49 @@ class Room {
     sp.curatorMult = 0.7; sp.curatorSpeed = 1.12;
   }
 
-  tickMode(now) {
-    if (this.mode !== 'shared' || this.phase !== 'action') return;
+  modeGravityFactor(now) {
+    if (this.mode !== 'gravity' || this.phase !== 'action') return 1;
+    if (this.gameState.lms) return 0.45;
+    const t = (((now - (this.modeStart || now)) / 1000) % 60 + 60) % 60;
+    return t < 25 ? 1 : t < 40 ? 0.45 : t < 45 ? 1 : 1.6;
+  }
+
+  tickGravityMode(now) {
+    const f = this.modeGravityFactor(now);
+    if (f === this.lastGravityFactor) return;
+    this.lastGravityFactor = f;
+    this.broadcast(MessageType.MODE_EVENT, { kind: 'gravity', factor: f });
+  }
+
+  tickInfection(now, dt) {
+    const gs = this.gameState;
+    const pats = Object.entries(gs.patients).filter(([, p]) => p.status === 'alive');
+    if (!this.infectionInit && pats.length) {
+      this.infectionInit = true;
+      const [, first] = pats[Math.floor(Math.random() * pats.length)];
+      first.infected = true;
+    }
+    if (gs.lms && !this.infectionLms) {
+      this.infectionLms = true;
+      for (const [, p] of pats) p.infected = true;
+    }
+    const infected = pats.filter(([, p]) => p.infected);
+    for (const [, p] of infected) p.hp = Math.max(PATIENT_HP_MIN + 1, p.hp - 0.5 * dt);
+    for (const [id, p] of pats) {
+      if (p.infected) continue;
+      const e = gs.entities[id];
+      if (!e) continue;
+      const near = infected.some(([iid]) => gs.entities[iid] && distanceBetween(e, gs.entities[iid]) < 2.5);
+      p.contagion = near ? (p.contagion || 0) + dt : Math.max(0, (p.contagion || 0) - dt);
+      if (p.contagion >= 4) { p.infected = true; p.contagion = 0; }
+    }
+  }
+
+  tickMode(now, dt = 0.05) {
+    if (this.phase !== 'action') return;
+    if (this.mode === 'infection') { this.tickInfection(now, dt); return; }
+    if (this.mode === 'gravity') { this.tickGravityMode(now); return; }
+    if (this.mode !== 'shared') return;
     const entries = Object.values(this.gameState.patients);
     const alive = entries.filter((p) => p.status === 'alive');
     if (!alive.length) return;
@@ -1694,7 +1739,7 @@ class Room {
         entity.velocityY = 0;
         entity.y = Math.max(entity.y, ground);
       } else {
-        entity.velocityY += GRAVITY * (this.phase === 'lobby' ? LOBBY_GRAVITY_FACTOR : MUTATIONS[this.mutation].gravity) * dt;
+        entity.velocityY += GRAVITY * (this.phase === 'lobby' ? LOBBY_GRAVITY_FACTOR : MUTATIONS[this.mutation].gravity * this.modeGravityFactor(Date.now())) * dt;
         entity.y += entity.velocityY * dt;
         entity.peakY = Math.max(entity.peakY || entity.y, entity.y);
         ground = groundAt(platforms, entity.x, entity.z, entity.y - entity.velocityY * dt);
@@ -1828,6 +1873,7 @@ class Room {
 
         if (skill.type === 'pulse') {
           patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, skill.cureAmount * (this.players.get(playerId)?.curatorMult || 1), now));
+          if (patient.infected && !(this.gameState.lms && this.mode === 'infection')) { patient.infected = false; patient.contagion = 0; }
           if (targetEntity) this.exitAstral(targetEntity, now);
           if (patient.hp >= patient.maxHp) {
             patient.status = 'eliminated';
@@ -2247,7 +2293,7 @@ class Room {
 
   tickZones(now, dt) {
     this.tickModuleRelocations(now);
-    this.tickMode(now);
+    this.tickMode(now, dt);
     let statusChanged = false;
     for (const [playerId, entity] of Object.entries(this.gameState.entities)) {
       const dot = entity.rimacDot;
@@ -3148,7 +3194,8 @@ class Room {
     gs.timeRemainingMs = LMS_TIMER_RESET_MS;
     const gimmick = LMS_GIMMICKS[Math.floor(Math.random() * LMS_GIMMICKS.length)];
     const curatorId = [...this.players.entries()].find(([, p]) => p.isAsymRole)?.[0] || null;
-    gs.lms = { survivorId, curatorId, gimmick };
+    gs.lms = { survivorId, curatorId, gimmick, mode: this.mode };
+    if (this.mode === 'dual') for (const pl of this.players.values()) if (pl.isAsymRole) { pl.curatorSpeed = 1; pl.curatorMult = 1; }
     const now = Date.now();
     for (const entity of [gs.entities[survivorId], curatorId ? gs.entities[curatorId] : null]) {
       if (!entity) continue;
