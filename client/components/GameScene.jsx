@@ -138,6 +138,9 @@ const EAT_MS = { eat_chicharron: 1500, eat_goyslop: 1800 };
 
 function StateHeld({ holdRef }) {
   const claw = useRef();
+  const orb = useRef();
+  const talons = useRef();
+  const motes = useRef([]);
   const food = useRef();
   const horn = useRef();
   const aura = useRef();
@@ -154,16 +157,35 @@ function StateHeld({ holdRef }) {
       if (on) {
         const ready = hold === 'claw_ready';
         const emerge = easeOut(Math.min(1, el / 700));
-        const charge = Math.min(1, el / 5000);
-        const k = (ready ? 1.35 : 0.5 + 0.8 * charge) * emerge;
-        claw.current.position.set(0.5 - 0.5 * emerge, 1.0 + 0.3 * emerge + Math.sin(T * (ready ? 9 : 5)) * 0.04, 0.2 + 0.55 * emerge);
-        claw.current.rotation.set(Math.PI, T * (ready ? 4 : 1.5), Math.sin(T * 16) * (0.03 + 0.1 * charge));
-        claw.current.scale.setScalar(Math.max(0.01, k * (1 + (ready ? 0.1 : 0.06 * charge + 0.03) * Math.sin(T * 18))));
-        if (aura.current) {
-          aura.current.visible = true;
-          aura.current.scale.setScalar((0.3 + 1.0 * (ready ? 1 : charge)) * (1 + 0.15 * Math.sin(T * 14)));
+        const charge = ready ? 1 : Math.min(1, el / 5000);
+        if (ready) {
+          claw.current.position.set(0.54, 1.98, 0.5);
+          claw.current.rotation.set(-1.0, 0, 0);
+        } else {
+          claw.current.position.set(0.54, 1.12 + Math.sin(T * 3) * 0.015, 0.66 * emerge);
+          claw.current.rotation.set(0, 0, 0);
         }
-      } else if (aura.current) aura.current.visible = false;
+        claw.current.scale.setScalar(Math.max(0.01, emerge * (ready ? 1.25 : 1)));
+        if (orb.current) {
+          const pulse = 1 + (ready ? 0.1 : 0.05 + 0.1 * charge) * Math.sin(T * (8 + 10 * charge));
+          orb.current.scale.setScalar((0.03 + 0.15 * charge) * pulse);
+          orb.current.material.color.setRGB(0.72 + 0.28 * charge, 0.5 + 0.45 * charge, 1 - 0.55 * charge);
+        }
+        if (talons.current) talons.current.children.forEach((tl, i) => {
+          const base = (i - 1.5) * -0.2;
+          tl.rotation.z = base * (1 - 0.35 * charge) + Math.sin(T * 14 + i) * 0.015 * charge;
+        });
+        const rate = 0.7 + 1.5 * charge;
+        motes.current.forEach((m, i) => {
+          if (!m) return;
+          const ph = (T * rate + i / motes.current.length) % 1;
+          const r = 0.75 * (1 - ph) + 0.02;
+          const a = i * 2.4 + T * (2 + 3 * charge);
+          m.position.set(Math.cos(a) * r, -0.22 + Math.sin(i * 1.7) * r * 0.7, Math.sin(a) * r);
+          m.scale.setScalar((0.022 + 0.03 * ph) * (0.4 + charge));
+          m.visible = ph > 0.05;
+        });
+      }
     }
     if (food.current) {
       const on = hold && hold.startsWith('eat_');
@@ -195,8 +217,21 @@ function StateHeld({ holdRef }) {
   return (
     <>
       <group ref={claw} visible={false}>
-        <PropMesh kind="claw" color="#aeb8d4" />
-        <mesh ref={aura} position={[0, 0.3, 0]}><sphereGeometry args={[0.35, 16, 12]} /><meshBasicMaterial color="#b57cff" transparent opacity={0.55} /></mesh>
+        <mesh position={[0, 0.02, 0]}><boxGeometry args={[0.24, 0.1, 0.24]} /><meshStandardMaterial color="#363b52" metalness={0.9} roughness={0.28} /></mesh>
+        <mesh position={[0, 0.09, 0]}><boxGeometry args={[0.3, 0.04, 0.3]} /><meshStandardMaterial color="#8d9bd6" metalness={1} roughness={0.18} emissive="#5a3fd0" emissiveIntensity={0.35} /></mesh>
+        <mesh position={[0, 0.02, 0]}><boxGeometry args={[0.26, 0.015, 0.26]} /><meshBasicMaterial color="#9a7bff" /></mesh>
+        <group ref={talons} position={[0, -0.04, 0]}>
+          {[0, 1, 2, 3].map((i) => (
+            <group key={i} position={[(i - 1.5) * 0.08, 0, 0]}>
+              <mesh position={[0, -0.17, 0]} rotation={[Math.PI, 0, 0]}><coneGeometry args={[0.038, 0.36, 5]} /><meshStandardMaterial color="#d6dcff" metalness={1} roughness={0.15} emissive="#6a4cff" emissiveIntensity={0.45} /></mesh>
+              <mesh position={[0, -0.345, 0]}><sphereGeometry args={[0.02, 6, 5]} /><meshBasicMaterial color="#ffe9a8" /></mesh>
+            </group>
+          ))}
+        </group>
+        <mesh ref={orb} position={[0, -0.22, 0]}><sphereGeometry args={[1, 14, 10]} /><meshBasicMaterial color="#b88cff" transparent opacity={0.9} depthWrite={false} /></mesh>
+        {Array.from({ length: 10 }, (_, i) => (
+          <mesh key={i} ref={(el) => { motes.current[i] = el; }} visible={false}><octahedronGeometry args={[1, 0]} /><meshBasicMaterial color={i % 2 ? '#ffe9a8' : '#b88cff'} transparent opacity={0.9} depthWrite={false} /></mesh>
+        ))}
       </group>
       <group ref={food} visible={false}>
         <group><PropMesh kind="img_chicharron" color="#c98a3a" /></group>
@@ -433,13 +468,27 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
       }
       const hold = entityState.hold || null;
       const hs = holdStart.current;
-      if (hold !== hs.key) { hs.key = hold; hs.at = Date.now(); }
+      if (hold !== hs.key) { if (hs.key === 'claw_ready' && !hold) hs.throwAt = Date.now(); hs.key = hold; hs.at = Date.now(); }
+      if (!hold && hs.throwAt && Date.now() - hs.throwAt < 450) {
+        const tt = (Date.now() - hs.throwAt) / 450;
+        rax = -2.3 + 3.0 * easeOut(tt);
+        raz = 0.12;
+        lax = -0.9 * (1 - tt);
+      }
       if (hold) {
         const hel = Date.now() - hs.at;
         if (hold === 'claw') {
-          { const em = easeOut(Math.min(1, hel / 700)); lax = -1.55 * em; rax = -1.55 * em; laz = -0.2 * em; raz = 0.2 * em; }
+          const em = easeOut(Math.min(1, hel / 700));
+          const tremor = Math.min(1, hel / 5000);
+          rax = -1.15 * em + Math.sin(w.t * 22) * 0.012 * tremor;
+          raz = 0.12 * em;
+          lax = -0.45 * em;
+          laz = -0.25 * em;
         } else if (hold === 'claw_ready') {
-          lax = -1.6; rax = -1.6 + Math.sin(w.t * 9) * 0.08; laz = -0.2; raz = 0.2;
+          rax = -2.3 + Math.sin(w.t * 9) * 0.04;
+          raz = 0.12;
+          lax = -0.9;
+          laz = -0.3;
         } else if (hold === 'module') {
           lax = -1.25; rax = -1.25; laz = -0.15; raz = 0.15;
         } else if (hold === 'horn') {
@@ -453,9 +502,18 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         }
       }
       const r6 = rig.current;
+      let stompLeg = null;
+      if (ha && ha.anim === 'stumble') {
+        const st = Math.min(1, (Date.now() - ha.startedAt) / durOf(ha));
+        stompLeg = st < 0.3 ? -1.5 * easeOut(st / 0.3) : -1.5 * Math.max(0, 1 - (st - 0.3) / 0.08);
+        lax = -0.6 * Math.sin(Math.min(1, st / 0.3) * Math.PI / 2) + 0.6 * Math.max(0, (st - 0.3) / 0.7);
+        rax = lax;
+        laz = -0.5;
+        raz = 0.5;
+      }
       if (r6.legL) {
         r6.legL.rotation.x = swing * 1.1 + 0.5 * w.air;
-        r6.legR.rotation.x = -swing * 1.1 - 0.3 * w.air;
+        r6.legR.rotation.x = stompLeg !== null ? stompLeg : -swing * 1.1 - 0.3 * w.air;
         r6.armL.rotation.x = lax;
         r6.armR.rotation.x = rax;
         r6.armL.rotation.z = laz;
@@ -474,8 +532,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
           offY = 0.9 - 0.9 * Math.cos(pitch);
           offF = -0.9 * Math.sin(pitch);
         } else if (pa.anim === 'stumble') {
-          pitch = 0.55 * Math.sin(pt * Math.PI);
-          offF = -0.9 * Math.sin(pitch) * 0.5;
+          pitch = pt < 0.3 ? -0.18 * (pt / 0.3) : 0.2 * Math.max(0, 1 - (pt - 0.3) / 0.25);
+          offY = pt >= 0.3 && pt < 0.4 ? -0.08 : 0;
         } else if (pa.anim === 'shout') {
           pitch = -0.3 * Math.sin(Math.min(1, pt * 3) * Math.PI / 2) * (1 - Math.max(0, pt - 0.7) / 0.3);
         }
