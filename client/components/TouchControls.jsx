@@ -96,11 +96,23 @@ function Btn({ label, code, act, size = 56, style, until = 0, icon }) {
   );
 }
 
-export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsymRole, cardCooldowns = {}, skillCooldowns = {}, onInteract, cardIds = [], skillIds = [] }) {
+export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsymRole, cardCooldowns = {}, skillCooldowns = {}, onInteract, cardIds = [], skillIds = [], getCarry }) {
   const [show, setShow] = useState(false);
+  const [portrait, setPortrait] = useState(false);
+  const [carrying, setCarrying] = useState(false);
   useEffect(() => {
     setShow(window.matchMedia('(pointer: coarse)').matches);
+    const mq = window.matchMedia('(orientation: portrait)');
+    const on = () => setPortrait(mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
   }, []);
+  useEffect(() => {
+    if (!getCarry) return undefined;
+    const id = setInterval(() => setCarrying(Boolean(getCarry())), 200);
+    return () => clearInterval(id);
+  }, [getCarry]);
   if (!show) return null;
   if (lobby) {
     return (
@@ -130,24 +142,47 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
     );
   }
   const skills = [['skill1'], ['skill2'], ['skill3'], ['skill4'], ['melee']];
+  const sz = portrait ? 50 : 54;
+  const actions = isAsymRole
+    ? skills.map(([act], i) => <Btn key={act} label={act === 'melee' ? 'Golpe' : keyLabel(getKey(act))} icon={act === 'melee' ? 'golpe_aturdidor' : skillIds[i]} act={act} size={sz} style={{ fontSize: 12 }} until={skillCooldowns[i === 4 ? 'melee' : i] || 0} />)
+    : [
+      ...[['card1', 0], ['card2', 1]].map(([act, slot]) => <Btn key={act} label={keyLabel(getKey(act))} icon={cardIds[slot]} act={act} size={sz + 6} style={{ fontSize: 12 }} until={cardCooldowns[slot] || 0} />),
+      <Btn key={carrying ? 'drop' : 'carry'} label={carrying ? 'Soltar' : 'Módulo'} act={carrying ? 'dropmod' : 'carry'} size={sz + 2} style={{ fontSize: 11, background: carrying ? 'rgba(242,161,84,0.8)' : undefined }} />,
+    ];
+  const useBtn = (
+    <button
+      type="button"
+      onContextMenu={(e) => e.preventDefault()}
+      onPointerDown={(e) => { e.preventDefault(); buzz(); onInteract && onInteract(); }}
+      style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(84,104,255,0.75)', color: '#fff', border: '2px solid rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 700, touchAction: 'none', pointerEvents: 'auto', userSelect: 'none', WebkitUserSelect: 'none' }}
+    >
+      {isAsymRole ? 'Curar' : 'Usar'}
+    </button>
+  );
+  if (portrait) {
+    return (
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
+        <Stick />
+        <div style={{ position: 'absolute', right: SAFE_R, bottom: SAFE_B, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end', maxWidth: '52%' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-end' }}>
+            {actions}
+            <Btn label="Lento" act="slow" size={sz} style={{ fontSize: 11 }} />
+          </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+            {useBtn}
+            <Btn label="Salto" act="jump" size={84} style={{ fontSize: 14 }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
       <Stick />
       <div style={{ position: 'absolute', right: SAFE_R, bottom: SAFE_B, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {isAsymRole
-            ? skills.map(([act], i) => <Btn key={act} label={act === 'melee' ? 'Golpe' : keyLabel(getKey(act))} icon={act === 'melee' ? 'golpe_aturdidor' : skillIds[i]} act={act} size={54} style={{ fontSize: 12 }} until={skillCooldowns[i === 4 ? 'melee' : i] || 0} />)
-            : [['card1', 0], ['card2', 1], ['minigame', -1], ['carry', -2], ['dropmod', -3]].map(([act, slot]) => <Btn key={act} label={slot === -1 ? 'Mini' : slot === -2 ? 'Módulo' : slot === -3 ? 'Soltar' : keyLabel(getKey(act))} icon={slot >= 0 ? cardIds[slot] : undefined} act={act} size={slot < -1 ? 50 : 60} style={{ fontSize: slot < -1 ? 10 : 12 }} until={slot >= 0 ? cardCooldowns[slot] || 0 : 0} />)}
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            type="button"
-            onContextMenu={(e) => e.preventDefault()}
-            onPointerDown={(e) => { e.preventDefault(); buzz(); onInteract && onInteract(); }}
-            style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(84,104,255,0.75)', color: '#fff', border: '2px solid rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 700, touchAction: 'none', pointerEvents: 'auto', userSelect: 'none', WebkitUserSelect: 'none' }}
-          >
-            {isAsymRole ? 'Curar' : 'Usar'}
-          </button>
+        <div style={{ display: 'flex', gap: 10 }}>{actions}</div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+          {useBtn}
           <Btn label="Lento" act="slow" size={60} style={{ fontSize: 12 }} />
           <Btn label="Salto" act="jump" size={76} style={{ fontSize: 14 }} />
         </div>

@@ -242,6 +242,7 @@ export default function LobbyPage() {
   const channelRef = useRef(null);
   const sdRef = useRef(null);
   const pressMinigameRef = useRef(() => {});
+  const getCarryRef = useRef(() => Boolean(entitiesRef.current[myPlayerIdRef.current]?.carry));
   const pressDirRef = useRef(() => {});
   const entitiesRef = useRef({});
   const effectCounterRef = useRef(0);
@@ -1446,7 +1447,7 @@ export default function LobbyPage() {
           />
         )}
         {phase === 'lobby' && <TouchControls lobby />}
-        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} />}
+        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} getCarry={getCarryRef.current} />}
 
         {phase === 'action' && flojera && (
           <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: compact ? (isAsymRole ? 40 : 64) : (isAsymRole ? 80 : 110) })}>
