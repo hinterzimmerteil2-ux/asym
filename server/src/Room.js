@@ -443,7 +443,7 @@ class Room {
     }
     if (!best) { entity.input.moveX = 0; entity.input.moveZ = 0; return; }
     this.botSteer(player, entity, { x: best.x, z: best.z }, now, 0.15);
-    if (bd < 4.5 * (entity.size || 1)) Boss.strike(this, botId, now);
+    if (bd < Boss.reachOf(entity.size || 1) * 0.9) Boss.strike(this, botId, now);
     if (!entity.tpMark && bd < 10 && Math.random() < 0.03) Boss.ability(this, botId, 1, now);
     else if (entity.tpMark && Math.hypot(entity.tpMark.x - entity.x, entity.tpMark.z - entity.z) > 12 && Math.random() < 0.3) Boss.ability(this, botId, 1, now);
     if (bd < 14 && Math.random() < 0.03) Boss.ability(this, botId, 0, now);
@@ -1511,7 +1511,8 @@ class Room {
         invis: this.isInvisible(entity, now),
         carry: entity.carry || undefined,
         boss: this.players.get(entityPlayerId)?.isBoss || undefined,
-        size: entity.size > 1 ? entity.size : undefined,
+        size: entity.size && entity.size !== 1 ? entity.size : undefined,
+        sk: entity.strikeAt || undefined,
         shadow: entity.shadow ? { x: Math.round(entity.shadow.x * 10) / 10, z: Math.round(entity.shadow.z * 10) / 10 } : undefined,
         live: (entity.liveUntil || 0) > now || undefined,
         blue: (entity.blueUntil || 0) > now || undefined,
@@ -1862,20 +1863,23 @@ class Room {
           break;
         }
       }
+      const bs = Boss.collision(this.players.get(entityPlayerId), entity);
+      const plats = bs.noclip ? [] : platforms;
+      const stepUpB = bs.s > 1 ? Math.max(stepUp, bs.h * 0.25) : stepUp;
       const nextX = entity.x + velX * dt;
       const nextZ = entity.z + velZ * dt;
-      if (!blockedAt(platforms, nextX, nextZ, entity.y, stepUp) || blockedAt(platforms, prevX, prevZ, entity.y, stepUp)) {
+      if (!blockedAt(plats, nextX, nextZ, entity.y, stepUpB, bs.s, bs.h) || blockedAt(plats, prevX, prevZ, entity.y, stepUpB, bs.s, bs.h)) {
         entity.x = nextX;
         entity.z = nextZ;
-      } else if (!blockedAt(platforms, nextX, prevZ, entity.y, stepUp)) {
+      } else if (!blockedAt(plats, nextX, prevZ, entity.y, stepUpB, bs.s, bs.h)) {
         entity.x = nextX;
-      } else if (!blockedAt(platforms, prevX, nextZ, entity.y, stepUp)) {
+      } else if (!blockedAt(plats, prevX, nextZ, entity.y, stepUpB, bs.s, bs.h)) {
         entity.z = nextZ;
       }
 
-      for (const obj of collisionObjects) {
+      for (const obj of bs.noclip ? [] : collisionObjects) {
         if (entity.y >= obj.height) continue;
-        const reach = obj.radius + PLAYER_HALF;
+        const reach = obj.radius + PLAYER_HALF * bs.s;
         const dx = entity.x - obj.x;
         const dz = entity.z - obj.z;
         const overX = reach - Math.abs(dx);
@@ -1893,7 +1897,7 @@ class Room {
         entity.onGround = false;
         entity.peakY = entity.y;
       }
-      let ground = groundAt(platforms, entity.x, entity.z, entity.y, stepUp);
+      let ground = groundAt(plats, entity.x, entity.z, entity.y, stepUpB, bs.s);
       if (entity.onGround && entity.y > ground && entity.y - ground <= STEP_DOWN) entity.y = ground;
       if (entity.onGround && entity.y - ground > STEP_DOWN) {
         entity.onGround = false;
@@ -1906,7 +1910,7 @@ class Room {
         entity.velocityY += GRAVITY * (this.phase === 'lobby' ? LOBBY_GRAVITY_FACTOR : MUTATIONS[this.mutation].gravity * this.modeGravityFactor(Date.now())) * dt;
         entity.y += entity.velocityY * dt;
         entity.peakY = Math.max(entity.peakY || entity.y, entity.y);
-        ground = groundAt(platforms, entity.x, entity.z, entity.y - entity.velocityY * dt);
+        ground = groundAt(plats, entity.x, entity.z, entity.y - entity.velocityY * dt, STEP_UP, bs.s);
         if (entity.y <= ground) {
           const fall = (entity.peakY || ground) - ground;
           entity.y = ground;
@@ -1984,7 +1988,7 @@ class Room {
 
     const curador = this.players.get(playerId);
     if (curador && curador.isBoss) {
-      if (Number.isInteger(skillIndex)) Boss.ability(this, playerId, skillIndex, Date.now());
+      if (Number.isInteger(skillIndex) && skillIndex >= 0 && skillIndex <= 9) Boss.ability(this, playerId, skillIndex, Date.now());
       return;
     }
     if (!curador || !curador.isAsymRole) {

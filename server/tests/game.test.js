@@ -1716,3 +1716,32 @@ test('boss: resto de habilidades de Jeffrey', () => {
   Status.apply(e.b, 'stun', 1000, now);
   assert.ok(!Status.active(e.b, 'stun', now));
 });
+
+test('boss: tamanos, colision y alcance escalan', () => {
+  const Boss = require('../src/Boss');
+  const Hitbox = require('../src/Hitbox');
+  const room = new Room('t');
+  const sock = () => ({ readyState: 1, send() {} });
+  room.addPlayer('c', sock(), 'C');
+  room.addPlayer('a', sock(), 'A');
+  room.addPlayer('b', sock(), 'B');
+  room.bossOn = true;
+  room.bossId = 'b';
+  Boss.prepare(room);
+  room.switchPhase('action', 'test');
+  const e = room.gameState.entities;
+  let now = Date.now();
+  Boss.ability(room, 'b', 9, now);
+  assert.strictEqual(e.b.size, 0.45);
+  now += 2000;
+  Boss.ability(room, 'b', 9, now);
+  assert.strictEqual(e.b.size, 0.14);
+  const small = Boss.collision(room.players.get('b'), e.b);
+  assert.ok(small.s === 1 && !small.noclip);
+  now += 2000;
+  for (let i = 0; i < 3; i++) { Boss.ability(room, "b", 0, now); now += 2000; }
+  assert.strictEqual(e.b.size, 1.6);
+  assert.ok(Boss.collision(room.players.get('b'), e.b).noclip);
+  assert.ok(Hitbox.extentOf(e.b).height > 5);
+  assert.ok(Boss.reachOf(3.5) > Boss.reachOf(1));
+});

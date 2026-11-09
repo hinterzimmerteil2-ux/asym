@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useEffect, useState, useMemo, memo } from 'react';
+import { useRef, useEffect, useState, useMemo, memo, Suspense } from 'react';
+import { useGLTF, useAnimations } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace, Color } from 'three';
 import { itemOf } from '../lib/cosmetics';
@@ -406,30 +407,88 @@ const EMOTE_POSES = {
   },
 };
 
+const JEFFREY_URL = '/models/jeffrey/scene.gltf';
+const JEFFREY_SCALE = 4.5;
+
+function JeffreyBody() {
+  const { scene, animations } = useGLTF(JEFFREY_URL);
+  const root = useRef();
+  const { actions } = useAnimations(animations, root);
+  useMemo(() => {
+    scene.traverse((o) => {
+      if ((o.isMesh || o.isSkinnedMesh) && /smoke/i.test(o.material?.name || '')) o.visible = false;
+      if (o.isMesh || o.isSkinnedMesh) o.frustumCulled = false;
+    });
+  }, [scene]);
+  useEffect(() => {
+    const a = actions.FRIEND;
+    if (a) a.reset().play();
+    return () => { if (a) a.stop(); };
+  }, [actions]);
+  return <group ref={root} scale={JEFFREY_SCALE}><primitive object={scene} /></group>;
+}
+
+function FallbackCube() {
+  return (
+    <mesh position={[0, 2.5, 0]} castShadow>
+      <boxGeometry args={[5, 5, 5]} />
+      <meshStandardMaterial color="#2b2433" roughness={0.6} />
+    </mesh>
+  );
+}
+
 function BossCube({ e }) {
   const ref = useRef();
+  const body = useRef();
+  const ring = useRef();
+  const last = useRef({ x: e.x, z: e.z, yaw: 0, sk: e.sk, ringT: 99 });
   const size = e.size || 1;
+  const reach = Math.max(2.4, 3.2 * size + 1.8) + Math.max(0.36, 2.5 * size) * 0.5;
   useFrame((_, delta) => {
     const g = ref.current;
     if (!g) return;
+    g.visible = !e.invis;
     const k = Math.min(1, delta * 12);
     g.position.x += (e.x - g.position.x) * k;
     g.position.y += ((e.y || 0) - g.position.y) * k;
     g.position.z += (e.z - g.position.z) * k;
-    const s = g.scale.x + (size - g.scale.x) * Math.min(1, delta * 5);
-    g.scale.setScalar(s);
+    g.scale.setScalar(g.scale.x + (size - g.scale.x) * Math.min(1, delta * 5));
+    const L = last.current;
+    const dx = e.x - L.x;
+    const dz = e.z - L.z;
+    if (dx * dx + dz * dz > 0.0004) {
+      let d = Math.atan2(dx, dz) - L.yaw;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      L.yaw += d * Math.min(1, delta * 8);
+    }
+    L.x = e.x; L.z = e.z;
+    if (body.current) body.current.rotation.y = L.yaw;
+    if (L.sk !== e.sk) { L.sk = e.sk; L.ringT = 0; }
+    L.ringT += delta;
+    if (ring.current) {
+      const t = Math.min(1, L.ringT / 0.35);
+      ring.current.visible = t < 1;
+      ring.current.scale.setScalar(Math.max(0.01, t * reach));
+      ring.current.material.opacity = 0.8 * (1 - t);
+    }
   });
-  const glow = e.ult ? '#ff2a2a' : '#000000';
   return (
     <>
       <group ref={ref} position={[e.x, e.y || 0, e.z]} scale={size}>
-        <mesh position={[0, 2.5, 0]} castShadow>
-          <boxGeometry args={[5, 5, 5]} />
-          <meshStandardMaterial color="#2b2433" roughness={0.6} emissive={glow} emissiveIntensity={e.ult ? 0.9 : 0} transparent opacity={e.invis ? 0.15 : 1} />
-        </mesh>
-        <mesh position={[0, 2.5, 2.52]}>
-          <planeGeometry args={[4, 3.2]} />
-          <meshBasicMaterial color={e.ult ? '#ff4040' : '#9aa8ff'} />
+        <group ref={body}>
+          <Suspense fallback={<FallbackCube />}>
+            <JeffreyBody />
+          </Suspense>
+        </group>
+        {e.ult && (
+          <mesh position={[0, 2.5, 0]}>
+            <sphereGeometry args={[3.4, 16, 12]} />
+            <meshBasicMaterial color="#ff2a2a" transparent opacity={0.35} />
+          </mesh>
+        )}
+        <mesh ref={ring} position={[0, 0.15, 0]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+          <ringGeometry args={[0.92, 1, 40]} />
+          <meshBasicMaterial color="#c8b6ff" transparent opacity={0.8} depthWrite={false} />
         </mesh>
       </group>
       {e.shadow && (
@@ -2116,8 +2175,8 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       // parar y el servidor lo rechazaría todas las veces salvo la
       // primera (está en cooldown de todos modos, pero no tiene sentido
       // spamear mensajes).
-      const dm = /^Digit([1-9])$/.exec(e.code);
-      if (dm && !keysPressed.current.has(e.code) && !/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName || '')) onPulse?.('b' + dm[1]);
+      const dm = /^Digit([0-9])$/.exec(e.code);
+      if (dm && !keysPressed.current.has(e.code) && !/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName || '')) onPulse?.('b' + (dm[1] === '0' ? '10' : dm[1]));
       const skillIndex = SKILL_ACTIONS.findIndex((a) => matches(a, e.code));
       if (skillIndex !== -1 && !keysPressed.current.has(e.code)) {
         onPulse?.(skillIndex === 4 ? 'melee' : skillIndex);

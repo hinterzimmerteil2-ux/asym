@@ -73,7 +73,7 @@ function setup(room) {
     if (player.isBoss) {
       entity.sp = SP_MAX;
       entity.lastAbilityAt = Date.now();
-      entity.size = 1;
+      applySize(entity, 1);
       entity.flojeraMax = 9999;
       entity.flojera = 9999;
       entity.spriteScale = 1;
@@ -96,11 +96,35 @@ function setup(room) {
 
 function speedFactor(room, player, entity) {
   if (!room.bossActive || !player) return 1;
-  if (player.isBoss) return 1 / (0.6 + 0.4 * ((entity && entity.size) || 1));
+  if (player.isBoss) return Math.max(0.35, 1 / (0.6 + 0.4 * ((entity && entity.size) || 1)));
   return SPEED_MULT;
 }
 
-const SIZES = [1, 1.6, 2.3, 3];
+const SIZES = [0.14, 0.45, 1, 1.6, 2.5, 3.5];
+const BASE_HALF = 2.5;
+const BASE_H = 5;
+const NOCLIP_SIZE = 1.6;
+const PLAYER_HALF = 0.36;
+const PLAYER_H = 1.8;
+
+function applySize(entity, size) {
+  entity.size = size;
+  entity.bossHalf = Math.max(PLAYER_HALF, BASE_HALF * size);
+  entity.bossH = Math.max(PLAYER_H, BASE_H * size);
+}
+
+function collision(player, entity) {
+  if (!player || !player.isBoss || !entity.bossHalf) return { s: 1, h: PLAYER_H, noclip: false };
+  return { s: entity.bossHalf / PLAYER_HALF, h: entity.bossH, noclip: (entity.size || 1) >= NOCLIP_SIZE };
+}
+
+function reachOf(size) {
+  return Math.max(2.4, 3.2 * size + 1.8);
+}
+
+function dmgFactor(size) {
+  return Math.max(0.5, Math.min(2.5, size));
+}
 const SIZE_CD_MS = 1500;
 const TP_CD_MS = 9000;
 const TP_MIN_MARK_MS = 800;
@@ -115,10 +139,12 @@ function ready(entity, idx, now) {
 function ability(room, id, idx, now) {
   const entity = room.gameState.entities[id];
   if (!entity || entity.down || Status.blocksSkills(entity, now) || room.gameState.gameOver) return;
-  if (!ready(entity, idx, now)) return;
-  if (idx === 0) {
-    const cur = SIZES.indexOf(entity.size || 1);
-    entity.size = SIZES[(cur + 1) % SIZES.length];
+  if (!ready(entity, idx === 9 ? 0 : idx, now)) return;
+  if (idx === 0 || idx === 9) {
+    const cur = Math.max(0, SIZES.indexOf(entity.size || 1));
+    const next = idx === 0 ? (cur + 1) % SIZES.length : (cur + SIZES.length - 1) % SIZES.length;
+    applySize(entity, SIZES[next]);
+    entity.bossCd = entity.bossCd || {};
     room.gameState.boss.size = entity.size;
     entity.bossCd[0] = now + SIZE_CD_MS;
     entity.lastAbilityAt = now;
@@ -345,12 +371,14 @@ function strike(room, bossId, now) {
   if (entity.baseCooldownUntil > now) return;
   entity.baseCooldownUntil = now + STRIKE_COOLDOWN_MS;
   entity.lastAbilityAt = now;
-  const reach = STRIKE_REACH * (entity.size || 1);
+  const reach = reachOf(entity.size || 1) + (entity.bossHalf || 0) * 0.5;
+  entity.strikeAt = now;
+  const dmg = dmgFactor(entity.size || 1);
   let hit = 0;
   for (const [id, other] of Object.entries(room.gameState.entities)) {
     if (id === bossId || other.down || other.gone || other.corpse) continue;
     if (Math.hypot(other.x - entity.x, other.z - entity.z) > reach) continue;
-    addFatiga(room, id, STRIKE_FATIGA * (entity.size || 1), STRIKE_DEBT * (entity.size || 1), now);
+    addFatiga(room, id, STRIKE_FATIGA * dmg, STRIKE_DEBT * dmg, now);
     hit++;
   }
   if (hit) loseSp(entity, 3);
@@ -446,6 +474,8 @@ module.exports = {
   collapse,
   loseSp,
   strike,
+  collision,
+  reachOf,
   censored,
   cureBlocked,
   ability,

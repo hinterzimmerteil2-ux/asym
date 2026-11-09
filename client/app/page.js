@@ -1353,6 +1353,7 @@ export default function LobbyPage() {
               ) : (
                 <p style={styles.mapReadOnly}>{bossOn ? 'Jeffrey' : 'Sin Boss'}</p>
               )}
+              <p style={{ fontSize: 10, opacity: 0.6, margin: '6px 0 0' }}>Modelo de Jeffrey: SinisterClock, CC-BY-NC 4.0</p>
               <Link href="/editor" style={styles.editorLink}>Crear mapa nuevo →</Link>
             </div>
           )}
@@ -1497,6 +1498,7 @@ export default function LobbyPage() {
               <div>
                 <div>Cordura {bossHud.sp}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '4px 0', pointerEvents: 'auto' }}>
+                  <button type="button" onClick={() => handlePulse('b10')} style={{ fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid #556', background: '#1b1b24', color: '#fff' }}>0 Encoger</button>
                   {BOSS_ABILITIES.map((n, i) => (
                     <button key={n} type="button" onClick={() => handlePulse('b' + (i + 1))} style={{ fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid #556', background: '#1b1b24', color: '#fff', opacity: (bossHud.bcd?.[i] || 0) > 0 ? 0.45 : 1 }}>
                       {i + 1} {i === 2 ? `Selector: ${VOID_MODES[bossHud.vm]}` : n}{(bossHud.bcd?.[i] || 0) > 0 ? ` ${Math.ceil(bossHud.bcd[i])}` : ''}

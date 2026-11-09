@@ -36,11 +36,20 @@ function platformTop(p, x, z) {
 }
 
 
-function groundAt(platforms, x, z, y, stepUp = STEP_UP) {
+const FP_CACHE = new Map();
+function fpFor(s) {
+  if (s === 1) return FOOTPRINT;
+  const k = Math.round(s * 100);
+  if (!FP_CACHE.has(k)) FP_CACHE.set(k, FOOTPRINT.map(([a, b]) => [a * s, b * s]));
+  return FP_CACHE.get(k);
+}
+
+function groundAt(platforms, x, z, y, stepUp = STEP_UP, s = 1) {
+  const FP = fpFor(s);
   let g = -Infinity;
-  for (const [ox, oz] of FOOTPRINT) g = Math.max(g, baseAt(platforms, x + ox, z + oz));
+  for (const [ox, oz] of FP) g = Math.max(g, baseAt(platforms, x + ox, z + oz));
   for (const p of platforms) {
-    for (const [ox, oz] of FOOTPRINT) {
+    for (const [ox, oz] of FP) {
       const top = platformTop(p, x + ox, z + oz);
       if (top !== null && top <= y + stepUp && top > g) g = top;
     }
@@ -48,18 +57,20 @@ function groundAt(platforms, x, z, y, stepUp = STEP_UP) {
   return g;
 }
 
-function blockedAt(platforms, x, z, y, stepUp = STEP_UP) {
-  for (const [ox, oz] of FOOTPRINT) if (baseAt(platforms, x + ox, z + oz) > y + stepUp) return true;
+function blockedAt(platforms, x, z, y, stepUp = STEP_UP, s = 1, height = PLAYER_HEIGHT) {
+  const FP = fpFor(s);
+  for (const [ox, oz] of FP) if (baseAt(platforms, x + ox, z + oz) > y + stepUp) return true;
   for (const p of platforms) {
-    for (const [ox, oz] of FOOTPRINT) {
+    for (const [ox, oz] of FP) {
       const top = platformTop(p, x + ox, z + oz);
-      if (top !== null && top > y + stepUp && (p.ramp || p.slab ? top - (p.slab || RAMP_SLAB) : p.y0 || 0) < y + PLAYER_HEIGHT) return true;
+      if (top !== null && top > y + stepUp && (p.ramp || p.slab ? top - (p.slab || RAMP_SLAB) : p.y0 || 0) < y + height) return true;
     }
   }
   return false;
 }
 
 function extentOf(o) {
+  if (o.input && !o.corpse && o.bossHalf) return { half: o.bossHalf, height: o.bossH };
   return o.input && !o.corpse ? { half: PLAYER_HALF * (o.hitScale || 1), height: PLAYER_HEIGHT } : { half: 0, height: 0 };
 }
 
