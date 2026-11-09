@@ -447,6 +447,8 @@ class Room {
     if (!entity.tpMark && bd < 10 && Math.random() < 0.03) Boss.ability(this, botId, 1, now);
     else if (entity.tpMark && Math.hypot(entity.tpMark.x - entity.x, entity.tpMark.z - entity.z) > 12 && Math.random() < 0.3) Boss.ability(this, botId, 1, now);
     if (bd < 14 && Math.random() < 0.03) Boss.ability(this, botId, 0, now);
+    if (entity.sp <= 25) Boss.ability(this, botId, 8, now);
+    else if (Math.random() < 0.05) Boss.ability(this, botId, 2 + Math.floor(Math.random() * 6), now);
   }
 
   botThink(now) {
@@ -1510,6 +1512,13 @@ class Room {
         carry: entity.carry || undefined,
         boss: this.players.get(entityPlayerId)?.isBoss || undefined,
         size: entity.size > 1 ? entity.size : undefined,
+        shadow: entity.shadow ? { x: Math.round(entity.shadow.x * 10) / 10, z: Math.round(entity.shadow.z * 10) / 10 } : undefined,
+        live: (entity.liveUntil || 0) > now || undefined,
+        blue: (entity.blueUntil || 0) > now || undefined,
+        red: (entity.redUntil || 0) > now ? entity.redKind : undefined,
+        ult: entity.ultAt || undefined,
+        vm: entity.vmode,
+        bcd: entity.bcdPub,
         tpMark: entity.tpMark ? { x: Math.round(entity.tpMark.x * 10) / 10, z: Math.round(entity.tpMark.z * 10) / 10 } : undefined,
         fat: entity.fatiga ? Math.round(entity.fatiga * 10) / 10 : undefined,
         debt: entity.debt ? Math.round(entity.debt * 10) / 10 : undefined,
@@ -1915,6 +1924,7 @@ class Room {
   applyPlayerInput(playerId, input) {
     const entity = this.gameState.entities[playerId];
     if (!entity) return;
+    if (entity.temblor > 40 && Math.random() < entity.temblor / 400) return;
     entity.input.moveX = clampUnit(input.moveX);
     entity.input.moveZ = clampUnit(input.moveZ);
     entity.input.jump = Boolean(input.jump);
@@ -2251,6 +2261,7 @@ class Room {
   }
 
   broadcastPulse(pulseResult) {
+    this.lastPulse = { radius: pulseResult.radius, type: pulseResult.skillType, at: Date.now() };
     const onlyFor = (ids, viewerId) => (this.players.get(viewerId)?.isAsymRole ? ids : ids.filter((id) => id === viewerId));
     for (const targetId of this.players.keys()) {
       this.sendTo(targetId, MessageType.CURATOR_PULSE_RESULT, {
@@ -2882,6 +2893,7 @@ class Room {
   }
 
   scaleCure(targetEntity, rawAmount, now) {
+    if (this.bossActive && Boss.cureBlocked(this, targetEntity, now)) return 0;
     const lms = this.gameState.lms;
     const amount = lms && lms.gimmick === 'escudo' && this.gameState.entities[lms.survivorId] === targetEntity ? rawAmount * 0.5 : rawAmount;
     if (targetEntity.exacerbacionUntil <= now || !targetEntity.exacerbacionLevel) return amount;
@@ -3292,6 +3304,10 @@ class Room {
     }
     if (Status.blocksSkills(playerEntity, now)) return;
     const lock = this.gameState.moduleLock;
+    if (this.bossActive && Boss.censored(this, playerEntity, now)) {
+      this.sendTo(playerId, MessageType.ERROR, { message: 'Zona censurada' });
+      return;
+    }
     if (lock && now < lock.until && Math.hypot(objectPos.x - lock.x, objectPos.z - lock.z) <= lock.r) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Módulo desinfectado, espera un momento' });
       return;

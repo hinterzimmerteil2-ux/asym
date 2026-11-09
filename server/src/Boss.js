@@ -134,7 +134,156 @@ function ability(room, id, idx, now) {
     entity.paraUntil = entity.tpAt + 200;
     entity.bossCd[1] = now + TP_CD_MS;
     entity.lastAbilityAt = now;
+  } else if (idx >= 2 && idx < ABILITY_COUNT) {
+    if (idx === 8 && entity.ultAt) return;
+    if (extra(room, id, idx, now)) {
+      entity.bossCd[idx] = now + (CD[idx] || 10000);
+      entity.lastAbilityAt = now;
+    }
   }
+}
+
+const ABILITY_COUNT = 9;
+const CD = { 2: 14000, 3: 16000, 4: 22000, 5: 40000, 6: 45000, 7: 18000, 8: 60000 };
+const BLUE_MS = 4000;
+const STATIC_RADIUS = 16;
+const CENSOR_RADIUS = 14;
+const CENSOR_MS = 6000;
+const GRAB_RANGE = 18;
+const GRAB_MS = 3000;
+const SHADOW_MS = 8000;
+const SHADOW_DELAY = 2000;
+const SHADOW_RADIUS = 3;
+const FRAME_RADIUS = 25;
+const FRAME_SHIFT_MS = 3000;
+const LIVE_MS = 8000;
+const LIVE_RANGE = 45;
+const ULT_RADIUS = 45;
+const ULT_TELEGRAPH_MS = 1500;
+const ULT_PARALYSIS_MS = 3000;
+const ULT_RED_MS = 7000;
+const ULT_REAL = 30;
+const ULT_DEBT = 20;
+const RETRO_DEBT = 14;
+const VMODES = ['azul', 'estatica', 'censura'];
+
+function nearestPlayer(room, bossId, boss, range) {
+  let best = null;
+  let bd = range;
+  for (const [id, e] of Object.entries(room.gameState.entities)) {
+    if (id === bossId || e.down || e.gone || e.corpse) continue;
+    const d = Math.hypot(e.x - boss.x, e.z - boss.z);
+    if (d < bd) { bd = d; best = id; }
+  }
+  return best;
+}
+
+function inRadius(room, bossId, x, z, r) {
+  const out = [];
+  for (const [id, e] of Object.entries(room.gameState.entities)) {
+    if (id === bossId || e.down || e.gone || e.corpse) continue;
+    if (Math.hypot(e.x - x, e.z - z) <= r) out.push(id);
+  }
+  return out;
+}
+
+function extra(room, id, idx, now) {
+  const gs = room.gameState;
+  const boss = gs.entities[id];
+  const ents = gs.entities;
+  if (idx === 2) {
+    const mode = VMODES[boss.vmode || 0];
+    boss.vmode = ((boss.vmode || 0) + 1) % VMODES.length;
+    if (mode === 'azul') {
+      const t = nearestPlayer(room, id, boss, 40);
+      if (!t) return false;
+      ents[t].blueUntil = now + BLUE_MS;
+    } else if (mode === 'estatica') {
+      for (const t of inRadius(room, id, boss.x, boss.z, STATIC_RADIUS)) {
+        Status.apply(ents[t], 'reveal', 4000, now);
+        Status.apply(ents[t], 'slow', 4000, now, { level: 2 });
+      }
+    } else {
+      gs.censors = (gs.censors || []).filter((c) => c.until > now);
+      gs.censors.push({ x: boss.x, z: boss.z, r: CENSOR_RADIUS, until: now + CENSOR_MS });
+    }
+    return true;
+  }
+  if (idx === 3) {
+    const t = nearestPlayer(room, id, boss, GRAB_RANGE);
+    if (!t) { loseSp(boss, 2); return true; }
+    Status.apply(ents[t], 'stun', GRAB_MS, now);
+    ents[t].noCureUntil = now + GRAB_MS;
+    addFatiga(room, t, 6, 4, now);
+    return true;
+  }
+  if (idx === 4) {
+    const t = nearestPlayer(room, id, boss, 45);
+    if (!t) return false;
+    boss.shadow = { target: t, until: now + SHADOW_MS, nextHit: now + 500, x: ents[t].x, z: ents[t].z, trail: [] };
+    return true;
+  }
+  if (idx === 5) {
+    const ids = inRadius(room, id, boss.x, boss.z, FRAME_RADIUS);
+    if (!ids.length) { loseSp(boss, 2); return true; }
+    const back = Math.random() < 0.5;
+    for (const t of ids) {
+      const e = ents[t];
+      const sign = back ? 1 : -1;
+      for (const m of [e.skillCooldowns, e.cardCooldowns]) {
+        if (!m) continue;
+        for (const k of Object.keys(m)) if (m[k] > now) m[k] = Math.max(now, m[k] + sign * FRAME_SHIFT_MS);
+      }
+      if (e.baseCooldownUntil > now) e.baseCooldownUntil = Math.max(now, e.baseCooldownUntil + sign * FRAME_SHIFT_MS);
+      if (back) {
+        const past = (e.hist || []).find((h) => h.t >= now - FRAME_SHIFT_MS);
+        if (past) { e.x = past.x; e.z = past.z; }
+      } else {
+        const h = e.hist || [];
+        const old = h.find((p) => p.t >= now - 1000);
+        if (old) {
+          e.x += (e.x - old.x) * 3;
+          e.z += (e.z - old.z) * 3;
+        }
+      }
+    }
+    return true;
+  }
+  if (idx === 6) {
+    const lp = room.lastPulse;
+    const radius = lp && now - lp.at < 60000 ? Math.max(5, Math.min(20, lp.radius || 8)) : 8;
+    let hit = 0;
+    for (const t of inRadius(room, id, boss.x, boss.z, radius)) {
+      addFatiga(room, t, 0, RETRO_DEBT, now);
+      hit++;
+    }
+    loseSp(boss, hit ? 3 : 2);
+    return true;
+  }
+  if (idx === 7) {
+    const t = nearestPlayer(room, id, boss, LIVE_RANGE);
+    if (!t) return false;
+    ents[t].liveUntil = now + LIVE_MS;
+    return true;
+  }
+  if (idx === 8) {
+    if (!(boss.sp <= SP_ULT)) return false;
+    boss.ultAt = now + ULT_TELEGRAPH_MS;
+    return true;
+  }
+  return false;
+}
+
+function fireUlt(room, id, boss, now) {
+  boss.ultAt = 0;
+  for (const t of inRadius(room, id, boss.x, boss.z, ULT_RADIUS)) {
+    const e = room.gameState.entities[t];
+    Status.apply(e, 'stun', ULT_PARALYSIS_MS, now);
+    e.redUntil = now + ULT_RED_MS;
+    e.redKind = room.players.get(t)?.isAsymRole ? 'n' : 'p';
+    addFatiga(room, t, ULT_REAL, ULT_DEBT, now);
+  }
+  boss.sp = SP_MAX;
 }
 
 function finishTeleport(room, id, entity, now) {
@@ -236,7 +385,43 @@ function tick(room, now, dt) {
   }
   boss.ultReady = boss.sp <= SP_ULT;
   if (boss.tpAt && now >= boss.tpAt) finishTeleport(room, bossId, boss, now);
+  if (boss.ultAt && now >= boss.ultAt) fireUlt(room, bossId, boss, now);
+  if (boss.shadow) tickShadow(room, bossId, boss, now);
+  for (const [id, e] of players) {
+    e.hist = e.hist || [];
+    const last = e.hist[e.hist.length - 1];
+    if (!last || now - last.t >= 200) e.hist.push({ t: now, x: e.x, z: e.z });
+    while (e.hist.length && e.hist[0].t < now - 6000) e.hist.shift();
+  }
+  const bcd = [];
+  for (let i = 0; i < ABILITY_COUNT; i++) bcd.push(Math.max(0, Math.round((((boss.bossCd || {})[i] || 0) - now) / 100) / 10));
+  boss.bcdPub = bcd;
   onCollapseTick(room, now);
+}
+
+function tickShadow(room, bossId, boss, now) {
+  const sh = boss.shadow;
+  const target = room.gameState.entities[sh.target];
+  if (!target || now > sh.until) { boss.shadow = null; return; }
+  sh.trail.push({ t: now, x: target.x, z: target.z });
+  while (sh.trail.length > 1 && sh.trail[1].t <= now - SHADOW_DELAY) sh.trail.shift();
+  sh.x = sh.trail[0].x;
+  sh.z = sh.trail[0].z;
+  if (now >= sh.nextHit) {
+    sh.nextHit = now + 500;
+    for (const t of inRadius(room, bossId, sh.x, sh.z, SHADOW_RADIUS)) addFatiga(room, t, 4, 2, now);
+  }
+}
+
+function censored(room, entity, now) {
+  const list = room.gameState.censors;
+  if (!list || !entity) return false;
+  for (const c of list) if (c.until > now && Math.hypot(entity.x - c.x, entity.z - c.z) <= c.r) return true;
+  return false;
+}
+
+function cureBlocked(room, entity, now) {
+  return Boolean(entity) && ((entity.noCureUntil || 0) > now || censored(room, entity, now));
 }
 
 function checkEnd(room) {
@@ -261,6 +446,8 @@ module.exports = {
   collapse,
   loseSp,
   strike,
+  censored,
+  cureBlocked,
   ability,
   tick,
   checkEnd,

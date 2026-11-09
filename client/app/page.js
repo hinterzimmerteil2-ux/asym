@@ -135,6 +135,28 @@ function fmtHp(n) {
   return `${m}×10${sup}`;
 }
 
+const BOSS_ABILITIES = ['Megethoskinesis', 'Teletransportación', 'Selector del Vacío', 'Manos de Estática', 'Sombra Prestada', 'Cuadro Temporal Alterado', 'Retrotransmisión', 'Transmisión en Vivo', 'Pantalla Roja'];
+const VOID_MODES = ['azul', 'estática', 'censura'];
+const RED_GOOD = ['Estás haciendo un buen trabajo', 'Respira, ya casi', 'Hoy te ves muy bien', 'Tu mamá estaría orgullosa', 'Todo va a salir bien', 'Eres más fuerte que un cubo', 'Un paso más y listo'];
+const RED_BAD = ['Dejaste la estufa prendida', 'Nadie lee tus notas', 'Tu sombra camina mejor que tú', 'Ese gorro no te queda', 'El cubo cocina mejor', 'Olvidaste algo en casa', 'Hasta la TV te ignora'];
+
+function BossOverlay({ hud }) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (!hud.red) return undefined;
+    const t = setInterval(() => setTick((v) => v + 1), 450);
+    return () => clearInterval(t);
+  }, [hud.red]);
+  const list = hud.red === 'n' ? RED_BAD : RED_GOOD;
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 15, pointerEvents: 'none', background: hud.blue ? '#1030c8' : hud.red ? 'rgba(200,10,10,0.82)' : 'radial-gradient(transparent 55%, rgba(220,20,20,0.5))', display: 'flex', flexWrap: 'wrap', alignContent: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      {hud.red && Array.from({ length: 9 }).map((_, i) => (
+        <div key={i} style={{ color: '#fff', fontSize: 18 + ((i * 7 + tick) % 4) * 6, margin: 10, opacity: 0.85, transform: `rotate(${((i * 37 + tick * 13) % 21) - 10}deg)` }}>{list[(i + tick) % list.length]}</div>
+      ))}
+    </div>
+  );
+}
+
 export default function LobbyPage() {
   const connRef = useRef(null);
   const isAsymRoleRef = useRef(false);
@@ -443,7 +465,7 @@ export default function LobbyPage() {
               const me = (payload.entities || {})[myPlayerIdRef.current];
               myPosRef.current = me ? { x: me.x, y: me.y || 0, z: me.z } : null;
               const bossEnt = Object.values(payload.entities || {}).find((en) => en.boss);
-              const hud = bossEnt ? { fat: me?.fat || 0, debt: me?.debt || 0, down: Boolean(me?.down), isBoss: Boolean(me?.boss), sp: bossEnt.sp ?? 0, tem: me?.tem || 0 } : null;
+              const hud = bossEnt ? { fat: me?.fat || 0, debt: me?.debt || 0, down: Boolean(me?.down), isBoss: Boolean(me?.boss), sp: bossEnt.sp ?? 0, tem: me?.tem || 0, bcd: me?.boss ? me.bcd : undefined, vm: me?.vm || 0, ult: bossEnt.ult ? 1 : 0, blue: Boolean(me?.blue), red: me?.red || null } : null;
               setBossHud((prev) => (sameValue(prev, hud) ? prev : hud));
             }
             entitiesRef.current = payload.entities || {};
@@ -907,10 +929,11 @@ export default function LobbyPage() {
     // mensaje que de todos modos va a rechazar, la validación real
     // (rol, cooldown, fase) vive en Room.applyCuratorPulse.
     if (phase !== 'action') return;
-    if (bossHudRef.current?.isBoss) {
-      if (Number.isInteger(skill)) connRef.current?.send('curator_pulse_action', { skill });
+    if (typeof skill === 'string' && skill.startsWith('b')) {
+      if (bossHudRef.current?.isBoss) connRef.current?.send('curator_pulse_action', { skill: Number(skill.slice(1)) - 1 });
       return;
     }
+    if (bossHudRef.current?.isBoss) return;
     if (!isAsymRole) {
       if (skill === 0) connRef.current?.send('ghost_reveal', {});
       return;
@@ -1473,7 +1496,13 @@ export default function LobbyPage() {
             {bossHud.isBoss ? (
               <div>
                 <div>Cordura {bossHud.sp}</div>
-                <div style={{ opacity: 0.8 }}>1 Megethoskinesis   2 Teletransportación</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '4px 0', pointerEvents: 'auto' }}>
+                  {BOSS_ABILITIES.map((n, i) => (
+                    <button key={n} type="button" onClick={() => handlePulse('b' + (i + 1))} style={{ fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid #556', background: '#1b1b24', color: '#fff', opacity: (bossHud.bcd?.[i] || 0) > 0 ? 0.45 : 1 }}>
+                      {i + 1} {i === 2 ? `Selector: ${VOID_MODES[bossHud.vm]}` : n}{(bossHud.bcd?.[i] || 0) > 0 ? ` ${Math.ceil(bossHud.bcd[i])}` : ''}
+                    </button>
+                  ))}
+                </div>
                 <div style={{ height: 8, background: '#2a2a33', borderRadius: 4 }}><div style={{ height: 8, width: `${bossHud.sp}%`, background: '#9aa8ff', borderRadius: 4 }} /></div>
               </div>
             ) : (
@@ -1487,6 +1516,7 @@ export default function LobbyPage() {
             )}
           </div>
         )}
+        {phase === 'action' && bossHud && (bossHud.blue || bossHud.red || bossHud.ult > 0) && <BossOverlay hud={bossHud} />}
         {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} onPress={() => pressMinigameRef.current()} onDir={(d) => pressDirRef.current(d)} />}
         {phase === 'action' && <EventLayer events={mapEvents} posRef={myPosRef} />}
         {phase === 'action' && lmsUntil > 0 && lmsInfo && (

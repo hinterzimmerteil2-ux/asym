@@ -406,18 +406,45 @@ const EMOTE_POSES = {
   },
 };
 
-function BossCube({ size = 1 }) {
+function BossCube({ e }) {
+  const ref = useRef();
+  const size = e.size || 1;
+  useFrame((_, delta) => {
+    const g = ref.current;
+    if (!g) return;
+    const k = Math.min(1, delta * 12);
+    g.position.x += (e.x - g.position.x) * k;
+    g.position.y += ((e.y || 0) - g.position.y) * k;
+    g.position.z += (e.z - g.position.z) * k;
+    const s = g.scale.x + (size - g.scale.x) * Math.min(1, delta * 5);
+    g.scale.setScalar(s);
+  });
+  const glow = e.ult ? '#ff2a2a' : '#000000';
   return (
-    <group scale={size}>
-      <mesh position={[0, 2.5, 0]} castShadow>
-        <boxGeometry args={[5, 5, 5]} />
-        <meshStandardMaterial color="#2b2433" roughness={0.6} />
-      </mesh>
-      <mesh position={[0, 2.5, 2.52]}>
-        <planeGeometry args={[4, 3.2]} />
-        <meshBasicMaterial color="#9aa8ff" />
-      </mesh>
-    </group>
+    <>
+      <group ref={ref} position={[e.x, e.y || 0, e.z]} scale={size}>
+        <mesh position={[0, 2.5, 0]} castShadow>
+          <boxGeometry args={[5, 5, 5]} />
+          <meshStandardMaterial color="#2b2433" roughness={0.6} emissive={glow} emissiveIntensity={e.ult ? 0.9 : 0} transparent opacity={e.invis ? 0.15 : 1} />
+        </mesh>
+        <mesh position={[0, 2.5, 2.52]}>
+          <planeGeometry args={[4, 3.2]} />
+          <meshBasicMaterial color={e.ult ? '#ff4040' : '#9aa8ff'} />
+        </mesh>
+      </group>
+      {e.shadow && (
+        <mesh position={[e.shadow.x, 1.2, e.shadow.z]}>
+          <sphereGeometry args={[1.6, 16, 12]} />
+          <meshBasicMaterial color="#14101c" transparent opacity={0.8} />
+        </mesh>
+      )}
+      {e.tpMark && (
+        <mesh position={[e.tpMark.x, 0.1, e.tpMark.z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[1.6, 2, 24]} />
+          <meshBasicMaterial color="#9aa8ff" />
+        </mesh>
+      )}
+    </>
   );
 }
 
@@ -2089,6 +2116,8 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       // parar y el servidor lo rechazaría todas las veces salvo la
       // primera (está en cooldown de todos modos, pero no tiene sentido
       // spamear mensajes).
+      const dm = /^Digit([1-9])$/.exec(e.code);
+      if (dm && !keysPressed.current.has(e.code) && !/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName || '')) onPulse?.('b' + dm[1]);
       const skillIndex = SKILL_ACTIONS.findIndex((a) => matches(a, e.code));
       if (skillIndex !== -1 && !keysPressed.current.has(e.code)) {
         onPulse?.(skillIndex === 4 ? 'melee' : skillIndex);
@@ -2577,7 +2606,13 @@ export default function GameScene({
               sendAction('cure_action', { targetPlayerId: playerId });
             }}
           >
-            {entityState.boss ? <BossCube size={entityState.size || 1} /> : <PlayerCapsule
+            {entityState.live && !entityState.boss && (
+              <mesh position={[entityState.x, (entityState.y || 0) + 3.4, entityState.z]}>
+                <coneGeometry args={[0.45, 0.9, 4]} />
+                <meshBasicMaterial color="#ff3b3b" depthTest={false} />
+              </mesh>
+            )}
+            {entityState.boss ? <BossCube e={entityState} /> : <PlayerCapsule
               playerId={playerId}
               entityState={entityState}
               color={color}
