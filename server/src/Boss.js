@@ -12,8 +12,13 @@ const SP_ULT = 25;
 const TEMBLOR_RANGE = 14;
 const TEMBLOR_MAX = 100;
 const STRIKE_REACH = 5;
-const STRIKE_FATIGA = 12;
-const STRIKE_DEBT = 6;
+const STRIKE_FATIGA = 3;
+const STRIKE_DEBT = 18;
+const BOSS_HP = 15000000;
+const BOSS_FLOJERA = 1200;
+const DMG_M1 = 25000;
+const DMG_MELEE = 50000;
+const DMG_AREA = 80000;
 const STRIKE_COOLDOWN_MS = 1400;
 const SWARM_RANGE = 12;
 const IDLE_SP_MS = 10000;
@@ -74,8 +79,10 @@ function setup(room) {
       entity.sp = SP_MAX;
       entity.lastAbilityAt = Date.now();
       applySize(entity, 1);
-      entity.flojeraMax = 9999;
-      entity.flojera = 9999;
+      entity.flojeraMax = BOSS_FLOJERA;
+      entity.flojera = BOSS_FLOJERA;
+      entity.hp = BOSS_HP;
+      entity.hpMax = BOSS_HP;
       entity.spriteScale = 1;
       continue;
     }
@@ -111,6 +118,8 @@ function applySize(entity, size) {
   entity.size = size;
   entity.bossHalf = Math.max(PLAYER_HALF, BASE_HALF * size);
   entity.bossH = Math.max(PLAYER_H, BASE_H * size);
+  entity.bossHitHalf = Math.max(0.8, BASE_HALF * size * 2.2);
+  entity.bossHitH = Math.max(2.4, BASE_H * size * 1.8);
 }
 
 function collision(player, entity) {
@@ -125,8 +134,8 @@ function reachOf(size) {
 function dmgFactor(size) {
   return Math.max(0.5, Math.min(2.5, size));
 }
-const SIZE_CD_MS = 1500;
-const TP_CD_MS = 9000;
+const SIZE_CD_MS = 2500;
+const TP_CD_MS = 15000;
 const TP_MIN_MARK_MS = 800;
 const TP_DELAY_MS = 1200;
 const TP_RADIUS = 7;
@@ -147,6 +156,7 @@ function ability(room, id, idx, now) {
     entity.bossCd = entity.bossCd || {};
     room.gameState.boss.size = entity.size;
     entity.bossCd[0] = now + SIZE_CD_MS;
+    entity.bfx = { k: idx === 0 ? 0 : 9, t: now };
     entity.lastAbilityAt = now;
   } else if (idx === 1) {
     if (entity.tpAt) return;
@@ -155,6 +165,7 @@ function ability(room, id, idx, now) {
       return;
     }
     if (now - entity.tpMark.at < TP_MIN_MARK_MS) return;
+    entity.bfx = { k: 1, t: now };
     entity.tpAt = now + TP_DELAY_MS;
     entity.paraFrom = now;
     entity.paraUntil = entity.tpAt + 200;
@@ -162,7 +173,9 @@ function ability(room, id, idx, now) {
     entity.lastAbilityAt = now;
   } else if (idx >= 2 && idx < ABILITY_COUNT) {
     if (idx === 8 && entity.ultAt) return;
+    entity.bfxT = null;
     if (extra(room, id, idx, now)) {
+      entity.bfx = { k: idx, t: now, tx: entity.bfxT ? Math.round(entity.bfxT.x * 10) / 10 : undefined, tz: entity.bfxT ? Math.round(entity.bfxT.z * 10) / 10 : undefined };
       entity.bossCd[idx] = now + (CD[idx] || 10000);
       entity.lastAbilityAt = now;
     }
@@ -170,7 +183,7 @@ function ability(room, id, idx, now) {
 }
 
 const ABILITY_COUNT = 9;
-const CD = { 2: 14000, 3: 16000, 4: 22000, 5: 40000, 6: 45000, 7: 18000, 8: 60000 };
+const CD = { 2: 24000, 3: 26000, 4: 36000, 5: 70000, 6: 80000, 7: 30000, 8: 100000 };
 const BLUE_MS = 4000;
 const STATIC_RADIUS = 16;
 const CENSOR_RADIUS = 14;
@@ -224,6 +237,7 @@ function extra(room, id, idx, now) {
       const t = nearestPlayer(room, id, boss, 40);
       if (!t) return false;
       ents[t].blueUntil = now + BLUE_MS;
+      boss.bfxT = { x: ents[t].x, z: ents[t].z };
     } else if (mode === 'estatica') {
       for (const t of inRadius(room, id, boss.x, boss.z, STATIC_RADIUS)) {
         Status.apply(ents[t], 'reveal', 4000, now);
@@ -238,6 +252,7 @@ function extra(room, id, idx, now) {
   if (idx === 3) {
     const t = nearestPlayer(room, id, boss, GRAB_RANGE);
     if (!t) { loseSp(boss, 2); return true; }
+    boss.bfxT = { x: ents[t].x, z: ents[t].z };
     Status.apply(ents[t], 'stun', GRAB_MS, now);
     ents[t].noCureUntil = now + GRAB_MS;
     addFatiga(room, t, 6, 4, now);
@@ -290,6 +305,7 @@ function extra(room, id, idx, now) {
     const t = nearestPlayer(room, id, boss, LIVE_RANGE);
     if (!t) return false;
     ents[t].liveUntil = now + LIVE_MS;
+    boss.bfxT = { x: ents[t].x, z: ents[t].z };
     return true;
   }
   if (idx === 8) {
@@ -310,6 +326,7 @@ function fireUlt(room, id, boss, now) {
     addFatiga(room, t, ULT_REAL, ULT_DEBT, now);
   }
   boss.sp = SP_MAX;
+  boss.bfx = { k: 'ultfire', t: now };
 }
 
 function finishTeleport(room, id, entity, now) {
@@ -365,6 +382,69 @@ function loseSp(entity, amount) {
   entity.sp = Math.max(0, entity.sp - amount);
 }
 
+function smash(room, entity, now) {
+  if ((entity.size || 1) < 1) return;
+  const gs = room.gameState;
+  const GameMap = require('./GameMap');
+  const R = reachOf(entity.size) * 0.85 + (entity.bossHalf || 0);
+  let any = false;
+  for (const p of GameMap.resolvePlatforms(room.mapId, GameMap.areaFor(room.mapId))) {
+    if (p.kind === 'pit' || p.ramp || p.slab || (p.h || 0) < 1.2) continue;
+    if ((gs.plankBroken || {})[p.id] !== undefined) continue;
+    const nx = Math.max(p.x - p.hx, Math.min(p.x + p.hx, entity.x));
+    const nz = Math.max(p.z - p.hz, Math.min(p.z + p.hz, entity.z));
+    if (Math.hypot(nx - entity.x, nz - entity.z) > R) continue;
+    if (p.blockMax > 0) {
+      gs.blockHp[p.id] = p.blockMax;
+      gs.blockBroken[p.id] = true;
+    } else {
+      gs.plankBroken = gs.plankBroken || {};
+      gs.plankBroken[p.id] = Infinity;
+      gs.plankHp = gs.plankHp || {};
+      gs.plankHp[p.id] = 0;
+    }
+    any = true;
+  }
+  if (any) room.navCache = null;
+}
+
+function defeat(room, bossId, entity) {
+  entity.hp = 0;
+  entity.down = true;
+  entity.gone = true;
+  room.bossActive = false;
+  room.gameState.boss = null;
+  room.gameState.bossDefeated = true;
+}
+
+function hurt(room, owner, win, now) {
+  if (!room.bossActive) return;
+  const [bossId, boss] = bossEntry(room);
+  if (!boss || boss.down || boss.paraUntil > now) return;
+  let px = owner.x;
+  let pz = owner.z;
+  let radius;
+  let dmg;
+  if (win.kind === 'm1') {
+    px += (owner.faceX || 0) * 1.6;
+    pz += (owner.faceX || owner.faceZ ? owner.faceZ || 0 : 1) * 1.6;
+    radius = 1.2;
+    dmg = DMG_M1;
+  } else if (win.kind === 'melee') {
+    px += (owner.faceX || 0) * (win.skill.reach || 0);
+    pz += (owner.faceX || owner.faceZ ? owner.faceZ || 0 : 1) * (win.skill.reach || 0);
+    radius = win.skill.radius || 0.5;
+    dmg = DMG_MELEE;
+  } else if (win.kind === 'area') {
+    radius = win.skill.radius || 1;
+    dmg = DMG_AREA;
+  } else return;
+  if (Math.hypot(px - boss.x, pz - boss.z) > radius + (boss.bossHitHalf || 1)) return;
+  boss.hp = Math.max(0, boss.hp - dmg);
+  loseSp(boss, 3);
+  if (boss.hp <= 0) defeat(room, bossId, boss);
+}
+
 function strike(room, bossId, now) {
   const entity = room.gameState.entities[bossId];
   if (!entity || entity.down || Status.blocksSkills(entity, now)) return;
@@ -373,6 +453,8 @@ function strike(room, bossId, now) {
   entity.lastAbilityAt = now;
   const reach = reachOf(entity.size || 1) + (entity.bossHalf || 0) * 0.5;
   entity.strikeAt = now;
+  entity.bfx = { k: 'm1', t: now };
+  smash(room, entity, now);
   const dmg = dmgFactor(entity.size || 1);
   let hit = 0;
   for (const [id, other] of Object.entries(room.gameState.entities)) {
@@ -474,6 +556,7 @@ module.exports = {
   collapse,
   loseSp,
   strike,
+  hurt,
   collision,
   reachOf,
   censored,

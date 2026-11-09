@@ -1513,6 +1513,8 @@ class Room {
         boss: this.players.get(entityPlayerId)?.isBoss || undefined,
         size: entity.size && entity.size !== 1 ? entity.size : undefined,
         sk: entity.strikeAt || undefined,
+        bhp: entity.hp !== undefined ? entity.hp : undefined,
+        bfx: entity.bfx || undefined,
         shadow: entity.shadow ? { x: Math.round(entity.shadow.x * 10) / 10, z: Math.round(entity.shadow.z * 10) / 10 } : undefined,
         live: (entity.liveUntil || 0) > now || undefined,
         blue: (entity.blueUntil || 0) > now || undefined,
@@ -2290,6 +2292,7 @@ class Room {
           else if (win.kind === 'melee') { this.healSpears(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now); this.healBlocks(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now); }
           else if (win.kind === 'area') { this.healSpears(owner, 0, win.skill.radius || 1, true, now); this.healBlocks(owner, 0, win.skill.radius || 1, true, now); }
         }
+        if (this.bossActive && this.players.get(win.playerId)?.isAsymRole) Boss.hurt(this, owner, win, now);
         if (win.kind === 'm1') this.hitPlanks(owner, M1_REACH, M1_RADIUS, false, now);
         else if (win.kind === 'melee') this.hitPlanks(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now);
         else if (win.kind === 'area') this.hitPlanks(owner, 0, win.skill.radius || 1, true, now);

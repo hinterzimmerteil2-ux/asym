@@ -70,7 +70,7 @@ function blockedAt(platforms, x, z, y, stepUp = STEP_UP, s = 1, height = PLAYER_
 }
 
 function extentOf(o) {
-  if (o.input && !o.corpse && o.bossHalf) return { half: o.bossHalf, height: o.bossH };
+  if (o.input && !o.corpse && o.bossHitHalf) return { half: o.bossHitHalf, height: o.bossHitH };
   return o.input && !o.corpse ? { half: PLAYER_HALF * (o.hitScale || 1), height: PLAYER_HEIGHT } : { half: 0, height: 0 };
 }
 

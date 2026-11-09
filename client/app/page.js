@@ -465,7 +465,7 @@ export default function LobbyPage() {
               const me = (payload.entities || {})[myPlayerIdRef.current];
               myPosRef.current = me ? { x: me.x, y: me.y || 0, z: me.z } : null;
               const bossEnt = Object.values(payload.entities || {}).find((en) => en.boss);
-              const hud = bossEnt ? { fat: me?.fat || 0, debt: me?.debt || 0, down: Boolean(me?.down), isBoss: Boolean(me?.boss), sp: bossEnt.sp ?? 0, tem: me?.tem || 0, bcd: me?.boss ? me.bcd : undefined, vm: me?.vm || 0, ult: bossEnt.ult ? 1 : 0, blue: Boolean(me?.blue), red: me?.red || null } : null;
+              const hud = bossEnt ? { bhp: bossEnt.bhp ?? 0, fat: me?.fat || 0, debt: me?.debt || 0, down: Boolean(me?.down), isBoss: Boolean(me?.boss), sp: bossEnt.sp ?? 0, tem: me?.tem || 0, bcd: me?.boss ? me.bcd : undefined, vm: me?.vm || 0, ult: bossEnt.ult ? 1 : 0, blue: Boolean(me?.blue), red: me?.red || null } : null;
               setBossHud((prev) => (sameValue(prev, hud) ? prev : hud));
             }
             entitiesRef.current = payload.entities || {};
@@ -929,6 +929,10 @@ export default function LobbyPage() {
     // mensaje que de todos modos va a rechazar, la validación real
     // (rol, cooldown, fase) vive en Room.applyCuratorPulse.
     if (phase !== 'action') return;
+    if (skill === 'bM1') {
+      if (bossHudRef.current?.isBoss) connRef.current?.send('cure_action', {});
+      return;
+    }
     if (typeof skill === 'string' && skill.startsWith('b')) {
       if (bossHudRef.current?.isBoss) connRef.current?.send('curator_pulse_action', { skill: Number(skill.slice(1)) - 1 });
       return;
@@ -1070,6 +1074,7 @@ export default function LobbyPage() {
   const playersOpen = panelOpen ?? phase === 'lobby';
   isAsymRoleRef.current = isAsymRole;
   const handleInteract = () => {
+    if (bossHudRef.current?.isBoss) { handleSendAction('cure_action', {}); return; }
     if (sdRef.current) { pressMinigameRef.current(); return; }
     const entities = entitiesRef.current;
     const me = entities[myPlayerId];
@@ -1493,11 +1498,15 @@ export default function LobbyPage() {
         )}
         {phase === 'action' && matchSeed != null && <div style={{ position: 'absolute', left: 8, bottom: 8, fontSize: 11, color: '#a8959a', pointerEvents: 'none', userSelect: 'text' }}>Semilla: {matchSeed}</div>}
         {phase === 'action' && bossHud && (
-          <div style={{ position: 'fixed', top: 56, left: '50%', transform: 'translateX(-50%)', width: 'min(320px, 70vw)', zIndex: 20, pointerEvents: 'none', color: '#fff', fontSize: 12 }}>
+          <div style={{ position: 'fixed', top: 56, left: '50%', transform: 'translateX(-50%)', width: 'min(360px, 78vw)', zIndex: 20, pointerEvents: 'none', color: '#fff', fontSize: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Jeffrey</span><span>{Math.round(bossHud.bhp).toLocaleString('es')}</span></div>
+            <div style={{ height: 10, background: '#2a2a33', borderRadius: 5, marginBottom: 6 }}><div style={{ height: 10, width: `${Math.max(0, Math.min(100, (bossHud.bhp / 15000000) * 100))}%`, background: '#b23cff', borderRadius: 5 }} /></div>
             {bossHud.isBoss ? (
               <div>
                 <div>Cordura {bossHud.sp}</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '4px 0', pointerEvents: 'auto' }}>
+                <div style={{ height: 8, background: '#2a2a33', borderRadius: 4 }}><div style={{ height: 8, width: `${bossHud.sp}%`, background: '#9aa8ff', borderRadius: 4 }} /></div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '6px 0', pointerEvents: 'auto' }}>
+                  <button type="button" onClick={() => handlePulse('bM1')} style={{ fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid #a77', background: '#2a1b24', color: '#fff' }}>Q Golpe</button>
                   <button type="button" onClick={() => handlePulse('b10')} style={{ fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid #556', background: '#1b1b24', color: '#fff' }}>0 Encoger</button>
                   {BOSS_ABILITIES.map((n, i) => (
                     <button key={n} type="button" onClick={() => handlePulse('b' + (i + 1))} style={{ fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid #556', background: '#1b1b24', color: '#fff', opacity: (bossHud.bcd?.[i] || 0) > 0 ? 0.45 : 1 }}>
@@ -1505,15 +1514,13 @@ export default function LobbyPage() {
                     </button>
                   ))}
                 </div>
-                <div style={{ height: 8, background: '#2a2a33', borderRadius: 4 }}><div style={{ height: 8, width: `${bossHud.sp}%`, background: '#9aa8ff', borderRadius: 4 }} /></div>
               </div>
             ) : (
               <div>
-                <div>{bossHud.down ? 'Caído' : `Fatiga ${Math.round(bossHud.fat)}%`}{bossHud.debt > 0 ? `  −i ${bossHud.debt}` : ''}</div>
-                <div style={{ height: 8, background: '#2a2a33', borderRadius: 4, position: 'relative' }}>
-                  <div style={{ height: 8, width: `${bossHud.fat}%`, background: '#d9534f', borderRadius: 4 }} />
-                  <div style={{ position: 'absolute', top: 0, left: 0, height: 8, width: `${Math.min(100, bossHud.debt)}%`, background: 'rgba(150,80,220,0.7)', borderRadius: 4 }} />
-                </div>
+                <div>{bossHud.down ? 'Caído' : `Fatiga ${Math.round(bossHud.fat)}%`}</div>
+                <div style={{ height: 8, background: '#2a2a33', borderRadius: 4, marginBottom: 4 }}><div style={{ height: 8, width: `${bossHud.fat}%`, background: '#d9534f', borderRadius: 4 }} /></div>
+                <div style={{ color: '#c9a0ff' }}>Deuda −i {Math.round(bossHud.debt)}</div>
+                <div style={{ height: 8, background: '#2a2a33', borderRadius: 4 }}><div style={{ height: 8, width: `${Math.min(100, (bossHud.debt / 40) * 100)}%`, background: '#9b4dff', borderRadius: 4 }} /></div>
               </div>
             )}
           </div>

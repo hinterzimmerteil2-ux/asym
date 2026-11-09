@@ -1689,10 +1689,10 @@ test('boss: resto de habilidades de Jeffrey', () => {
   e.b.x = 0; e.b.z = 0; e.a.x = 5; e.a.z = 0; e.c.x = 60; e.c.z = 60;
   Boss.ability(room, 'b', 2, now);
   assert.ok(e.a.blueUntil > now);
-  now += 15000;
+  now += 30000;
   Boss.ability(room, 'b', 2, now);
   assert.ok(Status.active(e.a, 'reveal', now));
-  now += 15000;
+  now += 30000;
   Boss.ability(room, 'b', 2, now);
   assert.strictEqual(gs.censors.length, 1);
   assert.ok(Boss.cureBlocked(room, e.a, now));
@@ -1733,15 +1733,50 @@ test('boss: tamanos, colision y alcance escalan', () => {
   let now = Date.now();
   Boss.ability(room, 'b', 9, now);
   assert.strictEqual(e.b.size, 0.45);
-  now += 2000;
+  now += 3000;
   Boss.ability(room, 'b', 9, now);
   assert.strictEqual(e.b.size, 0.14);
   const small = Boss.collision(room.players.get('b'), e.b);
   assert.ok(small.s === 1 && !small.noclip);
-  now += 2000;
-  for (let i = 0; i < 3; i++) { Boss.ability(room, "b", 0, now); now += 2000; }
+  now += 3000;
+  for (let i = 0; i < 3; i++) { Boss.ability(room, "b", 0, now); now += 3000; }
   assert.strictEqual(e.b.size, 1.6);
   assert.ok(Boss.collision(room.players.get('b'), e.b).noclip);
   assert.ok(Hitbox.extentOf(e.b).height > 5);
   assert.ok(Boss.reachOf(3.5) > Boss.reachOf(1));
+});
+
+test('boss: vida, golpe del Curador, M1 imaginario, romper el hospital y derrota', () => {
+  const Boss = require('../src/Boss');
+  const GameMap = require('../src/GameMap');
+  const room = new Room('t');
+  const sock = () => ({ readyState: 1, send() {} });
+  room.addPlayer('c', sock(), 'C');
+  room.addPlayer('a', sock(), 'A');
+  room.addPlayer('b', sock(), 'B');
+  room.bossOn = true;
+  room.bossId = 'b';
+  Boss.prepare(room);
+  room.switchPhase('action', 'test');
+  const e = room.gameState.entities;
+  const now = Date.now();
+  assert.strictEqual(e.b.hp, 15000000);
+  assert.strictEqual(e.b.flojeraMax, 1200);
+  e.b.x = 0; e.b.z = 0; e.a.x = 2; e.a.z = 0;
+  Boss.strike(room, 'b', now);
+  assert.ok(e.a.debt > e.a.fatiga);
+  e.c.x = -2; e.c.z = 0; e.c.faceX = 1; e.c.faceZ = 0;
+  Boss.hurt(room, e.c, { kind: 'm1' }, now);
+  assert.ok(e.b.hp < 15000000);
+  const plat = GameMap.resolvePlatforms(room.mapId, GameMap.areaFor(room.mapId)).find((p) => !p.ramp && !p.slab && p.kind !== 'pit' && p.h >= 1.2);
+  if (plat) {
+    e.b.x = plat.x; e.b.z = plat.z;
+    Boss.ability(room, 'b', 0, now);
+    Boss.ability(room, 'b', 0, now + 3000);
+    Boss.strike(room, 'b', now + 6000);
+    assert.ok(room.gameState.plankBroken[plat.id] !== undefined || room.gameState.blockBroken[plat.id]);
+  }
+  e.b.hp = 10;
+  Boss.hurt(room, e.c, { kind: 'area', skill: { radius: 999 } }, now);
+  assert.ok(e.b.gone && !room.bossActive);
 });

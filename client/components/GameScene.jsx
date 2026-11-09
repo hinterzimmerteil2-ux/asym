@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, useMemo, memo, Suspense } from 'react';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, Vector3, Matrix4, Quaternion, TextureLoader, DoubleSide, SRGBColorSpace, Color } from 'three';
+import { Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, Vector3, Matrix4, Quaternion, Euler, TextureLoader, DoubleSide, SRGBColorSpace, Color } from 'three';
 import { itemOf } from '../lib/cosmetics';
 import { getTexture, setTextureQuality } from '../lib/textures';
 import { matches } from '../lib/keybinds';
@@ -409,22 +409,134 @@ const EMOTE_POSES = {
 
 const JEFFREY_URL = '/models/jeffrey/scene.gltf';
 const JEFFREY_SCALE = 4.5;
+const _eul = new Euler();
+const _q = new Quaternion();
 
-function JeffreyBody() {
+function rot(b, x, y, z) {
+  if (!b) return;
+  _eul.set(x, y, z);
+  _q.setFromEuler(_eul);
+  b.quaternion.multiply(_q);
+}
+
+const lerp = (a, b, t) => a + (b - a) * Math.max(0, Math.min(1, t));
+const env = (t, d) => Math.sin(Math.PI * Math.max(0, Math.min(1, t / d)));
+
+function armPose(P, side, fwd, up) {
+  if (side === 'R') rot(P.rU, 0, -up, fwd);
+  else rot(P.lU, 0, up, fwd);
+}
+
+function applyJeffreyPose(P, fx, time, moving) {
+  const sway = moving ? 0.22 : 0.1;
+  P.tents.forEach((b, i) => rot(b, 0, Math.sin(time * 1.3 + i * 0.7) * sway, Math.sin(time * 1.1 + i * 0.5) * sway));
+  rot(P.spine1, 0, 0, Math.sin(time * 1.5) * 0.03);
+  if (!fx || fx.k === null) return;
+  const t = (performance.now() - fx.t0) / 1000;
+  const k = fx.k;
+  if (k === 'm1') {
+    if (t > 0.5) return;
+    const a = t < 0.16 ? lerp(0, -1.3, t / 0.16) : t < 0.3 ? lerp(-1.3, 1.9, (t - 0.16) / 0.14) : lerp(1.9, 0, (t - 0.3) / 0.2);
+    const s = t < 0.16 ? lerp(0, 0.35, t / 0.16) : t < 0.3 ? lerp(0.35, -0.5, (t - 0.16) / 0.14) : lerp(-0.5, 0, (t - 0.3) / 0.2);
+    rot(P.rU, 0, -0.35 * Math.sign(a) * Math.min(1, Math.abs(a)), a);
+    rot(P.rF, 0, 0, a * 0.35);
+    rot(P.spine1, 0, s, 0);
+    rot(P.spine2, 0, s * 0.6, 0);
+    P.tents.forEach((b, i) => rot(b, 0, Math.sin(t * 28 + i) * 0.5 * env(t, 0.5), 0));
+  } else if (k === 0 || k === 9) {
+    if (t > 1) return;
+    const e = env(t, 1);
+    armPose(P, 'R', 0.25, 1.4 * e * (k === 0 ? 1 : 0.5));
+    armPose(P, 'L', 0.25, 1.4 * e * (k === 0 ? 1 : 0.5));
+    rot(P.head, 0, 0, -0.3 * e);
+  } else if (k === 1) {
+    if (t > 1.4) return;
+    const e = env(t, 1.4);
+    armPose(P, 'R', 1.2 * e, -0.3 * e);
+    armPose(P, 'L', 1.2 * e, -0.3 * e);
+    rot(P.spine1, 0, 0, 0.5 * e);
+    rot(P.head, 0, 0, 0.4 * e);
+  } else if (k === 2) {
+    if (t > 1) return;
+    const e = env(t, 1);
+    armPose(P, 'R', 0, 1.3 * e);
+    armPose(P, 'L', 0, 1.3 * e);
+    rot(P.head, 0, 0.25 * Math.sin(t * 9) * e, -0.2 * e);
+  } else if (k === 3) {
+    if (t > 1.3) return;
+    const e = env(t, 1.3);
+    armPose(P, 'R', 1.3 * e, 0.2);
+    P.tents.forEach((b, i) => rot(b, 0, Math.sin(t * 22 + i) * 0.9 * e, Math.cos(t * 17 + i) * 0.6 * e));
+  } else if (k === 4) {
+    if (t > 1) return;
+    const e = env(t, 1);
+    armPose(P, 'R', 1.4 * e, 0);
+    armPose(P, 'L', -0.3 * e, 0.3 * e);
+    rot(P.spine1, 0, 0.3 * e, 0);
+  } else if (k === 5) {
+    if (t > 1.6) return;
+    const e = env(t, 1.6);
+    armPose(P, 'R', 1.1 + Math.sin(t * 7) * 0.7, 0.6 * e);
+    armPose(P, 'L', 1.1 + Math.cos(t * 7) * 0.7, 0.6 * e);
+    rot(P.head, 0, Math.sin(t * 7) * 0.4 * e, 0);
+  } else if (k === 6) {
+    if (t > 1.2) return;
+    const e = env(t, 1.2);
+    armPose(P, 'R', 1.5 * e, 0.2);
+    armPose(P, 'L', 1.5 * e, -0.2);
+    rot(P.spine1, 0, 0, -0.25 * e);
+  } else if (k === 7) {
+    if (t > 1) return;
+    const e = env(t, 1);
+    armPose(P, 'R', 1.6 * e, 0);
+    rot(P.head, 0, 0, -0.2 * e);
+  } else if (k === 8 || k === 'ult') {
+    const e = k === 8 ? Math.min(1, t / 0.5) : 1;
+    armPose(P, 'R', 0.6, 1.5 * e);
+    armPose(P, 'L', 0.6, 1.5 * e);
+    rot(P.head, 0, 0, -0.5 * e);
+    const sh = Math.sin(t * 60) * 0.07 * e;
+    rot(P.spine1, sh, 0, sh);
+    P.tents.forEach((b, i) => rot(b, 0, Math.sin(t * 24 + i) * 0.6 * e, 0));
+  } else if (k === 'ultfire') {
+    if (t > 0.8) return;
+    const e = env(t, 0.8);
+    armPose(P, 'R', 1.2 * e, 0.4);
+    armPose(P, 'L', 1.2 * e, -0.4);
+    rot(P.head, 0, 0, 0.5 * e);
+  }
+}
+
+function JeffreyBody({ poseRef }) {
   const { scene, animations } = useGLTF(JEFFREY_URL);
   const root = useRef();
   const { actions } = useAnimations(animations, root);
-  useMemo(() => {
+  const P = useMemo(() => {
+    const p = { tents: [] };
     scene.traverse((o) => {
       if ((o.isMesh || o.isSkinnedMesh) && /smoke/i.test(o.material?.name || '')) o.visible = false;
       if (o.isMesh || o.isSkinnedMesh) o.frustumCulled = false;
+      if (!o.isBone) return;
+      const n = o.name;
+      if (/Bip01_Spine1_/.test(n)) p.spine1 = o;
+      else if (/Bip01_Spine2_/.test(n)) p.spine2 = o;
+      else if (/Bip01_Head1_/.test(n)) p.head = o;
+      else if (/Bip01_R_UpperArm_/.test(n)) p.rU = o;
+      else if (/Bip01_R_Forearm_/.test(n)) p.rF = o;
+      else if (/Bip01_L_UpperArm_/.test(n)) p.lU = o;
+      else if (/Bip01_L_Forearm_/.test(n)) p.lF = o;
+      else if (/^[12]_Tent0[2-9]_/.test(n)) p.tents.push(o);
     });
+    return p;
   }, [scene]);
   useEffect(() => {
     const a = actions.FRIEND;
     if (a) a.reset().play();
     return () => { if (a) a.stop(); };
   }, [actions]);
+  useFrame((state) => {
+    applyJeffreyPose(P, poseRef.current.fx, state.clock.elapsedTime, poseRef.current.moving);
+  });
   return <group ref={root} scale={JEFFREY_SCALE}><primitive object={scene} /></group>;
 }
 
@@ -437,13 +549,87 @@ function FallbackCube() {
   );
 }
 
+const VOID_COLORS = ['#2f58ff', '#cfd6ff', '#0b0b10'];
+
+function BossFx({ e }) {
+  const ringsRef = useRef([]);
+  const beamRef = useRef();
+  const rings = useRef([{ on: false }, { on: false }]);
+  const beam = useRef({ on: false });
+  const lastT = useRef(e.bfx?.t);
+  const lastK = useRef(null);
+  useFrame(() => {
+    const fx = e.bfx;
+    const now = performance.now();
+    if (fx && fx.t !== lastT.current) {
+      lastT.current = fx.t;
+      const k = fx.k;
+      const spawn = (i, color, maxR, dur, x = e.x, z = e.z) => { rings.current[i] = { on: true, color, maxR, dur, t0: now, x, z }; };
+      if (k === 'm1') spawn(0, '#c8b6ff', Math.max(2.4, 3.2 * (e.size || 1) + 1.8), 0.35);
+      else if (k === 0 || k === 9) spawn(0, '#9aa8ff', 5 * (e.size || 1) + 4, 0.8);
+      else if (k === 1) spawn(0, '#0b0b10', 4 * (e.size || 1) + 3, 0.7);
+      else if (k === 2) spawn(0, VOID_COLORS[(((e.vm || 0) + 2) % 3)], 16, 0.8);
+      else if (k === 3 && fx.tx !== undefined) beam.current = { on: true, color: '#8a3cff', x: fx.tx, z: fx.tz, t0: now, dur: 0.9 };
+      else if (k === 4) spawn(0, '#14101c', 7, 0.8);
+      else if (k === 5) { spawn(0, '#4aa8ff', 25, 1.1); spawn(1, '#a8d8ff', 17, 1.4); }
+      else if (k === 6) spawn(0, '#ff9a3c', 12, 0.9);
+      else if (k === 7 && fx.tx !== undefined) beam.current = { on: true, color: '#ff3b3b', x: fx.tx, z: fx.tz, t0: now, dur: 0.8 };
+      else if (k === 'ultfire') { spawn(0, '#ff2a2a', 45, 0.7); spawn(1, '#ffffff', 30, 0.5); }
+    }
+    rings.current.forEach((r, i) => {
+      const m = ringsRef.current[i];
+      if (!m) return;
+      if (!r.on) { m.visible = false; return; }
+      const t = (now - r.t0) / 1000 / r.dur;
+      if (t >= 1) { r.on = false; m.visible = false; return; }
+      m.visible = true;
+      m.position.set(r.x, 0.2, r.z);
+      m.scale.setScalar(Math.max(0.05, t * r.maxR));
+      m.material.color.set(r.color);
+      m.material.opacity = 0.85 * (1 - t);
+    });
+    const bm = beamRef.current;
+    const b = beam.current;
+    if (bm) {
+      if (!b.on || (now - b.t0) / 1000 > b.dur) { bm.visible = false; b.on = false; }
+      else {
+        const dx = b.x - e.x;
+        const dz = b.z - e.z;
+        const len = Math.hypot(dx, dz) || 1;
+        const t = (now - b.t0) / 1000 / b.dur;
+        bm.visible = true;
+        bm.position.set(e.x + dx / 2, 2 + 1.2 * (e.size || 1), e.z + dz / 2);
+        bm.rotation.set(Math.PI / 2, 0, 0);
+        bm.rotation.order = 'YXZ';
+        bm.rotation.y = Math.atan2(dx, dz);
+        bm.scale.set(Math.max(0.05, 0.35 * (1 - t)), len, Math.max(0.05, 0.35 * (1 - t)));
+        bm.material.color.set(b.color);
+        bm.material.opacity = 0.75 * (1 - t * 0.6);
+      }
+    }
+  });
+  return (
+    <>
+      {[0, 1].map((i) => (
+        <mesh key={i} ref={(m) => { ringsRef.current[i] = m; }} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+          <ringGeometry args={[0.93, 1, 48]} />
+          <meshBasicMaterial transparent depthWrite={false} side={DoubleSide} />
+        </mesh>
+      ))}
+      <mesh ref={beamRef} visible={false}>
+        <cylinderGeometry args={[1, 1, 1, 8]} />
+        <meshBasicMaterial transparent depthWrite={false} />
+      </mesh>
+    </>
+  );
+}
+
 function BossCube({ e }) {
   const ref = useRef();
   const body = useRef();
-  const ring = useRef();
-  const last = useRef({ x: e.x, z: e.z, yaw: 0, sk: e.sk, ringT: 99 });
+  const pose = useRef({ fx: null, moving: false });
+  const last = useRef({ x: e.x, z: e.z, yaw: 0, bt: undefined, mv: 0 });
   const size = e.size || 1;
-  const reach = Math.max(2.4, 3.2 * size + 1.8) + Math.max(0.36, 2.5 * size) * 0.5;
   useFrame((_, delta) => {
     const g = ref.current;
     if (!g) return;
@@ -456,6 +642,9 @@ function BossCube({ e }) {
     const L = last.current;
     const dx = e.x - L.x;
     const dz = e.z - L.z;
+    const sp = Math.hypot(dx, dz) / Math.max(delta, 0.001);
+    L.mv += ((sp > 0.3 ? 1 : 0) - L.mv) * Math.min(1, delta * 6);
+    pose.current.moving = L.mv > 0.5;
     if (dx * dx + dz * dz > 0.0004) {
       let d = Math.atan2(dx, dz) - L.yaw;
       d = Math.atan2(Math.sin(d), Math.cos(d));
@@ -463,34 +652,31 @@ function BossCube({ e }) {
     }
     L.x = e.x; L.z = e.z;
     if (body.current) body.current.rotation.y = L.yaw;
-    if (L.sk !== e.sk) { L.sk = e.sk; L.ringT = 0; }
-    L.ringT += delta;
-    if (ring.current) {
-      const t = Math.min(1, L.ringT / 0.35);
-      ring.current.visible = t < 1;
-      ring.current.scale.setScalar(Math.max(0.01, t * reach));
-      ring.current.material.opacity = 0.8 * (1 - t);
+    if (e.bfx && e.bfx.t !== L.bt) {
+      L.bt = e.bfx.t;
+      pose.current.fx = { k: e.bfx.k, t0: performance.now() };
     }
+    if (e.ult) {
+      if (!pose.current.fx || (pose.current.fx.k !== 8)) pose.current.fx = { k: 8, t0: pose.current.fx && pose.current.fx.k === 8 ? pose.current.fx.t0 : performance.now() };
+    } else if (pose.current.fx && pose.current.fx.k === 8) pose.current.fx = null;
+    if (e.bfx && e.bfx.k === 'ultfire' && e.bfx.t === L.bt && (!pose.current.fx || pose.current.fx.k === 8)) pose.current.fx = { k: 'ultfire', t0: performance.now() };
   });
   return (
     <>
       <group ref={ref} position={[e.x, e.y || 0, e.z]} scale={size}>
         <group ref={body}>
           <Suspense fallback={<FallbackCube />}>
-            <JeffreyBody />
+            <JeffreyBody poseRef={pose} />
           </Suspense>
         </group>
         {e.ult && (
           <mesh position={[0, 2.5, 0]}>
             <sphereGeometry args={[3.4, 16, 12]} />
-            <meshBasicMaterial color="#ff2a2a" transparent opacity={0.35} />
+            <meshBasicMaterial color="#ff2a2a" transparent opacity={0.3} />
           </mesh>
         )}
-        <mesh ref={ring} position={[0, 0.15, 0]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
-          <ringGeometry args={[0.92, 1, 40]} />
-          <meshBasicMaterial color="#c8b6ff" transparent opacity={0.8} depthWrite={false} />
-        </mesh>
       </group>
+      <BossFx e={e} />
       {e.shadow && (
         <mesh position={[e.shadow.x, 1.2, e.shadow.z]}>
           <sphereGeometry args={[1.6, 16, 12]} />
@@ -2180,6 +2366,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       const skillIndex = SKILL_ACTIONS.findIndex((a) => matches(a, e.code));
       if (skillIndex !== -1 && !keysPressed.current.has(e.code)) {
         onPulse?.(skillIndex === 4 ? 'melee' : skillIndex);
+        if (skillIndex === 0) onPulse?.('bM1');
       }
       if (matches('slow', e.code) && !e.repeat) slowKey.current.down();
       keysPressed.current.add(e.code);
@@ -2660,7 +2847,7 @@ export default function GameScene({
             onClick={(e) => {
               if (phase !== 'action' || playerId === myPlayerId) return;
               const myPlayer = playerById.get(myPlayerId);
-              if (!myPlayer?.isAsymRole) return;
+              if (!myPlayer?.isAsymRole && !entities[myPlayerId]?.boss) return;
               e.stopPropagation();
               sendAction('cure_action', { targetPlayerId: playerId });
             }}
