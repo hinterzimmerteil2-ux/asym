@@ -94,9 +94,66 @@ function setup(room) {
   }
 }
 
-function speedFactor(room, player) {
-  if (!room.bossActive || !player || player.isBoss) return 1;
+function speedFactor(room, player, entity) {
+  if (!room.bossActive || !player) return 1;
+  if (player.isBoss) return 1 / (0.6 + 0.4 * ((entity && entity.size) || 1));
   return SPEED_MULT;
+}
+
+const SIZES = [1, 1.6, 2.3, 3];
+const SIZE_CD_MS = 1500;
+const TP_CD_MS = 9000;
+const TP_MIN_MARK_MS = 800;
+const TP_DELAY_MS = 1200;
+const TP_RADIUS = 7;
+
+function ready(entity, idx, now) {
+  entity.bossCd = entity.bossCd || {};
+  return (entity.bossCd[idx] || 0) <= now;
+}
+
+function ability(room, id, idx, now) {
+  const entity = room.gameState.entities[id];
+  if (!entity || entity.down || Status.blocksSkills(entity, now) || room.gameState.gameOver) return;
+  if (!ready(entity, idx, now)) return;
+  if (idx === 0) {
+    const cur = SIZES.indexOf(entity.size || 1);
+    entity.size = SIZES[(cur + 1) % SIZES.length];
+    room.gameState.boss.size = entity.size;
+    entity.bossCd[0] = now + SIZE_CD_MS;
+    entity.lastAbilityAt = now;
+  } else if (idx === 1) {
+    if (entity.tpAt) return;
+    if (!entity.tpMark) {
+      entity.tpMark = { x: entity.x, z: entity.z, at: now };
+      return;
+    }
+    if (now - entity.tpMark.at < TP_MIN_MARK_MS) return;
+    entity.tpAt = now + TP_DELAY_MS;
+    entity.paraFrom = now;
+    entity.paraUntil = entity.tpAt + 200;
+    entity.bossCd[1] = now + TP_CD_MS;
+    entity.lastAbilityAt = now;
+  }
+}
+
+function finishTeleport(room, id, entity, now) {
+  const mark = entity.tpMark;
+  entity.tpAt = 0;
+  entity.tpMark = null;
+  entity.paraFrom = 0;
+  entity.paraUntil = 0;
+  if (!mark) return;
+  entity.x = mark.x;
+  entity.z = mark.z;
+  let hit = 0;
+  for (const [oid, other] of Object.entries(room.gameState.entities)) {
+    if (oid === id || other.down || other.gone || other.corpse) continue;
+    if (Math.hypot(other.x - entity.x, other.z - entity.z) > TP_RADIUS) continue;
+    addFatiga(room, oid, STRIKE_FATIGA, STRIKE_DEBT, now);
+    hit++;
+  }
+  loseSp(entity, hit ? 3 : 2);
 }
 
 function takeDown(room, id, entity, now) {
@@ -144,7 +201,7 @@ function strike(room, bossId, now) {
   for (const [id, other] of Object.entries(room.gameState.entities)) {
     if (id === bossId || other.down || other.gone || other.corpse) continue;
     if (Math.hypot(other.x - entity.x, other.z - entity.z) > reach) continue;
-    addFatiga(room, id, STRIKE_FATIGA, STRIKE_DEBT, now);
+    addFatiga(room, id, STRIKE_FATIGA * (entity.size || 1), STRIKE_DEBT * (entity.size || 1), now);
     hit++;
   }
   if (hit) loseSp(entity, 3);
@@ -178,6 +235,7 @@ function tick(room, now, dt) {
     else e.temblor = Math.max(0, (e.temblor || 0) - sec * 8);
   }
   boss.ultReady = boss.sp <= SP_ULT;
+  if (boss.tpAt && now >= boss.tpAt) finishTeleport(room, bossId, boss, now);
   onCollapseTick(room, now);
 }
 
@@ -203,6 +261,7 @@ module.exports = {
   collapse,
   loseSp,
   strike,
+  ability,
   tick,
   checkEnd,
   bossEntry,

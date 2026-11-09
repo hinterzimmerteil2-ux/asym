@@ -290,6 +290,8 @@ export default function LobbyPage() {
   const [bossOn, setBossOn] = useState(false);
   const [bossId, setBossId] = useState(null);
   const [bossHud, setBossHud] = useState(null);
+  const bossHudRef = useRef(null);
+  bossHudRef.current = bossHud;
   const [secondCuratorId, setSecondCuratorId] = useState(null);
   const [modeVoteOpen, setModeVoteOpen] = useState(false);
   const [gravityFactor, setGravityFactor] = useState(1);
@@ -905,6 +907,10 @@ export default function LobbyPage() {
     // mensaje que de todos modos va a rechazar, la validación real
     // (rol, cooldown, fase) vive en Room.applyCuratorPulse.
     if (phase !== 'action') return;
+    if (bossHudRef.current?.isBoss) {
+      if (Number.isInteger(skill)) connRef.current?.send('curator_pulse_action', { skill });
+      return;
+    }
     if (!isAsymRole) {
       if (skill === 0) connRef.current?.send('ghost_reveal', {});
       return;
@@ -1467,6 +1473,7 @@ export default function LobbyPage() {
             {bossHud.isBoss ? (
               <div>
                 <div>Cordura {bossHud.sp}</div>
+                <div style={{ opacity: 0.8 }}>1 Megethoskinesis   2 Teletransportación</div>
                 <div style={{ height: 8, background: '#2a2a33', borderRadius: 4 }}><div style={{ height: 8, width: `${bossHud.sp}%`, background: '#9aa8ff', borderRadius: 4 }} /></div>
               </div>
             ) : (

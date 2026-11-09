@@ -444,6 +444,9 @@ class Room {
     if (!best) { entity.input.moveX = 0; entity.input.moveZ = 0; return; }
     this.botSteer(player, entity, { x: best.x, z: best.z }, now, 0.15);
     if (bd < 4.5 * (entity.size || 1)) Boss.strike(this, botId, now);
+    if (!entity.tpMark && bd < 10 && Math.random() < 0.03) Boss.ability(this, botId, 1, now);
+    else if (entity.tpMark && Math.hypot(entity.tpMark.x - entity.x, entity.tpMark.z - entity.z) > 12 && Math.random() < 0.3) Boss.ability(this, botId, 1, now);
+    if (bd < 14 && Math.random() < 0.03) Boss.ability(this, botId, 0, now);
   }
 
   botThink(now) {
@@ -1506,6 +1509,8 @@ class Room {
         invis: this.isInvisible(entity, now),
         carry: entity.carry || undefined,
         boss: this.players.get(entityPlayerId)?.isBoss || undefined,
+        size: entity.size > 1 ? entity.size : undefined,
+        tpMark: entity.tpMark ? { x: Math.round(entity.tpMark.x * 10) / 10, z: Math.round(entity.tpMark.z * 10) / 10 } : undefined,
         fat: entity.fatiga ? Math.round(entity.fatiga * 10) / 10 : undefined,
         debt: entity.debt ? Math.round(entity.debt * 10) / 10 : undefined,
         down: entity.down || undefined,
@@ -1750,7 +1755,7 @@ class Room {
       } else if (wantsSlow) {
         speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
       }
-      speedMultiplier *= Status.speedFactor(entity, now) * Boss.speedFactor(this, this.players.get(entityPlayerId));
+      speedMultiplier *= Status.speedFactor(entity, now) * Boss.speedFactor(this, this.players.get(entityPlayerId), entity);
       if (!this.players.get(entityPlayerId)?.isAsymRole) speedMultiplier *= MUTATIONS[this.mutation].speed;
       else speedMultiplier *= this.players.get(entityPlayerId)?.curatorSpeed || 1;
       if (entity.channel || entity.selfDmg) speedMultiplier *= CHANNEL_SLOW;
@@ -1968,6 +1973,10 @@ class Room {
     if (this.gameState.gameOver || this.gameState.frozen) return;
 
     const curador = this.players.get(playerId);
+    if (curador && curador.isBoss) {
+      if (Number.isInteger(skillIndex)) Boss.ability(this, playerId, skillIndex, Date.now());
+      return;
+    }
     if (!curador || !curador.isAsymRole) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Solo el Curador puede usar habilidades' });
       return;

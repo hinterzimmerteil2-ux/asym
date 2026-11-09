@@ -1641,3 +1641,33 @@ test('boss: rol aparte, 27 min, stats, Fatiga con deuda y fin de partida', () =>
   room.checkGameEndConditions();
   assert.ok(gs.gameOver);
 });
+
+test('boss: Megethoskinesis cambia tamano y Teletransportacion marca y salta', () => {
+  const Boss = require('../src/Boss');
+  const room = new Room('t');
+  const sock = () => ({ readyState: 1, send() {} });
+  room.addPlayer('c', sock(), 'C');
+  room.addPlayer('a', sock(), 'A');
+  room.addPlayer('b', sock(), 'B');
+  room.bossOn = true;
+  room.bossId = 'b';
+  Boss.prepare(room);
+  room.switchPhase('action', 'test');
+  const e = room.gameState.entities;
+  let now = Date.now();
+  Boss.ability(room, 'b', 0, now);
+  assert.strictEqual(e.b.size, 1.6);
+  Boss.ability(room, 'b', 0, now);
+  assert.strictEqual(e.b.size, 1.6);
+  e.b.x = 10; e.b.z = 10;
+  Boss.ability(room, 'b', 1, now);
+  assert.ok(e.b.tpMark);
+  e.b.x = 40; e.b.z = 40;
+  now += 1000;
+  Boss.ability(room, 'b', 1, now);
+  assert.ok(e.b.tpAt);
+  e.a.x = 10; e.a.z = 10;
+  Boss.tick(room, now + 2000, 0.05);
+  assert.strictEqual(e.b.x, 10);
+  assert.ok(e.a.fatiga > 0);
+});

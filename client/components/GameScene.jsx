@@ -406,9 +406,9 @@ const EMOTE_POSES = {
   },
 };
 
-function BossCube() {
+function BossCube({ size = 1 }) {
   return (
-    <group>
+    <group scale={size}>
       <mesh position={[0, 2.5, 0]} castShadow>
         <boxGeometry args={[5, 5, 5]} />
         <meshStandardMaterial color="#2b2433" roughness={0.6} />
@@ -2577,7 +2577,7 @@ export default function GameScene({
               sendAction('cure_action', { targetPlayerId: playerId });
             }}
           >
-            {entityState.boss ? <BossCube /> : <PlayerCapsule
+            {entityState.boss ? <BossCube size={entityState.size || 1} /> : <PlayerCapsule
               playerId={playerId}
               entityState={entityState}
               color={color}
