@@ -287,6 +287,9 @@ export default function LobbyPage() {
   const [mapId, setMapId] = useState('default');
   const [mapSeedWanted, setMapSeedWanted] = useState(null);
   const [mode, setMode] = useState('normal');
+  const [bossOn, setBossOn] = useState(false);
+  const [bossId, setBossId] = useState(null);
+  const [bossHud, setBossHud] = useState(null);
   const [secondCuratorId, setSecondCuratorId] = useState(null);
   const [modeVoteOpen, setModeVoteOpen] = useState(false);
   const [gravityFactor, setGravityFactor] = useState(1);
@@ -363,6 +366,8 @@ export default function LobbyPage() {
             setMapId(payload.mapId || 'default');
             setMapSeedWanted(payload.mapSeedWanted ?? null);
             setMode(payload.mode || 'normal');
+            setBossOn(Boolean(payload.bossOn));
+            setBossId(payload.bossId || null);
             setSecondCuratorId(payload.secondCuratorRandom ? 'random' : payload.secondCuratorId || null);
             setModeVoteOpen(Boolean(payload.modeVoteOpen));
             setMutation(payload.mutation || 'none');
@@ -384,6 +389,8 @@ export default function LobbyPage() {
             if (payload.mapId !== undefined) setMapId(payload.mapId);
             if (payload.mapSeedWanted !== undefined) setMapSeedWanted(payload.mapSeedWanted);
             if (payload.mode !== undefined) setMode(payload.mode);
+            if (payload.bossOn !== undefined) setBossOn(Boolean(payload.bossOn));
+            if (payload.bossId !== undefined) setBossId(payload.bossId || null);
             if (payload.secondCuratorId !== undefined || payload.secondCuratorRandom !== undefined) setSecondCuratorId(payload.secondCuratorRandom ? 'random' : payload.secondCuratorId || null);
             if (payload.modeVoteOpen !== undefined) setModeVoteOpen(Boolean(payload.modeVoteOpen));
             if (payload.mutation !== undefined) setMutation(payload.mutation);
@@ -433,6 +440,9 @@ export default function LobbyPage() {
             {
               const me = (payload.entities || {})[myPlayerIdRef.current];
               myPosRef.current = me ? { x: me.x, y: me.y || 0, z: me.z } : null;
+              const bossEnt = Object.values(payload.entities || {}).find((en) => en.boss);
+              const hud = bossEnt ? { fat: me?.fat || 0, debt: me?.debt || 0, down: Boolean(me?.down), isBoss: Boolean(me?.boss), sp: bossEnt.sp ?? 0, tem: me?.tem || 0 } : null;
+              setBossHud((prev) => (sameValue(prev, hud) ? prev : hud));
             }
             entitiesRef.current = payload.entities || {};
             trackSteps(payload.entities, myPlayerIdRef.current);
@@ -760,6 +770,10 @@ export default function LobbyPage() {
 
   function handleSelectCharacter(characterId) {
     connRef.current?.send('select_character', { characterId });
+  }
+
+  function handleSetBoss(on, id) {
+    connRef.current?.send('set_boss', { on, bossId: id });
   }
 
   function handleSetMode(newMode, secondId) {
@@ -1293,6 +1307,23 @@ export default function LobbyPage() {
               ) : (
                 <p style={styles.mapReadOnly}>{MODE_LIST.find((m) => m.id === mode)?.name || ''}</p>
               )}
+              <p style={{ ...styles.characterPickerLabel, marginTop: 8 }}>Boss</p>
+              {isHost && !isDefaultRoom ? (
+                <>
+                  <select style={styles.mapSelect} value={bossOn ? 'on' : 'off'} onChange={(e) => handleSetBoss(e.target.value === 'on', bossId)}>
+                    <option value="off">Sin Boss</option>
+                    <option value="on">Jeffrey</option>
+                  </select>
+                  {bossOn && (
+                    <select style={{ ...styles.mapSelect, marginTop: 6 }} value={bossId || 'random'} onChange={(e) => handleSetBoss(true, e.target.value)}>
+                      <option value="random">Boss: al azar</option>
+                      {players.filter((pl) => !pl.isAsymRole).map((pl) => <option key={pl.id} value={pl.id}>Boss: {pl.name}</option>)}
+                    </select>
+                  )}
+                </>
+              ) : (
+                <p style={styles.mapReadOnly}>{bossOn ? 'Jeffrey' : 'Sin Boss'}</p>
+              )}
               <Link href="/editor" style={styles.editorLink}>Crear mapa nuevo →</Link>
             </div>
           )}
@@ -1431,6 +1462,24 @@ export default function LobbyPage() {
           </div>
         )}
         {phase === 'action' && matchSeed != null && <div style={{ position: 'absolute', left: 8, bottom: 8, fontSize: 11, color: '#a8959a', pointerEvents: 'none', userSelect: 'text' }}>Semilla: {matchSeed}</div>}
+        {phase === 'action' && bossHud && (
+          <div style={{ position: 'fixed', top: 56, left: '50%', transform: 'translateX(-50%)', width: 'min(320px, 70vw)', zIndex: 20, pointerEvents: 'none', color: '#fff', fontSize: 12 }}>
+            {bossHud.isBoss ? (
+              <div>
+                <div>Cordura {bossHud.sp}</div>
+                <div style={{ height: 8, background: '#2a2a33', borderRadius: 4 }}><div style={{ height: 8, width: `${bossHud.sp}%`, background: '#9aa8ff', borderRadius: 4 }} /></div>
+              </div>
+            ) : (
+              <div>
+                <div>{bossHud.down ? 'Caído' : `Fatiga ${Math.round(bossHud.fat)}%`}{bossHud.debt > 0 ? `  −i ${bossHud.debt}` : ''}</div>
+                <div style={{ height: 8, background: '#2a2a33', borderRadius: 4, position: 'relative' }}>
+                  <div style={{ height: 8, width: `${bossHud.fat}%`, background: '#d9534f', borderRadius: 4 }} />
+                  <div style={{ position: 'absolute', top: 0, left: 0, height: 8, width: `${Math.min(100, bossHud.debt)}%`, background: 'rgba(150,80,220,0.7)', borderRadius: 4 }} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} onPress={() => pressMinigameRef.current()} onDir={(d) => pressDirRef.current(d)} />}
         {phase === 'action' && <EventLayer events={mapEvents} posRef={myPosRef} />}
         {phase === 'action' && lmsUntil > 0 && lmsInfo && (

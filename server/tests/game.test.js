@@ -1608,3 +1608,36 @@ test('emotes: bloquean habilidades, ralentizan 8%, se cancelan con aturdimiento 
   p.a.status = 'eliminated';
   assert.ok(!room.startEmote('a', e.a, 'ya_pues', now));
 });
+
+test('boss: rol aparte, 27 min, stats, Fatiga con deuda y fin de partida', () => {
+  const Boss = require('../src/Boss');
+  const room = new Room('t');
+  const sock = () => ({ readyState: 1, send() {} });
+  room.addPlayer('c', sock(), 'C');
+  room.addPlayer('a', sock(), 'A');
+  room.addPlayer('b', sock(), 'B');
+  room.bossOn = true;
+  room.bossId = 'b';
+  Boss.prepare(room);
+  assert.ok(room.players.get('b').isBoss && room.bossActive);
+  room.switchPhase('action', 'test');
+  const gs = room.gameState;
+  const e = gs.entities;
+  assert.strictEqual(gs.timeRemainingMs, Boss.BOSS_DURATION_MS);
+  assert.ok(!gs.patients.b && gs.patients.a);
+  assert.strictEqual(e.b.sp, 100);
+  assert.strictEqual(gs.curator.max, 1500 * 8);
+  const now = Date.now();
+  Boss.addFatiga(room, 'a', 8, 8, now);
+  assert.ok(Math.abs(e.a.fatiga - 1) < 1e-9 && Math.abs(e.a.debt - 1) < 1e-9);
+  e.a.debt = 400;
+  assert.ok(Math.abs(Boss.collapse(room, 'a', now) - 70) < 1e-9);
+  assert.strictEqual(e.a.debt, 0);
+  Boss.addFatiga(room, 'a', 5000, 0, now);
+  assert.strictEqual(gs.patients.a.status, 'down');
+  room.checkGameEndConditions();
+  assert.ok(!gs.gameOver);
+  Boss.addFatiga(room, 'c', 99999, 0, now);
+  room.checkGameEndConditions();
+  assert.ok(gs.gameOver);
+});

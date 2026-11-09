@@ -406,6 +406,21 @@ const EMOTE_POSES = {
   },
 };
 
+function BossCube() {
+  return (
+    <group>
+      <mesh position={[0, 2.5, 0]} castShadow>
+        <boxGeometry args={[5, 5, 5]} />
+        <meshStandardMaterial color="#2b2433" roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 2.5, 2.52]}>
+        <planeGeometry args={[4, 3.2]} />
+        <meshBasicMaterial color="#9aa8ff" />
+      </mesh>
+    </group>
+  );
+}
+
 function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned, ragdoll, ghost, ghostOpacity = 0.65, cosmetics }) {
   const bodyRef = useRef();
   const lastPos = useRef([entityState.x, entityState.z]);
@@ -2562,7 +2577,7 @@ export default function GameScene({
               sendAction('cure_action', { targetPlayerId: playerId });
             }}
           >
-            <PlayerCapsule
+            {entityState.boss ? <BossCube /> : <PlayerCapsule
               playerId={playerId}
               entityState={entityState}
               color={color}
@@ -2571,7 +2586,7 @@ export default function GameScene({
               stunned={(stunnedIds || []).includes(playerId)}
               ragdoll={(ragdollIds || []).includes(playerId)}
               cosmetics={player.cosmetics}
-            />
+            />}
           </group>
         );
       })}

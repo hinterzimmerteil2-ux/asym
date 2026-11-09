@@ -166,6 +166,8 @@ wss.on('connection', (ws) => {
           secondCuratorId: room.secondCuratorId,
           secondCuratorRandom: Boolean(room.secondCuratorRandom),
           modeVoteOpen: room.modeVoteOpen(),
+          bossOn: room.bossOn,
+          bossId: room.bossId,
           mutations: Object.entries(Constants.MUTATIONS).map(([id, m]) => ({ id, name: m.name })),
           maps: GameMap.listMaps(),
           lobbyPlatforms: GameMap.LOBBY_PLATFORMS,
@@ -207,6 +209,13 @@ wss.on('connection', (ws) => {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
         room.setMode(playerId, msg.payload.mode, msg.payload.secondId);
+        break;
+      }
+
+      case MessageType.SET_BOSS: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.setBoss(playerId, msg.payload.on, msg.payload.bossId);
         break;
       }
 

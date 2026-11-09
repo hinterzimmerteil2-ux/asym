@@ -194,6 +194,7 @@ const SD_VARIANTS = {
 const SD_EASY = ['pulso', 'termometro', 'pelota'];
 const SD_NORMAL = ['rhythm', 'needle', 'mash', 'meter', 'ampolla', 'xilofono', 'tambores', 'boton', 'manometro', 'turbina'];
 const HEART_RANGE = 32;
+const Boss = require('./Boss');
 const MODES = ['normal', 'dual', 'shared', 'infection', 'lights', 'gravity'];
 const MODULE_RELOCATE_MS = 2000;
 const LOCK_DAMAGE = 20;
@@ -214,6 +215,9 @@ class Room {
     this.tickCount = 0;
     this.mutation = 'none';
     this.mode = 'normal';
+    this.bossOn = false;
+    this.bossId = null;
+    this.bossActive = false;
     this.secondCuratorId = null;
     this.matchCount = 0;
     this.sharedHp = null;
@@ -427,6 +431,21 @@ class Room {
     }
   }
 
+  botBoss(botId, player, now) {
+    const entity = this.gameState.entities[botId];
+    if (!entity || entity.down || this.gameState.gameOver) return;
+    let best = null;
+    let bd = Infinity;
+    for (const [id, e] of Object.entries(this.gameState.entities)) {
+      if (id === botId || e.down || e.gone || e.corpse) continue;
+      const d = Math.hypot(e.x - entity.x, e.z - entity.z);
+      if (d < bd) { bd = d; best = e; }
+    }
+    if (!best) { entity.input.moveX = 0; entity.input.moveZ = 0; return; }
+    this.botSteer(player, entity, { x: best.x, z: best.z }, now, 0.15);
+    if (bd < 4.5 * (entity.size || 1)) Boss.strike(this, botId, now);
+  }
+
   botThink(now) {
     if (now - (this.lastBotThink || 0) < 100) return;
     this.lastBotThink = now;
@@ -438,6 +457,10 @@ class Room {
     this.pathBudget = 1;
     for (const [botId, player] of this.players) {
       if (!player.isBot) continue;
+      if (player.isBoss) {
+        this.botBoss(botId, player, now);
+        continue;
+      }
       if (player.isAsymRole) {
         this.botCurator(botId, player, now);
         continue;
@@ -775,6 +798,13 @@ class Room {
     this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, votes: this.votes, modeVoteOpen: this.modeVoteOpen() });
   }
 
+  setBoss(requesterId, on, bossId) {
+    if (this.phase !== 'lobby' || requesterId !== this.hostId || this.isDefault) return;
+    this.bossOn = Boolean(on);
+    this.bossId = bossId && bossId !== 'random' && this.players.has(bossId) ? bossId : null;
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, bossOn: this.bossOn, bossId: this.bossId });
+  }
+
   modeVoteOpen() {
     return (this.matchCount + 1) % 4 === 0;
   }
@@ -1060,7 +1090,7 @@ class Room {
 
     const patientIds = [];
     for (const [playerId, player] of this.players) {
-      if (!player.isAsymRole) patientIds.push(playerId);
+      if (!player.isAsymRole && !player.isBoss) patientIds.push(playerId);
     }
     const patientSpawns = GameMap.getPatientSpawnPositions(patientIds.length, GameMap.areaFor(this.mapId), this.mapId);
     const curatorSpawn = GameMap.getCuratorSpawn(this.mapId);
@@ -1070,7 +1100,10 @@ class Room {
       const entity = this.gameState.entities[playerId];
       if (!entity) continue;
 
-      if (player.isAsymRole) {
+      if (player.isBoss) {
+        entity.x = curatorSpawn.x;
+        entity.z = curatorSpawn.z + 6;
+      } else if (player.isAsymRole) {
         entity.x = curatorSpawn.x;
         entity.z = curatorSpawn.z;
       } else {
@@ -1119,10 +1152,10 @@ class Room {
       entity.corpse = false;
       entity.gone = false;
       this.gameState.ghosts = {};
-      entity.hand = player.isAsymRole ? [] : Cards.dealSlots(GameMap.getCustomCards(this.mapId));
+      entity.hand = player.isAsymRole || player.isBoss ? [] : Cards.dealSlots(GameMap.getCustomCards(this.mapId));
       entity.role = null;
       entity.rerolls = Cards.REROLLS;
-      entity.draftEndsAt = player.isAsymRole ? 0 : Date.now() + Cards.DRAFT_DURATION_MS;
+      entity.draftEndsAt = player.isAsymRole || player.isBoss ? 0 : Date.now() + Cards.DRAFT_DURATION_MS;
     }
 
     this.gameState.patientsInitialCount = patientIds.length;
@@ -1138,6 +1171,8 @@ class Room {
       this.gameState.zones.push({ id: `sr_${sr.id}`, kind: 'serum', x: sr.x, z: sr.z, y: sr.y, radius: SERUM_RADIUS, ownerId: null, until: Infinity, activeUntil: Date.now() + SERUM_ACTIVE_MS, armedAt: undefined });
     }
     this.gameState.curator = { hp: CURATOR_HP_START, max: CURATOR_HP_MAX };
+    this.gameState.curatorDown = false;
+    Boss.setup(this);
     this.gameState.selfDamageObjectPositions = {};
     this.gameState.selfDamageTypes = {};
     const selfDamagePositions = this.selfDamageCandidates();
@@ -1389,6 +1424,7 @@ class Room {
     if (this.isDefault) this.applyVotes();
     this.matchCount += 1;
     this.applyMode();
+    Boss.prepare(this);
     this.prepareMap();
     this.switchPhase('action', 'inicio de partida');
     this.startAt = null;
@@ -1452,6 +1488,7 @@ class Room {
       this.botThink(now);
       this.autoPickExpiredDrafts(now);
       this.tickZones(now, dt);
+      Boss.tick(this, now, dt);
       this.tickAstral(now, dt);
       this.tickEating(now);
       this.tickCarry();
@@ -1468,6 +1505,12 @@ class Room {
         gone: Boolean(entity.gone),
         invis: this.isInvisible(entity, now),
         carry: entity.carry || undefined,
+        boss: this.players.get(entityPlayerId)?.isBoss || undefined,
+        fat: entity.fatiga ? Math.round(entity.fatiga * 10) / 10 : undefined,
+        debt: entity.debt ? Math.round(entity.debt * 10) / 10 : undefined,
+        down: entity.down || undefined,
+        sp: entity.sp !== undefined ? Math.round(entity.sp) : undefined,
+        tem: entity.temblor ? Math.round(entity.temblor) : undefined,
         emote: entity.emote && Status.active(entity, 'emote', now) ? { id: entity.emote.id } : undefined,
         hold: entity.astral ? (entity.astral.state === 'charging' ? 'claw' : 'claw_ready') : entity.eating ? `eat_${entity.eating.cardId}` : entity.channel && entity.channel.endsAt > now ? 'horn' : entity.carry ? 'module' : undefined,
         rag: entity.rag ? { p: RagdollBody.serialize(entity.rag, entity) } : null,
@@ -1707,7 +1750,7 @@ class Room {
       } else if (wantsSlow) {
         speedMultiplier = FLOJERA_SLOW_MULTIPLIER;
       }
-      speedMultiplier *= Status.speedFactor(entity, now);
+      speedMultiplier *= Status.speedFactor(entity, now) * Boss.speedFactor(this, this.players.get(entityPlayerId));
       if (!this.players.get(entityPlayerId)?.isAsymRole) speedMultiplier *= MUTATIONS[this.mutation].speed;
       else speedMultiplier *= this.players.get(entityPlayerId)?.curatorSpeed || 1;
       if (entity.channel || entity.selfDmg) speedMultiplier *= CHANNEL_SLOW;
@@ -3164,6 +3207,10 @@ class Room {
   applyCure(curadorId) {
     if (this.gameState.gameOver) return;
     const curador = this.players.get(curadorId);
+    if (curador && curador.isBoss) {
+      if (this.phase === 'action') Boss.strike(this, curadorId, Date.now());
+      return;
+    }
     if (!curador || !curador.isAsymRole) {
       this.sendTo(curadorId, MessageType.ERROR, { message: 'Solo el Curador puede curar' });
       return;
@@ -3480,7 +3527,7 @@ class Room {
 
   checkLastStanding() {
     const gs = this.gameState;
-    if (gs.lastStanding || this.tutorial) return;
+    if (gs.lastStanding || this.tutorial || this.bossActive) return;
     const alive = Object.entries(gs.patients).filter(([, p]) => p.status === 'alive');
     if (alive.length !== 1) return;
     const survivorId = alive[0][0];
@@ -3515,6 +3562,12 @@ class Room {
 
   checkGameEndConditions() {
     if (this.gameState.gameOver) return;
+    if (this.bossActive) {
+      const res = Boss.checkEnd(this);
+      if (res === 'boss_won') this.endGame('boss_won', true);
+      else if (res) this.endGame(res);
+      return;
+    }
     const allResolved = Object.values(this.gameState.patients).every((p) => p.status !== 'alive');
     if (allResolved) this.endGame('all_resolved');
   }
@@ -3599,7 +3652,7 @@ class Room {
     if (newPhase === 'action') {
       this.initGameState();
       for (const [playerId, player] of this.players) {
-        if (player.isAsymRole) continue;
+        if (player.isAsymRole || player.isBoss) continue;
         const entity = this.gameState.entities[playerId];
         if (!entity) continue;
         this.sendCardOffer(playerId, entity);
