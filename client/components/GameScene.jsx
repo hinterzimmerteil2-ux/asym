@@ -432,33 +432,33 @@ function armPose(P, side, fwd, up) {
 function applyJeffreyPose(P, S, time) {
   const mv = S.mv;
   const cr = S.cr;
-  rot(P.spine1, 0, 0, Math.sin(time * 1.4) * 0.02);
-  rot(P.rT, 0, 0, 0.5);
-  rot(P.lT, 0, 0, 0.5);
-  rot(P.rC, 0, 0, -1.0);
-  rot(P.lC, 0, 0, -1.0);
+  rot(P.spine1, 0, 0, Math.sin(time * 1.4) * 0.008);
+  rot(P.rT, 0, 0, 0.35);
+  rot(P.lT, 0, 0, 0.35);
+  rot(P.rC, 0, 0, -0.7);
+  rot(P.lC, 0, 0, -0.7);
   rot(P.head, 0, 0, -0.5);
   armPose(P, 'R', 0.45, 0.05);
   armPose(P, 'L', 0.45, 0.05);
-  const sway = 0.04 + 0.07 * mv;
+  const sway = 0.015 + 0.025 * mv;
   P.tents.forEach((b, i) => rot(b, 0, Math.sin(time * 1.3 + i * 0.7) * sway, Math.sin(time * 1.1 + i * 0.5) * sway));
   if (mv > 0.05) {
     const ph = time * (5 + 3 * S.spd);
     const sw = Math.sin(ph);
-    rot(P.rT, 0, 0, 0.5 * mv * sw);
-    rot(P.lT, 0, 0, -0.5 * mv * sw);
-    rot(P.rC, 0, 0, -0.7 * mv * Math.max(0, Math.cos(ph)));
-    rot(P.lC, 0, 0, -0.7 * mv * Math.max(0, -Math.cos(ph)));
-    rot(P.spine1, 0, 0, 0.09 * mv);
-    armPose(P, 'R', -0.3 * mv * sw, 0.12);
-    armPose(P, 'L', 0.3 * mv * sw, 0.12);
+    rot(P.rT, 0, 0, 0.28 * mv * sw);
+    rot(P.lT, 0, 0, -0.28 * mv * sw);
+    rot(P.rC, 0, 0, -0.35 * mv * Math.max(0, Math.cos(ph)));
+    rot(P.lC, 0, 0, -0.35 * mv * Math.max(0, -Math.cos(ph)));
+    rot(P.spine1, 0, 0, 0.03 * mv);
+    armPose(P, 'R', -0.16 * mv * sw, 0.06);
+    armPose(P, 'L', 0.16 * mv * sw, 0.06);
   }
   if (cr > 0.01) {
-    rot(P.rT, 0, 0, 0.95 * cr);
-    rot(P.lT, 0, 0, 0.95 * cr);
-    rot(P.rC, 0, 0, -1.9 * cr);
-    rot(P.lC, 0, 0, -1.9 * cr);
-    rot(P.spine1, 0, 0, 0.3 * cr);
+    rot(P.rT, 0, 0, 0.55 * cr);
+    rot(P.lT, 0, 0, 0.55 * cr);
+    rot(P.rC, 0, 0, -1.1 * cr);
+    rot(P.lC, 0, 0, -1.1 * cr);
+    rot(P.spine1, 0, 0, 0.12 * cr);
     rot(P.head, 0, 0, -0.25 * cr);
   }
   const fx = S.fx;
@@ -595,8 +595,8 @@ function JeffreyBody({ poseRef }) {
   useFrame((state) => {
     const S = poseRef.current;
     const t = state.clock.elapsedTime;
-    const bob = S.mv > 0.05 ? Math.sin(t * (5 + 3 * S.spd) * 2) * 0.04 * S.mv : 0;
-    if (pivot.current) pivot.current.rotation.x = 0.95 + 0.2 * S.cr + bob;
+    const bob = S.mv > 0.05 ? Math.sin(t * (5 + 3 * S.spd) * 2) * 0.012 * S.mv : 0;
+    if (pivot.current) pivot.current.rotation.x = 0.95 + 0.1 * S.cr + bob;
   });
   return (
     <group ref={pivot} position={[0, JEFFREY_HIP - 1, 0]}>

@@ -1139,8 +1139,17 @@ class Room {
       if (!entity) continue;
 
       if (player.isBoss) {
-        entity.x = curatorSpawn.x;
-        entity.z = curatorSpawn.z + 6;
+        const half = GameMap.areaFor(this.mapId).halfSize * 0.8;
+        let cx = 0;
+        let cz = 0;
+        for (const sp of patientSpawns) { cx += sp.x; cz += sp.z; }
+        const n = Math.max(1, patientSpawns.length);
+        cx = cx / n - curatorSpawn.x;
+        cz = cz / n - curatorSpawn.z;
+        let len = Math.hypot(cx, cz);
+        if (len < 4) { cx = 0; cz = -1; len = 1; }
+        entity.x = Math.max(-half, Math.min(half, curatorSpawn.x - (cx / len) * half));
+        entity.z = Math.max(-half, Math.min(half, curatorSpawn.z - (cz / len) * half));
       } else if (player.isAsymRole) {
         entity.x = curatorSpawn.x;
         entity.z = curatorSpawn.z;

@@ -32,7 +32,7 @@ const SP_MISS = 0.8;
 const SIZES = [0.18, 0.4, 0.7, 1, 2, 3.5];
 const SIZE_MIN = SIZES[0];
 const SIZE_MAX = SIZES[SIZES.length - 1];
-const NOCLIP_SIZE = 1;
+const NOCLIP_SIZE = 0.7;
 const PLAYER_HALF = 0.36;
 const PLAYER_H = 1.8;
 const SIZE_CD_BASE = 6000;
@@ -547,7 +547,7 @@ function players_near(room, boss) {
 }
 
 function smash(room, entity) {
-  if ((entity.size || 1) < 0.7) return;
+  if ((entity.size || 1) < 0.5) return;
   const gs = room.gameState;
   const GameMap = require('./GameMap');
   const R = reachOf(entity.size) * 0.85 + (entity.bossHalf || 0);
