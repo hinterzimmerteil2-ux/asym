@@ -1,5 +1,6 @@
 'use client';
 
+import BossHud, { BossOverlay } from '../components/BossHud';
 import { useEffect, useRef, useState, useCallback, useReducer } from 'react';
 import Link from 'next/link';
 import { createGameConnection } from '../lib/socket';
@@ -133,28 +134,6 @@ function fmtHp(n) {
   const [m, e] = v.toExponential(1).split('e+');
   const sup = String(e).split('').map((d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]).join('');
   return `${m}×10${sup}`;
-}
-
-const BOSS_ABILITIES = ['Megethoskinesis', 'Teletransportación', 'Selector del Vacío', 'Manos de Estática', 'Sombra Prestada', 'Cuadro Temporal Alterado', 'Retrotransmisión', 'Transmisión en Vivo', 'Pantalla Roja'];
-const VOID_MODES = ['azul', 'estática', 'censura'];
-const RED_GOOD = ['Estás haciendo un buen trabajo', 'Respira, ya casi', 'Hoy te ves muy bien', 'Tu mamá estaría orgullosa', 'Todo va a salir bien', 'Eres más fuerte que un cubo', 'Un paso más y listo'];
-const RED_BAD = ['Dejaste la estufa prendida', 'Nadie lee tus notas', 'Tu sombra camina mejor que tú', 'Ese gorro no te queda', 'El cubo cocina mejor', 'Olvidaste algo en casa', 'Hasta la TV te ignora'];
-
-function BossOverlay({ hud }) {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (!hud.red) return undefined;
-    const t = setInterval(() => setTick((v) => v + 1), 450);
-    return () => clearInterval(t);
-  }, [hud.red]);
-  const list = hud.red === 'n' ? RED_BAD : RED_GOOD;
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 15, pointerEvents: 'none', background: hud.blue ? '#1030c8' : hud.red ? 'rgba(200,10,10,0.82)' : 'radial-gradient(transparent 55%, rgba(220,20,20,0.5))', display: 'flex', flexWrap: 'wrap', alignContent: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-      {hud.red && Array.from({ length: 9 }).map((_, i) => (
-        <div key={i} style={{ color: '#fff', fontSize: 18 + ((i * 7 + tick) % 4) * 6, margin: 10, opacity: 0.85, transform: `rotate(${((i * 37 + tick * 13) % 21) - 10}deg)` }}>{list[(i + tick) % list.length]}</div>
-      ))}
-    </div>
-  );
 }
 
 export default function LobbyPage() {
@@ -465,7 +444,7 @@ export default function LobbyPage() {
               const me = (payload.entities || {})[myPlayerIdRef.current];
               myPosRef.current = me ? { x: me.x, y: me.y || 0, z: me.z } : null;
               const bossEnt = Object.values(payload.entities || {}).find((en) => en.boss);
-              const hud = bossEnt ? { bhp: bossEnt.bhp ?? 0, fat: me?.fat || 0, debt: me?.debt || 0, down: Boolean(me?.down), isBoss: Boolean(me?.boss), sp: bossEnt.sp ?? 0, tem: me?.tem || 0, bcd: me?.boss ? me.bcd : undefined, vm: me?.vm || 0, ult: bossEnt.ult ? 1 : 0, blue: Boolean(me?.blue), red: me?.red || null } : null;
+              const hud = bossEnt ? { bhp: bossEnt.bhp ?? 0, bmax: bossEnt.bmax || 30000000, fat: me?.fat || 0, debt: me?.debt || 0, down: Boolean(me?.down), isBoss: Boolean(me?.boss), sp: bossEnt.sp ?? 0, tem: me?.tem || 0, bcd: me?.boss ? me.bcd : undefined, vm: bossEnt.vm || 0, ult: bossEnt.ult ? 1 : 0, blue: Boolean(me?.blue), red: me?.red || null, cr: Boolean(bossEnt.cr), dark: Boolean(me?.dark), cen: Boolean(me?.cen), size: bossEnt.size || 1, fx: bossEnt.bfx || null } : null;
               setBossHud((prev) => (sameValue(prev, hud) ? prev : hud));
             }
             entitiesRef.current = payload.entities || {};
@@ -929,10 +908,6 @@ export default function LobbyPage() {
     // mensaje que de todos modos va a rechazar, la validación real
     // (rol, cooldown, fase) vive en Room.applyCuratorPulse.
     if (phase !== 'action') return;
-    if (skill === 'bM1') {
-      if (bossHudRef.current?.isBoss) connRef.current?.send('cure_action', {});
-      return;
-    }
     if (typeof skill === 'string' && skill.startsWith('b')) {
       if (bossHudRef.current?.isBoss) connRef.current?.send('curator_pulse_action', { skill: Number(skill.slice(1)) - 1 });
       return;
@@ -977,6 +952,7 @@ export default function LobbyPage() {
       }
       else if (specRef.current.on && (e.code === 'ArrowRight' || e.code === 'BracketRight')) setSpecIndex((i) => i + 1);
       else if (specRef.current.on && (e.code === 'ArrowLeft' || e.code === 'BracketLeft')) setSpecIndex((i) => i - 1);
+      else if (e.code === 'KeyC' && bossHudRef.current?.isBoss) { if (!e.repeat) connRef.current?.send('boss_crouch', { on: !bossHudRef.current.cr }); }
       else if (keyMatches('carry', e.code)) { if (!e.repeat && !isAsymRoleRef.current) connRef.current?.send('module_carry', {}); }
       else if (keyMatches('dropmod', e.code)) { if (!e.repeat && !isAsymRoleRef.current) connRef.current?.send('module_drop', {}); }
       else if (keyMatches('card1', e.code)) { if (!e.repeat) handleUseCard(0); }
@@ -1497,35 +1473,8 @@ export default function LobbyPage() {
           </div>
         )}
         {phase === 'action' && matchSeed != null && <div style={{ position: 'absolute', left: 8, bottom: 8, fontSize: 11, color: '#a8959a', pointerEvents: 'none', userSelect: 'text' }}>Semilla: {matchSeed}</div>}
-        {phase === 'action' && bossHud && (
-          <div style={{ position: 'fixed', top: 56, left: '50%', transform: 'translateX(-50%)', width: 'min(360px, 78vw)', zIndex: 20, pointerEvents: 'none', color: '#fff', fontSize: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Jeffrey</span><span>{Math.round(bossHud.bhp).toLocaleString('es')}</span></div>
-            <div style={{ height: 10, background: '#2a2a33', borderRadius: 5, marginBottom: 6 }}><div style={{ height: 10, width: `${Math.max(0, Math.min(100, (bossHud.bhp / 15000000) * 100))}%`, background: '#b23cff', borderRadius: 5 }} /></div>
-            {bossHud.isBoss ? (
-              <div>
-                <div>Cordura {bossHud.sp}</div>
-                <div style={{ height: 8, background: '#2a2a33', borderRadius: 4 }}><div style={{ height: 8, width: `${bossHud.sp}%`, background: '#9aa8ff', borderRadius: 4 }} /></div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '6px 0', pointerEvents: 'auto' }}>
-                  <button type="button" onClick={() => handlePulse('bM1')} style={{ fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid #a77', background: '#2a1b24', color: '#fff' }}>Q Golpe</button>
-                  <button type="button" onClick={() => handlePulse('b10')} style={{ fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid #556', background: '#1b1b24', color: '#fff' }}>0 Encoger</button>
-                  {BOSS_ABILITIES.map((n, i) => (
-                    <button key={n} type="button" onClick={() => handlePulse('b' + (i + 1))} style={{ fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid #556', background: '#1b1b24', color: '#fff', opacity: (bossHud.bcd?.[i] || 0) > 0 ? 0.45 : 1 }}>
-                      {i + 1} {i === 2 ? `Selector: ${VOID_MODES[bossHud.vm]}` : n}{(bossHud.bcd?.[i] || 0) > 0 ? ` ${Math.ceil(bossHud.bcd[i])}` : ''}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div>{bossHud.down ? 'Caído' : `Fatiga ${Math.round(bossHud.fat)}%`}</div>
-                <div style={{ height: 8, background: '#2a2a33', borderRadius: 4, marginBottom: 4 }}><div style={{ height: 8, width: `${bossHud.fat}%`, background: '#d9534f', borderRadius: 4 }} /></div>
-                <div style={{ color: '#c9a0ff' }}>Deuda −i {Math.round(bossHud.debt)}</div>
-                <div style={{ height: 8, background: '#2a2a33', borderRadius: 4 }}><div style={{ height: 8, width: `${Math.min(100, (bossHud.debt / 40) * 100)}%`, background: '#9b4dff', borderRadius: 4 }} /></div>
-              </div>
-            )}
-          </div>
-        )}
-        {phase === 'action' && bossHud && (bossHud.blue || bossHud.red || bossHud.ult > 0) && <BossOverlay hud={bossHud} />}
+        {phase === 'action' && bossHud && <BossHud hud={bossHud} onAbility={(i) => handlePulse('b' + (i + 1))} onSize={(v) => connRef.current?.send('boss_size', { size: v })} onCrouch={(on) => connRef.current?.send('boss_crouch', { on })} />}
+        {phase === 'action' && bossHud && <BossOverlay hud={bossHud} />}
         {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} onPress={() => pressMinigameRef.current()} onDir={(d) => pressDirRef.current(d)} />}
         {phase === 'action' && <EventLayer events={mapEvents} posRef={myPosRef} />}
         {phase === 'action' && lmsUntil > 0 && lmsInfo && (

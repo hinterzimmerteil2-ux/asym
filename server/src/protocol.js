@@ -24,6 +24,8 @@ const MessageType = {
   SET_MUTATION: 'set_mutation',
   SET_MODE: 'set_mode',
   SET_BOSS: 'set_boss',
+  BOSS_SIZE: 'boss_size',
+  BOSS_CROUCH: 'boss_crouch',
   MODE_EVENT: 'mode_event',
   HEARTBEAT: 'heartbeat',
   EMOTE: 'emote',

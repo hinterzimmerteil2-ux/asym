@@ -408,7 +408,8 @@ const EMOTE_POSES = {
 };
 
 const JEFFREY_URL = '/models/jeffrey/scene.gltf';
-const JEFFREY_SCALE = 4.5;
+const JEFFREY_SCALE = 9;
+const SCREEN_COLS = ['#2f58ff', '#f2f4ff', '#15151c'];
 const _eul = new Euler();
 const _q = new Quaternion();
 
@@ -427,83 +428,108 @@ function armPose(P, side, fwd, up) {
   else rot(P.lU, 0, up, fwd);
 }
 
-function applyJeffreyPose(P, fx, time, moving) {
-  const sway = moving ? 0.22 : 0.1;
+function applyJeffreyPose(P, S, time) {
+  const mv = S.mv;
+  const cr = S.cr;
+  rot(P.spine1, 0, 0, Math.sin(time * 1.4) * 0.02);
+  const sway = 0.04 + 0.07 * mv;
   P.tents.forEach((b, i) => rot(b, 0, Math.sin(time * 1.3 + i * 0.7) * sway, Math.sin(time * 1.1 + i * 0.5) * sway));
-  rot(P.spine1, 0, 0, Math.sin(time * 1.5) * 0.03);
-  if (!fx || fx.k === null) return;
+  if (mv > 0.05) {
+    const ph = time * (5 + 3 * S.spd);
+    const sw = Math.sin(ph);
+    rot(P.rT, 0, 0, 0.5 * mv * sw);
+    rot(P.lT, 0, 0, -0.5 * mv * sw);
+    rot(P.rC, 0, 0, -0.7 * mv * Math.max(0, Math.cos(ph)));
+    rot(P.lC, 0, 0, -0.7 * mv * Math.max(0, -Math.cos(ph)));
+    rot(P.spine1, 0, 0, 0.09 * mv);
+    armPose(P, 'R', -0.3 * mv * sw, 0.12);
+    armPose(P, 'L', 0.3 * mv * sw, 0.12);
+  }
+  if (cr > 0.01) {
+    rot(P.rT, 0, 0, 0.95 * cr);
+    rot(P.lT, 0, 0, 0.95 * cr);
+    rot(P.rC, 0, 0, -1.9 * cr);
+    rot(P.lC, 0, 0, -1.9 * cr);
+    rot(P.spine1, 0, 0, 0.3 * cr);
+    rot(P.head, 0, 0, -0.25 * cr);
+  }
+  const fx = S.fx;
+  if (!fx) return;
   const t = (performance.now() - fx.t0) / 1000;
   const k = fx.k;
   if (k === 'm1') {
     if (t > 0.5) return;
-    const a = t < 0.16 ? lerp(0, -1.3, t / 0.16) : t < 0.3 ? lerp(-1.3, 1.9, (t - 0.16) / 0.14) : lerp(1.9, 0, (t - 0.3) / 0.2);
-    const s = t < 0.16 ? lerp(0, 0.35, t / 0.16) : t < 0.3 ? lerp(0.35, -0.5, (t - 0.16) / 0.14) : lerp(-0.5, 0, (t - 0.3) / 0.2);
-    rot(P.rU, 0, -0.35 * Math.sign(a) * Math.min(1, Math.abs(a)), a);
-    rot(P.rF, 0, 0, a * 0.35);
-    rot(P.spine1, 0, s, 0);
-    rot(P.spine2, 0, s * 0.6, 0);
-    P.tents.forEach((b, i) => rot(b, 0, Math.sin(t * 28 + i) * 0.5 * env(t, 0.5), 0));
-  } else if (k === 0 || k === 9) {
+    const a = t < 0.14 ? lerp(0, -0.9, t / 0.14) : t < 0.28 ? lerp(-0.9, 1.45, (t - 0.14) / 0.14) : lerp(1.45, 0, (t - 0.28) / 0.22);
+    const f = t < 0.14 ? 0 : t < 0.28 ? lerp(0, 0.45, (t - 0.14) / 0.14) : lerp(0.45, 0, (t - 0.28) / 0.22);
+    armPose(P, 'R', a, 0.1);
+    rot(P.rF, 0, 0, f);
+    rot(P.spine1, 0, a * 0.12, 0);
+    rot(P.lU, 0, 0, -a * 0.25);
+  } else if (k === 0) {
     if (t > 1) return;
     const e = env(t, 1);
-    armPose(P, 'R', 0.25, 1.4 * e * (k === 0 ? 1 : 0.5));
-    armPose(P, 'L', 0.25, 1.4 * e * (k === 0 ? 1 : 0.5));
-    rot(P.head, 0, 0, -0.3 * e);
+    armPose(P, 'R', 0.2, 1.1 * e);
+    armPose(P, 'L', 0.2, 1.1 * e);
+    rot(P.head, 0, 0, -0.25 * e);
+  } else if (k === 9) {
+    if (t > 0.8) return;
+    const e = env(t, 0.8);
+    armPose(P, 'R', 0.7 * e, -0.1);
+    armPose(P, 'L', 0.7 * e, -0.1);
+    rot(P.spine1, 0, 0, 0.2 * e);
   } else if (k === 1) {
-    if (t > 1.4) return;
-    const e = env(t, 1.4);
-    armPose(P, 'R', 1.2 * e, -0.3 * e);
-    armPose(P, 'L', 1.2 * e, -0.3 * e);
-    rot(P.spine1, 0, 0, 0.5 * e);
-    rot(P.head, 0, 0, 0.4 * e);
+    if (t > 1.5) return;
+    const e = env(t, 1.5);
+    armPose(P, 'R', 1.0 * e, -0.2 * e);
+    armPose(P, 'L', 1.0 * e, -0.2 * e);
+    rot(P.head, 0, 0, 0.35 * e);
+    rot(P.spine1, 0, 0, 0.2 * e);
   } else if (k === 2) {
-    if (t > 1) return;
-    const e = env(t, 1);
-    armPose(P, 'R', 0, 1.3 * e);
-    armPose(P, 'L', 0, 1.3 * e);
-    rot(P.head, 0, 0.25 * Math.sin(t * 9) * e, -0.2 * e);
+    if (t > 1.3) return;
+    const e = env(t, 1.3);
+    armPose(P, 'R', 0.1, 0.95 * e);
+    armPose(P, 'L', 0.1, 0.95 * e);
+    rot(P.spine1, 0, 0, -0.15 * e);
+    rot(P.head, 0, 0, -0.15 * e);
   } else if (k === 3) {
     if (t > 1.3) return;
     const e = env(t, 1.3);
-    armPose(P, 'R', 1.3 * e, 0.2);
-    P.tents.forEach((b, i) => rot(b, 0, Math.sin(t * 22 + i) * 0.9 * e, Math.cos(t * 17 + i) * 0.6 * e));
+    armPose(P, 'R', 1.2 * e, 0.15);
+    rot(P.spine1, 0, 0.15 * e, 0);
   } else if (k === 4) {
     if (t > 1) return;
     const e = env(t, 1);
-    armPose(P, 'R', 1.4 * e, 0);
-    armPose(P, 'L', -0.3 * e, 0.3 * e);
-    rot(P.spine1, 0, 0.3 * e, 0);
+    armPose(P, 'R', 1.3 * e, 0);
+    armPose(P, 'L', -0.2 * e, 0.2 * e);
   } else if (k === 5) {
     if (t > 1.6) return;
     const e = env(t, 1.6);
-    armPose(P, 'R', 1.1 + Math.sin(t * 7) * 0.7, 0.6 * e);
-    armPose(P, 'L', 1.1 + Math.cos(t * 7) * 0.7, 0.6 * e);
-    rot(P.head, 0, Math.sin(t * 7) * 0.4 * e, 0);
+    armPose(P, 'R', 0.9 + Math.sin(t * 6) * 0.35, 0.5 * e);
+    armPose(P, 'L', 0.9 + Math.cos(t * 6) * 0.35, 0.5 * e);
   } else if (k === 6) {
     if (t > 1.2) return;
     const e = env(t, 1.2);
-    armPose(P, 'R', 1.5 * e, 0.2);
-    armPose(P, 'L', 1.5 * e, -0.2);
-    rot(P.spine1, 0, 0, -0.25 * e);
+    armPose(P, 'R', 1.3 * e, 0.15);
+    armPose(P, 'L', 1.3 * e, -0.15);
+    rot(P.spine1, 0, 0, -0.18 * e);
   } else if (k === 7) {
     if (t > 1) return;
     const e = env(t, 1);
-    armPose(P, 'R', 1.6 * e, 0);
-    rot(P.head, 0, 0, -0.2 * e);
-  } else if (k === 8 || k === 'ult') {
-    const e = k === 8 ? Math.min(1, t / 0.5) : 1;
-    armPose(P, 'R', 0.6, 1.5 * e);
-    armPose(P, 'L', 0.6, 1.5 * e);
-    rot(P.head, 0, 0, -0.5 * e);
-    const sh = Math.sin(t * 60) * 0.07 * e;
+    armPose(P, 'R', 1.5 * e, 0);
+    rot(P.head, 0, 0.2 * e, -0.15 * e);
+  } else if (k === 8) {
+    const e = Math.min(1, t / 0.5);
+    armPose(P, 'R', 0.5, 1.3 * e);
+    armPose(P, 'L', 0.5, 1.3 * e);
+    rot(P.head, 0, 0, -0.4 * e);
+    const sh = Math.sin(t * 55) * 0.04 * e;
     rot(P.spine1, sh, 0, sh);
-    P.tents.forEach((b, i) => rot(b, 0, Math.sin(t * 24 + i) * 0.6 * e, 0));
   } else if (k === 'ultfire') {
-    if (t > 0.8) return;
-    const e = env(t, 0.8);
-    armPose(P, 'R', 1.2 * e, 0.4);
-    armPose(P, 'L', 1.2 * e, -0.4);
-    rot(P.head, 0, 0, 0.5 * e);
+    if (t > 0.9) return;
+    const e = env(t, 0.9);
+    armPose(P, 'R', 1.1 * e, 0.6 * e);
+    armPose(P, 'L', 1.1 * e, 0.6 * e);
+    rot(P.head, 0, 0, 0.3 * e);
   }
 }
 
@@ -512,21 +538,28 @@ function JeffreyBody({ poseRef }) {
   const root = useRef();
   const { actions } = useAnimations(animations, root);
   const P = useMemo(() => {
-    const p = { tents: [] };
+    const p = { tents: [], screens: [] };
     scene.traverse((o) => {
       if ((o.isMesh || o.isSkinnedMesh) && /smoke/i.test(o.material?.name || '')) o.visible = false;
-      if (o.isMesh || o.isSkinnedMesh) o.frustumCulled = false;
+      if (o.isMesh || o.isSkinnedMesh) {
+        o.frustumCulled = false;
+        const m = o.material;
+        if (m && /^Screen/.test(m.name) && !p.screens.includes(m)) p.screens.push(m);
+      }
       if (!o.isBone) return;
       const n = o.name;
       if (/Bip01_Spine1_/.test(n)) p.spine1 = o;
-      else if (/Bip01_Spine2_/.test(n)) p.spine2 = o;
       else if (/Bip01_Head1_/.test(n)) p.head = o;
       else if (/Bip01_R_UpperArm_/.test(n)) p.rU = o;
       else if (/Bip01_R_Forearm_/.test(n)) p.rF = o;
       else if (/Bip01_L_UpperArm_/.test(n)) p.lU = o;
-      else if (/Bip01_L_Forearm_/.test(n)) p.lF = o;
+      else if (/Bip01_R_Thigh_/.test(n)) p.rT = o;
+      else if (/Bip01_L_Thigh_/.test(n)) p.lT = o;
+      else if (/Bip01_R_Calf_/.test(n)) p.rC = o;
+      else if (/Bip01_L_Calf_/.test(n)) p.lC = o;
       else if (/^[12]_Tent0[2-9]_/.test(n)) p.tents.push(o);
     });
+    p.screens.forEach((m) => { m.userData.orig = { c: m.color?.clone(), e: m.emissive?.clone(), i: m.emissiveIntensity }; });
     return p;
   }, [scene]);
   useEffect(() => {
@@ -535,47 +568,163 @@ function JeffreyBody({ poseRef }) {
     return () => { if (a) a.stop(); };
   }, [actions]);
   useFrame((state) => {
-    applyJeffreyPose(P, poseRef.current.fx, state.clock.elapsedTime, poseRef.current.moving);
+    const S = poseRef.current;
+    applyJeffreyPose(P, S, state.clock.elapsedTime);
+    P.screens.forEach((m) => {
+      const o = m.userData.orig;
+      if (S.screen) {
+        m.color?.set(S.screen);
+        m.emissive?.set(S.screen);
+        m.emissiveIntensity = S.screen === '#15151c' ? 0.1 : 1.4;
+      } else if (o) {
+        if (o.c) m.color.copy(o.c);
+        if (o.e) m.emissive.copy(o.e);
+        m.emissiveIntensity = o.i ?? 1;
+      }
+    });
   });
   return <group ref={root} scale={JEFFREY_SCALE}><primitive object={scene} /></group>;
 }
 
 function FallbackCube() {
   return (
-    <mesh position={[0, 2.5, 0]} castShadow>
-      <boxGeometry args={[5, 5, 5]} />
+    <mesh position={[0, 5, 0]} castShadow>
+      <boxGeometry args={[6, 9, 6]} />
       <meshStandardMaterial color="#2b2433" roughness={0.6} />
     </mesh>
   );
 }
 
-const VOID_COLORS = ['#2f58ff', '#cfd6ff', '#0b0b10'];
+function FlatBox({ innerRef, color }) {
+  return (
+    <group ref={innerRef} visible={false}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[1, 1]} />
+        <meshBasicMaterial color={color} transparent opacity={0.3} depthWrite={false} side={DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
 
-function BossFx({ e }) {
+function BossFx({ e, yawRef }) {
   const ringsRef = useRef([]);
-  const beamRef = useRef();
   const rings = useRef([{ on: false }, { on: false }]);
+  const beamRef = useRef();
   const beam = useRef({ on: false });
+  const boxRef = useRef();
+  const box = useRef({ on: false });
+  const stripRef = useRef();
+  const strip = useRef({ on: false });
+  const coneRef = useRef();
+  const coneMat = useRef();
+  const cone = useRef({ on: false });
+  const tentRef = useRef([]);
+  const tent = useRef({ on: false });
+  const puffRef = useRef([]);
+  const puffs = useRef({ on: false, list: [] });
   const lastT = useRef(e.bfx?.t);
-  const lastK = useRef(null);
-  useFrame(() => {
+  useFrame((state) => {
     const fx = e.bfx;
     const now = performance.now();
+    const sk = Math.max(0.6, e.size || 1);
     if (fx && fx.t !== lastT.current) {
       lastT.current = fx.t;
       const k = fx.k;
-      const spawn = (i, color, maxR, dur, x = e.x, z = e.z) => { rings.current[i] = { on: true, color, maxR, dur, t0: now, x, z }; };
-      if (k === 'm1') spawn(0, '#c8b6ff', Math.max(2.4, 3.2 * (e.size || 1) + 1.8), 0.35);
-      else if (k === 0 || k === 9) spawn(0, '#9aa8ff', 5 * (e.size || 1) + 4, 0.8);
-      else if (k === 1) spawn(0, '#0b0b10', 4 * (e.size || 1) + 3, 0.7);
-      else if (k === 2) spawn(0, VOID_COLORS[(((e.vm || 0) + 2) % 3)], 16, 0.8);
-      else if (k === 3 && fx.tx !== undefined) beam.current = { on: true, color: '#8a3cff', x: fx.tx, z: fx.tz, t0: now, dur: 0.9 };
-      else if (k === 4) spawn(0, '#14101c', 7, 0.8);
-      else if (k === 5) { spawn(0, '#4aa8ff', 25, 1.1); spawn(1, '#a8d8ff', 17, 1.4); }
-      else if (k === 6) spawn(0, '#ff9a3c', 12, 0.9);
+      const ring = (i, color, maxR, dur) => { rings.current[i] = { on: true, color, maxR, dur, t0: now, x: e.x, z: e.z }; };
+      const puff = () => {
+        puffs.current = { on: true, t0: now, x: e.x, z: e.z, list: Array.from({ length: 12 }, () => ({ a: Math.random() * Math.PI * 2, d: Math.random(), h: Math.random(), s: 0.7 + Math.random() * 0.8 })) };
+      };
+      if (k === 'm1') box.current = { on: true, t0: now, x: e.x, z: e.z, yaw: Math.atan2(fx.fx ?? 0, fx.fz ?? 1), L: fx.L || 8, w: fx.w || 4 };
+      else if (k === 0) ring(0, '#9aa8ff', 10 * (e.size || 1) + 4, 0.8);
+      else if (k === 9) ring(0, '#8a8aa8', 8 * (e.size || 1) + 3, 0.6);
+      else if (k === 1 || k === 'tparrive') puff();
+      else if (k === 2) cone.current = { on: true, t0: now, x: e.x, z: e.z, yaw: Math.atan2(fx.fx ?? 0, fx.fz ?? 1), r: fx.r || 30, m: fx.m || 0 };
+      else if (k === 3 && fx.tx !== undefined) {
+        const dx = fx.tx - e.x;
+        const dz = fx.tz - e.z;
+        strip.current = { on: true, t0: now, x: e.x, z: e.z, yaw: Math.atan2(dx, dz), len: fx.len || Math.hypot(dx, dz), w: fx.w || 4 };
+        tent.current = { on: true, t0: now, x: e.x, z: e.z, yaw: Math.atan2(dx, dz), len: fx.len || Math.hypot(dx, dz), sk };
+      } else if (k === 4 && fx.tx !== undefined) ring(0, '#14101c', 8, 0.8);
+      else if (k === 5) { ring(0, fx.back ? '#4aa8ff' : '#ffd24a', fx.r || 30, 1.1); ring(1, fx.back ? '#a8d8ff' : '#fff0b0', (fx.r || 30) * 0.65, 1.4); }
+      else if (k === 6) ring(0, '#ff9a3c', fx.r || 10, 0.9);
       else if (k === 7 && fx.tx !== undefined) beam.current = { on: true, color: '#ff3b3b', x: fx.tx, z: fx.tz, t0: now, dur: 0.8 };
-      else if (k === 'ultfire') { spawn(0, '#ff2a2a', 45, 0.7); spawn(1, '#ffffff', 30, 0.5); }
+      else if (k === 'ultfire') { ring(0, '#ff2a2a', 60, 0.8); ring(1, '#ffffff', 40, 0.5); }
     }
+    const b = box.current;
+    const bx = boxRef.current;
+    if (bx) {
+      const t = (now - b.t0) / 1000 / 0.35;
+      if (!b.on || t >= 1) { bx.visible = false; b.on = false; }
+      else {
+        bx.visible = true;
+        bx.position.set(b.x, 0.2, b.z);
+        bx.rotation.y = b.yaw;
+        bx.children[0].position.z = b.L / 2;
+        bx.children[0].scale.set(b.w, b.L, 1);
+        bx.children[0].material.opacity = 0.55 * (1 - t);
+      }
+    }
+    const sp = strip.current;
+    const sm = stripRef.current;
+    if (sm) {
+      const t = (now - sp.t0) / 1000;
+      if (!sp.on || t > 1.2) { sm.visible = false; sp.on = false; }
+      else {
+        sm.visible = true;
+        sm.position.set(sp.x, 0.2, sp.z);
+        sm.rotation.y = sp.yaw;
+        sm.children[0].position.z = sp.len / 2;
+        sm.children[0].scale.set(sp.w, sp.len, 1);
+        sm.children[0].material.opacity = t < 0.7 ? 0.2 + 0.15 * Math.sin(t * 20) : 0.6 * (1 - (t - 0.7) / 0.5);
+      }
+    }
+    const tn = tent.current;
+    if (tn.on) {
+      const t = (now - tn.t0) / 1000;
+      if (t > 1.2) tn.on = false;
+      const prog = Math.min(1, t / 0.7);
+      const retract = t > 0.9 ? 1 - (t - 0.9) / 0.3 : 1;
+      tentRef.current.forEach((m, i) => {
+        if (!m) return;
+        if (!tn.on) { m.visible = false; return; }
+        const u = (i + 1) / tentRef.current.length;
+        const along = tn.len * u * prog * retract;
+        const wave = Math.sin(u * 7 - state.clock.elapsedTime * 14) * 0.9 * tn.sk * (1 - u * 0.3);
+        m.visible = true;
+        m.position.set(tn.x + Math.sin(tn.yaw) * along + Math.cos(tn.yaw) * wave, 1.6 * tn.sk + 0.8, tn.z + Math.cos(tn.yaw) * along - Math.sin(tn.yaw) * wave);
+        m.scale.setScalar((0.6 - 0.35 * u) * tn.sk * 0.9 + 0.12);
+      });
+    } else tentRef.current.forEach((m) => { if (m) m.visible = false; });
+    const cn = cone.current;
+    const cm = coneRef.current;
+    if (cm) {
+      const t = (now - cn.t0) / 1000;
+      if (!cn.on || t > 1.5) { cm.visible = false; cn.on = false; }
+      else {
+        cm.visible = true;
+        cm.position.set(cn.x, 0.18, cn.z);
+        cm.rotation.y = cn.yaw;
+        cm.scale.setScalar(Math.max(0.5, cn.r * Math.min(1, 0.3 + t / 0.4)));
+        if (coneMat.current) {
+          coneMat.current.color.set(SCREEN_COLS[cn.m]);
+          const boost = cn.m === 2 ? 1.5 : 1;
+          coneMat.current.opacity = Math.min(0.8, boost * (t < 0.9 ? 0.18 + 0.12 * Math.sin(t * 12) : 0.5 * (1 - (t - 0.9) / 0.6)));
+        }
+      }
+    }
+    const pf = puffs.current;
+    puffRef.current.forEach((m, i) => {
+      if (!m) return;
+      const t = (now - pf.t0) / 1000;
+      if (!pf.on || t > 1.6) { m.visible = false; if (i === 0 && t > 1.6) pf.on = false; return; }
+      const p = pf.list[i];
+      const u = t / 1.6;
+      m.visible = true;
+      const r = (1.5 + 3.5 * p.d * u) * sk;
+      m.position.set(pf.x + Math.cos(p.a) * r, (0.8 + 2.2 * p.h + 3 * u) * sk, pf.z + Math.sin(p.a) * r);
+      m.scale.setScalar((1 + 2.2 * u) * p.s * sk);
+      m.material.opacity = 0.85 * (1 - u);
+    });
     rings.current.forEach((r, i) => {
       const m = ringsRef.current[i];
       if (!m) return;
@@ -589,27 +738,46 @@ function BossFx({ e }) {
       m.material.opacity = 0.85 * (1 - t);
     });
     const bm = beamRef.current;
-    const b = beam.current;
+    const bb = beam.current;
     if (bm) {
-      if (!b.on || (now - b.t0) / 1000 > b.dur) { bm.visible = false; b.on = false; }
+      if (!bb.on || (now - bb.t0) / 1000 > bb.dur) { bm.visible = false; bb.on = false; }
       else {
-        const dx = b.x - e.x;
-        const dz = b.z - e.z;
+        const dx = bb.x - e.x;
+        const dz = bb.z - e.z;
         const len = Math.hypot(dx, dz) || 1;
-        const t = (now - b.t0) / 1000 / b.dur;
+        const t = (now - bb.t0) / 1000 / bb.dur;
         bm.visible = true;
-        bm.position.set(e.x + dx / 2, 2 + 1.2 * (e.size || 1), e.z + dz / 2);
-        bm.rotation.set(Math.PI / 2, 0, 0);
+        bm.position.set(e.x + dx / 2, 2 + 2.4 * (e.size || 1), e.z + dz / 2);
         bm.rotation.order = 'YXZ';
-        bm.rotation.y = Math.atan2(dx, dz);
+        bm.rotation.set(Math.PI / 2, Math.atan2(dx, dz), 0);
         bm.scale.set(Math.max(0.05, 0.35 * (1 - t)), len, Math.max(0.05, 0.35 * (1 - t)));
-        bm.material.color.set(b.color);
+        bm.material.color.set(bb.color);
         bm.material.opacity = 0.75 * (1 - t * 0.6);
       }
     }
   });
   return (
     <>
+      <FlatBox innerRef={boxRef} color="#c8a0ff" />
+      <FlatBox innerRef={stripRef} color="#ff4a6a" />
+      <group ref={coneRef} visible={false}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0, 1, 56, 1, -Math.PI / 2 - Math.PI * 0.75, Math.PI * 1.5]} />
+          <meshBasicMaterial ref={coneMat} transparent depthWrite={false} side={DoubleSide} />
+        </mesh>
+      </group>
+      {Array.from({ length: 14 }).map((_, i) => (
+        <mesh key={`t${i}`} ref={(m) => { tentRef.current[i] = m; }} visible={false}>
+          <sphereGeometry args={[1, 10, 8]} />
+          <meshStandardMaterial color={i === 13 ? '#9b4dff' : '#120d1a'} emissive={i === 13 ? '#9b4dff' : '#000000'} />
+        </mesh>
+      ))}
+      {Array.from({ length: 12 }).map((_, i) => (
+        <mesh key={`p${i}`} ref={(m) => { puffRef.current[i] = m; }} visible={false}>
+          <sphereGeometry args={[1, 10, 8]} />
+          <meshBasicMaterial color="#07050b" transparent depthWrite={false} />
+        </mesh>
+      ))}
       {[0, 1].map((i) => (
         <mesh key={i} ref={(m) => { ringsRef.current[i] = m; }} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
           <ringGeometry args={[0.93, 1, 48]} />
@@ -627,8 +795,9 @@ function BossFx({ e }) {
 function BossCube({ e }) {
   const ref = useRef();
   const body = useRef();
-  const pose = useRef({ fx: null, moving: false });
-  const last = useRef({ x: e.x, z: e.z, yaw: 0, bt: undefined, mv: 0 });
+  const pose = useRef({ fx: null, mv: 0, cr: 0, spd: 0, screen: null });
+  const last = useRef({ x: e.x, z: e.z, yaw: 0, bt: undefined, scr: null });
+  const yawRef = useRef(0);
   const size = e.size || 1;
   useFrame((_, delta) => {
     const g = ref.current;
@@ -638,28 +807,38 @@ function BossCube({ e }) {
     g.position.x += (e.x - g.position.x) * k;
     g.position.y += ((e.y || 0) - g.position.y) * k;
     g.position.z += (e.z - g.position.z) * k;
-    g.scale.setScalar(g.scale.x + (size - g.scale.x) * Math.min(1, delta * 5));
+    g.scale.setScalar(g.scale.x + (size - g.scale.x) * Math.min(1, delta * 4));
     const L = last.current;
+    const P = pose.current;
     const dx = e.x - L.x;
     const dz = e.z - L.z;
     const sp = Math.hypot(dx, dz) / Math.max(delta, 0.001);
-    L.mv += ((sp > 0.3 ? 1 : 0) - L.mv) * Math.min(1, delta * 6);
-    pose.current.moving = L.mv > 0.5;
+    P.mv += ((sp > 0.4 ? 1 : 0) - P.mv) * Math.min(1, delta * 6);
+    P.spd = Math.min(1, sp / 8);
+    P.cr += ((e.cr ? 1 : 0) - P.cr) * Math.min(1, delta * 6);
     if (dx * dx + dz * dz > 0.0004) {
       let d = Math.atan2(dx, dz) - L.yaw;
       d = Math.atan2(Math.sin(d), Math.cos(d));
-      L.yaw += d * Math.min(1, delta * 8);
+      L.yaw += d * Math.min(1, delta * 7);
     }
     L.x = e.x; L.z = e.z;
-    if (body.current) body.current.rotation.y = L.yaw;
+    yawRef.current = L.yaw;
+    if (body.current) {
+      body.current.rotation.y = L.yaw;
+      body.current.position.y = -0.13 * JEFFREY_SCALE * P.cr;
+    }
+    const now = performance.now();
     if (e.bfx && e.bfx.t !== L.bt) {
       L.bt = e.bfx.t;
-      pose.current.fx = { k: e.bfx.k, t0: performance.now() };
+      if (e.bfx.k !== 'tparrive') P.fx = { k: e.bfx.k, t0: now };
+      if (e.bfx.k === 2) L.scr = { c: SCREEN_COLS[e.bfx.m || 0], until: now + 3200 };
+      if (e.bfx.k === 'ultfire') L.scr = { c: '#ff2a2a', until: now + 3000 };
     }
     if (e.ult) {
-      if (!pose.current.fx || (pose.current.fx.k !== 8)) pose.current.fx = { k: 8, t0: pose.current.fx && pose.current.fx.k === 8 ? pose.current.fx.t0 : performance.now() };
-    } else if (pose.current.fx && pose.current.fx.k === 8) pose.current.fx = null;
-    if (e.bfx && e.bfx.k === 'ultfire' && e.bfx.t === L.bt && (!pose.current.fx || pose.current.fx.k === 8)) pose.current.fx = { k: 'ultfire', t0: performance.now() };
+      if (!P.fx || P.fx.k !== 8) P.fx = { k: 8, t0: now };
+      L.scr = { c: '#ff2a2a', until: now + 400 };
+    } else if (P.fx && P.fx.k === 8) P.fx = null;
+    P.screen = L.scr && L.scr.until > now ? L.scr.c : null;
   });
   return (
     <>
@@ -669,14 +848,8 @@ function BossCube({ e }) {
             <JeffreyBody poseRef={pose} />
           </Suspense>
         </group>
-        {e.ult && (
-          <mesh position={[0, 2.5, 0]}>
-            <sphereGeometry args={[3.4, 16, 12]} />
-            <meshBasicMaterial color="#ff2a2a" transparent opacity={0.3} />
-          </mesh>
-        )}
       </group>
-      <BossFx e={e} />
+      <BossFx e={e} yawRef={yawRef} />
       {e.shadow && (
         <mesh position={[e.shadow.x, 1.2, e.shadow.z]}>
           <sphereGeometry args={[1.6, 16, 12]} />
@@ -2206,6 +2379,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platfo
     const sens = e => (e.pointerType === 'touch' ? 0.009 : 0.006);
     const touches = new Map();
     let pinchLast = 0;
+    let downAt = null;
     function onPointerDown(e) {
       if (e.pointerType === 'touch') {
         touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -2216,12 +2390,20 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platfo
           return;
         }
       }
+      if (e.pointerType === 'mouse' && e.button === 0) {
+        if (document.pointerLockElement === canvas) ATTACK.fn?.();
+        else downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
+      }
       if (dragging.current !== null) return;
       dragging.current = e.pointerId;
       lastPointer.current = { x: e.clientX, y: e.clientY };
     }
     function onPointerUp(e) {
       touches.delete(e.pointerId);
+      if (e.pointerType === 'mouse' && e.button === 0 && downAt && document.pointerLockElement !== canvas) {
+        if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 6 && performance.now() - downAt.t < 350) ATTACK.fn?.();
+        downAt = null;
+      }
       if (dragging.current === e.pointerId) dragging.current = null;
     }
     function onPointerMove(e) {
@@ -2299,7 +2481,8 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platfo
       camera.lookAt(hx - Math.sin(yaw.current) * ce, hy + Math.sin(elev), hz - Math.cos(yaw.current) * ce);
       return;
     }
-    const dist = shiftLock ? Math.min(distance.current, 5) : distance.current;
+    const bossK = myEntity.boss ? Math.max(1, (myEntity.size || 1) * 3) : 1;
+    const dist = (shiftLock ? Math.min(distance.current, 5) : distance.current) * bossK;
     const horizontalRadius = Math.cos(pitch.current) * dist;
     const height = Math.sin(pitch.current) * dist;
     camera.position.set(
@@ -2336,6 +2519,13 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platfo
         camera.position.set(tx + cx * f, ty + cy * f, tz + cz * f);
       }
     }
+    const tem = myEntity.tem || 0;
+    if (tem > 15) {
+      const amp = Math.min(1, tem / 100) * 0.7;
+      camera.position.x += (Math.random() - 0.5) * amp;
+      camera.position.y += (Math.random() - 0.5) * amp;
+      camera.position.z += (Math.random() - 0.5) * amp;
+    }
     camera.lookAt(smoothedTarget.current.x + rightX, smoothedTarget.current.y, smoothedTarget.current.z + rightZ);
   });
 
@@ -2343,6 +2533,8 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platfo
 }
 
 const SKILL_ACTIONS = ['skill1', 'skill2', 'skill3', 'skill4', 'melee'];
+
+const ATTACK = { fn: null };
 
 const CAMERA_LOCK = { on: false, yaw: 0, pitch: 0.5, fp: false, fpId: null };
 
@@ -2366,7 +2558,6 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       const skillIndex = SKILL_ACTIONS.findIndex((a) => matches(a, e.code));
       if (skillIndex !== -1 && !keysPressed.current.has(e.code)) {
         onPulse?.(skillIndex === 4 ? 'melee' : skillIndex);
-        if (skillIndex === 0) onPulse?.('bM1');
       }
       if (matches('slow', e.code) && !e.repeat) slowKey.current.down();
       keysPressed.current.add(e.code);
@@ -2742,6 +2933,7 @@ export default function GameScene({
   const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const areaHalfSize = phase === 'action' ? matchHalf || MATCH_HALF_SIZE : LOBBY_HALF_SIZE;
   const myEntity = ghostMode && ghosts?.[myPlayerId] ? ghosts[myPlayerId] : entities[followId || myPlayerId];
+  ATTACK.fn = phase === 'action' && !ghostMode && (playerById.get(myPlayerId)?.isAsymRole || entities[myPlayerId]?.boss) ? () => sendAction('cure_action', {}) : null;
   const pits = useMemo(() => (phase === 'action' ? (platforms || []).filter((p) => p.kind === 'pit') : []), [platforms, phase]);
 
   return (
@@ -2844,13 +3036,6 @@ export default function GameScene({
         return (
           <group
             key={playerId}
-            onClick={(e) => {
-              if (phase !== 'action' || playerId === myPlayerId) return;
-              const myPlayer = playerById.get(myPlayerId);
-              if (!myPlayer?.isAsymRole && !entities[myPlayerId]?.boss) return;
-              e.stopPropagation();
-              sendAction('cure_action', { targetPlayerId: playerId });
-            }}
           >
             {entityState.live && !entityState.boss && (
               <mesh position={[entityState.x, (entityState.y || 0) + 3.4, entityState.z]}>

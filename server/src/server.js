@@ -212,6 +212,18 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.BOSS_SIZE: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (room) room.bossSize(playerId, msg.payload.size);
+        break;
+      }
+
+      case MessageType.BOSS_CROUCH: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (room) room.bossCrouch(playerId, msg.payload.on);
+        break;
+      }
+
       case MessageType.SET_BOSS: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;

@@ -447,7 +447,7 @@ class Room {
     if (!entity.tpMark && bd < 10 && Math.random() < 0.03) Boss.ability(this, botId, 1, now);
     else if (entity.tpMark && Math.hypot(entity.tpMark.x - entity.x, entity.tpMark.z - entity.z) > 12 && Math.random() < 0.3) Boss.ability(this, botId, 1, now);
     if (bd < 14 && Math.random() < 0.03) Boss.ability(this, botId, 0, now);
-    if (entity.sp <= 25) Boss.ability(this, botId, 8, now);
+    if (entity.sp <= Boss.SP_ULT) Boss.ability(this, botId, 8, now);
     else if (Math.random() < 0.05) Boss.ability(this, botId, 2 + Math.floor(Math.random() * 6), now);
   }
 
@@ -801,6 +801,14 @@ class Room {
     if (this.votes[kind][playerId] === value) delete this.votes[kind][playerId];
     else this.votes[kind][playerId] = value;
     this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, votes: this.votes, modeVoteOpen: this.modeVoteOpen() });
+  }
+
+  bossSize(playerId, size) {
+    if (this.bossActive && this.players.get(playerId)?.isBoss) Boss.setSize(this, playerId, size, Date.now());
+  }
+
+  bossCrouch(playerId, on) {
+    if (this.bossActive && this.players.get(playerId)?.isBoss) Boss.setCrouch(this, playerId, on);
   }
 
   setBoss(requesterId, on, bossId) {
@@ -1514,10 +1522,14 @@ class Room {
         size: entity.size && entity.size !== 1 ? entity.size : undefined,
         sk: entity.strikeAt || undefined,
         bhp: entity.hp !== undefined ? entity.hp : undefined,
+        bmax: entity.hpMax || undefined,
         bfx: entity.bfx || undefined,
         shadow: entity.shadow ? { x: Math.round(entity.shadow.x * 10) / 10, z: Math.round(entity.shadow.z * 10) / 10 } : undefined,
         live: (entity.liveUntil || 0) > now || undefined,
-        blue: (entity.blueUntil || 0) > now || undefined,
+        blue: (entity.drunkUntil || 0) > now || undefined,
+        cr: entity.crouch || undefined,
+        dark: entity.tpAt ? true : undefined,
+        cen: (entity.censorUntil || 0) > now || undefined,
         red: (entity.redUntil || 0) > now ? entity.redKind : undefined,
         ult: entity.ultAt || undefined,
         vm: entity.vmode,
@@ -1830,6 +1842,7 @@ class Room {
       }
       let velX = dashing ? entity.dashVX : input.moveX * MOVE_SPEED * speedMultiplier;
       let velZ = dashing ? entity.dashVZ : input.moveZ * MOVE_SPEED * speedMultiplier;
+      if (this.bossActive && !dashing) [velX, velZ] = Boss.steer(entity, velX, velZ, now);
       if (entity.kbUntil > now) {
         velX += entity.kbX;
         velZ += entity.kbZ;
@@ -2292,7 +2305,7 @@ class Room {
           else if (win.kind === 'melee') { this.healSpears(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now); this.healBlocks(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now); }
           else if (win.kind === 'area') { this.healSpears(owner, 0, win.skill.radius || 1, true, now); this.healBlocks(owner, 0, win.skill.radius || 1, true, now); }
         }
-        if (this.bossActive && this.players.get(win.playerId)?.isAsymRole) Boss.hurt(this, owner, win, now);
+        if (this.bossActive && !this.players.get(win.playerId)?.isBoss) Boss.hurt(this, owner, win, now);
         if (win.kind === 'm1') this.hitPlanks(owner, M1_REACH, M1_RADIUS, false, now);
         else if (win.kind === 'melee') this.hitPlanks(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now);
         else if (win.kind === 'area') this.hitPlanks(owner, 0, win.skill.radius || 1, true, now);
