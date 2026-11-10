@@ -433,11 +433,11 @@ function applyJeffreyPose(P, S, time) {
   const mv = S.mv;
   const cr = S.cr;
   rot(P.spine1, 0, 0, Math.sin(time * 1.4) * 0.008);
-  rot(P.rT, 0, 0, -1.3);
-  rot(P.lT, 0, 0, -1.3);
-  rot(P.rC, 0, 0, -0.1);
-  rot(P.lC, 0, 0, -0.1);
-  rot(P.head, 0, 0, -0.85);
+  rot(P.rT, 0, 0, -1.7);
+  rot(P.lT, 0, 0, -1.7);
+  rot(P.rC, 0, 0, 0.8);
+  rot(P.lC, 0, 0, 0.8);
+  rot(P.head, 0, 0, -0.6);
   armPose(P, 'R', 1.1, 0.05);
   armPose(P, 'L', 1.1, 0.05);
   const sway = 0.015 + 0.025 * mv;
@@ -448,17 +448,17 @@ function applyJeffreyPose(P, S, time) {
     const sw = Math.sin(ph);
     rot(P.rT, 0, 0, 0.42 * mv * sw);
     rot(P.lT, 0, 0, -0.42 * mv * sw);
-    rot(P.rC, 0, 0, -0.35 * mv * Math.max(0, Math.cos(ph)));
-    rot(P.lC, 0, 0, -0.35 * mv * Math.max(0, -Math.cos(ph)));
+    rot(P.rC, 0, 0, 0.35 * mv * Math.max(0, Math.cos(ph)));
+    rot(P.lC, 0, 0, 0.35 * mv * Math.max(0, -Math.cos(ph)));
     rot(P.spine1, 0, 0, 0.03 * mv + Math.sin(ph * 2) * 0.05 * mv);
     armPose(P, 'R', -0.38 * mv * sw, 0.06);
     armPose(P, 'L', 0.38 * mv * sw, 0.06);
   }
   if (cr > 0.01) {
-    rot(P.rT, 0, 0, -0.3 * cr);
-    rot(P.lT, 0, 0, -0.3 * cr);
-    rot(P.rC, 0, 0, -0.5 * cr);
-    rot(P.lC, 0, 0, -0.5 * cr);
+    rot(P.rT, 0, 0, -0.2 * cr);
+    rot(P.lT, 0, 0, -0.2 * cr);
+    rot(P.rC, 0, 0, 0.4 * cr);
+    rot(P.lC, 0, 0, 0.4 * cr);
     rot(P.spine1, 0, 0, 0.12 * cr);
     rot(P.head, 0, 0, -0.25 * cr);
   }
@@ -601,10 +601,10 @@ function JeffreyBody({ poseRef }) {
     const S = poseRef.current;
     const t = state.clock.elapsedTime;
     const bob = S.mv > 0.05 ? Math.sin(t * (5 + 3 * S.spd) * 2) * 0.012 * S.mv : 0;
-    if (pivot.current) pivot.current.rotation.x = 1.4 + 0.1 * S.cr + bob;
+    if (pivot.current) pivot.current.rotation.x = 1.3 + 0.1 * S.cr + bob;
   });
   return (
-    <group ref={pivot} position={[0, JEFFREY_HIP + 0.5, -2]}>
+    <group ref={pivot} position={[0, JEFFREY_HIP + 0.15, -2]}>
       <group ref={root} scale={JEFFREY_SCALE} position={[0, -JEFFREY_HIP, 0]}><primitive object={scene} /></group>
     </group>
   );
@@ -2903,7 +2903,7 @@ function RampFrame({ p, color, opacity }) {
 
 function bossBox(e) {
   const s = e.size || 1;
-  return { half: Math.max(0.8, 3 * s) * (e.cr ? 0.9 : 1), h: Math.max(2.4, 5.5 * s * (e.cr ? 0.55 : 1)) };
+  return { half: e.hh ?? Math.max(0.8, 2.2 * s) * (e.cr ? 0.9 : 1), h: e.hv ?? Math.max(2.4, 5.5 * s * (e.cr ? 0.55 : 1)) };
 }
 
 function BossM1Frame({ e, opacity }) {

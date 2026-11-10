@@ -1574,6 +1574,8 @@ class Room {
         down: entity.down || undefined,
         sp: entity.sp !== undefined ? Math.round(entity.sp) : undefined,
         spe: entity.spPub,
+        hh: entity.bossHitHalf ? Math.round(entity.bossHitHalf * 100) / 100 : undefined,
+        hv: entity.bossHitH ? Math.round(entity.bossHitH * 100) / 100 : undefined,
         sg: entity.sig && entity.sig.until > Date.now() ? entity.sig.m : undefined,
         tem: entity.temblor ? Math.round(entity.temblor) : undefined,
         emote: entity.emote && Status.active(entity, 'emote', now) ? { id: entity.emote.id } : undefined,
