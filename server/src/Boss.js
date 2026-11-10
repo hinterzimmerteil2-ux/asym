@@ -535,7 +535,8 @@ function glitch(room, boss, now) {
   gs.plankBroken[p.id] = now + 2800;
   gs.plankHp = gs.plankHp || {};
   gs.plankHp[p.id] = 0;
-  room.navCache = null;
+  gs.glitchIds = gs.glitchIds || {};
+  gs.glitchIds[p.id] = now + 2800;
 }
 
 function players_near(room, boss) {
@@ -551,13 +552,18 @@ function smash(room, entity) {
   const gs = room.gameState;
   const GameMap = require('./GameMap');
   const R = reachOf(entity.size) * 0.85 + (entity.bossHalf || 0);
-  let any = false;
+  let broke = 0;
+  const near = [];
   for (const p of GameMap.resolvePlatforms(room.mapId, GameMap.areaFor(room.mapId))) {
     if (p.kind === 'pit' || p.ramp || p.slab || (p.h || 0) < 1.2) continue;
-    if ((gs.plankBroken || {})[p.id] !== undefined) continue;
+    if ((gs.plankBroken || {})[p.id] !== undefined || gs.blockBroken?.[p.id]) continue;
     const nx = Math.max(p.x - p.hx, Math.min(p.x + p.hx, entity.x));
     const nz = Math.max(p.z - p.hz, Math.min(p.z + p.hz, entity.z));
-    if (Math.hypot(nx - entity.x, nz - entity.z) > R) continue;
+    const d = Math.hypot(nx - entity.x, nz - entity.z);
+    if (d <= R) near.push([d, p]);
+  }
+  near.sort((a, c) => a[0] - c[0]);
+  for (const [, p] of near.slice(0, 8)) {
     if (p.blockMax > 0) {
       gs.blockHp[p.id] = p.blockMax;
       gs.blockBroken[p.id] = true;
@@ -567,9 +573,8 @@ function smash(room, entity) {
       gs.plankHp = gs.plankHp || {};
       gs.plankHp[p.id] = 0;
     }
-    any = true;
+    broke++;
   }
-  if (any) room.navCache = null;
 }
 
 function defeat(room, bossId, entity) {

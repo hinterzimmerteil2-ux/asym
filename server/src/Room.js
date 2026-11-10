@@ -263,7 +263,10 @@ class Room {
   }
 
   navigation(curator = false) {
-    const hidden = [...(this.gameState.hiddenPlatforms || [])].sort();
+    const glitch = this.gameState.glitchIds || {};
+    const nowMs = Date.now();
+    for (const id of Object.keys(glitch)) if (glitch[id] <= nowMs) delete glitch[id];
+    const hidden = (this.gameState.hiddenPlatforms || []).filter((id) => !glitch[id]).sort();
     const gates = this.phase === 'action' ? this.gatesState() : null;
     const key = `${this.mapId}|${hidden.join(',')}|${gates || ''}`;
     if (!this.navCache) this.navCache = new Map();
