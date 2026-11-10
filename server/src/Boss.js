@@ -135,9 +135,9 @@ function refreshExtents(entity) {
   const size = entity.size || 1;
   const cr = entity.crouch ? 1 : 0;
   entity.bossHalf = Math.max(PLAYER_HALF, 2.4 * size - 0.4) * (cr ? CROUCH_W : 1);
-  entity.bossH = Math.max(cr ? 1.2 : PLAYER_H, 6.5 * size * (cr ? CROUCH_H : 1));
-  entity.bossHitHalf = Math.max(0.8, 4.2 * size) * (cr ? CROUCH_W : 1);
-  entity.bossHitH = Math.max(2.4, 7 * size * (cr ? 0.55 : 1));
+  entity.bossH = Math.max(cr ? 1.2 : PLAYER_H, 5.5 * size * (cr ? CROUCH_H : 1));
+  entity.bossHitHalf = Math.max(0.8, 3 * size) * (cr ? CROUCH_W : 1);
+  entity.bossHitH = Math.max(2.4, 5.5 * size * (cr ? 0.55 : 1));
 }
 
 function applySize(entity, size) {

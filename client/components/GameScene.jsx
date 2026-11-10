@@ -600,7 +600,7 @@ function JeffreyBody({ poseRef }) {
     if (pivot.current) pivot.current.rotation.x = 1.4 + 0.1 * S.cr + bob;
   });
   return (
-    <group ref={pivot} position={[0, JEFFREY_HIP - 0.1, 0]}>
+    <group ref={pivot} position={[0, JEFFREY_HIP - 0.1, -2]}>
       <group ref={root} scale={JEFFREY_SCALE} position={[0, -JEFFREY_HIP, 0]}><primitive object={scene} /></group>
     </group>
   );
@@ -2899,7 +2899,7 @@ function RampFrame({ p, color, opacity }) {
 
 function bossBox(e) {
   const s = e.size || 1;
-  return { half: Math.max(0.8, 4.2 * s) * (e.cr ? 0.9 : 1), h: Math.max(2.4, 7 * s * (e.cr ? 0.55 : 1)) };
+  return { half: Math.max(0.8, 3 * s) * (e.cr ? 0.9 : 1), h: Math.max(2.4, 5.5 * s * (e.cr ? 0.55 : 1)) };
 }
 
 function BossM1Frame({ e, opacity }) {
