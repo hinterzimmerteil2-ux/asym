@@ -607,7 +607,7 @@ const PAIRS = [
 ["Megethoskinesis","Megethoskinesis"],
 ["Cambio de Canal","Channel Switch"],
 ["Selector del Vacío","Void Selector"],
-["Agarre de Antena","Antenna Grip"],
+["Agarre de Garra","Claw Grip"],
 ["Sombra Prestada","Borrowed Shadow"],
 ["Cuadro Temporal Alterado","Altered Time Frame"],
 ["Retrotransmisión","Retransmission"],

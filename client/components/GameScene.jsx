@@ -433,31 +433,31 @@ function applyJeffreyPose(P, S, time) {
   const mv = S.mv;
   const cr = S.cr;
   rot(P.spine1, 0, 0, Math.sin(time * 1.4) * 0.008);
-  rot(P.rT, 0, 0, 0.35);
-  rot(P.lT, 0, 0, 0.35);
-  rot(P.rC, 0, 0, -0.7);
-  rot(P.lC, 0, 0, -0.7);
-  rot(P.head, 0, 0, -0.5);
-  armPose(P, 'R', 0.45, 0.05);
-  armPose(P, 'L', 0.45, 0.05);
+  rot(P.rT, 0, 0, -1.3);
+  rot(P.lT, 0, 0, -1.3);
+  rot(P.rC, 0, 0, -0.1);
+  rot(P.lC, 0, 0, -0.1);
+  rot(P.head, 0, 0, -0.85);
+  armPose(P, 'R', 1.35, 0.05);
+  armPose(P, 'L', 1.35, 0.05);
   const sway = 0.015 + 0.025 * mv;
   P.tents.forEach((b, i) => rot(b, 0, Math.sin(time * 1.3 + i * 0.7) * sway, Math.sin(time * 1.1 + i * 0.5) * sway));
   if (mv > 0.05) {
     const ph = time * (5 + 3 * S.spd);
     const sw = Math.sin(ph);
-    rot(P.rT, 0, 0, 0.28 * mv * sw);
-    rot(P.lT, 0, 0, -0.28 * mv * sw);
+    rot(P.rT, 0, 0, 0.42 * mv * sw);
+    rot(P.lT, 0, 0, -0.42 * mv * sw);
     rot(P.rC, 0, 0, -0.35 * mv * Math.max(0, Math.cos(ph)));
     rot(P.lC, 0, 0, -0.35 * mv * Math.max(0, -Math.cos(ph)));
-    rot(P.spine1, 0, 0, 0.03 * mv);
-    armPose(P, 'R', -0.16 * mv * sw, 0.06);
-    armPose(P, 'L', 0.16 * mv * sw, 0.06);
+    rot(P.spine1, 0, 0, 0.03 * mv + Math.sin(ph * 2) * 0.05 * mv);
+    armPose(P, 'R', -0.38 * mv * sw, 0.06);
+    armPose(P, 'L', 0.38 * mv * sw, 0.06);
   }
   if (cr > 0.01) {
-    rot(P.rT, 0, 0, 0.55 * cr);
-    rot(P.lT, 0, 0, 0.55 * cr);
-    rot(P.rC, 0, 0, -1.1 * cr);
-    rot(P.lC, 0, 0, -1.1 * cr);
+    rot(P.rT, 0, 0, -0.3 * cr);
+    rot(P.lT, 0, 0, -0.3 * cr);
+    rot(P.rC, 0, 0, -0.5 * cr);
+    rot(P.lC, 0, 0, -0.5 * cr);
     rot(P.spine1, 0, 0, 0.12 * cr);
     rot(P.head, 0, 0, -0.25 * cr);
   }
@@ -597,10 +597,10 @@ function JeffreyBody({ poseRef }) {
     const S = poseRef.current;
     const t = state.clock.elapsedTime;
     const bob = S.mv > 0.05 ? Math.sin(t * (5 + 3 * S.spd) * 2) * 0.012 * S.mv : 0;
-    if (pivot.current) pivot.current.rotation.x = 0.95 + 0.1 * S.cr + bob;
+    if (pivot.current) pivot.current.rotation.x = 1.4 + 0.1 * S.cr + bob;
   });
   return (
-    <group ref={pivot} position={[0, JEFFREY_HIP - 1, 0]}>
+    <group ref={pivot} position={[0, JEFFREY_HIP - 0.1, 0]}>
       <group ref={root} scale={JEFFREY_SCALE} position={[0, -JEFFREY_HIP, 0]}><primitive object={scene} /></group>
     </group>
   );
@@ -820,7 +820,7 @@ function BossFx({ e, yawRef }) {
       </group>
       {Array.from({ length: 14 }).map((_, i) => (
         <mesh key={`t${i}`} ref={(m) => { tentRef.current[i] = m; }} visible={false}>
-          <sphereGeometry args={[1, 10, 8]} />
+          {i === 13 ? <octahedronGeometry args={[1.6, 0]} /> : <sphereGeometry args={[1, 10, 8]} />}
           <meshStandardMaterial color={i === 13 ? '#9b4dff' : '#120d1a'} emissive={i === 13 ? '#9b4dff' : '#000000'} />
         </mesh>
       ))}
@@ -2897,6 +2897,43 @@ function RampFrame({ p, color, opacity }) {
   );
 }
 
+function bossBox(e) {
+  const s = e.size || 1;
+  return { half: Math.max(0.8, 4.2 * s) * (e.cr ? 0.9 : 1), h: Math.max(2.4, 7 * s * (e.cr ? 0.55 : 1)) };
+}
+
+function BossM1Frame({ e, opacity }) {
+  const ref = useRef();
+  const st = useRef({ t: null, at: 0 });
+  useFrame(() => {
+    const fx = e.bfx;
+    if (fx && fx.k === 'm1' && fx.t !== st.current.t) st.current = { t: fx.t, at: performance.now(), fx };
+    const on = st.current.fx && performance.now() - st.current.at < 600;
+    if (!ref.current) return;
+    ref.current.visible = Boolean(on);
+    if (on) {
+      const f = st.current.fx;
+      const L = f.L || 8;
+      const w = f.w || 4;
+      ref.current.position.set(e.x + (f.fx ?? 0) * L / 2, (e.y || 0) + 2, e.z + (f.fz ?? 1) * L / 2);
+      ref.current.rotation.y = Math.atan2(f.fx ?? 0, f.fz ?? 1);
+      ref.current.scale.set(w, 4, L);
+    }
+  });
+  return (
+    <group ref={ref} visible={false}>
+      <lineSegments geometry={M1_EDGES}>
+        <lineBasicMaterial color="#e0555f" transparent opacity={Math.min(1, opacity + 0.2)} depthWrite={false} />
+      </lineSegments>
+      <mesh>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshBasicMaterial color="#e0555f" transparent opacity={0.16} depthWrite={false} side={DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+const M1_EDGES = new EdgesGeometry(new BoxGeometry(1, 1, 1));
+
 function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, effects, opacity, cfg }) {
   return (
     <>
@@ -2916,9 +2953,10 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
       ))}
       {Object.entries(entities || {}).filter(([, entity]) => !entity.corpse && !entity.gone).map(([id, entity]) => (
         <group key={id}>
-          <SquareFrame x={entity.x} z={entity.z} y={entity.y + cfg.height / 2} half={cfg.half} hy={cfg.height / 2} color="#e0555f" opacity={opacity} />
+          <SquareFrame x={entity.x} z={entity.z} y={entity.y + (entity.boss ? bossBox(entity).h : cfg.height) / 2} half={entity.boss ? bossBox(entity).half : cfg.half} hy={(entity.boss ? bossBox(entity).h : cfg.height) / 2} color="#e0555f" opacity={opacity} />
         </group>
       ))}
+      {Object.entries(entities || {}).filter(([, en]) => en.boss).map(([id, en]) => <BossM1Frame key={'m1' + id} e={en} opacity={opacity} />)}
       {(collisionObjects || []).map((obj) => (
         <SquareFrame key={obj.id} x={obj.x} z={obj.z} y={(obj.height || 1.2) / 2} half={obj.radius} hy={(obj.height || 1.2) / 2} color="#e0555f" opacity={opacity} />
       ))}

@@ -605,7 +605,7 @@ export const DE = [
 "Megethoskinesis",
 "Kanalwechsel",
 "Leerenwähler",
-"Antennengriff",
+"Krallengriff",
 "Geliehener Schatten",
 "Veränderter Zeitrahmen",
 "Rückübertragung",

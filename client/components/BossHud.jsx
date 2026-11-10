@@ -6,7 +6,7 @@ export const BOSS_NAMES = [
   'Megethoskinesis',
   'Cambio de Canal',
   'Selector del Vacío',
-  'Agarre de Antena',
+  'Agarre de Garra',
   'Sombra Prestada',
   'Cuadro Temporal Alterado',
   'Retrotransmisión',
