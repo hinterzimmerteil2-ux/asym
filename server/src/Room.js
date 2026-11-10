@@ -1921,6 +1921,8 @@ class Room {
       }
       const bs = Boss.collision(this.players.get(entityPlayerId), entity);
       const plats = bs.noclip ? [] : platforms;
+      const gPlats = bs.noclip ? platforms.filter((p) => p.kind === 'pit') : platforms;
+      const gS = bs.noclip ? 1 : bs.s;
       const stepUpB = bs.s > 1 ? Math.max(stepUp, bs.h * 0.25) : stepUp;
       const nextX = entity.x + velX * dt;
       const nextZ = entity.z + velZ * dt;
@@ -1953,7 +1955,7 @@ class Room {
         entity.onGround = false;
         entity.peakY = entity.y;
       }
-      let ground = groundAt(plats, entity.x, entity.z, entity.y, stepUpB, bs.s);
+      let ground = groundAt(gPlats, entity.x, entity.z, entity.y, stepUpB, gS);
       if (entity.onGround && entity.y > ground && entity.y - ground <= STEP_DOWN) entity.y = ground;
       if (entity.onGround && entity.y - ground > STEP_DOWN) {
         entity.onGround = false;
@@ -1967,7 +1969,7 @@ class Room {
         if (entity.velocityY < 0) entity.velocityY += AIR_DRAG * entity.velocityY * entity.velocityY * dt;
         entity.y += entity.velocityY * dt;
         entity.peakY = Math.max(entity.peakY || entity.y, entity.y);
-        ground = groundAt(plats, entity.x, entity.z, entity.y - entity.velocityY * dt, STEP_UP, bs.s);
+        ground = groundAt(gPlats, entity.x, entity.z, entity.y - entity.velocityY * dt, STEP_UP, gS);
         if (entity.y <= ground) {
           const fall = (entity.peakY || ground) - ground;
           entity.y = ground;
