@@ -634,13 +634,13 @@ function SpAura({ e }) {
     const low = Math.max(0, Math.min(1, -(e.sp ?? 0) / 45));
     const sz = Math.max(0.6, e.size || 1);
     ref.current.position.set(e.x, (e.y || 0) + 0.08, e.z);
-    const pulse = 1 + Math.sin(state.clock.elapsedTime * (2 + 10 * low)) * (0.03 + 0.08 * low);
+    const pulse = 1 + Math.sin(state.clock.elapsedTime * (2 + 10 * low)) * (0.02 + 0.04 * low);
     ref.current.scale.setScalar((5 + 4 * low) * sz * pulse);
     const c = mat.current.color;
-    c.setRGB(0.35 + 0.65 * low, 0.5 * (1 - low), 0.9 * (1 - low) + 0.1);
-    mat.current.opacity = 0.25 + 0.5 * low;
+    c.setRGB(0.3 + 0.5 * low, 0.22 * (1 - low), 0.45 * (1 - low) + 0.05);
+    mat.current.opacity = 0.18 + 0.35 * low;
     mat2.current.color.copy(c);
-    mat2.current.opacity = 0.08 + 0.22 * low;
+    mat2.current.opacity = 0.03 + 0.1 * low;
   });
   if (!e.boss) return null;
   return (
