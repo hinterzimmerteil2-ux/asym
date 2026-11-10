@@ -444,7 +444,7 @@ export default function LobbyPage() {
               const me = (payload.entities || {})[myPlayerIdRef.current];
               myPosRef.current = me ? { x: me.x, y: me.y || 0, z: me.z } : null;
               const bossEnt = Object.values(payload.entities || {}).find((en) => en.boss);
-              const hud = bossEnt ? { bhp: bossEnt.bhp ?? 0, bmax: bossEnt.bmax || 30000000, fat: me?.fat || 0, debt: me?.debt || 0, down: Boolean(me?.down), isBoss: Boolean(me?.boss), sp: bossEnt.sp ?? 0, tem: me?.tem || 0, bcd: me?.boss ? me.bcd : undefined, vm: bossEnt.vm || 0, ult: bossEnt.ult ? 1 : 0, blue: Boolean(me?.blue), red: me?.red || null, cr: Boolean(bossEnt.cr), dark: Boolean(me?.dark), cen: Boolean(me?.cen), size: bossEnt.size || 1, fx: bossEnt.bfx || null } : null;
+              const hud = bossEnt ? { bhp: bossEnt.bhp ?? 0, bmax: bossEnt.bmax || 30000000, fat: me?.fat || 0, debt: me?.debt || 0, down: Boolean(me?.down), isBoss: Boolean(me?.boss), sp: bossEnt.sp ?? 0, spe: bossEnt.spe || null, tem: me?.tem || 0, bcd: me?.boss ? me.bcd : undefined, vm: bossEnt.vm || 0, ult: bossEnt.ult ? 1 : 0, blue: Boolean(me?.blue), red: me?.red || null, cr: Boolean(bossEnt.cr), dark: Boolean(me?.dark), cen: Boolean(me?.cen), size: bossEnt.size || 1, fx: bossEnt.bfx || null } : null;
               setBossHud((prev) => (sameValue(prev, hud) ? prev : hud));
             }
             entitiesRef.current = payload.entities || {};

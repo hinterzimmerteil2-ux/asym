@@ -242,9 +242,16 @@ function inRadius(room, bossId, x, z, r) {
   return out;
 }
 
-function loseSp(entity, amount) {
+function loseSp(entity, amount, why) {
   if (entity.sp === undefined) return;
+  const before = entity.sp;
   entity.sp = Math.max(SP_MIN, entity.sp - amount);
+  const d = before - entity.sp;
+  if (d <= 0) return;
+  const ev = entity.spEv || (entity.spEv = { d: 0, t: 0, w: why || '' });
+  if (!ev.t) ev.t = Date.now();
+  ev.d += d;
+  if (why) ev.w = why;
 }
 
 function takeDown(room, id, entity, now) {
@@ -324,7 +331,7 @@ function ability(room, id, idx, now) {
     entity.paraUntil = entity.tpAt + 200;
     entity.bossCd[1] = now + TP_CD_MS;
     entity.lastAbilityAt = now;
-    loseSp(entity, 2);
+    loseSp(entity, 2, 'canal');
   } else if (idx >= 2 && idx < ABILITY_COUNT) {
     if (idx === 8 && entity.ultAt) return;
     entity.bfxT = null;
@@ -352,7 +359,10 @@ function extra(room, id, idx, now) {
     return true;
   }
   if (idx === 3) {
-    const t = nearestPlayer(room, id, boss, GRAB_RANGE);
+    let t = nearestPlayer(room, id, boss, GRAB_RANGE);
+    for (const [pid, pe] of Object.entries(room.gameState.entities)) {
+      if (pid !== id && !pe.down && !pe.gone && pe.sig && pe.sig.m === 0 && pe.sig.until > now && Math.hypot(pe.x - boss.x, pe.z - boss.z) <= GRAB_RANGE * 1.4) { t = pid; break; }
+    }
     if (!t) return false;
     const e = ents[t];
     const dist = Math.hypot(e.x - boss.x, e.z - boss.z) || 1;
@@ -372,7 +382,7 @@ function extra(room, id, idx, now) {
   if (idx === 5) {
     const ids = inRadius(room, id, boss.x, boss.z, FRAME_RADIUS);
     boss.bfxExtra = { r: FRAME_RADIUS };
-    if (!ids.length) { loseSp(boss, SP_MISS); return true; }
+    if (!ids.length) { loseSp(boss, SP_MISS, 'fallo'); return true; }
     const back = Math.random() < 0.5;
     boss.bfxExtra.back = back ? 1 : 0;
     for (const t of ids) {
@@ -406,7 +416,7 @@ function extra(room, id, idx, now) {
       addFatiga(room, t, 0, RETRO_DEBT, now);
       hit++;
     }
-    loseSp(boss, hit ? SP_HIT : SP_MISS);
+    loseSp(boss, hit ? SP_HIT : SP_MISS, hit ? 'golpe' : 'fallo');
     return true;
   }
   if (idx === 7) {
@@ -436,6 +446,7 @@ function fireScreen(room, id, boss, now) {
     const d = Math.hypot(rx, rz) || 1;
     if ((rx * fx.dx + rz * fx.dz) / d < SCREEN_ARC_COS) continue;
     hit++;
+    e.sig = { m: fx.mode, until: now + 8000 };
     if (fx.mode === 0) {
       e.drunkUntil = now + DRUNK_MS;
       e.drunkAmt = 1;
@@ -448,7 +459,7 @@ function fireScreen(room, id, boss, now) {
       e.noCureUntil = now + CENSOR_MS;
     }
   }
-  loseSp(boss, hit ? SP_HIT : SP_MISS);
+  loseSp(boss, hit ? SP_HIT : SP_MISS, hit ? 'golpe' : 'fallo');
 }
 
 function fireGrab(room, id, boss, now) {
@@ -468,7 +479,7 @@ function fireGrab(room, id, boss, now) {
     addFatiga(room, t, 6, 4, now);
     hit++;
   }
-  loseSp(boss, hit ? SP_HIT : SP_MISS);
+  loseSp(boss, hit ? SP_HIT : SP_MISS, hit ? 'golpe' : 'fallo');
 }
 
 function fireUlt(room, id, boss, now) {
@@ -502,7 +513,37 @@ function finishTeleport(room, id, entity, now) {
     hit++;
   }
   entity.bfx = { k: 'tparrive', t: now };
-  loseSp(entity, hit ? SP_HIT : SP_MISS);
+  loseSp(entity, hit ? SP_HIT : SP_MISS, hit ? 'golpe' : 'fallo');
+}
+
+function glitch(room, boss, now) {
+  const gs = room.gameState;
+  if (!players_near(room, boss)) return;
+  const GameMap = require('./GameMap');
+  const cands = GameMap.resolvePlatforms(room.mapId, GameMap.areaFor(room.mapId)).filter((p) => {
+    if (p.kind === 'pit' || p.ramp || p.slab || (p.h || 0) < 1.2 || p.blockMax > 0) return false;
+    if ((gs.plankBroken || {})[p.id] !== undefined) return false;
+    return Math.hypot(p.x - boss.x, p.z - boss.z) <= 40;
+  });
+  if (!cands.length) return;
+  const p = cands[Math.floor(Math.random() * cands.length)];
+  for (const e of Object.values(gs.entities)) {
+    if (e.boss || e.down) continue;
+    if (Math.abs(e.x - p.x) <= p.hx + 0.6 && Math.abs(e.z - p.z) <= p.hz + 0.6) return;
+  }
+  gs.plankBroken = gs.plankBroken || {};
+  gs.plankBroken[p.id] = now + 2800;
+  gs.plankHp = gs.plankHp || {};
+  gs.plankHp[p.id] = 0;
+  room.navCache = null;
+}
+
+function players_near(room, boss) {
+  for (const e of Object.values(room.gameState.entities)) {
+    if (e.boss || e.down) continue;
+    if ((e.temblor || 0) > 20) return true;
+  }
+  return false;
 }
 
 function smash(room, entity) {
@@ -570,7 +611,7 @@ function hurt(room, owner, win, now) {
   } else return;
   if (Math.hypot(px - boss.x, pz - boss.z) > radius + (boss.bossHitHalf || 1)) return;
   boss.hp = Math.max(0, boss.hp - dmg);
-  loseSp(boss, SP_HIT);
+  loseSp(boss, SP_HIT, 'golpe');
   if (boss.hp <= 0) defeat(room, bossId, boss);
 }
 
@@ -596,10 +637,11 @@ function strike(room, bossId, now) {
     const f = rx * fx + rz * fz;
     const s = Math.abs(rx * fz - rz * fx);
     if (f < -(entity.bossHalf || 0) * 0.3 || f > L || s > W / 2 + 0.4) continue;
-    addFatiga(room, id, STRIKE_FATIGA * dmg, STRIKE_DEBT * dmg, now);
+    const mk = other.sig && other.sig.m === 1 && other.sig.until > now ? 1.5 : 1;
+    addFatiga(room, id, STRIKE_FATIGA * dmg * mk, STRIKE_DEBT * dmg * mk, now);
     hit++;
   }
-  loseSp(entity, hit ? SP_HIT : SP_MISS);
+  loseSp(entity, hit ? SP_HIT : SP_MISS, hit ? 'golpe' : 'fallo');
 }
 
 function steer(entity, vx, vz, now) {
@@ -626,15 +668,23 @@ function tick(room, now, dt) {
   const [bossId, boss] = bossEntry(room);
   if (!boss) return;
   const sec = dt;
+  if (boss.spEv && boss.spEv.t && now - boss.spEv.t >= 500) {
+    boss.spPub = { d: Math.round(boss.spEv.d * 10) / 10, w: boss.spEv.w, id: (boss.spPub?.id || 0) + 1 };
+    boss.spEv = null;
+  }
   const players = Object.entries(gs.entities).filter(([id, e]) => id !== bossId && !e.down && !e.gone);
   const near = players.filter(([, e]) => Math.hypot(e.x - boss.x, e.z - boss.z) <= SWARM_RANGE + 3 * (boss.size || 1)).length;
-  if (near >= 3) loseSp(boss, 0.4 * sec);
+  if (near >= 3) loseSp(boss, 0.4 * sec, 'rodeado');
   if (now - (boss.lastAbilityAt || now) > IDLE_SP_MS) {
     boss.lastAbilityAt = now;
-    loseSp(boss, 2);
+    loseSp(boss, 2, 'inactividad');
   }
-  if (boss.tpAt) loseSp(boss, TP_SP_PER_S * sec);
+  if (boss.tpAt) loseSp(boss, TP_SP_PER_S * sec, 'canal');
   const rage = 1 + (SP_MAX - boss.sp) / -SP_MIN;
+  if (now >= (boss.glitchNext || 0)) {
+    boss.glitchNext = now + 3200 / rage + Math.random() * 1500;
+    glitch(room, boss, now);
+  }
   for (const [pid, e] of players) {
     const d = Math.hypot(e.x - boss.x, e.z - boss.z);
     const range = TEMBLOR_RANGE + 6 * (boss.size || 1);

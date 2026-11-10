@@ -90,6 +90,8 @@ function bannerName(fx, vm) {
   return BOSS_NAMES[fx.k] || null;
 }
 
+const SP_WHY = { golpe: 'golpe', fallo: 'fallo', rodeado: 'rodeado', inactividad: 'inactividad', canal: 'Cambio de Canal' };
+
 export default function BossHud({ hud, onAbility, onSize, onCrouch }) {
   useBossFont();
   const [banner, setBanner] = useState(null);
@@ -104,6 +106,20 @@ export default function BossHud({ hud, onAbility, onSize, onCrouch }) {
     const t = setTimeout(() => setBanner(null), 1900);
     return () => clearTimeout(t);
   }, [hud.fx, hud.vm]);
+
+  const [spLog, setSpLog] = useState([]);
+  const [spShake, setSpShake] = useState(0);
+  const lastSpe = useRef(0);
+  useEffect(() => {
+    const e = hud.spe;
+    if (!e || e.id === lastSpe.current) return undefined;
+    lastSpe.current = e.id;
+    setSpLog((l) => [...l.slice(-2), e]);
+    setSpShake((n) => n + 1);
+    const t1 = setTimeout(() => setSpShake(0), 120);
+    const t2 = setTimeout(() => setSpLog((l) => l.filter((x) => x.id !== e.id)), 2600);
+    return undefined;
+  }, [hud.spe]);
 
   const t = drag !== null ? drag : tFromSize(hud.size || 1);
   const sizeShown = sizeFromT(t);
@@ -128,12 +144,13 @@ export default function BossHud({ hud, onAbility, onSize, onCrouch }) {
             {hud.tem > 30 && <div style={{ marginTop: 4, color: '#ffd0f0', fontSize: 10 }}>Interferencia</div>}
           </div>
         )}
-        {hud.isBoss && (
-          <div style={{ marginTop: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Cordura</span><span>{hud.sp.toFixed(1)}</span></div>
-            <Bar value={(hud.sp + 45) / 45} color={hud.sp <= -34 ? '#ff4a4a' : '#9aa8ff'} height={8} marker={11 / 45} />
+        <div style={{ marginTop: 8, transform: spShake ? 'translateX(' + (spShake % 2 ? 3 : -3) + 'px)' : 'none', transition: 'transform 60ms' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Cordura</span><span>{hud.sp.toFixed(1)}</span></div>
+          <Bar value={(hud.sp + 45) / 45} color={hud.sp <= -34 ? '#ff4a4a' : '#9aa8ff'} height={8} marker={11 / 45} />
+          <div style={{ minHeight: 14, marginTop: 2, fontSize: 10, color: '#ffb0b0' }}>
+            {spLog.map((l) => <span key={l.id} style={{ marginRight: 8, opacity: 0.9 }}>{'−' + l.d + ' ' + (SP_WHY[l.w] || l.w)}</span>)}
           </div>
-        )}
+        </div>
       </div>
       {hud.isBoss && (
         <div style={{ position: 'fixed', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: '#fff', width: 'min(96vw, 560px)' }}>

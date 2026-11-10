@@ -195,6 +195,7 @@ const SD_EASY = ['pulso', 'termometro', 'pelota'];
 const SD_NORMAL = ['rhythm', 'needle', 'mash', 'meter', 'ampolla', 'xilofono', 'tambores', 'boton', 'manometro', 'turbina'];
 const HEART_RANGE = 32;
 const Boss = require('./Boss');
+const AIR_DRAG = 0.012;
 const MODES = ['normal', 'dual', 'shared', 'infection', 'lights', 'gravity'];
 const MODULE_RELOCATE_MS = 2000;
 const LOCK_DAMAGE = 20;
@@ -470,6 +471,8 @@ class Room {
         this.botCurator(botId, player, now);
         continue;
       }
+      if (now < (player.nextThink || 0)) continue;
+      player.nextThink = now + 160 + Math.random() * 120;
       const entity = this.gameState.entities[botId];
       const patient = this.gameState.patients[botId];
       if (!entity || !patient || patient.status !== 'alive') {
@@ -493,6 +496,28 @@ class Room {
         const ce = this.gameState.entities[otherId];
         if (ce) { curatorEntity = ce; curatorDist = euclid(entity, ce); }
       }
+      let dodged = false;
+      if (this.bossActive) {
+        for (const [otherId, other] of this.players) {
+          if (!other.isBoss) continue;
+          const be = this.gameState.entities[otherId];
+          if (!be) continue;
+          const bd = euclid(entity, be);
+          if (bd < curatorDist) { curatorEntity = be; curatorDist = bd; }
+          const fx = be.bfx;
+          if (fx && now - fx.t < 1100 && (fx.k === 2 || fx.k === 3 || fx.k === 8 || fx.k === 'm1') && bd < 40) {
+            const ax = entity.x - be.x;
+            const az = entity.z - be.z;
+            const al = Math.hypot(ax, az) || 1;
+            const side = (player.dodgeSide || (player.dodgeSide = Math.random() < 0.5 ? 1 : -1));
+            entity.input.moveX = (-az / al) * side * 0.8 + (ax / al) * 0.4;
+            entity.input.moveZ = (ax / al) * side * 0.8 + (az / al) * 0.4;
+            player.nextThink = now + 120;
+            dodged = true;
+          }
+        }
+      }
+      if (dodged) continue;
       const mind = player.mind || (player.mind = BotBrain.createMind());
       let fallen = 0;
       for (const pt of Object.values(this.gameState.patients)) if (pt.status !== 'alive') fallen++;
@@ -1539,6 +1564,8 @@ class Room {
         debt: entity.debt ? Math.round(entity.debt * 10) / 10 : undefined,
         down: entity.down || undefined,
         sp: entity.sp !== undefined ? Math.round(entity.sp) : undefined,
+        spe: entity.spPub,
+        sg: entity.sig && entity.sig.until > Date.now() ? entity.sig.m : undefined,
         tem: entity.temblor ? Math.round(entity.temblor) : undefined,
         emote: entity.emote && Status.active(entity, 'emote', now) ? { id: entity.emote.id } : undefined,
         hold: entity.astral ? (entity.astral.state === 'charging' ? 'claw' : 'claw_ready') : entity.eating ? `eat_${entity.eating.cardId}` : entity.channel && entity.channel.endsAt > now ? 'horn' : entity.carry ? 'module' : undefined,
@@ -1815,7 +1842,7 @@ class Room {
         if (sprinting || wantsSlow || !isMoving) {
           entity.runStreak = Math.max(0, (entity.runStreak || 0) - dt * 1.5);
           if (!sprinting && !invisible && entity.regenBlockedUntil <= now) {
-            entity.flojera = Math.min(entity.flojeraMax, entity.flojera + FLOJERA_REGEN_PER_SEC * (entity.respiro ? REST_REGEN_FACTOR : 1) * dt);
+            entity.flojera = Math.min(entity.flojeraMax, entity.flojera + FLOJERA_REGEN_PER_SEC * (entity.respiro ? REST_REGEN_FACTOR : 1) * (entity.sp < 0 ? 1 + 2 * (-entity.sp / 45) : 1) * dt);
           }
         } else if (entity.noDrainUntil <= now) {
           const before = entity.flojera;
@@ -1923,6 +1950,7 @@ class Room {
         entity.y = Math.max(entity.y, ground);
       } else {
         entity.velocityY += GRAVITY * (this.phase === 'lobby' ? LOBBY_GRAVITY_FACTOR : MUTATIONS[this.mutation].gravity * this.modeGravityFactor(Date.now())) * dt;
+        if (entity.velocityY < 0) entity.velocityY += AIR_DRAG * entity.velocityY * entity.velocityY * dt;
         entity.y += entity.velocityY * dt;
         entity.peakY = Math.max(entity.peakY || entity.y, entity.y);
         ground = groundAt(plats, entity.x, entity.z, entity.y - entity.velocityY * dt, STEP_UP, bs.s);
