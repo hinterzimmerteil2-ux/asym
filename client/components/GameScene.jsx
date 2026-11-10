@@ -409,6 +409,7 @@ const EMOTE_POSES = {
 
 const JEFFREY_URL = '/models/jeffrey/scene.gltf';
 const JEFFREY_SCALE = 9;
+const JEFFREY_HIP = 4.4;
 const SCREEN_COLS = ['#2f58ff', '#f2f4ff', '#15151c'];
 const _eul = new Euler();
 const _q = new Quaternion();
@@ -432,6 +433,13 @@ function applyJeffreyPose(P, S, time) {
   const mv = S.mv;
   const cr = S.cr;
   rot(P.spine1, 0, 0, Math.sin(time * 1.4) * 0.02);
+  rot(P.rT, 0, 0, 0.5);
+  rot(P.lT, 0, 0, 0.5);
+  rot(P.rC, 0, 0, -1.0);
+  rot(P.lC, 0, 0, -1.0);
+  rot(P.head, 0, 0, -0.5);
+  armPose(P, 'R', 0.45, 0.05);
+  armPose(P, 'L', 0.45, 0.05);
   const sway = 0.04 + 0.07 * mv;
   P.tents.forEach((b, i) => rot(b, 0, Math.sin(time * 1.3 + i * 0.7) * sway, Math.sin(time * 1.1 + i * 0.5) * sway));
   if (mv > 0.05) {
@@ -583,7 +591,18 @@ function JeffreyBody({ poseRef }) {
       }
     });
   });
-  return <group ref={root} scale={JEFFREY_SCALE}><primitive object={scene} /></group>;
+  const pivot = useRef();
+  useFrame((state) => {
+    const S = poseRef.current;
+    const t = state.clock.elapsedTime;
+    const bob = S.mv > 0.05 ? Math.sin(t * (5 + 3 * S.spd) * 2) * 0.04 * S.mv : 0;
+    if (pivot.current) pivot.current.rotation.x = 0.95 + 0.2 * S.cr + bob;
+  });
+  return (
+    <group ref={pivot} position={[0, JEFFREY_HIP - 1, 0]}>
+      <group ref={root} scale={JEFFREY_SCALE} position={[0, -JEFFREY_HIP, 0]}><primitive object={scene} /></group>
+    </group>
+  );
 }
 
 function FallbackCube() {
@@ -601,6 +620,38 @@ function FlatBox({ innerRef, color }) {
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[1, 1]} />
         <meshBasicMaterial color={color} transparent opacity={0.3} depthWrite={false} side={DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+function SpAura({ e }) {
+  const ref = useRef();
+  const mat = useRef();
+  const mat2 = useRef();
+  useFrame((state) => {
+    if (!ref.current) return;
+    const low = Math.max(0, Math.min(1, -(e.sp ?? 0) / 45));
+    const sz = Math.max(0.6, e.size || 1);
+    ref.current.position.set(e.x, (e.y || 0) + 0.08, e.z);
+    const pulse = 1 + Math.sin(state.clock.elapsedTime * (2 + 10 * low)) * (0.03 + 0.08 * low);
+    ref.current.scale.setScalar((5 + 4 * low) * sz * pulse);
+    const c = mat.current.color;
+    c.setRGB(0.35 + 0.65 * low, 0.5 * (1 - low), 0.9 * (1 - low) + 0.1);
+    mat.current.opacity = 0.25 + 0.5 * low;
+    mat2.current.color.copy(c);
+    mat2.current.opacity = 0.08 + 0.22 * low;
+  });
+  if (!e.boss) return null;
+  return (
+    <group ref={ref} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh>
+        <ringGeometry args={[0.92, 1, 48]} />
+        <meshBasicMaterial ref={mat} transparent depthWrite={false} />
+      </mesh>
+      <mesh>
+        <circleGeometry args={[0.92, 48]} />
+        <meshBasicMaterial ref={mat2} transparent depthWrite={false} />
       </mesh>
     </group>
   );
@@ -850,6 +901,7 @@ function BossCube({ e }) {
         </group>
       </group>
       <BossFx e={e} yawRef={yawRef} />
+      <SpAura e={e} />
       {e.shadow && (
         <mesh position={[e.shadow.x, 1.2, e.shadow.z]}>
           <sphereGeometry args={[1.6, 16, 12]} />
