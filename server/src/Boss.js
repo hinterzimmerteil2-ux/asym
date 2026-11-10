@@ -136,7 +136,7 @@ function refreshExtents(entity) {
   const cr = entity.crouch ? 1 : 0;
   entity.bossHalf = Math.max(PLAYER_HALF, 2.4 * size - 0.4) * (cr ? CROUCH_W : 1);
   entity.bossH = Math.max(cr ? 1.2 : PLAYER_H, 5.5 * size * (cr ? CROUCH_H : 1));
-  entity.bossHitHalf = Math.max(0.8, 3 * size) * (cr ? CROUCH_W : 1);
+  entity.bossHitHalf = Math.max(0.8, 2.2 * size) * (cr ? CROUCH_W : 1);
   entity.bossHitH = Math.max(2.4, 5.5 * size * (cr ? 0.55 : 1));
 }
 
@@ -579,6 +579,8 @@ function defeat(room, bossId, entity) {
   room.bossActive = false;
   room.gameState.boss = null;
   room.gameState.bossDefeated = true;
+  if (room.gameState.curatorDown) room.endGame('curator_depleted', true);
+  else room.checkGameEndConditions();
 }
 
 function hurt(room, owner, win, now) {
@@ -755,11 +757,9 @@ function cureBlocked(room, entity, now) {
 function checkEnd(room) {
   if (!room.bossActive) return null;
   const gs = room.gameState;
-  const patients = Object.values(gs.patients);
-  const anyAlive = patients.some((p) => p.status === 'alive');
-  if (anyAlive) return null;
-  if (patients.every((p) => p.status === 'down')) return gs.curatorDown ? 'boss_won' : null;
-  return 'all_resolved';
+  if (!gs.curatorDown) return null;
+  if (Object.values(gs.patients).some((p) => p.status === 'alive')) return null;
+  return 'boss_won';
 }
 
 module.exports = {

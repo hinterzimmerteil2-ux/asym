@@ -441,6 +441,7 @@ function applyJeffreyPose(P, S, time) {
   armPose(P, 'R', 1.35, 0.05);
   armPose(P, 'L', 1.35, 0.05);
   const sway = 0.015 + 0.025 * mv;
+  P.roots.forEach((r) => rot(r.b, 0, 0, 0.6 * r.s));
   P.tents.forEach((b, i) => rot(b, 0, Math.sin(time * 1.3 + i * 0.7) * sway, Math.sin(time * 1.1 + i * 0.5) * sway));
   if (mv > 0.05) {
     const ph = time * (5 + 3 * S.spd);
@@ -546,7 +547,7 @@ function JeffreyBody({ poseRef }) {
   const root = useRef();
   const { actions } = useAnimations(animations, root);
   const P = useMemo(() => {
-    const p = { tents: [], screens: [] };
+    const p = { tents: [], screens: [], roots: [] };
     scene.traverse((o) => {
       if ((o.isMesh || o.isSkinnedMesh) && /smoke/i.test(o.material?.name || '')) o.visible = false;
       if (o.isMesh || o.isSkinnedMesh) {
@@ -565,7 +566,10 @@ function JeffreyBody({ poseRef }) {
       else if (/Bip01_L_Thigh_/.test(n)) p.lT = o;
       else if (/Bip01_R_Calf_/.test(n)) p.rC = o;
       else if (/Bip01_L_Calf_/.test(n)) p.lC = o;
-      else if (/^[12]_Tent0[2-9]_/.test(n)) p.tents.push(o);
+      else if (/^[12]_Tent0[2-9]_/.test(n)) {
+        p.tents.push(o);
+        if (/^[12]_Tent02_/.test(n)) { o.scale.multiplyScalar(0.7); p.roots.push({ b: o, s: n[0] === '1' ? 1 : -1 }); }
+      }
     });
     p.bones = [p.spine1, p.head, p.rU, p.rF, p.lU, p.rT, p.lT, p.rC, p.lC, ...p.tents].filter(Boolean);
     p.bind = p.bones.map((b) => b.quaternion.clone());
@@ -600,7 +604,7 @@ function JeffreyBody({ poseRef }) {
     if (pivot.current) pivot.current.rotation.x = 1.4 + 0.1 * S.cr + bob;
   });
   return (
-    <group ref={pivot} position={[0, JEFFREY_HIP - 0.1, -2]}>
+    <group ref={pivot} position={[0, JEFFREY_HIP + 0.15, -2]}>
       <group ref={root} scale={JEFFREY_SCALE} position={[0, -JEFFREY_HIP, 0]}><primitive object={scene} /></group>
     </group>
   );

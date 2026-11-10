@@ -2478,6 +2478,16 @@ class Room {
     if (!curator || this.gameState.gameOver) return;
     if (this.gameState.lms && this.gameState.lms.gimmick === 'escudo') delta *= 0.5;
     curator.hp = Math.max(0, Math.min(curator.max, curator.hp + delta));
+    if (this.bossActive) {
+      if (curator.hp <= 0 || curator.hp >= curator.max) {
+        this.gameState.curatorDown = true;
+        const cid = [...this.players.entries()].find(([, p]) => p.isAsymRole)?.[0];
+        const ce = cid && this.gameState.entities[cid];
+        if (ce && !ce.down) { ce.down = true; ce.fatiga = 100; Status.apply(ce, 'stun', 3600000, Date.now()); }
+        this.checkGameEndConditions();
+      }
+      return;
+    }
     if (curator.hp <= 0) this.endGame('curator_depleted', true);
     else if (curator.hp >= curator.max) this.endGame('curator_overhealed', true);
   }
@@ -3645,9 +3655,7 @@ class Room {
   checkGameEndConditions() {
     if (this.gameState.gameOver) return;
     if (this.bossActive) {
-      const res = Boss.checkEnd(this);
-      if (res === 'boss_won') this.endGame('boss_won', true);
-      else if (res) this.endGame(res);
+      if (Boss.checkEnd(this)) this.endGame('boss_won', true);
       return;
     }
     const allResolved = Object.values(this.gameState.patients).every((p) => p.status !== 'alive');
