@@ -567,16 +567,17 @@ function JeffreyBody({ poseRef }) {
       else if (/Bip01_L_Calf_/.test(n)) p.lC = o;
       else if (/^[12]_Tent0[2-9]_/.test(n)) p.tents.push(o);
     });
+    p.bones = [p.spine1, p.head, p.rU, p.rF, p.lU, p.rT, p.lT, p.rC, p.lC, ...p.tents].filter(Boolean);
+    p.bind = p.bones.map((b) => b.quaternion.clone());
     p.screens.forEach((m) => { m.userData.orig = { c: m.color?.clone(), e: m.emissive?.clone(), i: m.emissiveIntensity }; });
     return p;
   }, [scene]);
   useEffect(() => {
-    const a = actions.FRIEND;
-    if (a) a.reset().play();
-    return () => { if (a) a.stop(); };
+    Object.values(actions).forEach((a) => a && a.stop());
   }, [actions]);
   useFrame((state) => {
     const S = poseRef.current;
+    P.bones.forEach((b, i) => b.quaternion.copy(P.bind[i]));
     applyJeffreyPose(P, S, state.clock.elapsedTime);
     P.screens.forEach((m) => {
       const o = m.userData.orig;
