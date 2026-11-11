@@ -1304,7 +1304,8 @@ class Room {
     }
     const prev = this.gameState.hiddenPlatforms || [];
     this.gameState.hiddenPlatforms = [...new Set(hidden)];
-    const appeared = prev.filter((id) => !this.gameState.hiddenPlatforms.includes(id));
+    const nowHidden = new Set(this.gameState.hiddenPlatforms);
+    const appeared = prev.filter((id) => !nowHidden.has(id));
     if (appeared.length) this.liftFromAppeared(appeared);
     this.gameState.eventsFired = this.gameState.eventsFired || {};
     for (const p of phases) {

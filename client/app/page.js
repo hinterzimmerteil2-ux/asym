@@ -1,7 +1,7 @@
 'use client';
 
 import BossHud, { BossOverlay } from '../components/BossHud';
-import { useEffect, useRef, useState, useCallback, useReducer } from 'react';
+import { useEffect, useRef, useState, useCallback, useReducer, useMemo } from 'react';
 import Link from 'next/link';
 import { createGameConnection } from '../lib/socket';
 import {
@@ -1044,7 +1044,11 @@ export default function LobbyPage() {
   const ghostMode = spectating && Boolean(myGhost) && specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] === myPlayerId;
   const specId = spectating && specTargets.length ? specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] : null;
   specRef.current.on = spectating;
-  const visiblePlatforms = hiddenPlatforms.length ? platforms.filter((p) => !hiddenPlatforms.includes(p.id)) : platforms;
+  const visiblePlatforms = useMemo(() => {
+    if (!hiddenPlatforms.length) return platforms;
+    const hid = new Set(hiddenPlatforms);
+    return platforms.filter((p) => !hid.has(p.id));
+  }, [platforms, hiddenPlatforms]);
   const shakeIds = mapEvents.filter((e) => e.target && e.phase === 'warn').map((e) => e.target);
   const sx = (base, extra) => (compact ? { ...base, ...extra } : base);
   const playersOpen = panelOpen ?? phase === 'lobby';
