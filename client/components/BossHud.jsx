@@ -92,6 +92,16 @@ function bannerName(fx, vm) {
 
 const SP_WHY = { golpe: 'golpe', fallo: 'fallo', rodeado: 'rodeado', inactividad: 'inactividad', canal: 'Cambio de Canal' };
 
+function Row({ label, color, value, text, h, marker }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ width: 16, textAlign: 'left', opacity: 0.75, fontSize: 10 }}>{label}</span>
+      <div style={{ flex: 1 }}><Bar value={value} color={color} height={h} marker={marker} /></div>
+      <span style={{ width: 56, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{text}</span>
+    </div>
+  );
+}
+
 export default function BossHud({ hud, onAbility, onSize, onCrouch }) {
   useBossFont();
   const [banner, setBanner] = useState(null);
@@ -134,29 +144,14 @@ export default function BossHud({ hud, onAbility, onSize, onCrouch }) {
   return (
     <>
       {holdBanner}
-      <div style={{ position: 'fixed', top: 52, left: '50%', transform: 'translateX(-50%)', width: 'min(380px, 80vw)', zIndex: 20, pointerEvents: 'none', color: '#fff', fontSize: 12 }}>
-        <div style={{ fontFamily: FONT, letterSpacing: 6, fontSize: 15, textAlign: 'center', textShadow: '0 0 10px #9b4dff' }}>JEFFREY</div>
-        <div style={{ margin: '4px 0 2px' }}><Bar value={hpFrac} color="linear-gradient(90deg,#6a2cff,#c77dff)" height={9} /></div>
-        <div style={{ textAlign: 'center', opacity: 0.8, fontSize: 11 }}>{Math.round(hud.bhp).toLocaleString('es')}</div>
-        {banner && <div style={{ textAlign: 'center', marginTop: 6, fontFamily: FONT, fontSize: 12, letterSpacing: 2, color: '#d8c8ff' }}>{banner}</div>}
-        {!hud.isBoss && (
-          <div style={{ marginTop: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>{hud.down ? 'Caído' : 'Fatiga'}</span><span>{Math.round(hud.fat)}%</span></div>
-            <Bar value={hud.fat / 100} color="#e2554f" height={9} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, color: '#c9a0ff', fontSize: 10 }}>
-              <span>−i</span>
-              <div style={{ width: 110 }}><Bar value={Math.min(1, hud.debt / 40)} color="#9b4dff" height={5} /></div>
-            </div>
-            {hud.tem > 30 && <div style={{ marginTop: 4, color: '#ffd0f0', fontSize: 10 }}>Interferencia</div>}
-          </div>
-        )}
-        <div style={{ marginTop: 8, transform: spShake ? 'translateX(' + (spShake % 2 ? 3 : -3) + 'px)' : 'none', transition: 'transform 60ms' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Cordura</span><span>{hud.sp.toFixed(1)}</span></div>
-          <Bar value={(hud.sp + 45) / 45} color={hud.sp <= -34 ? '#ff4a4a' : '#9aa8ff'} height={8} marker={11 / 45} />
-          <div style={{ minHeight: 14, marginTop: 2, fontSize: 10, color: '#ffb0b0' }}>
-            {spLog.map((l) => <span key={l.id} style={{ marginRight: 8, opacity: 0.9 }}>{'−' + l.d + ' ' + (SP_WHY[l.w] || l.w)}</span>)}
-          </div>
+      <div style={{ position: 'fixed', top: 40, right: 10, width: 'min(230px, 46vw)', zIndex: 20, pointerEvents: 'none', color: '#fff', fontSize: 11, display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <Row label="PV" color="linear-gradient(90deg,#6a2cff,#c77dff)" value={hpFrac} text={`${(hud.bhp / 1e6).toFixed(1)}/${Math.round((hud.bmax || BOSS_HP_MAX) / 1e6)}M`} h={9} />
+        {!hud.isBoss && <Row label="F" color="#e2554f" value={hud.fat / 100} text={`${Math.round(hud.fat)}/100`} h={8} />}
+        {!hud.isBoss && <Row label="i" color="#9b4dff" value={Math.min(1, hud.debt / 40)} text={`${Math.round(hud.debt)}/40`} h={6} />}
+        <div style={{ transform: spShake ? 'translateX(' + (spShake % 2 ? 3 : -3) + 'px)' : 'none', transition: 'transform 60ms' }}>
+          <Row label="SP" color={hud.sp <= -34 ? '#ff4a4a' : '#9aa8ff'} value={(hud.sp + 45) / 45} text={`${hud.sp.toFixed(0)}/-45`} h={8} marker={11 / 45} />
         </div>
+        {spLog.length > 0 && <div style={{ textAlign: 'right', fontSize: 11, color: '#ffb0b0' }}>{spLog.map((l) => <span key={l.id} style={{ marginLeft: 8 }}>{'-' + l.d}</span>)}</div>}
       </div>
       {hud.isBoss && (
         <div style={{ position: 'fixed', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: '#fff', width: 'min(96vw, 560px)' }}>

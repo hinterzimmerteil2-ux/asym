@@ -81,7 +81,7 @@ export default function EventLayer({ events, posRef }) {
       {black && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 4, background: 'radial-gradient(circle at 50% 55%, rgba(2,3,12,0.25) 0, rgba(2,3,12,0.9) 140px, rgba(2,3,12,0.96) 100%)' }} />
       )}
-      <div style={{ position: 'absolute', top: 72, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 6, pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', top: 104, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 6, pointerEvents: 'none' }}>
         {events.filter((ev) => !(ev.permanent && ev.phase === 'active')).map((ev) => <Lamp key={ev.id} ev={ev} />)}
       </div>
     </>
