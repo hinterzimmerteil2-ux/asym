@@ -3046,6 +3046,39 @@ const MPit = memo(PitMesh);
 const MCollisionObject = memo(CollisionObject);
 const MSelfDamageObject = memo(SelfDamageObject, (a, b) => a.position.x === b.position.x && a.position.y === b.position.y && a.position.z === b.position.z && a.near === b.near && a.active === b.active && a.kind === b.kind);
 
+const LoosePlatform = memo(function LoosePlatform({ p, dmg, on }) {
+  const pp = useMemo(() => (dmg === null ? p : { ...p, dmg }), [p, dmg]);
+  return <ShakeGroup on={on}><MPlatform p={pp} /></ShakeGroup>;
+});
+
+const PlatformLayer = memo(function PlatformLayer({ platforms, shakeIds, plankHp, blockHp, q }) {
+  const zones = useMemo(() => {
+    const solid = (platforms || []).filter((p) => p.kind !== 'pit');
+    const shaken = new Set(shakeIds || []);
+    const isLoose = (p) => p.tex || p.hp > 0 || p.blockMax > 0 || p.kind === 'gate' || p.kind === 'pgate' || shaken.has(p.id);
+    const acc = {};
+    solid.filter((p) => !isLoose(p)).forEach((p) => { const k = `${Math.floor(p.x / 14)},${Math.floor(p.z / 14)}`; (acc[k] = acc[k] || []).push(p); });
+    return { zones: Object.entries(acc), loose: solid.filter(isLoose), shaken };
+  }, [platforms, shakeIds]);
+  return (
+    <>
+      {zones.zones.map(([ck, list]) => (
+        <StaticMerge key={`${ck}:${list.map((p) => p.id).join(',')}`} enabled={q < 4}>
+          {list.map((p) => <MPlatform key={p.id} p={p} />)}
+        </StaticMerge>
+      ))}
+      {zones.loose.map((p) => {
+        const hp = plankHp ? plankHp[p.id] : undefined;
+        const on = zones.shaken.has(p.id) || (p.hp > 0 && hp !== undefined && hp < p.hp && hp > 0);
+        let dmg = null;
+        if (p.hp > 0) dmg = 1 - (hp !== undefined ? hp : p.hp) / p.hp;
+        else if (p.blockMax > 0) dmg = Math.min(1, ((blockHp && blockHp[p.id] !== undefined ? blockHp[p.id] : p.blockMax * 0.35)) / p.blockMax);
+        return <LoosePlatform key={p.id} p={p} dmg={dmg} on={on} />;
+      })}
+    </>
+  );
+});
+
 export default function GameScene({
   gameMode,
   lmsActive,
@@ -3138,21 +3171,7 @@ export default function GameScene({
           <meshBasicMaterial color="#ff5a6e" transparent opacity={0.22} wireframe />
         </mesh>
       ))}
-      {(() => {
-        const solid = (platforms || []).filter((p) => p.kind !== 'pit');
-        const loose = (p) => p.tex || p.hp > 0 || p.blockMax > 0 || p.kind === 'gate' || p.kind === 'pgate' || (shakeIds && shakeIds.includes(p.id));
-        const fixed = solid.filter((p) => !loose(p));
-        return (
-          <>
-            {Object.entries(fixed.reduce((acc, p) => { const k = `${Math.floor(p.x / 14)},${Math.floor(p.z / 14)}`; (acc[k] = acc[k] || []).push(p); return acc; }, {})).map(([ck, list]) => (
-              <StaticMerge key={`${ck}:${list.map((p) => p.id).join(',')}`} enabled={g.q < 4}>
-                {list.map((p) => <MPlatform key={p.id} p={p} />)}
-              </StaticMerge>
-            ))}
-            {solid.filter(loose).map((p) => <ShakeGroup key={p.id} on={Boolean(shakeIds && shakeIds.includes(p.id)) || (p.hp > 0 && plankHp && plankHp[p.id] !== undefined && plankHp[p.id] < p.hp && plankHp[p.id] > 0)}><MPlatform p={p.hp > 0 ? { ...p, dmg: 1 - (plankHp && plankHp[p.id] !== undefined ? plankHp[p.id] : p.hp) / p.hp } : p.blockMax > 0 ? { ...p, dmg: Math.min(1, (blockHp && blockHp[p.id] !== undefined ? blockHp[p.id] : p.blockMax * 0.35) / p.blockMax) } : p} /></ShakeGroup>)}
-          </>
-        );
-      })()}
+      <PlatformLayer platforms={platforms} shakeIds={shakeIds} plankHp={plankHp} blockHp={blockHp} q={g.q} />
       
 
       {phase === 'action' &&

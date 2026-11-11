@@ -5,6 +5,7 @@ import { useSettings, setSettings, gfx } from '../lib/settings';
 import { resetKeys } from '../lib/keybinds';
 
 const PRESETS = [
+  [0.025, 'Mínimo++'],
   [0.05, 'Mínimo+'],
   [0.1, 'Mínimo'],
   [0.5, 'Bajo'],
@@ -54,9 +55,9 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
           </div>
           <input
             type="range"
-            min="0.05"
+            min="0.025"
             max="4"
-            step="0.05"
+            step="0.025"
             value={local}
             onChange={(e) => setLocal(parseFloat(e.target.value))}
             onPointerUp={() => setSettings({ quality: q })}
@@ -66,7 +67,7 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
           />
           <div style={styles.presets}>
             {PRESETS.map(([v, label]) => (
-              <button key={v} type="button" onClick={() => { setLocal(v); setSettings({ quality: v }); }} style={styles.preset(Math.abs(v - s.quality) < 0.05)}>
+              <button key={v} type="button" onClick={() => { setLocal(v); setSettings({ quality: v }); }} style={styles.preset(Math.abs(v - s.quality) < 0.02)}>
                 {label} ({v})
               </button>
             ))}
@@ -74,7 +75,7 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
           <ul style={styles.list}>
             {describe(q).map((l) => <li key={l}>{l}</li>)}
           </ul>
-          <p style={styles.hint}>0.05 es el nivel más bajo: sacrifica casi todo lo visual para ganar rendimiento. Si tu equipo va lento, baja este valor.</p>
+          <p style={styles.hint}>0.025 es el nivel más bajo: sacrifica casi todo lo visual para ganar rendimiento. Si tu equipo va lento, baja este valor.</p>
           <label style={styles.check}>
             <input type="checkbox" checked={s.auto} onChange={(e) => setSettings({ auto: e.target.checked })} />
             Calidad automática (baja sola si los FPS caen)
