@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { getKey, keyLabel } from '../lib/keybinds';
 import SkillIcon from './SkillIcon';
+import { isBoard } from '../lib/settings';
+
+const BS = isBoard() ? 1.8 : 1;
 
 const SAFE_R = 'calc(env(safe-area-inset-right, 0px) + 16px)';
 const SAFE_L = 'calc(env(safe-area-inset-left, 0px) + 16px)';
@@ -21,7 +24,7 @@ function Stick() {
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const active = useRef(new Set());
   const pointer = useRef(null);
-  const RADIUS = 56;
+  const RADIUS = 56 * BS;
 
   function apply(dx, dy) {
     const want = new Set();
@@ -59,20 +62,21 @@ function Stick() {
       onPointerMove={(e) => { if (pointer.current === e.pointerId && origin) move(e, origin); }}
       onPointerUp={end}
       onPointerCancel={end}
-      style={{ position: 'absolute', left: 0, bottom: 0, width: '42%', height: '55%', touchAction: 'none', pointerEvents: 'auto' }}
+      style={{ position: 'absolute', left: 0, bottom: 0, width: '42%', height: BS > 1 ? '70%' : '55%', touchAction: 'none', pointerEvents: 'auto' }}
     >
       {origin ? (
         <div style={{ position: 'fixed', left: origin.x - RADIUS, top: origin.y - RADIUS, width: RADIUS * 2, height: RADIUS * 2, borderRadius: '50%', background: 'rgba(20,22,30,0.45)', border: '2px solid rgba(255,255,255,0.25)' }}>
-          <div style={{ position: 'absolute', left: RADIUS - 22 + knob.x * RADIUS * 0.7, top: RADIUS - 22 + knob.y * RADIUS * 0.7, width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.65)' }} />
+          <div style={{ position: 'absolute', left: RADIUS - 22 * BS + knob.x * RADIUS * 0.7, top: RADIUS - 22 * BS + knob.y * RADIUS * 0.7, width: 44 * BS, height: 44 * BS, borderRadius: '50%', background: 'rgba(255,255,255,0.65)' }} />
         </div>
       ) : (
-        <div style={{ position: 'absolute', left: SAFE_L, bottom: SAFE_B, width: 96, height: 96, borderRadius: '50%', border: '2px dashed rgba(255,255,255,0.28)', background: 'rgba(20,22,30,0.18)' }} />
+        <div style={{ position: 'absolute', left: SAFE_L, bottom: SAFE_B, width: 96 * BS, height: 96 * BS, borderRadius: '50%', border: '2px dashed rgba(255,255,255,0.28)', background: 'rgba(20,22,30,0.18)' }} />
       )}
     </div>
   );
 }
 
-function Btn({ label, code, act, size = 56, style, until = 0, icon }) {
+function Btn({ label, code, act, size: size0 = 56, style, until = 0, icon }) {
+  const size = Math.round(size0 * BS);
   const real = act ? getKey(act) : code;
   const [, setTick] = useState(0);
   const remaining = until - Date.now();
@@ -89,7 +93,7 @@ function Btn({ label, code, act, size = 56, style, until = 0, icon }) {
       onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); buzz(); press(real, true); }}
       onPointerUp={() => press(real, false)}
       onPointerCancel={() => press(real, false)}
-      style={{ width: size, height: size, borderRadius: '50%', background: cooling ? 'rgba(20,22,30,0.35)' : 'rgba(20,22,30,0.7)', color: cooling ? 'rgba(255,255,255,0.45)' : '#fff', border: '2px solid rgba(255,255,255,0.3)', fontSize: 15, fontWeight: 700, touchAction: 'none', pointerEvents: 'auto', userSelect: 'none', WebkitUserSelect: 'none', ...style }}
+      style={{ width: size, height: size, borderRadius: '50%', background: cooling ? 'rgba(20,22,30,0.35)' : 'rgba(20,22,30,0.7)', color: cooling ? 'rgba(255,255,255,0.45)' : '#fff', border: '2px solid rgba(255,255,255,0.3)', fontWeight: 700, touchAction: 'none', pointerEvents: 'auto', userSelect: 'none', WebkitUserSelect: 'none', ...style, fontSize: (style?.fontSize || 15) * BS }}
     >
       {cooling ? Math.ceil(remaining / 1000) : icon ? <SkillIcon id={icon} size={Math.round(size * 0.62)} /> : label}
     </button>
@@ -142,7 +146,7 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
     );
   }
   const skills = [['skill1'], ['skill2'], ['skill3'], ['skill4'], ['melee']];
-  const sz = portrait ? 50 : 54;
+  const sz = (portrait ? 50 : 54);
   const actions = isAsymRole
     ? skills.map(([act], i) => <Btn key={act} label={act === 'melee' ? 'Golpe' : keyLabel(getKey(act))} icon={act === 'melee' ? 'golpe_aturdidor' : skillIds[i]} act={act} size={sz} style={{ fontSize: 12 }} until={skillCooldowns[i === 4 ? 'melee' : i] || 0} />)
     : [

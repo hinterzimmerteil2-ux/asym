@@ -10,7 +10,7 @@ import { matches } from '../lib/keybinds';
 import { createModeKey } from '../lib/modeKey';
 import HospitalDecor from './HospitalDecor';
 import StaticMerge from './StaticMerge';
-import { useSettings, gfx } from '../lib/settings';
+import { useSettings, gfx, isBoard } from '../lib/settings';
 import { setListener } from '../lib/sfx';
 import { setPolyScale, installLowPoly } from '../lib/lowpoly';
 
@@ -3174,7 +3174,7 @@ export default function GameScene({
   const pits = useMemo(() => (phase === 'action' ? (platforms || []).filter((p) => p.kind === 'pit') : []), [platforms, phase]);
 
   return (
-    <Canvas key={`${g.antialias}-${g.textures}-${g.poly}`} dpr={coarse ? Math.min(g.dpr, 2) : g.dpr} gl={{ antialias: g.antialias, powerPreference: g.minimal ? 'low-power' : 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
+    <Canvas key={`${g.antialias}-${g.textures}-${g.poly}`} dpr={isBoard() ? Math.min(g.dpr, 1) : coarse ? Math.min(g.dpr, 2) : g.dpr} gl={{ antialias: g.antialias, powerPreference: g.minimal ? 'low-power' : 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
       <ambientLight intensity={phase === 'action' ? (gameMode === 'lights' ? 0.22 : g.lights ? 0.55 : 0.95) : 0.75} color={phase === 'action' ? '#cfc6c4' : '#cfe0ff'} />
       <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? (gameMode === 'lights' ? 0.12 : 0.7) : 1.1} color={phase === 'action' ? '#ffc0a8' : '#ffffff'} />
       <hemisphereLight args={phase === 'action' ? ['#8f7c8a', '#33262e', gameMode === 'lights' ? 0.12 : 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />

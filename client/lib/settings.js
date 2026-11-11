@@ -3,12 +3,20 @@ import { useEffect, useState } from 'react';
 const STORE = 'asym_settings';
 const DEFAULTS = { quality: 0.5, fps: false, auto: true, shiftMode: 'toggle', slowMode: 'hold', sfx: 0.6 };
 const listeners = new Set();
+
+export function isBoard() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.matchMedia('(pointer: coarse)').matches && Math.max(window.screen.width, window.screen.height) >= 1700;
+  } catch { return false; }
+}
 let cache = null;
 
 function load() {
   if (cache) return cache;
   cache = { ...DEFAULTS };
   try {
+    if (isBoard() && !localStorage.getItem(STORE)) cache.quality = 0.35;
     const raw = JSON.parse(localStorage.getItem(STORE) || 'null');
     if (raw && typeof raw === 'object') {
       const q = Number(raw.quality);
