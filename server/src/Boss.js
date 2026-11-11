@@ -389,7 +389,7 @@ function extra(room, id, idx, now) {
     const e = ents[t];
     const dist = Math.hypot(e.x - boss.x, e.z - boss.z) || 1;
     const w = Math.max(3, 2.2 * (boss.size || 1) + 2);
-    boss.grab = { at: now + GRAB_TELEGRAPH_MS, dx: (e.x - boss.x) / dist, dz: (e.z - boss.z) / dist, len: Math.min(GRAB_RANGE + 6, dist + 4), w };
+    boss.grab = { t, at: now + GRAB_TELEGRAPH_MS, dx: (e.x - boss.x) / dist, dz: (e.z - boss.z) / dist, len: Math.min(GRAB_RANGE + 6, dist + 4), w };
     boss.bfxT = { x: e.x, z: e.z };
     boss.bfxExtra = { w: Math.round(w * 10) / 10, len: Math.round(boss.grab.len) };
     return true;
@@ -497,13 +497,25 @@ function fireGrab(room, id, boss, now) {
   boss.grab = null;
   if (!g) return;
   let hit = 0;
+  const lock = g.t && room.gameState.entities[g.t];
+  if (lock && !lock.down && !lock.gone && !lock.corpse) {
+    const lx = lock.x - boss.x;
+    const lz = lock.z - boss.z;
+    const ld = Math.hypot(lx, lz) || 1;
+    if (ld <= GRAB_RANGE + 8) {
+      g.dx = lx / ld;
+      g.dz = lz / ld;
+      g.len = Math.max(g.len, ld + 1);
+    }
+  }
   for (const [t, e] of Object.entries(room.gameState.entities)) {
     if (t === id || e.down || e.gone || e.corpse) continue;
     const rx = e.x - boss.x;
     const rz = e.z - boss.z;
     const f = rx * g.dx + rz * g.dz;
     const s = Math.abs(rx * g.dz - rz * g.dx);
-    if (f < 0 || f > g.len || s > g.w / 2 + 0.4) continue;
+    if (t !== g.t && (f < 0 || f > g.len || s > g.w / 2 + 0.4)) continue;
+    if (t === g.t && Math.hypot(rx, rz) > GRAB_RANGE + 8) continue;
     const stunned = stunOnce(e, GRAB_MS, now);
     if (stunned) e.noCureUntil = now + GRAB_MS;
     addFatiga(room, t, 20, 30, now);
