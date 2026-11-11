@@ -455,6 +455,41 @@ class Room {
     else if (Math.random() < 0.05) Boss.ability(this, botId, 2 + Math.floor(Math.random() * 6), now);
   }
 
+  fleeBoss(botId, player, entity, now) {
+    let be = null;
+    for (const [otherId, other] of this.players) {
+      if (other.isBoss) be = this.gameState.entities[otherId];
+    }
+    if (!be || be.down || be.gone) return false;
+    const bd = euclid(entity, be);
+    const range = Math.min(48, 20 + 12 * (be.size || 1));
+    if (bd > range) return false;
+    if (now > (player.fightUntil || 0) && now > (player.fightRoll || 0)) {
+      player.fightRoll = now + 9000;
+      if (Math.random() < 0.35) player.fightUntil = now + 6000;
+    }
+    if (now < (player.fightUntil || 0) && bd > 9) return false;
+    const half = this.getCurrentArea().halfSize - 3;
+    const ax = entity.x - be.x;
+    const az = entity.z - be.z;
+    const al = Math.hypot(ax, az) || 1;
+    const side = player.dodgeSide || (player.dodgeSide = Math.random() < 0.5 ? 1 : -1);
+    const gx = Math.max(-half, Math.min(half, entity.x + (ax / al) * 14 + (-az / al) * side * 6));
+    const gz = Math.max(-half, Math.min(half, entity.z + (az / al) * 14 + (ax / al) * side * 6));
+    this.botSteer(player, entity, { x: gx, z: gz }, now, 0.5);
+    if (!entity.input.moveX && !entity.input.moveZ) {
+      entity.input.moveX = ax / al;
+      entity.input.moveZ = az / al;
+    }
+    entity.input.slow = false;
+    if (bd < 6) {
+      const rollSlot = entity.hand.findIndex((sl) => sl && sl.chosen === 'rodar');
+      if (rollSlot >= 0) this.useCard(botId, rollSlot);
+    }
+    player.nextThink = now + 120;
+    return true;
+  }
+
   botThink(now) {
     if (now - (this.lastBotThink || 0) < 100) return;
     this.lastBotThink = now;
@@ -521,6 +556,7 @@ class Room {
         }
       }
       if (dodged) continue;
+      if (this.bossActive && this.fleeBoss(botId, player, entity, now)) continue;
       const mind = player.mind || (player.mind = BotBrain.createMind());
       let fallen = 0;
       for (const pt of Object.values(this.gameState.patients)) if (pt.status !== 'alive') fallen++;
