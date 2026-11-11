@@ -3144,9 +3144,11 @@ export default function GameScene({
         const fixed = solid.filter((p) => !loose(p));
         return (
           <>
-            <StaticMerge key={fixed.map((p) => p.id).join(',')} enabled={g.q < 4}>
-              {fixed.map((p) => <MPlatform key={p.id} p={p} />)}
-            </StaticMerge>
+            {Object.entries(fixed.reduce((acc, p) => { const k = `${Math.floor(p.x / 14)},${Math.floor(p.z / 14)}`; (acc[k] = acc[k] || []).push(p); return acc; }, {})).map(([ck, list]) => (
+              <StaticMerge key={`${ck}:${list.map((p) => p.id).join(',')}`} enabled={g.q < 4}>
+                {list.map((p) => <MPlatform key={p.id} p={p} />)}
+              </StaticMerge>
+            ))}
             {solid.filter(loose).map((p) => <ShakeGroup key={p.id} on={Boolean(shakeIds && shakeIds.includes(p.id)) || (p.hp > 0 && plankHp && plankHp[p.id] !== undefined && plankHp[p.id] < p.hp && plankHp[p.id] > 0)}><MPlatform p={p.hp > 0 ? { ...p, dmg: 1 - (plankHp && plankHp[p.id] !== undefined ? plankHp[p.id] : p.hp) / p.hp } : p.blockMax > 0 ? { ...p, dmg: Math.min(1, (blockHp && blockHp[p.id] !== undefined ? blockHp[p.id] : p.blockMax * 0.35) / p.blockMax) } : p} /></ShakeGroup>)}
           </>
         );
