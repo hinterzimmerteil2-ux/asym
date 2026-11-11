@@ -559,7 +559,7 @@ function applyGrab(P, S) {
   const t = (performance.now() - tn.t0) / 1000;
   if (t > 1.3) return;
   const prog = Math.min(1, t / 0.7);
-  const retract = t > 0.9 ? Math.max(0, 1 - (t - 0.9) / 0.4) : 1;
+  const retract = t > 0.7 ? Math.max(0.12, 1 - (t - 0.7) / 0.6 * 0.88) : 1;
   const ease = prog * prog * (3 - 2 * prog);
   const reach = tn.len * ease * retract;
   chain.forEach((b) => b.quaternion.identity());

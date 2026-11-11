@@ -477,6 +477,8 @@ function fireGrab(room, id, boss, now) {
     Status.apply(e, 'stun', GRAB_MS, now);
     e.noCureUntil = now + GRAB_MS;
     addFatiga(room, t, 20, 30, now);
+    const stop = (boss.bossHalf || 1) + 1.6;
+    e.reel = { until: now + 600, tx: boss.x + g.dx * stop, tz: boss.z + g.dz * stop };
     hit++;
   }
   loseSp(boss, hit ? SP_HIT : SP_MISS, hit ? 'golpe' : 'fallo');
@@ -675,6 +677,15 @@ function tick(room, now, dt) {
   const [bossId, boss] = bossEntry(room);
   if (!boss) return;
   const sec = dt;
+  for (const e of Object.values(gs.entities)) {
+    if (!e.reel) continue;
+    if (now >= e.reel.until || e.down) { e.reel = null; continue; }
+    const k = Math.min(1, dt * 7);
+    e.x += (e.reel.tx - e.x) * k;
+    e.z += (e.reel.tz - e.z) * k;
+    e.velocityX = 0;
+    e.velocityZ = 0;
+  }
   if (boss.spEv && boss.spEv.t && now - boss.spEv.t >= 500) {
     boss.spPub = { d: Math.round(boss.spEv.d * 10) / 10, w: boss.spEv.w, id: (boss.spPub?.id || 0) + 1 };
     boss.spEv = null;
