@@ -468,9 +468,14 @@ function getPatientSpawnPositions(count, area, mapId) {
   return positions;
 }
 
+const PLAT_CACHE = new Map();
+
 function resolvePlatforms(mapId, area) {
+  const ck = `${mapId}:${area.halfSize}`;
+  const hit = PLAT_CACHE.get(ck);
+  if (hit && hit.src === MAPS[mapId]) return hit.list;
   const layout = MAPS[mapId] || MAPS[DEFAULT_MAP_ID];
-  return (layout.platforms || []).map((p) => ({
+  const list = (layout.platforms || []).map((p) => Object.freeze({
     id: p.id,
     x: p.xFrac * area.halfSize,
     z: p.zFrac * area.halfSize,
@@ -488,6 +493,8 @@ function resolvePlatforms(mapId, area) {
     regenMs: p.regenMs || 0,
     blockMax: p.blockMax || 0,
   }));
+  PLAT_CACHE.set(ck, { src: MAPS[mapId], list });
+  return list;
 }
 
 function areaFor(mapId) {
