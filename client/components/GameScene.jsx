@@ -432,15 +432,17 @@ function armPose(P, side, fwd, up) {
 function applyJeffreyPose(P, S, time) {
   const mv = S.mv;
   const cr = S.cr;
-  rot(P.spine1, 0, 0, Math.sin(time * 1.4) * 0.008);
+  rot(P.spine1, 0, Math.sin(time * 0.37) * 0.04, Math.sin(time * 1.4) * 0.016 + Math.max(0, Math.sin(time * 7.3)) * 0.01);
   rot(P.rT, 0, 0, -1.9);
   rot(P.lT, 0, 0, -1.9);
   rot(P.rC, 0, 0, 0.8);
   rot(P.lC, 0, 0, 0.8);
-  rot(P.head, 0, 0, -1.0);
+  rot(P.head, 0, Math.sin(time * 0.55) * 0.06, -1.12 + Math.sin(time * 0.8) * 0.05);
+  rot(P.rH, 0, 0, 1.6);
+  rot(P.lH, 0, 0, 1.6);
   armPose(P, 'R', 1.25, 0.05);
   armPose(P, 'L', 1.25, 0.05);
-  const sway = 0.015 + 0.025 * mv;
+  const sway = 0.05 + 0.04 * mv;
   P.roots.forEach((r) => rot(r.b, 0, 0, 0.6 * r.s));
   P.tents.forEach((b, i) => rot(b, 0, Math.sin(time * 1.3 + i * 0.7) * sway, Math.sin(time * 1.1 + i * 0.5) * sway));
   if (mv > 0.05) {
@@ -601,6 +603,8 @@ function JeffreyBody({ poseRef }) {
       else if (/Bip01_R_UpperArm_/.test(n)) p.rU = o;
       else if (/Bip01_R_Forearm_/.test(n)) p.rF = o;
       else if (/Bip01_L_UpperArm_/.test(n)) p.lU = o;
+      else if (/Bip01_R_Hand_/.test(n)) p.rH = o;
+      else if (/Bip01_L_Hand_/.test(n)) p.lH = o;
       else if (/Bip01_R_Thigh_/.test(n)) p.rT = o;
       else if (/Bip01_L_Thigh_/.test(n)) p.lT = o;
       else if (/Bip01_R_Calf_/.test(n)) p.rC = o;
@@ -611,7 +615,7 @@ function JeffreyBody({ poseRef }) {
         if (/^[12]_Tent02_/.test(n)) { o.scale.multiplyScalar(0.7); p.roots.push({ b: o, s: n[0] === '1' ? 1 : -1 }); }
       }
     });
-    p.bones = [p.spine1, p.head, p.rU, p.rF, p.lU, p.rT, p.lT, p.rC, p.lC, ...p.tents].filter(Boolean);
+    p.bones = [p.spine1, p.head, p.rU, p.rF, p.lU, p.rH, p.lH, p.rT, p.lT, p.rC, p.lC, ...p.tents].filter(Boolean);
     p.bind = p.bones.map((b) => b.quaternion.clone());
     p.screens.forEach((m) => { m.userData.orig = { c: m.color?.clone(), e: m.emissive?.clone(), i: m.emissiveIntensity }; });
     return p;
