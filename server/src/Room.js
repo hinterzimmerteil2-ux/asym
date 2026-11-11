@@ -1054,6 +1054,12 @@ class Room {
     let curator = this.voteWinner('curator');
     const humanIds = [...this.players.entries()].filter(([, p]) => !p.isBot).map(([id]) => id);
     if (curator === 'random' && humanIds.length) curator = humanIds[Math.floor(Math.random() * humanIds.length)];
+    if (this.bossOn && this.bossId && curator === this.bossId) {
+      const others = [...this.players.entries()].filter(([id]) => id !== this.bossId);
+      const humansLeft = others.filter(([, p]) => !p.isBot);
+      const pool = humansLeft.length ? humansLeft : others;
+      if (pool.length) curator = pool[Math.floor(Math.random() * pool.length)][0];
+    }
     if (curator && this.players.has(curator)) {
       for (const [id, p] of this.players) {
         const was = p.isAsymRole;
