@@ -557,12 +557,17 @@ function JeffreyBody({ poseRef }) {
       }
       if (!o.isBone) return;
       const n = o.name;
-      if (/Bip01_Spine_/.test(n)) o.scale.set(2.7, 1, 1);
-      else if (/Bip01_Spine1_/.test(n)) p.spine1 = o;
+      if (!o.userData.jfx) {
+        o.userData.jfx = 1;
+        if (/Bip01_(Spine1|Spine2|Neck1|[RL]_Clavicle)_/.test(n)) o.position.x *= 2.7;
+        else if (/Bip01_[RL]_(Forearm|Hand)_/.test(n)) o.position.x *= 2.5;
+        else if (/Bip01_[RL]_UpperArm_/.test(n)) o.scale.set(1, 0.8, 0.8);
+      }
+      if (/Bip01_Spine1_/.test(n)) p.spine1 = o;
       else if (/Bip01_Head1_/.test(n)) p.head = o;
-      else if (/Bip01_R_UpperArm_/.test(n)) { p.rU = o; o.scale.set(2.2, 0.8, 0.8); }
+      else if (/Bip01_R_UpperArm_/.test(n)) p.rU = o;
       else if (/Bip01_R_Forearm_/.test(n)) p.rF = o;
-      else if (/Bip01_L_UpperArm_/.test(n)) { p.lU = o; o.scale.set(2.2, 0.8, 0.8); }
+      else if (/Bip01_L_UpperArm_/.test(n)) p.lU = o;
       else if (/Bip01_R_Thigh_/.test(n)) p.rT = o;
       else if (/Bip01_L_Thigh_/.test(n)) p.lT = o;
       else if (/Bip01_R_Calf_/.test(n)) p.rC = o;
