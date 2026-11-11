@@ -55,7 +55,8 @@ const CENSOR_MS = 4000;
 const STATIC_MS = 3000;
 const GRAB_TELEGRAPH_MS = 700;
 const GRAB_RANGE = 34;
-const GRAB_MS = 2200;
+const GRAB_MS = 1500;
+const STUN_IMMUNE_MS = 3000;
 const SHADOW_MS = 8000;
 const SHADOW_DELAY = 2000;
 const SHADOW_RADIUS = 3;
@@ -67,7 +68,7 @@ const SCAN_MS = 7000;
 const BOSS_HOLD_MS = 60000;
 const ULT_RADIUS = 60;
 const ULT_TELEGRAPH_MS = 1600;
-const ULT_PARALYSIS_MS = 2200;
+const ULT_PARALYSIS_MS = 1600;
 const ULT_RED_MS = 7000;
 const ULT_REAL = 90;
 const ULT_DEBT = 60;
@@ -484,6 +485,13 @@ function fireScreen(room, id, boss, now) {
   loseSp(boss, hit ? SP_HIT : SP_MISS, hit ? 'golpe' : 'fallo');
 }
 
+function stunOnce(e, ms, now) {
+  if ((e.stunImmuneUntil || 0) > now) return false;
+  Status.apply(e, 'stun', ms, now);
+  e.stunImmuneUntil = now + ms + STUN_IMMUNE_MS;
+  return true;
+}
+
 function fireGrab(room, id, boss, now) {
   const g = boss.grab;
   boss.grab = null;
@@ -496,11 +504,11 @@ function fireGrab(room, id, boss, now) {
     const f = rx * g.dx + rz * g.dz;
     const s = Math.abs(rx * g.dz - rz * g.dx);
     if (f < 0 || f > g.len || s > g.w / 2 + 0.4) continue;
-    Status.apply(e, 'stun', GRAB_MS, now);
-    e.noCureUntil = now + GRAB_MS;
+    const stunned = stunOnce(e, GRAB_MS, now);
+    if (stunned) e.noCureUntil = now + GRAB_MS;
     addFatiga(room, t, 20, 30, now);
     const stop = (boss.bossHalf || 1) + 1.6;
-    e.reel = { until: now + 600, tx: boss.x + g.dx * stop, tz: boss.z + g.dz * stop };
+    if (stunned) e.reel = { until: now + 600, tx: boss.x + g.dx * stop, tz: boss.z + g.dz * stop };
     hit++;
   }
   loseSp(boss, hit ? SP_HIT : SP_MISS, hit ? 'golpe' : 'fallo');
@@ -510,7 +518,7 @@ function fireUlt(room, id, boss, now) {
   boss.ultAt = 0;
   for (const t of inRadius(room, id, boss.x, boss.z, ULT_RADIUS)) {
     const e = room.gameState.entities[t];
-    Status.apply(e, 'stun', ULT_PARALYSIS_MS, now);
+    stunOnce(e, ULT_PARALYSIS_MS, now);
     e.redUntil = now + ULT_RED_MS;
     e.redKind = room.players.get(t)?.isAsymRole ? 'n' : 'p';
     e.redChatAt = now;
