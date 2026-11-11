@@ -559,9 +559,7 @@ function JeffreyBody({ poseRef }) {
       const n = o.name;
       if (!o.userData.jfx) {
         o.userData.jfx = 1;
-        if (/Bip01_(Spine1|Spine2|Neck1|[RL]_Clavicle)_/.test(n)) o.position.x *= 2.7;
-        else if (/Bip01_[RL]_(Forearm|Hand)_/.test(n)) o.position.x *= 2.5;
-        else if (/Bip01_[RL]_UpperArm_/.test(n)) o.scale.set(1, 0.8, 0.8);
+        if (/Bip01_[RL]_UpperArm_/.test(n)) o.scale.set(2, 0.65, 0.65);
       }
       if (/Bip01_Spine1_/.test(n)) p.spine1 = o;
       else if (/Bip01_Head1_/.test(n)) p.head = o;
@@ -610,7 +608,7 @@ function JeffreyBody({ poseRef }) {
     if (pivot.current) pivot.current.rotation.x = 1.3 + 0.1 * S.cr + bob;
   });
   return (
-    <group ref={pivot} position={[0, JEFFREY_HIP + 0.15, -3.4]}>
+    <group ref={pivot} position={[0, JEFFREY_HIP + 0.15, -2]}>
       <group ref={root} scale={JEFFREY_SCALE} position={[0, -JEFFREY_HIP, 0]}><primitive object={scene} /></group>
     </group>
   );
