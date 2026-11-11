@@ -1044,6 +1044,7 @@ export default function LobbyPage() {
   const ghostMode = spectating && Boolean(myGhost) && specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] === myPlayerId;
   const specId = spectating && specTargets.length ? specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] : null;
   specRef.current.on = spectating;
+  const ghostBlocks = useMemo(() => platforms.filter((pl) => pl.blockMax > 0 && blockBroken[pl.id]), [platforms, blockBroken]);
   const visiblePlatforms = useMemo(() => {
     if (!hiddenPlatforms.length) return platforms;
     const hid = new Set(hiddenPlatforms);
@@ -1119,7 +1120,7 @@ export default function LobbyPage() {
             shakeIds={shakeIds}
             plankHp={plankHp}
             blockHp={blockHp}
-            ghostBlocks={platforms.filter((pl) => pl.blockMax > 0 && blockBroken[pl.id])}
+            ghostBlocks={ghostBlocks}
             sendInput={handleSendInput}
             sendAction={handleSendAction}
             onPulse={handlePulse}
