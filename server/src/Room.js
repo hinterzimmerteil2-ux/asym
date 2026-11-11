@@ -1991,7 +1991,7 @@ class Room {
   applyPlayerInput(playerId, input) {
     const entity = this.gameState.entities[playerId];
     if (!entity) return;
-    if (entity.temblor > 40 && Math.random() < entity.temblor / 400) return;
+    if (entity.temblor > 40 && Math.random() < entity.temblor / 700) return;
     entity.input.moveX = clampUnit(input.moveX);
     entity.input.moveZ = clampUnit(input.moveZ);
     entity.input.jump = Boolean(input.jump);

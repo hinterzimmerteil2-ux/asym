@@ -12,7 +12,7 @@ const SP_MAX = 0;
 const SP_MIN = -45;
 const SP_ULT = -34;
 const TEMBLOR_RANGE = 16;
-const TEMBLOR_MAX = 100;
+const TEMBLOR_MAX = 70;
 const STRIKE_FATIGA = 8;
 const STRIKE_DEBT = 90;
 const BOSS_HP = 15000000;
@@ -50,12 +50,12 @@ const TP_RADIUS = 9;
 const TP_SP_PER_S = 1;
 const SCREEN_DELAY_MS = 900;
 const SCREEN_ARC_COS = Math.cos((135 * Math.PI) / 180);
-const DRUNK_MS = 6000;
-const CENSOR_MS = 6000;
-const STATIC_MS = 4000;
+const DRUNK_MS = 4500;
+const CENSOR_MS = 4000;
+const STATIC_MS = 3000;
 const GRAB_TELEGRAPH_MS = 700;
 const GRAB_RANGE = 34;
-const GRAB_MS = 3000;
+const GRAB_MS = 2200;
 const SHADOW_MS = 8000;
 const SHADOW_DELAY = 2000;
 const SHADOW_RADIUS = 3;
@@ -67,7 +67,7 @@ const SCAN_MS = 7000;
 const BOSS_HOLD_MS = 60000;
 const ULT_RADIUS = 60;
 const ULT_TELEGRAPH_MS = 1600;
-const ULT_PARALYSIS_MS = 3000;
+const ULT_PARALYSIS_MS = 2200;
 const ULT_RED_MS = 7000;
 const ULT_REAL = 90;
 const ULT_DEBT = 60;
@@ -686,7 +686,7 @@ function steer(entity, vx, vz, now) {
     z = vx * s + vz * c + (entity.drunkPushZ || 0);
   }
   if (entity.temblor > 30) {
-    const k = ((entity.temblor - 30) / 70) * 1.6;
+    const k = ((entity.temblor - 30) / 70) * 0.9;
     x += (Math.random() - 0.5) * k;
     z += (Math.random() - 0.5) * k;
   }
@@ -728,8 +728,8 @@ function tick(room, now, dt) {
   for (const [pid, e] of players) {
     const d = Math.hypot(e.x - boss.x, e.z - boss.z);
     const range = TEMBLOR_RANGE + 6 * (boss.size || 1);
-    if (d <= range) e.temblor = Math.min(TEMBLOR_MAX, (e.temblor || 0) + sec * 12 * rage);
-    else e.temblor = Math.max(0, (e.temblor || 0) - sec * 8);
+    if (d <= range) e.temblor = Math.min(TEMBLOR_MAX, (e.temblor || 0) + sec * 7 * rage);
+    else e.temblor = Math.max(0, (e.temblor || 0) - sec * 14);
     if ((e.drunkUntil || 0) > now && now >= (e.drunkNext || 0)) {
       e.drunkNext = now + 450;
       e.drunkAng = (Math.random() * 2 - 1) * 1.3 * (e.drunkAmt || 1);
