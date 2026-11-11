@@ -542,6 +542,40 @@ function applyJeffreyPose(P, S, time) {
   }
 }
 
+const JF = { tent: null };
+const GRAB_X = new Vector3(1, 0, 0);
+const GRAB_V = new Vector3();
+const GRAB_W = new Vector3();
+const GRAB_PQ = new Quaternion();
+const GRAB_QW = new Quaternion();
+
+function applyGrab(P, S) {
+  const tn = JF.tent;
+  const chain = P.chain1;
+  if (!chain || !chain.length) return;
+  const root = chain[0];
+  root.scale.set(0.7, 0.7, 0.7);
+  if (!tn || !tn.on) return;
+  const t = (performance.now() - tn.t0) / 1000;
+  if (t > 1.3) return;
+  const prog = Math.min(1, t / 0.7);
+  const retract = t > 0.9 ? Math.max(0, 1 - (t - 0.9) / 0.4) : 1;
+  const ease = prog * prog * (3 - 2 * prog);
+  const reach = tn.len * ease * retract;
+  chain.forEach((b) => b.quaternion.identity());
+  root.parent.updateWorldMatrix(true, false);
+  root.parent.getWorldQuaternion(GRAB_PQ);
+  GRAB_V.set(Math.sin(tn.yaw), 0.12, Math.cos(tn.yaw)).normalize();
+  GRAB_QW.setFromUnitVectors(GRAB_X, GRAB_V);
+  root.quaternion.copy(GRAB_PQ.invert().multiply(GRAB_QW));
+  root.updateWorldMatrix(true, true);
+  root.getWorldPosition(GRAB_V);
+  chain[chain.length - 1].getWorldPosition(GRAB_W);
+  const L0 = Math.max(0.5, GRAB_V.distanceTo(GRAB_W));
+  const k = Math.max(0.35, reach / L0);
+  root.scale.set(0.7 * k, 0.7, 0.7);
+}
+
 function JeffreyBody({ poseRef }) {
   const { scene, animations } = useGLTF(JEFFREY_URL);
   const root = useRef();
@@ -573,6 +607,7 @@ function JeffreyBody({ poseRef }) {
       else if (/Bip01_L_Calf_/.test(n)) p.lC = o;
       else if (/^[12]_Tent0[2-9]_/.test(n)) {
         p.tents.push(o);
+        if (/^1_Tent0[2-9]_/.test(n)) (p.chain1 = p.chain1 || []).push(o);
         if (/^[12]_Tent02_/.test(n)) { o.scale.multiplyScalar(0.7); p.roots.push({ b: o, s: n[0] === '1' ? 1 : -1 }); }
       }
     });
@@ -588,6 +623,7 @@ function JeffreyBody({ poseRef }) {
     const S = poseRef.current;
     P.bones.forEach((b, i) => b.quaternion.copy(P.bind[i]));
     applyJeffreyPose(P, S, state.clock.elapsedTime);
+    applyGrab(P, S);
     P.screens.forEach((m) => {
       const o = m.userData.orig;
       if (S.screen) {
@@ -740,6 +776,7 @@ function BossFx({ e, yawRef }) {
       }
     }
     const tn = tent.current;
+    JF.tent = tn;
     if (tn.on) {
       const t = (now - tn.t0) / 1000;
       if (t > 1.2) tn.on = false;
@@ -747,6 +784,8 @@ function BossFx({ e, yawRef }) {
       const retract = t > 0.9 ? 1 - (t - 0.9) / 0.3 : 1;
       tentRef.current.forEach((m, i) => {
         if (!m) return;
+        m.visible = false;
+        return;
         if (!tn.on) { m.visible = false; return; }
         const u = (i + 1) / tentRef.current.length;
         const along = tn.len * u * prog * retract;
