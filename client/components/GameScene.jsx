@@ -942,15 +942,15 @@ function BossCube({ e }) {
   });
   return (
     <>
-      <group ref={ref} position={[e.x, e.y || 0, e.z]} scale={size}>
+      <group ref={ref} position={[e.x, e.y || 0, e.z]} scale={size} visible={!e.bhold}>
         <group ref={body}>
           <Suspense fallback={<FallbackCube />}>
             <JeffreyBody poseRef={pose} />
           </Suspense>
         </group>
       </group>
-      <BossFx e={e} yawRef={yawRef} />
-      <SpAura e={e} />
+      {!e.bhold && <BossFx e={e} yawRef={yawRef} />}
+      {!e.bhold && <SpAura e={e} />}
       {e.shadow && (
         <mesh position={[e.shadow.x, 1.2, e.shadow.z]}>
           <sphereGeometry args={[1.6, 16, 12]} />
@@ -2982,6 +2982,27 @@ function BossM1Frame({ e, opacity }) {
 }
 const M1_EDGES = new EdgesGeometry(new BoxGeometry(1, 1, 1));
 
+function ScanMarks({ entities, myId }) {
+  const me = entities?.[myId];
+  if (!me || !me.boss || !me.scn) return null;
+  return (
+    <>
+      {Object.entries(entities).filter(([, en]) => !en.boss && !en.corpse && !en.gone).map(([id, en]) => (
+        <group key={'scn' + id} position={[en.x, (en.y || 0), en.z]}>
+          <mesh position={[0, 1, 0]} renderOrder={999}>
+            <cylinderGeometry args={[0.05, 0.05, 40, 6]} />
+            <meshBasicMaterial color="#b36bff" transparent opacity={0.35} depthTest={false} depthWrite={false} />
+          </mesh>
+          <mesh position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={999}>
+            <ringGeometry args={[0.9, 1.2, 28]} />
+            <meshBasicMaterial color="#d8a8ff" transparent opacity={0.9} depthTest={false} depthWrite={false} />
+          </mesh>
+        </group>
+      ))}
+    </>
+  );
+}
+
 function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, effects, opacity, cfg }) {
   return (
     <>
@@ -3082,6 +3103,7 @@ export default function GameScene({
       <hemisphereLight args={phase === 'action' ? ['#8f7c8a', '#33262e', gameMode === 'lights' ? 0.12 : 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
       <color attach="background" args={[phase === 'action' ? '#090607' : '#12162e']} />
       <fog attach="fog" args={phase === 'action' ? (gameMode === 'lights' ? ['#030203', 2, (playerById.get(myPlayerId)?.isAsymRole ? 34 : 22) * (lmsActive ? 0.6 : 1)] : ['#130b0e', 45, g.fogFar]) : ['#12162e', 45, 130]} />
+      {phase === 'action' && <ScanMarks entities={entities} myId={myPlayerId} />}
       {phase === 'action' && <Embers />}
       {phase === 'action' && <NightDecor showStars={g.stars} lights={g.lights} lightCount={g.lightCount} />}
       {phase === 'action' && g.decor !== 'none' && <HospitalDecor half={areaHalfSize} platforms={platforms} level={g.decor} dust={g.dust} lightsOn={g.lightCount >= 5} />}

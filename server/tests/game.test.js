@@ -1620,6 +1620,10 @@ function bossRoom() {
   room.bossId = 'b';
   Boss.prepare(room);
   room.switchPhase('action', 'test');
+  const eb = room.gameState.entities.b;
+  eb.holdUntil = 0;
+  eb.paraUntil = 0;
+  require('../src/Status').clear(eb);
   return room;
 }
 

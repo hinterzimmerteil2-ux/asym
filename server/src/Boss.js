@@ -62,7 +62,9 @@ const SHADOW_RADIUS = 3;
 const FRAME_RADIUS = 30;
 const FRAME_SHIFT_MS = 3000;
 const LIVE_MS = 8000;
-const LIVE_RANGE = 60;
+const LIVE_RANGE = 400;
+const SCAN_MS = 7000;
+const BOSS_HOLD_MS = 60000;
 const ULT_RADIUS = 60;
 const ULT_TELEGRAPH_MS = 1600;
 const ULT_PARALYSIS_MS = 3000;
@@ -145,6 +147,22 @@ function applySize(entity, size) {
   refreshExtents(entity);
 }
 
+function freeSpot(room, from, dx, dz, half) {
+  const GameMap = require('./GameMap');
+  const plats = GameMap.resolvePlatforms(room.mapId, GameMap.areaFor(room.mapId)).filter((p) => p.kind !== 'pit' && !p.ramp && !p.slab && (p.h || 0) >= 1.2);
+  const clear = (x, z) => !plats.some((p) => Math.abs(x - p.x) <= p.hx + 5 && Math.abs(z - p.z) <= p.hz + 5);
+  const base = Math.atan2(dz, dx);
+  for (let r = half; r >= half * 0.3; r -= half * 0.05) {
+    for (const off of [0, 0.35, -0.35, 0.7, -0.7, 1.1, -1.1]) {
+      const a = base + off;
+      const x = Math.max(-half, Math.min(half, from.x + Math.cos(a) * r));
+      const z = Math.max(-half, Math.min(half, from.z + Math.sin(a) * r));
+      if (clear(x, z)) return { x, z };
+    }
+  }
+  return { x: Math.max(-half, Math.min(half, from.x + dx * half)), z: Math.max(-half, Math.min(half, from.z + dz * half)) };
+}
+
 function setup(room) {
   const gs = room.gameState;
   gs.boss = null;
@@ -164,6 +182,9 @@ function setup(room) {
     if (player.isBoss) {
       entity.sp = SP_MAX;
       entity.lastAbilityAt = Date.now();
+      entity.holdUntil = Date.now() + BOSS_HOLD_MS;
+      entity.paraUntil = entity.holdUntil;
+      Status.apply(entity, 'stun', BOSS_HOLD_MS, Date.now());
       entity.crouch = false;
       applySize(entity, 1);
       entity.flojeraMax = BOSS_FLOJERA;
@@ -423,6 +444,7 @@ function extra(room, id, idx, now) {
     const t = nearestPlayer(room, id, boss, LIVE_RANGE);
     if (!t) return false;
     ents[t].liveUntil = now + LIVE_MS;
+    boss.scanUntil = now + SCAN_MS;
     boss.bfxT = { x: ents[t].x, z: ents[t].z };
     return true;
   }
@@ -779,6 +801,7 @@ function checkEnd(room) {
 }
 
 module.exports = {
+  freeSpot,
   BOSS_DURATION_MS,
   BOSS_EVERY,
   BOSS_HP_MAX,

@@ -124,10 +124,16 @@ export default function BossHud({ hud, onAbility, onSize, onCrouch }) {
   const t = drag !== null ? drag : tFromSize(hud.size || 1);
   const sizeShown = sizeFromT(t);
   const cdSize = hud.bcd?.[0] || 0;
+  const holdBanner = hud.bhold > 0 ? (
+    <div style={{ position: 'fixed', top: '18%', left: 0, right: 0, zIndex: 20, textAlign: 'center', color: '#c9b8ff', fontSize: 22, pointerEvents: 'none' }}>
+      {hud.bhold}
+    </div>
+  ) : null;
   const hpFrac = hud.bhp / (hud.bmax || BOSS_HP_MAX);
 
   return (
     <>
+      {holdBanner}
       <div style={{ position: 'fixed', top: 52, left: '50%', transform: 'translateX(-50%)', width: 'min(380px, 80vw)', zIndex: 20, pointerEvents: 'none', color: '#fff', fontSize: 12 }}>
         <div style={{ fontFamily: FONT, letterSpacing: 6, fontSize: 15, textAlign: 'center', textShadow: '0 0 10px #9b4dff' }}>JEFFREY</div>
         <div style={{ margin: '4px 0 2px' }}><Bar value={hpFrac} color="linear-gradient(90deg,#6a2cff,#c77dff)" height={9} /></div>

@@ -1142,7 +1142,7 @@ class Room {
       if (!entity) continue;
 
       if (player.isBoss) {
-        const half = GameMap.areaFor(this.mapId).halfSize * 0.8;
+        const half = GameMap.areaFor(this.mapId).halfSize * 0.95;
         let cx = 0;
         let cz = 0;
         for (const sp of patientSpawns) { cx += sp.x; cz += sp.z; }
@@ -1151,8 +1151,9 @@ class Room {
         cz = cz / n - curatorSpawn.z;
         let len = Math.hypot(cx, cz);
         if (len < 4) { cx = 0; cz = -1; len = 1; }
-        entity.x = Math.max(-half, Math.min(half, curatorSpawn.x - (cx / len) * half));
-        entity.z = Math.max(-half, Math.min(half, curatorSpawn.z - (cz / len) * half));
+        const spot = Boss.freeSpot(this, curatorSpawn, -cx / len, -cz / len, half);
+        entity.x = spot.x;
+        entity.z = spot.z;
       } else if (player.isAsymRole) {
         entity.x = curatorSpawn.x;
         entity.z = curatorSpawn.z;
@@ -1564,6 +1565,8 @@ class Room {
         bfx: entity.bfx || undefined,
         shadow: entity.shadow ? { x: Math.round(entity.shadow.x * 10) / 10, z: Math.round(entity.shadow.z * 10) / 10 } : undefined,
         live: (entity.liveUntil || 0) > now || undefined,
+        scn: (entity.scanUntil || 0) > now || undefined,
+        bhold: entity.holdUntil && entity.holdUntil > now ? Math.ceil((entity.holdUntil - now) / 1000) : undefined,
         blue: (entity.drunkUntil || 0) > now || undefined,
         cr: entity.crouch || undefined,
         dark: entity.tpAt ? true : undefined,
