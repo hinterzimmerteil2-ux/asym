@@ -433,13 +433,13 @@ function applyJeffreyPose(P, S, time) {
   const mv = S.mv;
   const cr = S.cr;
   rot(P.spine1, 0, 0, Math.sin(time * 1.4) * 0.008);
-  rot(P.rT, 0, 0, -1.7);
-  rot(P.lT, 0, 0, -1.7);
+  rot(P.rT, 0, 0, -1.9);
+  rot(P.lT, 0, 0, -1.9);
   rot(P.rC, 0, 0, 0.8);
   rot(P.lC, 0, 0, 0.8);
-  rot(P.head, 0, 0, -0.6);
-  armPose(P, 'R', 1.1, 0.05);
-  armPose(P, 'L', 1.1, 0.05);
+  rot(P.head, 0, 0, -1.0);
+  armPose(P, 'R', 1.25, 0.05);
+  armPose(P, 'L', 1.25, 0.05);
   const sway = 0.015 + 0.025 * mv;
   P.roots.forEach((r) => rot(r.b, 0, 0, 0.6 * r.s));
   P.tents.forEach((b, i) => rot(b, 0, Math.sin(time * 1.3 + i * 0.7) * sway, Math.sin(time * 1.1 + i * 0.5) * sway));
@@ -559,7 +559,8 @@ function JeffreyBody({ poseRef }) {
       const n = o.name;
       if (!o.userData.jfx) {
         o.userData.jfx = 1;
-        if (/Bip01_[RL]_UpperArm_/.test(n)) o.scale.set(2, 0.65, 0.65);
+        if (/Bip01_(Spine1|Spine2)_/.test(n)) o.position.x *= 2.2;
+        else if (/Bip01_[RL]_UpperArm_/.test(n)) o.scale.set(2, 0.82, 0.82);
       }
       if (/Bip01_Spine1_/.test(n)) p.spine1 = o;
       else if (/Bip01_Head1_/.test(n)) p.head = o;
@@ -605,10 +606,10 @@ function JeffreyBody({ poseRef }) {
     const S = poseRef.current;
     const t = state.clock.elapsedTime;
     const bob = S.mv > 0.05 ? Math.sin(t * (5 + 3 * S.spd) * 2) * 0.012 * S.mv : 0;
-    if (pivot.current) pivot.current.rotation.x = 1.3 + 0.1 * S.cr + bob;
+    if (pivot.current) pivot.current.rotation.x = 1.5 + 0.1 * S.cr + bob;
   });
   return (
-    <group ref={pivot} position={[0, JEFFREY_HIP + 0.15, -2]}>
+    <group ref={pivot} position={[0, JEFFREY_HIP + 0.45, -2.6]}>
       <group ref={root} scale={JEFFREY_SCALE} position={[0, -JEFFREY_HIP, 0]}><primitive object={scene} /></group>
     </group>
   );
