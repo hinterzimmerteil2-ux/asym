@@ -544,9 +544,10 @@ function applyJeffreyPose(P, S, time) {
   }
 }
 
-const JF = { tent: null };
+const JF = { tent: null, ents: null };
 const GRAB_X = new Vector3(1, 0, 0);
 const GRAB_V = new Vector3();
+const GRAB_T = new Vector3();
 const GRAB_W = new Vector3();
 const GRAB_PQ = new Quaternion();
 const GRAB_QW = new Quaternion();
@@ -563,11 +564,37 @@ function applyGrab(P, S) {
   const prog = Math.min(1, t / 0.7);
   const retract = t > 0.7 ? Math.max(0.12, 1 - (t - 0.7) / 0.6 * 0.88) : 1;
   const ease = prog * prog * (3 - 2 * prog);
-  const reach = tn.len * ease * retract;
   chain.forEach((b) => b.quaternion.identity());
-  root.parent.updateWorldMatrix(true, false);
+  root.scale.set(0.7, 0.7, 0.7);
+  root.parent.updateWorldMatrix(true, true);
+  root.getWorldPosition(GRAB_W);
+  let aim = tn.yaw;
+  let dist = tn.len;
+  let ty = GRAB_W.y;
+  let best = null;
+  let bd = 4.5;
+  const ents = JF.ents;
+  if (ents) {
+    if (tn.lock && ents[tn.lock]) best = ents[tn.lock];
+    else {
+      for (const [id, en] of Object.entries(ents)) {
+        if (!en || en.boss || en.corpse || en.gone) continue;
+        const d = Math.hypot(en.x - tn.tx, en.z - tn.tz);
+        if (d < bd) { bd = d; best = en; tn.lock = id; }
+      }
+    }
+  }
+  if (best) {
+    GRAB_T.set(best.x, (best.y || 0) + 0.9, best.z);
+    ty = GRAB_T.y;
+    aim = Math.atan2(GRAB_T.x - GRAB_W.x, GRAB_T.z - GRAB_W.z);
+    dist = Math.hypot(GRAB_T.x - GRAB_W.x, GRAB_T.y - GRAB_W.y, GRAB_T.z - GRAB_W.z);
+  }
+  const hz = Math.max(0.5, Math.hypot(Math.sin(aim) * dist, Math.cos(aim) * dist));
+  const pitch = best ? Math.atan2(ty - GRAB_W.y, hz) : 0.12;
+  const reach = dist * ease * retract;
   root.parent.getWorldQuaternion(GRAB_PQ);
-  GRAB_V.set(Math.sin(tn.yaw), 0.12, Math.cos(tn.yaw)).normalize();
+  GRAB_V.set(Math.sin(aim) * Math.cos(pitch), Math.sin(pitch), Math.cos(aim) * Math.cos(pitch)).normalize();
   GRAB_QW.setFromUnitVectors(GRAB_X, GRAB_V);
   root.quaternion.copy(GRAB_PQ.invert().multiply(GRAB_QW));
   root.updateWorldMatrix(true, true);
@@ -744,7 +771,7 @@ function BossFx({ e, yawRef }) {
         const dx = fx.tx - e.x;
         const dz = fx.tz - e.z;
         strip.current = { on: true, t0: now, x: e.x, z: e.z, yaw: Math.atan2(dx, dz), len: fx.len || Math.hypot(dx, dz), w: fx.w || 4 };
-        tent.current = { on: true, t0: now, x: e.x, z: e.z, yaw: Math.atan2(dx, dz), len: fx.len || Math.hypot(dx, dz), sk };
+        tent.current = { on: true, t0: now, tx: fx.tx, tz: fx.tz, x: e.x, z: e.z, yaw: Math.atan2(dx, dz), len: fx.len || Math.hypot(dx, dz), sk };
       } else if (k === 4 && fx.tx !== undefined) ring(0, '#14101c', 8, 0.8);
       else if (k === 5) { ring(0, fx.back ? '#4aa8ff' : '#ffd24a', fx.r || 30, 1.1); ring(1, fx.back ? '#a8d8ff' : '#fff0b0', (fx.r || 30) * 0.65, 1.4); }
       else if (k === 6) ring(0, '#ff9a3c', fx.r || 10, 0.9);
@@ -3129,6 +3156,7 @@ export default function GameScene({
   const playerById = new Map(players.map((p) => [p.id, p]));
   const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const areaHalfSize = phase === 'action' ? matchHalf || MATCH_HALF_SIZE : LOBBY_HALF_SIZE;
+  JF.ents = entities;
   const myEntity = ghostMode && ghosts?.[myPlayerId] ? ghosts[myPlayerId] : entities[followId || myPlayerId];
   ATTACK.fn = phase === 'action' && !ghostMode && (playerById.get(myPlayerId)?.isAsymRole || entities[myPlayerId]?.boss) ? () => sendAction('cure_action', {}) : null;
   const pits = useMemo(() => (phase === 'action' ? (platforms || []).filter((p) => p.kind === 'pit') : []), [platforms, phase]);
