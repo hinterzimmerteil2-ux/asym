@@ -13,8 +13,8 @@ const SP_MIN = -45;
 const SP_ULT = -34;
 const TEMBLOR_RANGE = 16;
 const TEMBLOR_MAX = 100;
-const STRIKE_FATIGA = 3;
-const STRIKE_DEBT = 18;
+const STRIKE_FATIGA = 8;
+const STRIKE_DEBT = 90;
 const BOSS_HP = 15000000;
 const BOSS_HP_MAX = 30000000;
 const BOSS_FLOJERA = 1200;
@@ -67,9 +67,9 @@ const ULT_RADIUS = 60;
 const ULT_TELEGRAPH_MS = 1600;
 const ULT_PARALYSIS_MS = 3000;
 const ULT_RED_MS = 7000;
-const ULT_REAL = 30;
-const ULT_DEBT = 20;
-const RETRO_DEBT = 14;
+const ULT_REAL = 90;
+const ULT_DEBT = 60;
+const RETRO_DEBT = 70;
 const VMODES = ['azul', 'blanca', 'negra'];
 const CHAT_EVERY_MS = 650;
 
@@ -476,7 +476,7 @@ function fireGrab(room, id, boss, now) {
     if (f < 0 || f > g.len || s > g.w / 2 + 0.4) continue;
     Status.apply(e, 'stun', GRAB_MS, now);
     e.noCureUntil = now + GRAB_MS;
-    addFatiga(room, t, 6, 4, now);
+    addFatiga(room, t, 20, 30, now);
     hit++;
   }
   loseSp(boss, hit ? SP_HIT : SP_MISS, hit ? 'golpe' : 'fallo');
@@ -747,7 +747,7 @@ function tickShadow(room, bossId, boss, now) {
   sh.z = sh.trail[0].z;
   if (now >= sh.nextHit) {
     sh.nextHit = now + 500;
-    for (const t of inRadius(room, bossId, sh.x, sh.z, SHADOW_RADIUS)) addFatiga(room, t, 4, 2, now);
+    for (const t of inRadius(room, bossId, sh.x, sh.z, SHADOW_RADIUS)) addFatiga(room, t, 10, 12, now);
   }
 }
 
