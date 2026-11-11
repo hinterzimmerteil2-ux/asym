@@ -146,6 +146,7 @@ export default function BossHud({ hud, onAbility, onSize, onCrouch }) {
       {holdBanner}
       <div style={{ position: 'fixed', top: 40, right: 10, width: 'min(230px, 46vw)', zIndex: 20, pointerEvents: 'none', color: '#fff', fontSize: 11, display: 'flex', flexDirection: 'column', gap: 5 }}>
         <Row label="PV" color="linear-gradient(90deg,#6a2cff,#c77dff)" value={hpFrac} text={`${(hud.bhp / 1e6).toFixed(1)}/${Math.round((hud.bmax || BOSS_HP_MAX) / 1e6)}M`} h={9} />
+        {hud.isBoss && hud.floMax > 0 && <Row label="FL" color={hud.floLock ? '#ff6b6b' : '#f2c14e'} value={hud.flo / hud.floMax} text={`${Math.round(hud.flo)}/${hud.floMax}`} h={8} />}
         {!hud.isBoss && <Row label="F" color="#e2554f" value={hud.fat / 100} text={`${Math.round(hud.fat)}/100`} h={8} />}
         {!hud.isBoss && <Row label="i" color="#9b4dff" value={Math.min(1, hud.debt / 40)} text={`${Math.round(hud.debt)}/40`} h={6} />}
         <div style={{ transform: spShake ? 'translateX(' + (spShake % 2 ? 3 : -3) + 'px)' : 'none', transition: 'transform 60ms' }}>
