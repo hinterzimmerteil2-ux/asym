@@ -433,7 +433,7 @@ export default function LobbyPage() {
             setSelfDamageObjects((prev) => (sameValue(prev, payload.selfDamageObjects || {}) ? prev : payload.selfDamageObjects || {}));
             setSdTypes((prev) => (sameValue(prev, payload.selfDamageTypes || {}) ? prev : payload.selfDamageTypes || {}));
             setZones((prev) => (sameValue(prev, payload.zones || []) ? prev : payload.zones || []));
-            setCuratorHp(payload.curator || null);
+            setCuratorHp((prev) => (sameValue(prev, payload.curator || null) ? prev : payload.curator || null));
             setSpawnMs(payload.spawnMs || 0);
             setPlankHp((prev) => (sameValue(prev, payload.plankHp || {}) ? prev : payload.plankHp || {}));
             setBlockHp((prev) => (sameValue(prev, payload.blockHp || {}) ? prev : payload.blockHp || {}));

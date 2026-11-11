@@ -3034,6 +3034,18 @@ function ScanMarks({ entities, myId }) {
   );
 }
 
+function GlProbe() {
+  const gl = useThree((st) => st.gl);
+  const n = useRef(0);
+  useFrame(() => {
+    n.current += 1;
+    if (n.current % 30) return;
+    const i = gl.info;
+    window.__glinfo = { calls: i.render.calls, tris: i.render.triangles, geos: i.memory.geometries, tex: i.memory.textures };
+  });
+  return null;
+}
+
 function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, zones, platforms, effects, opacity, cfg }) {
   return (
     <>
@@ -3168,6 +3180,7 @@ export default function GameScene({
       <hemisphereLight args={phase === 'action' ? ['#8f7c8a', '#33262e', gameMode === 'lights' ? 0.12 : 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
       <color attach="background" args={[phase === 'action' ? '#090607' : '#12162e']} />
       <fog attach="fog" args={phase === 'action' ? (gameMode === 'lights' ? ['#030203', 2, (playerById.get(myPlayerId)?.isAsymRole ? 34 : 22) * (lmsActive ? 0.6 : 1)] : ['#130b0e', 45, g.fogFar]) : ['#12162e', 45, 130]} />
+      <GlProbe />
       {phase === 'action' && <ScanMarks entities={entities} myId={myPlayerId} />}
       {phase === 'action' && <Embers />}
       {phase === 'action' && <NightDecor showStars={g.stars} lights={g.lights} lightCount={g.lightCount} />}
