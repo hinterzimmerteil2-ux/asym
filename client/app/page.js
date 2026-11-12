@@ -1433,7 +1433,7 @@ export default function LobbyPage() {
         {phase === 'action' && curatorHp && (
           <div style={sx(styles.curatorHpBar, { ...bar, top: 50 })}>
             <div style={sx(styles.hpBarLabel, { fontSize: 10, marginBottom: 3 })}>
-              {compact ? 'Curador' : 'Salud del Curador'}: {Math.round(curatorHp.hp)}/{curatorHp.max}{!compact && `, pierde en 0 o en ${curatorHp.max}`}
+              {compact ? 'Curador' : 'Salud del Curador'}: {Math.round(curatorHp.hp)}/{curatorHp.max}
             </div>
             <div style={styles.hpBarTrack}>
               <div style={styles.curatorHpFill(curatorHp.hp / curatorHp.max)} />

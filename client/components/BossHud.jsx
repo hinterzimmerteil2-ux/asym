@@ -135,7 +135,7 @@ export default function BossHud({ hud, onAbility, onSize, onCrouch }) {
   const sizeShown = sizeFromT(t);
   const cdSize = hud.bcd?.[0] || 0;
   const holdBanner = hud.bhold > 0 ? (
-    <div style={{ position: 'fixed', top: '18%', left: 0, right: 0, zIndex: 20, textAlign: 'center', color: '#c9b8ff', fontSize: 22, pointerEvents: 'none' }}>
+    <div style={{ position: 'fixed', top: 196, left: 0, right: 0, zIndex: 20, textAlign: 'center', color: '#c9b8ff', fontSize: 22, pointerEvents: 'none' }}>
       {hud.bhold}
     </div>
   ) : null;
@@ -144,7 +144,7 @@ export default function BossHud({ hud, onAbility, onSize, onCrouch }) {
   return (
     <>
       {holdBanner}
-      <div style={{ position: 'fixed', top: 40, right: 10, width: 'min(230px, 46vw)', zIndex: 20, pointerEvents: 'none', color: '#fff', fontSize: 11, display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <div style={{ position: 'fixed', top: 64, left: 10, width: 'min(230px, 46vw)', zIndex: 20, pointerEvents: 'none', color: '#fff', fontSize: 11, display: 'flex', flexDirection: 'column', gap: 5 }}>
         <Row label="PV" color="linear-gradient(90deg,#6a2cff,#c77dff)" value={hpFrac} text={`${(hud.bhp / 1e6).toFixed(1)}/${Math.round((hud.bmax || BOSS_HP_MAX) / 1e6)}M`} h={9} />
         {hud.isBoss && hud.floMax > 0 && <Row label="FL" color={hud.floLock ? '#ff6b6b' : '#f2c14e'} value={hud.flo / hud.floMax} text={`${Math.round(hud.flo)}/${hud.floMax}`} h={8} />}
         {!hud.isBoss && <Row label="F" color="#e2554f" value={hud.fat / 100} text={`${Math.round(hud.fat)}/100`} h={8} />}
