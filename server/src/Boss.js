@@ -25,9 +25,7 @@ const DMG_CARD = 9000;
 const STRIKE_COOLDOWN_MS = 1400;
 const SWARM_RANGE = 14;
 const IDLE_SP_MS = 12000;
-const DOWN_MS = 30000;
-const REVIVE_FATIGA = 50;
-const REVIVE_GRACE_MS = 4000;
+const DOWN_MS = 3600000;
 const SP_HIT = 1.2;
 const SP_MISS = 0.8;
 
@@ -282,7 +280,6 @@ function takeDown(room, id, entity, now) {
   if (entity.down) return;
   entity.down = true;
   entity.fatiga = 100;
-  entity.reviveAt = now + DOWN_MS;
   Status.apply(entity, 'stun', DOWN_MS, now);
   const patient = room.gameState.patients[id];
   if (patient && patient.status === 'alive') patient.status = 'down';
@@ -291,24 +288,11 @@ function takeDown(room, id, entity, now) {
 
 function addFatiga(room, id, real, imag, now) {
   const entity = room.gameState.entities[id];
-  if (!entity || entity.down || room.players.get(id)?.isBoss || (entity.graceUntil || 0) > now) return;
+  if (!entity || entity.down || room.players.get(id)?.isBoss) return;
   const cap = entity.fatigaCap || 1;
   entity.fatiga = Math.min(100, entity.fatiga + real / cap);
   entity.debt += imag / cap;
   if (entity.fatiga >= 100) takeDown(room, id, entity, now);
-}
-
-function revive(room, id, entity, now) {
-  entity.down = false;
-  entity.reviveAt = 0;
-  entity.fatiga = REVIVE_FATIGA;
-  entity.debt = 0;
-  entity.graceUntil = now + REVIVE_GRACE_MS;
-  entity.stunImmuneUntil = now + REVIVE_GRACE_MS;
-  Status.clear(entity);
-  const patient = room.gameState.patients[id];
-  if (patient && patient.status === 'down') patient.status = 'alive';
-  if (room.players.get(id)?.isAsymRole) room.gameState.curatorDown = false;
 }
 
 function collapse(room, id, now) {
@@ -787,7 +771,6 @@ function tick(room, now, dt) {
   }
   boss.ultReady = boss.sp <= SP_ULT;
   for (const [id, e] of Object.entries(gs.entities)) {
-    if (e.down && e.reviveAt && now >= e.reviveAt && !room.players.get(id)?.isBoss) { revive(room, id, e, now); continue; }
     if (e.down || room.players.get(id)?.isBoss) continue;
     if (e.debt >= 40) collapse(room, id, now);
   }
