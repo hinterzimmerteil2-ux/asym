@@ -23,6 +23,7 @@ const MessageType = {
   REMOVE_BOT: 'remove_bot',
   SET_MUTATION: 'set_mutation',
   SET_MODE: 'set_mode',
+  SET_SUPERS: 'set_supers',
   SET_BOSS: 'set_boss',
   BOSS_SIZE: 'boss_size',
   BOSS_CROUCH: 'boss_crouch',

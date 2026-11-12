@@ -288,12 +288,13 @@ export default function LobbyPage() {
   const [isDefaultRoom, setIsDefaultRoom] = useState(false);
   const [startAt, setStartAt] = useState(null);
   const [lobbyNow, setLobbyNow] = useState(Date.now());
-  const [votes, setVotes] = useState({ bots: {}, map: {}, mutation: {}, curator: {} });
+  const [votes, setVotes] = useState({ bots: {}, map: {}, mutation: {}, curator: {}, supers: {} });
   const [mutations, setMutations] = useState([]);
   const [mapId, setMapId] = useState('default');
   const [mapSeedWanted, setMapSeedWanted] = useState(null);
   const [mode, setMode] = useState('normal');
   const [bossOn, setBossOn] = useState(false);
+  const [supersOn, setSupersOn] = useState(false);
   const [bossId, setBossId] = useState(null);
   const [bossHud, setBossHud] = useState(null);
   const bossHudRef = useRef(null);
@@ -369,12 +370,13 @@ export default function LobbyPage() {
             setMaps(payload.maps || []);
             setIsDefaultRoom(Boolean(payload.isDefault));
             setStartAt(payload.startAt || null);
-            setVotes(payload.votes || { bots: {}, map: {}, mutation: {}, curator: {} });
+            setVotes(payload.votes || { bots: {}, map: {}, mutation: {}, curator: {}, supers: {} });
             setLobbyPlatforms(payload.lobbyPlatforms || []);
             setMapId(payload.mapId || 'default');
             setMapSeedWanted(payload.mapSeedWanted ?? null);
             setMode(payload.mode || 'normal');
             setBossOn(Boolean(payload.bossOn));
+            setSupersOn(Boolean(payload.supers));
             setBossId(payload.bossId || null);
             setSecondCuratorId(payload.secondCuratorRandom ? 'random' : payload.secondCuratorId || null);
             setModeVoteOpen(Boolean(payload.modeVoteOpen));
@@ -398,6 +400,7 @@ export default function LobbyPage() {
             if (payload.mapSeedWanted !== undefined) setMapSeedWanted(payload.mapSeedWanted);
             if (payload.mode !== undefined) setMode(payload.mode);
             if (payload.bossOn !== undefined) setBossOn(Boolean(payload.bossOn));
+            if (payload.supers !== undefined) setSupersOn(Boolean(payload.supers));
             if (payload.bossId !== undefined) setBossId(payload.bossId || null);
             if (payload.secondCuratorId !== undefined || payload.secondCuratorRandom !== undefined) setSecondCuratorId(payload.secondCuratorRandom ? 'random' : payload.secondCuratorId || null);
             if (payload.modeVoteOpen !== undefined) setModeVoteOpen(Boolean(payload.modeVoteOpen));
@@ -782,6 +785,10 @@ export default function LobbyPage() {
 
   function handleSetBoss(on, id) {
     connRef.current?.send('set_boss', { on, bossId: id });
+  }
+
+  function handleSetSupers(on) {
+    connRef.current?.send('set_supers', { on });
   }
 
   function handleSetMode(newMode, secondId) {
@@ -1356,6 +1363,15 @@ export default function LobbyPage() {
               ) : (
                 <p style={styles.mapReadOnly}>{bossOn ? 'Jeffrey' : 'Sin Boss'}</p>
               )}
+              <p style={{ ...styles.characterPickerLabel, marginTop: 8 }}>Súper-habilidades</p>
+              {isHost && !isDefaultRoom ? (
+                <select style={styles.mapSelect} value={supersOn ? 'on' : 'off'} onChange={(e) => handleSetSupers(e.target.value === 'on')}>
+                  <option value="off">Desactivadas</option>
+                  <option value="on">Activadas</option>
+                </select>
+              ) : (
+                <p style={styles.mapReadOnly}>{supersOn ? 'Activadas' : 'Desactivadas'}</p>
+              )}
               <p style={{ fontSize: 10, opacity: 0.6, margin: '6px 0 0' }}>Modelo de Jeffrey: SinisterClock, CC-BY-NC 4.0</p>
               <Link href="/editor" style={styles.editorLink}>Crear mapa nuevo →</Link>
             </div>
@@ -1386,6 +1402,7 @@ export default function LobbyPage() {
                 ['map', 'Mapa', maps.filter((m) => !m.id.startsWith('c_')).map((m) => ({ id: m.id, label: m.name }))],
                 ['mutation', 'Modificador', mutations.map((m) => ({ id: m.id, label: m.name }))],
                 ...(modeVoteOpen ? [['mode', 'Modo de esta ronda', MODE_LIST.map((m) => ({ id: m.id, label: m.name }))]] : []),
+                ['supers', 'Súper-habilidades', [{ id: 'on', label: 'Activadas' }, { id: 'off', label: 'Desactivadas' }]],
                 ['curator', 'Curador', [{ id: 'random', label: 'Al azar' }, ...players.filter((pl) => !pl.isBot).map((pl) => ({ id: pl.id, label: pl.name }))]],
               ].map(([kind, title, options]) => {
                 const counts = {};

@@ -210,7 +210,7 @@ class Room {
     this.hostId = null;
     this.isDefault = false;
     this.startAt = null;
-    this.votes = { bots: {}, map: {}, mutation: {}, curator: {}, mode: {} };
+    this.votes = { bots: {}, map: {}, mutation: {}, curator: {}, mode: {}, supers: {} };
     this.phase = 'lobby';
     this.hitWindows = [];
     this.tickInterval = null;
@@ -218,6 +218,8 @@ class Room {
     this.mutation = 'none';
     this.mode = 'normal';
     this.bossOn = false;
+    this.supers = false;
+    this.supersOn = false;
     this.bossId = null;
     this.bossActive = false;
     this.secondCuratorId = null;
@@ -859,6 +861,8 @@ class Room {
       if (!MUTATIONS[value]) return;
     } else if (kind === 'mode') {
       if (!MODES.includes(value) || !this.modeVoteOpen()) return;
+    } else if (kind === 'supers') {
+      if (value !== 'on' && value !== 'off') return;
     } else if (kind === 'curator') {
       const target = this.players.get(value);
       if (value !== 'random' && (!target || target.isBot)) return;
@@ -881,6 +885,12 @@ class Room {
     this.bossOn = Boolean(on);
     this.bossId = bossId && bossId !== 'random' && this.players.has(bossId) ? bossId : null;
     this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, bossOn: this.bossOn, bossId: this.bossId });
+  }
+
+  setSupers(requesterId, on) {
+    if (this.phase !== 'lobby' || requesterId !== this.hostId || this.isDefault) return;
+    this.supers = Boolean(on);
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, supers: this.supers });
   }
 
   modeVoteOpen() {
@@ -1040,6 +1050,7 @@ class Room {
     const mutation = this.voteWinner('mutation');
     if (mutation) this.mutation = mutation;
     this.mode = this.modeVoteOpen() ? (this.voteWinner('mode') || 'normal') : 'normal';
+    this.supersOn = this.isDefault ? this.voteWinner('supers') === 'on' : this.supers;
     const bots = this.voteWinner('bots');
     if (bots !== null && !this.tutorial) {
       for (const [id, p] of [...this.players.entries()]) if (p.isBot) this.removePlayer(id);
@@ -1068,7 +1079,7 @@ class Room {
         if (p.isAsymRole && !was && !p.characterId) p.characterId = Characters.DEFAULT_CHARACTER_ID;
       }
     }
-    this.votes = { bots: {}, map: {}, mutation: {}, curator: {}, mode: {} };
+    this.votes = { bots: {}, map: {}, mutation: {}, curator: {}, mode: {}, supers: {} };
   }
 
   setMutation(requesterId, id) {
@@ -3097,7 +3108,7 @@ class Room {
     const role = Roles.getRole(roleId);
     if (!role) return;
     entity.role = role.id;
-    SuperAbilities.grant(entity, role.sup);
+    SuperAbilities.grant(entity, this.supersOn ? role.sup : null);
     entity.hand[0] = { options: [role.card], chosen: null };
     this.finalizeChoice(playerId, 0, role.card);
     entity.hand[1] = { options: Roles.secondOptions(role, Cards.OPTIONS_PER_SLOT), chosen: null };

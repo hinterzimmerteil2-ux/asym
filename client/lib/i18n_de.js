@@ -633,4 +633,7 @@ export const DE = [
 "Bajonett",
 "Barriere",
 "Köder",
+"Superfähigkeiten",
+"Aktiviert",
+"Deaktiviert",
 ];

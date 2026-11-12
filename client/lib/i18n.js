@@ -635,6 +635,9 @@ const PAIRS = [
 ["Bayoneta","Bayonet"],
 ["Barrera","Barrier"],
 ["Señuelo","Decoy"],
+["Súper-habilidades","Super-abilities"],
+["Activadas","Enabled"],
+["Desactivadas","Disabled"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };
