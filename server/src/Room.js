@@ -1050,7 +1050,7 @@ class Room {
     const mutation = this.voteWinner('mutation');
     if (mutation) this.mutation = mutation;
     this.mode = this.modeVoteOpen() ? (this.voteWinner('mode') || 'normal') : 'normal';
-    this.supersOn = this.isDefault ? this.voteWinner('supers') === 'on' : this.supers;
+    this.supers = this.voteWinner('supers') === 'on';
     const bots = this.voteWinner('bots');
     if (bots !== null && !this.tutorial) {
       for (const [id, p] of [...this.players.entries()]) if (p.isBot) this.removePlayer(id);
@@ -1528,6 +1528,7 @@ class Room {
 
   startMatch() {
     if (this.isDefault) this.applyVotes();
+    this.supersOn = this.tutorial ? false : this.supers;
     this.matchCount += 1;
     this.applyMode();
     Boss.prepare(this);
