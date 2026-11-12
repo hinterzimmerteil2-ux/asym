@@ -27,6 +27,8 @@ function level(entity, kind, now) {
 
 function apply(entity, kind, ms, now, opts = {}) {
   const store = fx(entity);
+  if ((kind === 'stun' || kind === 'ragdoll') && !opts.boss && require('./SuperAbilities').domeBlocks(entity, now)) return store[kind] || { until: 0, level: 1 };
+  if (kind === 'stun' && entity.size) ms = Math.min(ms, 1900 / Math.sqrt(entity.size));
   if ((kind === 'stun' || kind === 'ragdoll') && entity.size > 2) return store[kind] || { until: 0, level: 1 };
   if ((kind === 'stun' || kind === 'ragdoll') && entity.sup) require('./SuperAbilities').claim(entity);
   if (kind === 'stun' || kind === 'ragdoll') {
@@ -63,8 +65,11 @@ function speedFactor(entity, now) {
   return (lv ? SLOW_BY_LEVEL[Math.min(3, lv)] : 1) * (active(entity, 'emote', now) ? 0.92 : 1);
 }
 
-function push(entity, dx, dz, speed, ms, now) {
+function push(entity, dx, dz, speed, ms, now, opts = {}) {
   if (entity.size > 2) return;
+  const sa = require('./SuperAbilities');
+  if (!opts.boss && sa.domeBlocks(entity, now)) return;
+  speed = sa.scalePush(speed);
   entity.kbX = dx * speed;
   entity.kbZ = dz * speed;
   entity.kbUntil = now + ms;

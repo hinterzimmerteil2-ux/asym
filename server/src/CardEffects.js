@@ -258,7 +258,7 @@ function runFx(room, ownerId, ownerEntity, list, trigger, ctx, now) {
 function apply(room, playerId, entity, card, now) {
   if (card.astral) { room.startAstral(playerId, entity, card, now); return; }
   const handler = handlers[card.id] || (card.custom ? customHandler : null);
-  if (handler) handler({ room, playerId, entity, card, now });
+  if (handler) require('./SuperAbilities').withSource(entity, () => handler({ room, playerId, entity, card, now }));
 }
 
 function areaOf(card, entity) {

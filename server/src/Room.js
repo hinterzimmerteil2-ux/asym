@@ -1619,6 +1619,10 @@ class Room {
         ult: entity.ultAt || undefined,
         vm: entity.vmode,
         bcd: entity.bcdPub,
+        scl: entity.sup && entity.sup.id === 'town_level' ? 0.6 : undefined,
+        bar: entity.sup && entity.sup.dome > now ? 1 : undefined,
+        dec: entity.sup && entity.sup.decoy ? { x: Math.round(entity.sup.decoy.x * 10) / 10, y: Math.round(entity.sup.decoy.y * 10) / 10, z: Math.round(entity.sup.decoy.z * 10) / 10 } : undefined,
+        gld: entity.sup && entity.sup.glide ? 1 : undefined,
         wig: entity.sup && SuperAbilities.DEFS[entity.sup.id] && SuperAbilities.DEFS[entity.sup.id].wig ? 1 : undefined,
         ntf: entity.ntf && entity.ntf.until > now ? entity.ntf.until - now : undefined,
         tpMark: entity.tpMark ? { x: Math.round(entity.tpMark.x * 10) / 10, z: Math.round(entity.tpMark.z * 10) / 10 } : undefined,
@@ -1874,6 +1878,7 @@ class Room {
       speedMultiplier *= Status.speedFactor(entity, now) * Boss.speedFactor(this, this.players.get(entityPlayerId), entity);
       if (!this.players.get(entityPlayerId)?.isAsymRole) speedMultiplier *= MUTATIONS[this.mutation].speed;
       else speedMultiplier *= this.players.get(entityPlayerId)?.curatorSpeed || 1;
+      if (entity.sup && entity.sup.glide) speedMultiplier = Math.min(speedMultiplier, FAST_MULTIPLIER) * 0.8;
       if (entity.channel || entity.selfDmg) speedMultiplier *= CHANNEL_SLOW;
       if (entity.carry) speedMultiplier *= MODULE_CARRY_SLOW;
       if (entity.acetilUntil <= now && entity.fatigueUntil > now) speedMultiplier *= ACETIL_FATIGUE_FACTOR;
@@ -2001,6 +2006,7 @@ class Room {
       entity.x = Math.max(-area.halfSize, Math.min(area.halfSize, entity.x));
       entity.z = Math.max(-area.halfSize, Math.min(area.halfSize, entity.z));
 
+      if (entity.sup) SuperAbilities.glide(this, entity, Date.now(), dt);
       if (input.jump && entity.onGround && !stunned) {
         entity.velocityY = JUMP_VELOCITY;
         entity.onGround = false;
@@ -2018,6 +2024,7 @@ class Room {
       } else {
         entity.velocityY += GRAVITY * (this.phase === 'lobby' ? LOBBY_GRAVITY_FACTOR : MUTATIONS[this.mutation].gravity * this.modeGravityFactor(Date.now())) * dt;
         if (entity.velocityY < 0) entity.velocityY += AIR_DRAG * entity.velocityY * entity.velocityY * dt;
+        if (entity.sup) SuperAbilities.glide(this, entity, Date.now(), dt);
         entity.y += entity.velocityY * dt;
         entity.peakY = Math.max(entity.peakY || entity.y, entity.y);
         ground = groundAt(gPlats, entity.x, entity.z, entity.y - entity.velocityY * dt, STEP_UP, gS);
@@ -2517,6 +2524,7 @@ class Room {
         if (win.endsAt <= now) {
           this.endlag(win.playerId, owner, now);
           if (card.fx) CardEffects.runFx(this, win.playerId, owner, card.fx, 'miss', null, now);
+          SuperAbilities.miss(owner);
           continue;
         }
       }
@@ -2526,7 +2534,7 @@ class Room {
   }
 
   stun(playerId, entity, ms, now, hpLoss = 0) {
-    Status.apply(entity, 'stun', ms, now);
+    Status.apply(entity, 'stun', SuperAbilities.scaleStun(ms), now);
     const player = this.players.get(playerId);
     if (player && player.isAsymRole && hpLoss > 0) this.adjustCuratorHp(-hpLoss);
   }
@@ -2566,6 +2574,7 @@ class Room {
   healPatient(playerId, amount) {
     const patient = this.gameState.patients[playerId];
     if (!patient || patient.status !== 'alive') return false;
+    amount = SuperAbilities.absorbHeal(this.gameState.entities[playerId], amount * MUTATIONS[this.mutation].heal) / MUTATIONS[this.mutation].heal;
     patient.hp = Math.min(patient.maxHp, patient.hp + amount * MUTATIONS[this.mutation].heal);
     const healed = this.gameState.entities[playerId];
     if (healed && amount > 0) this.exitAstral(healed, Date.now());
@@ -3659,6 +3668,7 @@ class Room {
       this.award(handler, perfect ? 6 : 3, 'Módulo entregado');
       delete this.gameState.moduleHandler[game.objectId];
     }
+    if (damage > 0) SuperAbilities.onModule(entity);
     if (damage > 0) {
       if (game.type !== 'keys') {
         patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - damage);

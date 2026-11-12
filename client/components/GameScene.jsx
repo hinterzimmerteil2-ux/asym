@@ -1013,6 +1013,19 @@ function WigPieces() {
   );
 }
 
+function DecoyMark({ d, color }) {
+  return (
+    <group position={[d.x, d.y, d.z]} scale={0.6}>
+      <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} transparent opacity={0.55} roughness={0.6} /></mesh>
+      <group position={[0, 1.62, 0]}>
+        <mesh><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} transparent opacity={0.55} roughness={0.6} /></mesh>
+        <WigPieces />
+      </group>
+      <mesh position={[0, 0.36, 0]}><boxGeometry args={[0.5, 0.72, 0.3]} /><meshStandardMaterial color="#3a3d52" transparent opacity={0.55} roughness={0.6} /></mesh>
+    </group>
+  );
+}
+
 function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned, ragdoll, ghost, ghostOpacity = 0.65, cosmetics }) {
   const bodyRef = useRef();
   const lastPos = useRef([entityState.x, entityState.z]);
@@ -1289,7 +1302,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
   });
 
   return (
-    <group ref={groupRef} position={targetPos.current}>
+    <group ref={groupRef} position={targetPos.current} scale={entityState.scl || 1}>
+      {entityState.bar && <mesh position={[0, 1, 0]}><sphereGeometry args={[3.2 / (entityState.scl || 1), 20, 14]} /><meshBasicMaterial color="#7fd8ff" transparent opacity={0.16} depthWrite={false} side={DoubleSide} /></mesh>}
       <group ref={bodyRef}>
         <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
         <group ref={headRef} position={[0, 1.62, 0]}>
@@ -3311,6 +3325,7 @@ export default function GameScene({
                 <meshBasicMaterial color="#ff3b3b" depthTest={false} />
               </mesh>
             )}
+            {entityState.dec && <DecoyMark d={entityState.dec} color={color} />}
             {entityState.boss ? <BossCube e={entityState} /> : <PlayerCapsule
               playerId={playerId}
               entityState={entityState}

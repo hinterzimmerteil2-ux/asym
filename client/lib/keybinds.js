@@ -18,6 +18,7 @@ export const ACTIONS = [
   { id: 'sup1', label: 'Súper 1 (Notificación)', def: 'Digit3' },
   { id: 'sup2', label: 'Súper 2 (Vuelva mañana)', def: 'Digit4' },
   { id: 'sup3', label: 'Súper 3 (Anulación)', def: 'Digit5' },
+  { id: 'sup4', label: 'Súper 4 (Carga)', def: 'Digit6' },
   { id: 'emote', label: 'Emotes', def: 'KeyV' },
   { id: 'help', label: 'Ayuda', def: 'KeyH' },
   { id: 'hitboxes', label: 'Hitboxes', def: 'KeyB' },

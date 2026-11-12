@@ -513,7 +513,7 @@ function fireScreen(room, id, boss, now) {
 
 function stunOnce(e, ms, now) {
   if ((e.stunImmuneUntil || 0) > now) return false;
-  Status.apply(e, 'stun', ms, now);
+  Status.apply(e, 'stun', ms, now, { boss: true });
   e.stunImmuneUntil = now + ms + STUN_IMMUNE_MS;
   return true;
 }

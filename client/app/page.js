@@ -138,7 +138,7 @@ function fmtHp(n) {
 
 const SUPER_MODES = {
   sunat_paperwork: [['notificacion', 'Notificación'], ['vuelva', 'Vuelva mañana'], ['anulacion', 'Anulación']],
-  town_level: [['orbe', 'Vuelo de orbe'], ['crater', 'Cráter'], ['plegaria', 'Plegaria']],
+  town_level: [['bayoneta', 'Bayoneta'], ['barrera', 'Barrera'], ['senuelo', 'Señuelo'], ['carga', 'Carga']],
 };
 
 export default function LobbyPage() {
@@ -973,6 +973,7 @@ export default function LobbyPage() {
       else if (keyMatches('sup1', e.code)) { if (!e.repeat) handleSuper(0); }
       else if (keyMatches('sup2', e.code)) { if (!e.repeat) handleSuper(1); }
       else if (keyMatches('sup3', e.code)) { if (!e.repeat) handleSuper(2); }
+      else if (keyMatches('sup4', e.code)) { if (!e.repeat) handleSuper(3); }
     }
     function onKeyUp(e) {
       if (keyMatches('shiftlock', e.code)) shiftKeyRef.current.up();
@@ -1616,7 +1617,28 @@ export default function LobbyPage() {
           </div>
         )}
 
-        {phase === 'action' && !isAsymRole && flojera?.sup && (
+        {phase === 'action' && !isAsymRole && flojera?.sup?.id === 'town_level' && (
+          <div style={{ position: 'absolute', left: 12, bottom: touch ? 150 : 96, zIndex: 20, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, color: '#fff' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <span>Maná {flojera.sup.mana}/{flojera.sup.manaMax}</span>
+              <span style={{ color: '#7fd8ff' }}>Escudo {flojera.sup.shield}/{flojera.sup.shieldMax}</span>
+              {flojera.sup.charge > 0 && <span style={{ color: '#ffd86b' }}>Carga {flojera.sup.charge}/{flojera.sup.chargeMax}</span>}
+            </div>
+            <div style={{ display: 'flex', gap: 5 }}>
+              {SUPER_MODES.town_level.map(([m, label], i) => {
+                const cd = flojera.sup.cd[m] || 0;
+                const on = m === 'carga' && flojera.sup.charging;
+                return (
+                  <button key={m} type="button" disabled={cd > 0} onClick={() => handleSuper(m)} style={{ pointerEvents: 'auto', padding: '4px 7px', borderRadius: 6, border: '1px solid rgba(242,230,192,0.5)', background: on ? 'rgba(120,90,20,0.85)' : 'rgba(30,24,12,0.75)', color: '#f2e6c0', fontSize: 11, opacity: cd > 0 ? 0.45 : 1 }}>
+                    {i + 3} {label}{cd > 0 ? ` ${Math.ceil(cd / 1000)}` : ''}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {phase === 'action' && !isAsymRole && flojera?.sup && flojera.sup.id !== 'town_level' && (
           <div style={{ position: 'absolute', left: 12, bottom: touch ? 150 : 96, zIndex: 20, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, color: '#fff' }}>
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
               <span style={{ opacity: 0.75 }}>{flojera.sup.id === 'town_level' ? 'Orbes' : 'Hojas'}</span>

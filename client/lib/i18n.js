@@ -629,10 +629,12 @@ const PAIRS = [
 ["Súper 2 (Vuelva mañana)","Super 2 (Come back tomorrow)"],
 ["Súper 3 (Anulación)","Super 3 (Annulment)"],
 ["PV", "HP"],
-["Orbes","Orbs"],
-["Vuelo de orbe","Orb flight"],
-["Cráter","Crater"],
-["Plegaria","Prayer"],
+["Maná","Mana"],
+["Escudo","Shield"],
+["Carga","Charge"],
+["Bayoneta","Bayonet"],
+["Barrera","Barrier"],
+["Señuelo","Decoy"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };
