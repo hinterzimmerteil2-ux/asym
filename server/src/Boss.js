@@ -389,7 +389,21 @@ function extra(room, id, idx, now) {
     return true;
   }
   if (idx === 3) {
-    let t = nearestPlayer(room, id, boss, GRAB_RANGE);
+    let t = null;
+    {
+      const [afx, afz] = facing(boss);
+      let bs = Infinity;
+      for (const [pid, pe] of Object.entries(ents)) {
+        if (pid === id || pe.down || pe.gone || pe.corpse) continue;
+        const rx = pe.x - boss.x;
+        const rz = pe.z - boss.z;
+        const d = Math.hypot(rx, rz);
+        if (d > GRAB_RANGE || d < 0.01) continue;
+        const cos = (rx * afx + rz * afz) / d;
+        const score = d * (1 + 3 * (1 - cos)) * (room.players.get(pid)?.isAsymRole ? 0.7 : 1);
+        if (score < bs) { bs = score; t = pid; }
+      }
+    }
     for (const [pid, pe] of Object.entries(room.gameState.entities)) {
       if (pid !== id && !pe.down && !pe.gone && pe.sig && pe.sig.m === 0 && pe.sig.until > now && Math.hypot(pe.x - boss.x, pe.z - boss.z) <= GRAB_RANGE * 1.4) { t = pid; break; }
     }
