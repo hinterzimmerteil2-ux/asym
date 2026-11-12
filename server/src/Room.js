@@ -2536,7 +2536,7 @@ class Room {
         this.gameState.curatorDown = true;
         const cid = [...this.players.entries()].find(([, p]) => p.isAsymRole)?.[0];
         const ce = cid && this.gameState.entities[cid];
-        if (ce && !ce.down) { ce.down = true; ce.fatiga = 100; Status.apply(ce, 'stun', 3600000, Date.now()); }
+        if (ce && !ce.down) { ce.down = true; ce.fatiga = 100; Status.apply(ce, 'stun', 3600000, Date.now()); Status.apply(ce, 'ragdoll', 3600000, Date.now()); }
         this.checkGameEndConditions();
       }
       return;

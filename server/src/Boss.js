@@ -283,7 +283,10 @@ function takeDown(room, id, entity, now) {
   Status.apply(entity, 'stun', DOWN_MS, now);
   const patient = room.gameState.patients[id];
   if (patient && patient.status === 'alive') patient.status = 'down';
-  if (room.players.get(id)?.isAsymRole) room.gameState.curatorDown = true;
+  if (room.players.get(id)?.isAsymRole) {
+    room.gameState.curatorDown = true;
+    Status.apply(entity, 'ragdoll', DOWN_MS, now);
+  }
 }
 
 function curatorHp(room, id, fatPts) {
