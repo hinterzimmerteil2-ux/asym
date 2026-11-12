@@ -627,4 +627,8 @@ export const DE = [
 "Super 2 (Kommen Sie morgen wieder)",
 "Super 3 (Annullierung)",
 "HP",
+"Orbs",
+"Orbflug",
+"Krater",
+"Gebet",
 ];

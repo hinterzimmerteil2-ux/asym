@@ -998,6 +998,21 @@ function BossCube({ e }) {
   );
 }
 
+const WIG = '#e8c65a';
+const WIG_SHADE = '#c9a23c';
+function WigPieces() {
+  return (
+    <group>
+      <mesh position={[0, 0.22, -0.01]}><boxGeometry args={[0.46, 0.12, 0.46]} /><meshStandardMaterial color={WIG} roughness={0.7} /></mesh>
+      <mesh position={[0, 0.06, -0.2]}><boxGeometry args={[0.46, 0.4, 0.1]} /><meshStandardMaterial color={WIG} roughness={0.7} /></mesh>
+      <mesh position={[-0.23, 0.0, 0.0]}><boxGeometry args={[0.08, 0.34, 0.4]} /><meshStandardMaterial color={WIG_SHADE} roughness={0.7} /></mesh>
+      <mesh position={[0.23, 0.0, 0.0]}><boxGeometry args={[0.08, 0.34, 0.4]} /><meshStandardMaterial color={WIG_SHADE} roughness={0.7} /></mesh>
+      <mesh position={[-0.27, -0.22, -0.02]}><boxGeometry args={[0.1, 0.36, 0.14]} /><meshStandardMaterial color={WIG} roughness={0.7} /></mesh>
+      <mesh position={[0.27, -0.22, -0.02]}><boxGeometry args={[0.1, 0.36, 0.14]} /><meshStandardMaterial color={WIG} roughness={0.7} /></mesh>
+    </group>
+  );
+}
+
 function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned, ragdoll, ghost, ghostOpacity = 0.65, cosmetics }) {
   const bodyRef = useRef();
   const lastPos = useRef([entityState.x, entityState.z]);
@@ -1285,6 +1300,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
           <mesh position={[0, 0.2, -0.01]}><boxGeometry args={[0.4, 0.1, 0.4]} /><meshStandardMaterial color="#2a2320" roughness={0.9} /></mesh>
           <mesh position={[-0.07, 0.115, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
           <mesh position={[0.07, 0.115, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
+          {entityState.wig && <WigPieces />}
           <CosmeticPieces slot="head" cosmetics={cosmetics} />
         </group>
         <mesh position={[0, 0.78, 0]}><boxGeometry args={[0.76, 0.08, 0.4]} /><meshStandardMaterial color="#1b1d29" roughness={0.8} /></mesh>

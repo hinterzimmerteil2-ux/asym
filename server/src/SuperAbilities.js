@@ -11,7 +11,16 @@ const VUELVA_RANGE = 16;
 const CLAIMS_FOR_SHEET = 3;
 const USE_GAP_MS = 700;
 
+const ORB_DASH_MS = 450;
+const ORB_DASH_DISTANCE = 17;
+const CRATER_RANGE = 7;
+const CRATER_STUN_MS = 1300;
+const PRAYER_MS = 4500;
+const PRAYER_FACTOR = 1.55;
+const ORB_RUN_DISTANCE = 90;
+
 const DEFS = {
+  town_level: { id: 'town_level', name: 'Town Level Verse Lol', modes: ['orbe', 'crater', 'plegaria'], charges: 3, wig: true },
   sunat_paperwork: { id: 'sunat_paperwork', name: 'Sunat Paperwork', modes: ['notificacion', 'vuelva', 'anulacion'] },
 };
 
@@ -20,12 +29,12 @@ function grant(entity, id) {
     entity.sup = null;
     return;
   }
-  entity.sup = { id, sheets: SHEETS, copyLeft: true, claims: 0, nextAt: 0 };
+  entity.sup = { id, sheets: DEFS[id].charges || SHEETS, copyLeft: true, claims: 0, nextAt: 0, run: 0, lx: null, lz: null };
 }
 
 function claim(entity) {
   const s = entity && entity.sup;
-  if (!s) return;
+  if (!s || s.id !== 'sunat_paperwork') return;
   s.claims += 1;
   if (s.claims >= CLAIMS_FOR_SHEET) {
     s.claims = 0;
@@ -84,7 +93,9 @@ function use(room, playerId, mode, now) {
   const s = entity.sup;
   if (s.sheets <= 0 || now < s.nextAt) return false;
   if (mode !== 'anulacion' && Status.blocksSkills(entity, now)) return false;
-  if (mode === 'notificacion') {
+  if (mode === 'orbe' || mode === 'crater' || mode === 'plegaria') {
+    if (mode === 'crater' && !foes(room, entity, CRATER_RANGE).length) return false;
+  } else if (mode === 'notificacion') {
     const t = foes(room, entity, NOTIFY_RANGE)[0];
     if (!t || (t.e.ntf && t.e.ntf.until > now)) return false;
     t.e.ntf = { until: now + NOTIFY_DELAY_MS, by: playerId };
@@ -102,6 +113,23 @@ function use(room, playerId, mode, now) {
     entity.rag = null;
     entity.flojera = Math.max(entity.flojera || 0, (entity.flojeraMax || 0) * 0.6);
   }
+  if (mode === 'orbe') {
+    const len = Math.hypot(entity.input.moveX, entity.input.moveZ);
+    const dx = len > 0 ? entity.input.moveX / len : entity.faceX;
+    const dz = len > 0 ? entity.input.moveZ / len : entity.faceZ;
+    entity.dashUntil = now + ORB_DASH_MS;
+    entity.dashVX = (dx * ORB_DASH_DISTANCE) / (ORB_DASH_MS / 1000);
+    entity.dashVZ = (dz * ORB_DASH_DISTANCE) / (ORB_DASH_MS / 1000);
+    entity.dashExhausted = false;
+  } else if (mode === 'crater') {
+    const hit = foes(room, entity, CRATER_RANGE);
+    if (!hit.length) return false;
+    for (const f of hit) Status.apply(f.e, 'stun', CRATER_STUN_MS, now);
+  } else if (mode === 'plegaria') {
+    entity.sprintUntil = now + PRAYER_MS;
+    entity.sprintFactor = PRAYER_FACTOR;
+    entity.flojera = entity.flojeraMax || entity.flojera;
+  }
   if (s.copyLeft) s.copyLeft = false;
   else s.sheets -= 1;
   s.nextAt = now + USE_GAP_MS;
@@ -111,6 +139,20 @@ function use(room, playerId, mode, now) {
 
 function tick(room, now) {
   record(room, now);
+  for (const e of Object.values(room.gameState.entities)) {
+    const s = e.sup;
+    if (!s || s.id !== 'town_level' || e.down || e.gone) continue;
+    if (s.lx !== null) {
+      const d = Math.hypot(e.x - s.lx, e.z - s.lz);
+      if (d < 4) s.run += d;
+    }
+    s.lx = e.x;
+    s.lz = e.z;
+    if (s.run >= ORB_RUN_DISTANCE) {
+      s.run = 0;
+      if (s.sheets < DEFS.town_level.charges) s.sheets += 1;
+    }
+  }
   for (const e of Object.values(room.gameState.entities)) {
     if (!e.ntf || e.ntf.until > now) continue;
     e.ntf = null;
@@ -122,6 +164,7 @@ function tick(room, now) {
 function view(entity, now) {
   const s = entity.sup;
   if (!s) return null;
+  if (s.id === 'town_level') return { id: s.id, sheets: s.sheets, max: DEFS.town_level.charges, claims: Math.floor(s.run), need: ORB_RUN_DISTANCE, copy: s.copyLeft };
   return { id: s.id, sheets: s.sheets, max: SHEETS, claims: s.claims, need: CLAIMS_FOR_SHEET, copy: s.copyLeft };
 }
 

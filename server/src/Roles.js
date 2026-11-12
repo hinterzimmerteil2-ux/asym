@@ -19,6 +19,7 @@ const ROLES = [
     name: 'Cobrador de Combi',
     tagline: 'Tajos y escapes',
     card: 'tajo_carmesi',
+    sup: 'town_level',
     pool: ['red_mist', 'tropiezo', 'rodar', 'acetilcolina'],
   },
   {

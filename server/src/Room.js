@@ -1619,6 +1619,7 @@ class Room {
         ult: entity.ultAt || undefined,
         vm: entity.vmode,
         bcd: entity.bcdPub,
+        wig: entity.sup && SuperAbilities.DEFS[entity.sup.id] && SuperAbilities.DEFS[entity.sup.id].wig ? 1 : undefined,
         ntf: entity.ntf && entity.ntf.until > now ? entity.ntf.until - now : undefined,
         tpMark: entity.tpMark ? { x: Math.round(entity.tpMark.x * 10) / 10, z: Math.round(entity.tpMark.z * 10) / 10 } : undefined,
         fat: entity.fatiga ? Math.round(entity.fatiga * 10) / 10 : undefined,
