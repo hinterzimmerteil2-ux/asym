@@ -1422,9 +1422,7 @@ export default function LobbyPage() {
         {phase === 'action' && !isAsymRole && myPlayerId && patients[myPlayerId] && (
           <div style={sx(styles.hpBarContainer, { ...bar, bottom: 'auto', top: compact ? 40 : 80 })}>
             <div style={sx(styles.hpBarLabel, { fontSize: 10, marginBottom: 3 })}>
-              Tu HP: {fmtHp(patients[myPlayerId].hp)}/{fmtHp(patients[myPlayerId].maxHp || 120)}
-              {patients[myPlayerId].hp <= 20 && ' (¡cerca de ganar!)'}
-              {(patients[myPlayerId].maxHp || 120) < 1e6 && patients[myPlayerId].hp >= (patients[myPlayerId].maxHp || 120) - 20 && ' (¡cerca de ser curado del todo!)'}
+              PV {fmtHp(patients[myPlayerId].hp)}/{fmtHp(patients[myPlayerId].maxHp || 120)}
             </div>
             <div style={styles.hpBarTrack}>
               <div style={styles.hpBarFill(patients[myPlayerId].hp, patients[myPlayerId].maxHp || 120)} />
@@ -1459,7 +1457,7 @@ export default function LobbyPage() {
           const current = steps.findIndex(([k]) => !tutorial.flags[k]);
           const finished = current === -1;
           return (
-            <div style={{ position: 'absolute', right: 8, top: compact ? 96 : 150, zIndex: 40, width: compact ? 'min(260px, calc(100% - 16px))' : 'min(300px, calc(100% - 16px))', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, background: 'rgba(27,29,41,0.92)', border: '1px solid #f2d154', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ position: 'absolute', left: 8, top: compact ? 96 : 200, zIndex: 40, width: compact ? 'min(260px, calc(100% - 16px))' : 'min(280px, calc(100% - 16px))', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, background: 'rgba(27,29,41,0.92)', border: '1px solid #f2d154', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <strong>Tutorial</strong>
                 <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '2px 8px', fontSize: 11 }} onClick={() => setTutorial((t) => ({ ...t, minimized: !t.minimized }))}>{tutorial.minimized ? 'Mostrar' : 'Ocultar'}</button>
@@ -1534,10 +1532,7 @@ export default function LobbyPage() {
         {phase === 'action' && flojera && !bossHud?.isBoss && (
           <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: compact ? (isAsymRole ? 40 : 64) : (isAsymRole ? 80 : 110) })}>
             <div style={sx(styles.flojeraBarLabel, { fontSize: 10, marginBottom: 3 })}>
-              Flojera: {Math.round(flojera.value)}/{flojera.max}
-              {flojera.locked && ' (¡exhausto, no puedes correr!)'}
-              {flojera.sprinting && ' (¡sprint!)'}
-              {flojera.stunned && ' (¡en Diligencia!)'}
+              Flojera {Math.round(flojera.value)}/{flojera.max}{flojera.locked ? ' !' : ''}
             </div>
             <div style={styles.flojeraBarTrack}>
               <div style={styles.flojeraBarFill(flojera.value, flojera.max, flojera.locked)} />
