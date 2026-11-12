@@ -620,6 +620,14 @@ const PAIRS = [
 ["fallo","miss"],
 ["rodeado","surrounded"],
 ["inactividad","idle"],
+["Notificación","Notice"],
+["Vuelva mañana","Come back tomorrow"],
+["Anulación","Annulment"],
+["Hojas","Sheets"],
+["Reclamos","Complaints"],
+["Súper 1 (Notificación)","Super 1 (Notice)"],
+["Súper 2 (Vuelva mañana)","Super 2 (Come back tomorrow)"],
+["Súper 3 (Anulación)","Super 3 (Annulment)"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

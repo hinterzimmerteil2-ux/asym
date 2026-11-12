@@ -618,4 +618,12 @@ export const DE = [
 "Fehlschlag",
 "umzingelt",
 "Untätigkeit",
+"Bescheid",
+"Kommen Sie morgen wieder",
+"Annullierung",
+"Bögen",
+"Beschwerden",
+"Super 1 (Bescheid)",
+"Super 2 (Kommen Sie morgen wieder)",
+"Super 3 (Annullierung)",
 ];

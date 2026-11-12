@@ -281,6 +281,13 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.SUPER_ACTION: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.superAction(playerId, msg.payload && msg.payload.mode);
+        break;
+      }
+
       case MessageType.SELECT_ROLE: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;

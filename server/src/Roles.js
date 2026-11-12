@@ -11,6 +11,7 @@ const ROLES = [
     name: 'Hincha Cantarín del Barrio',
     tagline: 'Gritos, comida y carrera en grupo',
     card: 'grito_animo',
+    sup: 'sunat_paperwork',
     pool: ['acetilcolina', 'goyslop', 'chicharron', 'rodar'],
   },
   {

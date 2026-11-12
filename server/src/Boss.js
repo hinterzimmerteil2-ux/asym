@@ -298,6 +298,7 @@ function curatorHp(room, id, fatPts) {
 function addFatiga(room, id, real, imag, now) {
   const entity = room.gameState.entities[id];
   if (!entity || entity.down || room.players.get(id)?.isBoss) return;
+  if (entity.sup) require('./SuperAbilities').claim(entity);
   const cap = entity.fatigaCap || 1;
   entity.fatiga = Math.min(100, entity.fatiga + real / cap);
   entity.debt += imag / cap;

@@ -6,6 +6,7 @@ const Characters = require('./Characters');
 const CustomCards = require('./CustomCards');
 const Cards = require('./Cards');
 const Roles = require('./Roles');
+const SuperAbilities = require('./SuperAbilities');
 const CardEffects = require('./CardEffects');
 const Hitbox = require('./Hitbox');
 const MODULE_MIN_DIST = 9;
@@ -1583,6 +1584,7 @@ class Room {
       this.autoPickExpiredDrafts(now);
       this.tickZones(now, dt);
       Boss.tick(this, now, dt);
+      SuperAbilities.tick(this, now);
       this.tickAstral(now, dt);
       this.tickEating(now);
       this.tickCarry();
@@ -1617,6 +1619,7 @@ class Room {
         ult: entity.ultAt || undefined,
         vm: entity.vmode,
         bcd: entity.bcdPub,
+        ntf: entity.ntf && entity.ntf.until > now ? entity.ntf.until - now : undefined,
         tpMark: entity.tpMark ? { x: Math.round(entity.tpMark.x * 10) / 10, z: Math.round(entity.tpMark.z * 10) / 10 } : undefined,
         fat: entity.fatiga ? Math.round(entity.fatiga * 10) / 10 : undefined,
         debt: entity.debt ? Math.round(entity.debt * 10) / 10 : undefined,
@@ -1665,6 +1668,7 @@ class Room {
           sdGame: own.selfDmg ? this.sdView(own.selfDmg, now) : null,
           astral: own.astral ? { state: own.astral.state, charge: own.astral.state === 'charging' ? Math.min(1, (now - own.astral.startedAt) / own.astral.cfg.chargeMs) : own.astral.charge, readyMs: Math.max(0, own.astral.readyAt - now), slot: own.astral.slot } : null,
           cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
+          sup: SuperAbilities.view(own, now),
         };
       }
       const snapFull = {
@@ -3083,6 +3087,7 @@ class Room {
     const role = Roles.getRole(roleId);
     if (!role) return;
     entity.role = role.id;
+    SuperAbilities.grant(entity, role.sup);
     entity.hand[0] = { options: [role.card], chosen: null };
     this.finalizeChoice(playerId, 0, role.card);
     entity.hand[1] = { options: Roles.secondOptions(role, Cards.OPTIONS_PER_SLOT), chosen: null };
@@ -3134,6 +3139,11 @@ class Room {
     entity.rerolls--;
     for (const sl of open) sl.options = sl.options.map((id) => (id === cardId ? fresh : id));
     this.sendCardOffer(playerId, entity);
+  }
+
+  superAction(playerId, mode) {
+    if (this.phase !== 'action' || this.gameState.gameOver || this.gameState.frozen) return;
+    SuperAbilities.use(this, playerId, mode, Date.now());
   }
 
   useCard(playerId, slotIndex) {

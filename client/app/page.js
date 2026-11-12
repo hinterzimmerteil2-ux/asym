@@ -920,6 +920,11 @@ export default function LobbyPage() {
     connRef.current?.send('curator_pulse_action', { skill });
   }, [isAsymRole, phase]);
 
+  const handleSuper = useCallback((mode) => {
+    if (isAsymRole || phase !== 'action') return;
+    connRef.current?.send('super_action', { mode });
+  }, [isAsymRole, phase]);
+
   const handleUseCard = useCallback((slot) => {
     if (isAsymRole || phase !== 'action') return;
     connRef.current?.send('use_card_action', { slot });
@@ -957,6 +962,9 @@ export default function LobbyPage() {
       else if (keyMatches('dropmod', e.code)) { if (!e.repeat && !isAsymRoleRef.current) connRef.current?.send('module_drop', {}); }
       else if (keyMatches('card1', e.code)) { if (!e.repeat) handleUseCard(0); }
       else if (keyMatches('card2', e.code)) { if (!e.repeat) handleUseCard(1); }
+      else if (keyMatches('sup1', e.code)) { if (!e.repeat) handleSuper('notificacion'); }
+      else if (keyMatches('sup2', e.code)) { if (!e.repeat) handleSuper('vuelva'); }
+      else if (keyMatches('sup3', e.code)) { if (!e.repeat) handleSuper('anulacion'); }
     }
     function onKeyUp(e) {
       if (keyMatches('shiftlock', e.code)) shiftKeyRef.current.up();
@@ -966,7 +974,7 @@ export default function LobbyPage() {
     window.addEventListener('keydown', unlockAudio);
     window.addEventListener('keyup', onKeyUp);
     return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); window.removeEventListener('pointerdown', unlockAudio); window.removeEventListener('keydown', unlockAudio); };
-  }, [handleUseCard]);
+  }, [handleUseCard, handleSuper]);
 
   useEffect(() => {
     function onPointerDown(e) {
@@ -1602,6 +1610,25 @@ export default function LobbyPage() {
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {phase === 'action' && !isAsymRole && flojera?.sup && (
+          <div style={{ position: 'absolute', left: 12, bottom: touch ? 150 : 96, zIndex: 20, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, color: '#fff' }}>
+            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+              <span style={{ opacity: 0.75 }}>Hojas</span>
+              {Array.from({ length: flojera.sup.max }).map((_, i) => (
+                <span key={i} style={{ width: 10, height: 13, borderRadius: 2, background: i < flojera.sup.sheets ? '#f2e6c0' : 'rgba(255,255,255,0.15)', border: '1px solid rgba(0,0,0,0.4)' }} />
+              ))}
+              <span style={{ opacity: 0.7, marginLeft: 6 }}>{flojera.sup.claims}/{flojera.sup.need}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 5 }}>
+              {[['notificacion', 'Notificación', 3], ['vuelva', 'Vuelva mañana', 4], ['anulacion', 'Anulación', 5]].map(([m, label, k]) => (
+                <button key={m} type="button" disabled={flojera.sup.sheets <= 0} onClick={() => handleSuper(m)} style={{ pointerEvents: 'auto', padding: '4px 7px', borderRadius: 6, border: '1px solid rgba(242,230,192,0.5)', background: 'rgba(30,24,12,0.75)', color: '#f2e6c0', fontSize: 11, opacity: flojera.sup.sheets <= 0 ? 0.4 : 1 }}>
+                  {k} {label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

@@ -3013,6 +3013,30 @@ function BossM1Frame({ e, opacity }) {
 }
 const M1_EDGES = new EdgesGeometry(new BoxGeometry(1, 1, 1));
 
+function NotifyMarks({ entities }) {
+  const list = Object.entries(entities || {}).filter(([, en]) => en.ntf > 0 && !en.corpse && !en.gone);
+  if (!list.length) return null;
+  return (
+    <>
+      {list.map(([id, en]) => {
+        const k = Math.max(0.1, Math.min(1, en.ntf / 3500));
+        return (
+          <group key={'ntf' + id} position={[en.x, (en.y || 0) + (en.boss ? 8 : 3.2), en.z]}>
+            <mesh rotation={[Math.PI / 2, 0, 0]} scale={[0.4 + k, 0.4 + k, 1]} renderOrder={998}>
+              <ringGeometry args={[0.8, 1, 24]} />
+              <meshBasicMaterial color="#f2e6c0" transparent opacity={0.9} depthTest={false} depthWrite={false} />
+            </mesh>
+            <mesh renderOrder={998}>
+              <boxGeometry args={[0.5, 0.65, 0.05]} />
+              <meshBasicMaterial color="#fff6d8" depthTest={false} />
+            </mesh>
+          </group>
+        );
+      })}
+    </>
+  );
+}
+
 function ScanMarks({ entities, myId }) {
   const me = entities?.[myId];
   if (!me || !me.boss || !me.scn) return null;
@@ -3181,6 +3205,7 @@ export default function GameScene({
       <color attach="background" args={[phase === 'action' ? '#090607' : '#12162e']} />
       <fog attach="fog" args={phase === 'action' ? (gameMode === 'lights' ? ['#030203', 2, (playerById.get(myPlayerId)?.isAsymRole ? 34 : 22) * (lmsActive ? 0.6 : 1)] : ['#130b0e', 45, g.fogFar]) : ['#12162e', 45, 130]} />
       <GlProbe />
+      <NotifyMarks entities={entities} />
       {phase === 'action' && <ScanMarks entities={entities} myId={myPlayerId} />}
       {phase === 'action' && <Embers />}
       {phase === 'action' && <NightDecor showStars={g.stars} lights={g.lights} lightCount={g.lightCount} />}

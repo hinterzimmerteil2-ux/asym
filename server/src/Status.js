@@ -28,6 +28,7 @@ function level(entity, kind, now) {
 function apply(entity, kind, ms, now, opts = {}) {
   const store = fx(entity);
   if ((kind === 'stun' || kind === 'ragdoll') && entity.size > 2) return store[kind] || { until: 0, level: 1 };
+  if ((kind === 'stun' || kind === 'ragdoll') && entity.sup) require('./SuperAbilities').claim(entity);
   if (kind === 'stun' || kind === 'ragdoll') {
     delete store.emote;
     entity.emote = null;
