@@ -286,12 +286,19 @@ function takeDown(room, id, entity, now) {
   if (room.players.get(id)?.isAsymRole) room.gameState.curatorDown = true;
 }
 
+function curatorHp(room, id, fatPts) {
+  const c = room.gameState.curator;
+  if (!c || !room.players.get(id)?.isAsymRole) return;
+  room.adjustCuratorHp(-(fatPts / 100) * (c.max / 2));
+}
+
 function addFatiga(room, id, real, imag, now) {
   const entity = room.gameState.entities[id];
   if (!entity || entity.down || room.players.get(id)?.isBoss) return;
   const cap = entity.fatigaCap || 1;
   entity.fatiga = Math.min(100, entity.fatiga + real / cap);
   entity.debt += imag / cap;
+  curatorHp(room, id, real / cap);
   if (entity.fatiga >= 100) takeDown(room, id, entity, now);
 }
 
@@ -301,6 +308,7 @@ function collapse(room, id, now) {
   const applied = Math.min(FATIGA_CAP_PER_COLLAPSE, (entity.debt * entity.debt) / DEBT_DIVISOR);
   entity.debt = 0;
   entity.fatiga = Math.min(100, entity.fatiga + applied);
+  curatorHp(room, id, applied);
   if (entity.fatiga >= 100) takeDown(room, id, entity, now);
   return applied;
 }
