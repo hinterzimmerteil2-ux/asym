@@ -292,7 +292,7 @@ wss.on('connection', (ws) => {
       case MessageType.SUPER_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
-        room.superAction(playerId, msg.payload && msg.payload.mode);
+        room.superAction(playerId, msg.payload && msg.payload.mode, msg.payload && msg.payload.face);
         break;
       }
 

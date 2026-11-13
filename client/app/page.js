@@ -12,7 +12,7 @@ import {
   clearSession,
   updateDisplayName,
 } from '../lib/session';
-import GameScene from '../components/GameScene';
+import GameScene, { facingOf } from '../components/GameScene';
 import { play as playSfx, trackSteps, unlockAudio } from '../lib/sfx';
 import SkillIcon from '../components/SkillIcon';
 import HelpPanel from '../components/HelpPanel';
@@ -529,6 +529,13 @@ export default function LobbyPage() {
             setLmsUntil(Date.now() + 5500);
             setTimeout(() => setLmsUntil(0), 5500);
             break;
+          case 'super_result': {
+            const fxe = { ...payload, id: `fx${++effectCounterRef.current}`, sup: true, kind: `sup_${payload.mode}`, startedAt: Date.now() };
+            const own = entitiesRef.current[payload.playerId];
+            if (fxe.x === undefined && own) { fxe.x = own.x; fxe.y = own.y || 0; fxe.z = own.z; }
+            setEffects((prev) => [...prev.filter((e) => Date.now() - e.startedAt < 1500), fxe]);
+            break;
+          }
           case 'hit_fx': {
             const effect = { id: `fx${++effectCounterRef.current}`, casterId: payload.playerId, kind: 'hit', boxes: payload.boxes, startedAt: Date.now() };
             setEffects((prev) => [...prev.filter((e) => Date.now() - e.startedAt < 1500), effect]);
@@ -937,7 +944,7 @@ export default function LobbyPage() {
   const handleSuper = useCallback((m) => {
     if (isAsymRole || phase !== 'action') return;
     const mode = typeof m === 'number' ? (SUPER_MODES[supRef.current] || [])[m]?.[0] : m;
-    if (mode) connRef.current?.send('super_action', { mode });
+    if (mode) connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined });
   }, [isAsymRole, phase]);
 
   const handleUseCard = useCallback((slot) => {
@@ -1595,16 +1602,17 @@ export default function LobbyPage() {
                     <span style={styles.draftTitle}>Elige 2 ({picked}/2), {secondsLeft}s, Renovar: {rerolls}</span>
                     <div style={styles.draftRow}>
                       {slot.options.map((card, n) => (
-                        <div key={card.id} className="draft-card" style={styles.draftCard(card.rarity, card.corrupt, n)}>
+                        <div key={card.id} className="draft-card" style={styles.draftCard(card.super ? 'super' : card.rarity, card.corrupt, n)}>
                           <button type="button" className="draft-face" onClick={() => handleChooseCard(i, card.id)} title={card.description} style={styles.draftFace}>
                             <SkillIcon id={card.id} size={44} />
                             <span style={styles.cardButtonName}>{card.displayName}</span>
                             {card.corrupt && <span style={styles.draftDeck}>corrupto</span>}
+                            {card.super && <span style={styles.draftDeck}>Reemplaza tus 2 cartas</span>}
                             <span style={styles.keywordRow}>
                               {(card.keywords || []).slice(0, 2).map((k) => <KeywordChip key={k} id={k} />)}
                             </span>
                           </button>
-                          <button type="button" disabled={rerolls <= 0} onClick={() => handleReroll(card.id)} title="Renovar esta carta" style={styles.draftReroll(rerolls > 0)}>↻</button>
+                          {!card.super && <button type="button" disabled={rerolls <= 0} onClick={() => handleReroll(card.id)} title="Renovar esta carta" style={styles.draftReroll(rerolls > 0)}>↻</button>}
                         </div>
                       ))}
                     </div>
@@ -1635,7 +1643,7 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && !isAsymRole && flojera?.sup?.id === 'town_level' && (
-          <div style={{ position: 'absolute', left: 12, bottom: touch ? 150 : 96, zIndex: 20, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, color: '#fff' }}>
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: touch ? 150 : 150, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, fontSize: 11, color: '#fff' }}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <span>Maná {flojera.sup.mana}/{flojera.sup.manaMax}</span>
               <span style={{ color: '#7fd8ff' }}>Escudo {flojera.sup.shield}/{flojera.sup.shieldMax}</span>
@@ -1656,7 +1664,7 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && !isAsymRole && flojera?.sup && flojera.sup.id !== 'town_level' && (
-          <div style={{ position: 'absolute', left: 12, bottom: touch ? 150 : 96, zIndex: 20, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, color: '#fff' }}>
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: touch ? 150 : 150, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, fontSize: 11, color: '#fff' }}>
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
               <span style={{ opacity: 0.75 }}>{flojera.sup.id === 'town_level' ? 'Orbes' : 'Hojas'}</span>
               {Array.from({ length: flojera.sup.max }).map((_, i) => (
@@ -2565,7 +2573,7 @@ const styles = {
     width: 118,
     height: 168,
     borderRadius: 12,
-    border: `2px solid ${corrupt ? '#d94fd0' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#d94a52' : '#3d2c33'}`,
+    border: `2px solid ${corrupt ? '#d94fd0' : rarity === 'super' ? '#ffe14a' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#d94a52' : '#3d2c33'}`,
     background: 'linear-gradient(160deg, #241a20, #14151d)',
     boxShadow: '0 8px 22px rgba(0,0,0,0.55)',
     animationDelay: `${n * 90}ms`,

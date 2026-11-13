@@ -636,4 +636,9 @@ export const DE = [
 "Superfähigkeiten",
 "Aktiviert",
 "Deaktiviert",
+"Superfähigkeit. Ersetzt beide Karten. Drei Modi mit 3 Blättern: Zustellung (betäubt einen markierten Gegner), Kommen Sie morgen wieder (spult ihn 4,5 s zurück) und Annullierung (spult dich zurück und löscht Zustände). Passiv: Beglaubigte Kopie (erste Nutzung gratis) und Beschwerdebuch (alle 3 erlittenen Zustände geben ein Blatt zurück). Tasten 3, 4 und 5.",
+"Superfähigkeit. Ersetzt beide Karten. Bajonett (Stoß oder Fernschuss mit Rückstoß), Barriere (magischer Schild vor dir) und Köder (Kopie mit Perücke). Passiv: Rheinteufel (Perücke, 40 % kleiner, Mana verstärkt Rückstoß und Betäubung) und Gleiten. Tasten 3, 4, 5 und 6.",
+"Aktive Superfähigkeit",
+"Deine Superfähigkeit belegt diesen Platz.",
+"Ersetzt beide Karten",
 ];

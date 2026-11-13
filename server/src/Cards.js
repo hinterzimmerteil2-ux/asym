@@ -145,8 +145,22 @@ const DRAFT_DURATION_MS = 24000;
 
 for (const card of Object.values(CARDS)) card.weight = RARITY_WEIGHTS[card.rarity] || RARITY_WEIGHTS.common;
 
+const SUPER_CARDS = {
+  super_sunat_paperwork: {
+    id: 'super_sunat_paperwork', super: true, superId: 'sunat_paperwork', keywords: ['súper'], rarity: 'rare', weight: 0,
+    displayName: 'Sunat Paperwork',
+    description: 'Súper-habilidad. Reemplaza tus dos cartas. Tres modos con 3 hojas: Notificación (aturde a un enemigo marcado), Vuelva mañana (lo rebobina 4,5 s) y Anulación (te rebobinas y limpias estados). Pasivas: Copia legalizada (primer uso gratis) y Libro de reclamaciones (cada 3 estados recibidos devuelven una hoja). Teclas 3, 4 y 5.',
+  },
+  super_town_level: {
+    id: 'super_town_level', super: true, superId: 'town_level', keywords: ['súper'], rarity: 'rare', weight: 0,
+    displayName: 'Town Level Verse Lol',
+    description: 'Súper-habilidad. Reemplaza tus dos cartas. Bayoneta (estocada o disparo de largo alcance con retroceso), Barrera (escudo mágico frontal) y Señuelo (copia con peluca). Pasivas: Demonio del Rin (peluca, 40 % más pequeño y maná que potencia empuje y aturdimiento) y Planeo. Teclas 3, 4, 5 y 6.',
+  },
+  super_slot: { id: 'super_slot', super: true, keywords: ['súper'], rarity: 'common', weight: 0, displayName: 'Súper-habilidad activa', description: 'Tu Súper-habilidad ocupa este espacio.' },
+};
+
 function getCard(cardId) {
-  return CARDS[cardId] || require('./CustomCards').get(cardId) || null;
+  return SUPER_CARDS[cardId] || CARDS[cardId] || require('./CustomCards').get(cardId) || null;
 }
 
 function dealSlot(chosenIds = [], extra = []) {
@@ -214,4 +228,4 @@ function listCards() {
   }));
 }
 
-module.exports = { listCards, CARDS, SLOT_COUNT, OPTIONS_PER_SLOT, POOL_SIZE, REROLLS, dealPool, DRAFT_DURATION_MS, getCard, dealSlot, dealSlots };
+module.exports = { SUPER_CARDS, listCards, CARDS, SLOT_COUNT, OPTIONS_PER_SLOT, POOL_SIZE, REROLLS, dealPool, DRAFT_DURATION_MS, getCard, dealSlot, dealSlots };

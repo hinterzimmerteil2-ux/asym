@@ -49,4 +49,6 @@ function secondOptions(role, count) {
   return role.pool.slice().sort(() => Math.random() - 0.5).slice(0, count);
 }
 
-module.exports = { ROLES, getRole, list, secondOptions };
+const SUPER_CARD = { sunat_paperwork: 'super_sunat_paperwork', town_level: 'super_town_level' };
+
+module.exports = { SUPER_CARD, ROLES, getRole, list, secondOptions };

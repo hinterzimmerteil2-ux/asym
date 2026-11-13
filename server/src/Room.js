@@ -1528,7 +1528,7 @@ class Room {
 
   startMatch() {
     if (this.isDefault) this.applyVotes();
-    this.supersOn = this.tutorial ? false : this.supers;
+    this.supersOn = this.tutorial ? true : this.supers;
     this.matchCount += 1;
     this.applyMode();
     Boss.prepare(this);
@@ -1633,6 +1633,8 @@ class Room {
         bcd: entity.bcdPub,
         scl: entity.sup && entity.sup.id === 'town_level' ? 0.6 : undefined,
         bar: entity.sup && entity.sup.dome > now ? 1 : undefined,
+        wpn: SuperAbilities.wpnActive(entity, now) || undefined,
+        chg: entity.sup && entity.sup.charging ? 1 : undefined,
         dec: entity.sup && entity.sup.decoy ? { x: Math.round(entity.sup.decoy.x * 10) / 10, y: Math.round(entity.sup.decoy.y * 10) / 10, z: Math.round(entity.sup.decoy.z * 10) / 10 } : undefined,
         gld: entity.sup && entity.sup.glide ? 1 : undefined,
         wig: entity.sup && SuperAbilities.DEFS[entity.sup.id] && SuperAbilities.DEFS[entity.sup.id].wig ? 1 : undefined,
@@ -3109,10 +3111,11 @@ class Room {
     const role = Roles.getRole(roleId);
     if (!role) return;
     entity.role = role.id;
-    SuperAbilities.grant(entity, this.supersOn ? role.sup : null);
+    SuperAbilities.grant(entity, null);
+    entity.supOffer = this.supersOn && role.sup ? role.sup : null;
     entity.hand[0] = { options: [role.card], chosen: null };
     this.finalizeChoice(playerId, 0, role.card);
-    entity.hand[1] = { options: Roles.secondOptions(role, Cards.OPTIONS_PER_SLOT), chosen: null };
+    entity.hand[1] = { options: [...Roles.secondOptions(role, Cards.OPTIONS_PER_SLOT), ...(entity.supOffer ? [Roles.SUPER_CARD[entity.supOffer]] : [])], chosen: null };
     entity.draftEndsAt = Date.now() + Cards.DRAFT_DURATION_MS;
     this.sendTo(playerId, MessageType.ROLE_SELECTED, { roleId: role.id });
     this.sendCardOffer(playerId, entity);
@@ -3138,6 +3141,15 @@ class Room {
   }
 
   takeCard(playerId, entity, index, cardId) {
+    const picked = Cards.getCard(cardId);
+    if (picked && picked.super && picked.superId) {
+      SuperAbilities.grant(entity, picked.superId);
+      this.finalizeChoice(playerId, 0, cardId);
+      this.finalizeChoice(playerId, 1, 'super_slot');
+      entity.draftEndsAt = 0;
+      this.sendCardOffer(playerId, entity);
+      return;
+    }
     this.finalizeChoice(playerId, index, cardId);
     for (const sl of entity.hand) if (!sl.chosen && sl.options) sl.options = sl.options.filter((id) => id !== cardId);
     if (entity.hand.every((sl) => sl.chosen)) entity.draftEndsAt = 0;
@@ -3155,6 +3167,7 @@ class Room {
     }
     const open = entity.hand.filter((sl) => !sl.chosen);
     if (!open.length || !open[0].options.includes(cardId)) return;
+    if (Cards.getCard(cardId)?.super) return;
     const chosenIds = entity.hand.filter((sl) => sl.chosen).map((sl) => sl.chosen);
     const fresh = Cards.dealPool(GameMap.getCustomCards(this.mapId), [...open[0].options, ...chosenIds])[0];
     if (!fresh) return;
@@ -3163,8 +3176,16 @@ class Room {
     this.sendCardOffer(playerId, entity);
   }
 
-  superAction(playerId, mode) {
+  superAction(playerId, mode, face) {
     if (this.phase !== 'action' || this.gameState.gameOver || this.gameState.frozen) return;
+    const e = this.gameState.entities[playerId];
+    if (e && face && Number.isFinite(face.x) && Number.isFinite(face.z)) {
+      const fl = Math.hypot(face.x, face.z);
+      if (fl > 0.01) {
+        e.faceX = face.x / fl;
+        e.faceZ = face.z / fl;
+      }
+    }
     SuperAbilities.use(this, playerId, mode, Date.now());
   }
 
@@ -3192,6 +3213,7 @@ class Room {
     }
 
     const card = Cards.getCard(slot.chosen);
+    if (card && card.super) return;
     const now = Date.now();
     if (entity.channel && entity.channel.cardId === card.id && entity.channel.endsAt > now) {
       this.channelBeat(playerId, entity, now);

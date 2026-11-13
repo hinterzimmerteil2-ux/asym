@@ -638,6 +638,11 @@ const PAIRS = [
 ["Súper-habilidades","Super-abilities"],
 ["Activadas","Enabled"],
 ["Desactivadas","Disabled"],
+["Súper-habilidad. Reemplaza tus dos cartas. Tres modos con 3 hojas: Notificación (aturde a un enemigo marcado), Vuelva mañana (lo rebobina 4,5 s) y Anulación (te rebobinas y limpias estados). Pasivas: Copia legalizada (primer uso gratis) y Libro de reclamaciones (cada 3 estados recibidos devuelven una hoja). Teclas 3, 4 y 5.","Super-ability. Replaces both of your cards. Three modes with 3 sheets: Notification (stuns a marked enemy), Come Back Tomorrow (rewinds them 4.5 s) and Annulment (rewind yourself and clear statuses). Passives: Certified Copy (first use is free) and Complaints Book (every 3 statuses taken returns a sheet). Keys 3, 4 and 5."],
+["Súper-habilidad. Reemplaza tus dos cartas. Bayoneta (estocada o disparo de largo alcance con retroceso), Barrera (escudo mágico frontal) y Señuelo (copia con peluca). Pasivas: Demonio del Rin (peluca, 40 % más pequeño y maná que potencia empuje y aturdimiento) y Planeo. Teclas 3, 4, 5 y 6.","Super-ability. Replaces both of your cards. Bayonet (thrust, or a long-range shot with recoil), Barrier (a magic shield in front of you) and Decoy (a copy wearing a wig). Passives: Rhine Devil (wig, 40% smaller, and mana that boosts knockback and stun) and Glide. Keys 3, 4, 5 and 6."],
+["Súper-habilidad activa","Active super-ability"],
+["Tu Súper-habilidad ocupa este espacio.","Your super-ability takes up this slot."],
+["Reemplaza tus 2 cartas","Replaces both cards"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

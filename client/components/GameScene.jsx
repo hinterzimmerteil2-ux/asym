@@ -28,6 +28,10 @@ const COLOR_WALL_TINT = '#bcd6ea';
 const COLOR_EMERGENCY_LIGHT = '#5468ff';
 
 const FACING = new Map();
+export function facingOf(id) {
+  const y = FACING.get(id);
+  return y === undefined ? null : { x: Math.round(Math.sin(y) * 100) / 100, z: Math.round(Math.cos(y) * 100) / 100 };
+}
 const HAND_ANIMS = new Map();
 const ANIM_DURATION = { swing: 650, swingL: 650, consume: 1700, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600, plant: 900, vanish: 1000, pulse: 900, point: 750, pull: 900 };
 const IMPACT_MS = { swing: 260, swingL: 260, consume: 1500, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150, plant: 520, vanish: 400, pulse: 350, point: 300, pull: 450 };
@@ -998,19 +1002,259 @@ function BossCube({ e }) {
   );
 }
 
-const WIG = '#e8c65a';
-const WIG_SHADE = '#c9a23c';
+const WIG = '#ffe066';
+const WIG_LIGHT = '#fff4b0';
+const WIG_SHADE = '#e6b93a';
+const WIG_TIE = '#b3343f';
+const BANGS = [[-0.16, 0.11], [-0.08, 0.15], [0, 0.09], [0.08, 0.14], [0.16, 0.12]];
+const BACK = [[0.44, 0.4, 0.1, -0.24, 0.04, WIG], [0.4, 0.3, 0.09, -0.3, -0.2, WIG_SHADE], [0.3, 0.22, 0.08, -0.34, -0.4, WIG_LIGHT]];
+const LOCKS = [[-0.235, WIG], [0.235, WIG], [-0.265, WIG_SHADE], [0.265, WIG_SHADE]];
+
 function WigPieces() {
+  const m = (c) => <meshStandardMaterial color={c} roughness={0.75} />;
   return (
     <group>
-      <mesh position={[0, 0.22, -0.01]}><boxGeometry args={[0.46, 0.12, 0.46]} /><meshStandardMaterial color={WIG} roughness={0.7} /></mesh>
-      <mesh position={[0, 0.06, -0.2]}><boxGeometry args={[0.46, 0.4, 0.1]} /><meshStandardMaterial color={WIG} roughness={0.7} /></mesh>
-      <mesh position={[-0.23, 0.0, 0.0]}><boxGeometry args={[0.08, 0.34, 0.4]} /><meshStandardMaterial color={WIG_SHADE} roughness={0.7} /></mesh>
-      <mesh position={[0.23, 0.0, 0.0]}><boxGeometry args={[0.08, 0.34, 0.4]} /><meshStandardMaterial color={WIG_SHADE} roughness={0.7} /></mesh>
-      <mesh position={[-0.27, -0.22, -0.02]}><boxGeometry args={[0.1, 0.36, 0.14]} /><meshStandardMaterial color={WIG} roughness={0.7} /></mesh>
-      <mesh position={[0.27, -0.22, -0.02]}><boxGeometry args={[0.1, 0.36, 0.14]} /><meshStandardMaterial color={WIG} roughness={0.7} /></mesh>
+      <mesh position={[0, 0.23, -0.01]}><boxGeometry args={[0.46, 0.1, 0.46]} />{m(WIG)}</mesh>
+      <mesh position={[0, 0.29, -0.02]}><boxGeometry args={[0.34, 0.05, 0.38]} />{m(WIG_LIGHT)}</mesh>
+      {BANGS.map(([x, h], i) => <mesh key={`b${i}`} position={[x, 0.2 - h / 2 + 0.02, 0.215]}><boxGeometry args={[0.085, h, 0.06]} />{m(i % 2 ? WIG_LIGHT : WIG)}</mesh>)}
+      {LOCKS.map(([x, c], i) => <mesh key={`l${i}`} position={[x, i < 2 ? -0.03 : -0.16, i < 2 ? 0.0 : 0.04]}><boxGeometry args={[0.07, i < 2 ? 0.36 : 0.22, i < 2 ? 0.4 : 0.2]} />{m(c)}</mesh>)}
+      {BACK.map(([w, h, d, z, y, c], i) => <mesh key={`k${i}`} position={[0, y, z]}><boxGeometry args={[w, h, d]} />{m(c)}</mesh>)}
+      {[-1, 1].map((sd) => (
+        <group key={`t${sd}`} position={[sd * 0.31, 0.1, -0.12]} rotation={[0, 0, -sd * 0.12]}>
+          <mesh><boxGeometry args={[0.07, 0.07, 0.07]} />{m(WIG_TIE)}</mesh>
+          <mesh position={[0, -0.26, 0]}><boxGeometry args={[0.13, 0.42, 0.12]} />{m(WIG)}</mesh>
+          <mesh position={[sd * 0.01, -0.56, 0]}><boxGeometry args={[0.09, 0.22, 0.09]} />{m(WIG_LIGHT)}</mesh>
+        </group>
+      ))}
+      <mesh position={[0.05, 0.4, 0.04]} rotation={[0, 0, -0.45]}><boxGeometry args={[0.025, 0.2, 0.025]} />{m(WIG_LIGHT)}</mesh>
+      <mesh position={[-0.12, 0.31, -0.08]}><boxGeometry args={[0.1, 0.07, 0.05]} />{m(WIG_TIE)}</mesh>
+      <mesh position={[-0.03, 0.31, -0.08]}><boxGeometry args={[0.1, 0.07, 0.05]} />{m(WIG_TIE)}</mesh>
     </group>
   );
+}
+
+function RifleBayonet({ live }) {
+  const glow = useRef();
+  const ring = useRef();
+  useFrame(() => {
+    if (ring.current) ring.current.rotation.z += 0.12;
+    if (glow.current) glow.current.scale.setScalar(live ? 1 + Math.sin(Date.now() / 40) * 0.2 : 0.01);
+  });
+  return (
+    <group position={[0.5, 1.1, 0.35]}>
+      <mesh position={[0, -0.02, -0.28]}><boxGeometry args={[0.1, 0.17, 0.5]} /><meshStandardMaterial color="#6b4423" roughness={0.8} /></mesh>
+      <mesh position={[0, 0.02, 0.08]}><boxGeometry args={[0.11, 0.13, 0.36]} /><meshStandardMaterial color="#2c2f3a" metalness={0.6} roughness={0.4} /></mesh>
+      <mesh position={[0, 0.04, 0.62]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.028, 0.028, 0.9, 10]} /><meshStandardMaterial color="#3a3f4e" metalness={0.7} roughness={0.35} /></mesh>
+      <mesh position={[0, 0.04, 1.08]}><boxGeometry args={[0.07, 0.07, 0.06]} /><meshStandardMaterial color="#d9b54a" metalness={0.6} roughness={0.3} /></mesh>
+      <mesh position={[0, 0.0, 1.38]}><boxGeometry args={[0.025, 0.07, 0.55]} /><meshStandardMaterial color="#cfd8e3" metalness={0.8} roughness={0.2} /></mesh>
+      <mesh position={[0, 0.0, 1.68]} rotation={[Math.PI / 2, 0, 0]}><coneGeometry args={[0.035, 0.12, 6]} /><meshStandardMaterial color="#cfd8e3" metalness={0.8} roughness={0.2} /></mesh>
+      <mesh position={[0, 0.07, 1.38]}><boxGeometry args={[0.012, 0.012, 0.5]} /><meshBasicMaterial color="#ffe14a" /></mesh>
+      <mesh position={[0, -0.08, 0.2]}><boxGeometry args={[0.04, 0.05, 0.5]} /><meshStandardMaterial color="#b3343f" /></mesh>
+      <mesh position={[0, 0.1, 0.1]}><boxGeometry args={[0.05, 0.05, 0.2]} /><meshStandardMaterial color="#d9b54a" metalness={0.6} roughness={0.3} /></mesh>
+      <mesh ref={glow} position={[0, 0.04, 1.14]}><sphereGeometry args={[0.1, 10, 8]} /><meshBasicMaterial color="#ffe14a" transparent opacity={0.85} /></mesh>
+      <mesh ref={ring} position={[0, 0.04, 1.3]}><torusGeometry args={[0.22, 0.012, 6, 28]} /><meshBasicMaterial color="#ffe14a" transparent opacity={0.8} /></mesh>
+    </group>
+  );
+}
+
+function ShieldDisc() {
+  const hex = useRef();
+  const grp = useRef();
+  const born = useRef(Date.now());
+  useFrame(() => {
+    if (hex.current) hex.current.rotation.z -= 0.02;
+    if (grp.current) grp.current.scale.setScalar(1.4 * Math.min(1, 0.2 + (Date.now() - born.current) / 220));
+  });
+  const ticks = [0, 1, 2, 3, 4, 5, 6, 7];
+  return (
+    <group ref={grp} position={[0, 1.2, 1.0]} scale={1.4}>
+      <mesh><circleGeometry args={[1.05, 40]} /><meshBasicMaterial color="#7fd8ff" transparent opacity={0.2} side={DoubleSide} depthWrite={false} /></mesh>
+      <mesh><ringGeometry args={[0.97, 1.05, 40]} /><meshBasicMaterial color="#c8f1ff" transparent opacity={0.9} side={DoubleSide} depthWrite={false} /></mesh>
+      <mesh ref={hex}><ringGeometry args={[0.5, 0.56, 6]} /><meshBasicMaterial color="#7fd8ff" transparent opacity={0.8} side={DoubleSide} depthWrite={false} /></mesh>
+      <mesh><ringGeometry args={[0.74, 0.76, 40]} /><meshBasicMaterial color="#7fd8ff" transparent opacity={0.55} side={DoubleSide} depthWrite={false} /></mesh>
+      {ticks.map((i) => <mesh key={i} position={[Math.cos((i * Math.PI) / 4) * 0.86, Math.sin((i * Math.PI) / 4) * 0.86, 0]} rotation={[0, 0, (i * Math.PI) / 4]}><boxGeometry args={[0.1, 0.03, 0.01]} /><meshBasicMaterial color="#ffffff" /></mesh>)}
+      {[-1, 1].map((sd) => <mesh key={sd} position={[sd * 0.5, -0.1, -0.7]}><sphereGeometry args={[0.09, 8, 6]} /><meshBasicMaterial color="#c8f1ff" transparent opacity={0.8} /></mesh>)}
+    </group>
+  );
+}
+
+function ManaAura() {
+  const ref = useRef();
+  useFrame(() => { if (ref.current) ref.current.scale.setScalar(1 + Math.sin(Date.now() / 90) * 0.07); });
+  return <mesh ref={ref} position={[0, 1.1, 0]}><sphereGeometry args={[0.95, 14, 10]} /><meshBasicMaterial color="#ffd86b" transparent opacity={0.16} depthWrite={false} /></mesh>;
+}
+
+function GlideFx() {
+  const r = useRef();
+  useFrame(() => { if (r.current) r.current.rotation.z += 0.18; });
+  return (
+    <group>
+      <mesh ref={r} position={[0, 0.15, 0]} rotation={[-Math.PI / 2, 0, 0]}><torusGeometry args={[0.7, 0.03, 6, 28]} /><meshBasicMaterial color="#9fe8ff" transparent opacity={0.8} /></mesh>
+      {[-1, 1].map((sd) => <mesh key={sd} position={[sd * 0.5, 1.5, -0.3]}><sphereGeometry args={[0.1, 8, 6]} /><meshBasicMaterial color="#ffe14a" /></mesh>)}
+    </group>
+  );
+}
+
+function useLife(effect, dur) {
+  const mats = useRef(new Set());
+  const grp = useRef();
+  const reg = (m) => { if (m) mats.current.add(m); };
+  useFrame(() => {
+    const t = Math.min(1, (Date.now() - effect.startedAt) / dur);
+    for (const m of mats.current) m.opacity = Math.max(0, 1 - t * t);
+    if (grp.current) grp.current.userData.t = t;
+  });
+  return { reg, grp, t: () => Math.min(1, (Date.now() - effect.startedAt) / dur) };
+}
+
+function Mat({ reg, color, side }) {
+  return <meshBasicMaterial ref={reg} color={color} transparent depthWrite={false} side={side} />;
+}
+
+function Ring({ life, color, y = 0.1, r0 = 0.2, r1 = 3, flat = true, spin = 0, dur }) {
+  const ref = useRef();
+  useFrame(() => {
+    if (!ref.current) return;
+    const t = life.t();
+    const sc = r0 + (r1 - r0) * t;
+    ref.current.scale.set(sc, sc, sc);
+    ref.current.rotation.z = spin * t;
+  });
+  return (
+    <mesh ref={ref} position={[0, y, 0]} rotation={flat ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}>
+      <ringGeometry args={[0.9, 1, 40]} />
+      <Mat reg={life.reg} color={color} side={DoubleSide} />
+    </mesh>
+  );
+}
+
+function Clock({ life, color, y, dir = 1 }) {
+  const a = useRef();
+  const b = useRef();
+  useFrame(() => {
+    const t = life.t();
+    if (a.current) a.current.rotation.z = dir * t * 9;
+    if (b.current) b.current.rotation.z = dir * t * 3;
+  });
+  return (
+    <group position={[0, y, 0]}>
+      <mesh><ringGeometry args={[0.8, 0.9, 32]} /><Mat reg={life.reg} color={color} side={DoubleSide} /></mesh>
+      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => <mesh key={i} position={[Math.sin((i * Math.PI) / 6) * 0.7, Math.cos((i * Math.PI) / 6) * 0.7, 0]} rotation={[0, 0, -(i * Math.PI) / 6]}><boxGeometry args={[0.04, 0.12, 0.01]} /><Mat reg={life.reg} color={color} /></mesh>)}
+      <group ref={a}><mesh position={[0, 0.32, 0]}><boxGeometry args={[0.04, 0.64, 0.01]} /><Mat reg={life.reg} color={color} /></mesh></group>
+      <group ref={b}><mesh position={[0, 0.2, 0]}><boxGeometry args={[0.07, 0.4, 0.01]} /><Mat reg={life.reg} color={color} /></mesh></group>
+    </group>
+  );
+}
+
+function Sparks({ life, color, n = 8, speed = 3, up = 1.5, size = 0.07 }) {
+  const refs = useRef([]);
+  const seeds = useMemo(() => Array.from({ length: n }, (_, i) => ({ a: (i / n) * Math.PI * 2 + Math.random(), s: 0.6 + Math.random() * 0.8, u: Math.random() })), [n]);
+  useFrame(() => {
+    const t = life.t();
+    seeds.forEach((sd, i) => {
+      const m = refs.current[i];
+      if (m) m.position.set(Math.cos(sd.a) * speed * sd.s * t, up * sd.u * t * (2 - t), Math.sin(sd.a) * speed * sd.s * t);
+    });
+  });
+  return seeds.map((_, i) => <mesh key={i} ref={(m) => { refs.current[i] = m; }}><boxGeometry args={[size, size, size]} /><Mat reg={life.reg} color={color} /></mesh>);
+}
+
+function SuperFx({ effect }) {
+  const kind = effect.kind;
+  const dur = kind === 'sup_bayoneta' ? 520 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
+  const life = useLife(effect, dur);
+  const yaw = Math.atan2(effect.dx || 0, effect.dz || 1);
+  const stamp = useRef();
+  useFrame(() => {
+    if (stamp.current) {
+      const t = life.t();
+      stamp.current.position.y = 4.2 - Math.min(1, t * 2.4) * 2.7;
+      stamp.current.rotation.y = t * 7;
+    }
+  });
+  if (kind === 'sup_bayoneta') {
+    const len = effect.len || 3;
+    const mx = (effect.x || 0) + (effect.dx || 0) * 1.7;
+    const mz = (effect.z || 0) + (effect.dz || 0) * 1.7;
+    return (
+      <group position={[mx, (effect.y || 0) + 1.2, mz]} rotation={[0, yaw, 0]}>
+        {effect.shot ? (
+          <>
+            <mesh position={[0, 0, len / 2]}><boxGeometry args={[0.07, 0.07, len]} /><Mat reg={life.reg} color="#ffe14a" /></mesh>
+            <mesh position={[0, 0, len / 2]}><boxGeometry args={[0.025, 0.025, len]} /><Mat reg={life.reg} color="#ffffff" /></mesh>
+            <group position={[0, 0, 0.15]}><Ring life={life} color="#ffe14a" y={0} r0={0.2} r1={1} flat={false} spin={5} /></group>
+            <group position={[0, 0, 0.5]}><Ring life={life} color="#fff3b0" y={0} r0={0.1} r1={0.7} flat={false} spin={-5} /></group>
+            <Sparks life={life} color="#ffe14a" n={7} speed={1.2} up={0.8} />
+            {effect.hit && <group position={[0, 0, len]}><Sparks life={life} color="#ffffff" n={9} speed={1.6} up={1.2} size={0.09} /><Ring life={life} color="#ffe14a" y={0} r0={0.2} r1={1.2} flat={false} /></group>}
+          </>
+        ) : (
+          <group position={[0, 0, 0.5]}>
+            <mesh rotation={[0, 0, 0.6]}><ringGeometry args={[0.7, 0.85, 20, 1, 0, 2.2]} /><Mat reg={life.reg} color="#ffe14a" side={DoubleSide} /></mesh>
+            <Sparks life={life} color="#ffffff" n={8} speed={1.4} up={0.9} />
+          </group>
+        )}
+      </group>
+    );
+  }
+  if (kind === 'sup_barrera') {
+    return (
+      <group position={[effect.x, (effect.y || 0), effect.z]}>
+        <Ring life={life} color="#7fd8ff" r0={0.5} r1={3} />
+        <Ring life={life} color="#c8f1ff" y={0.4} r0={0.3} r1={2.2} />
+        <Sparks life={life} color="#c8f1ff" n={10} speed={1.8} up={2.4} />
+      </group>
+    );
+  }
+  if (kind === 'sup_senuelo') {
+    return (
+      <group position={[effect.x, (effect.y || 0), effect.z]}>
+        <Ring life={life} color="#b9a4ff" r0={0.4} r1={2.2} spin={4} />
+        <Sparks life={life} color="#d8d8e8" n={12} speed={1.5} up={2.2} size={0.16} />
+      </group>
+    );
+  }
+  if (kind === 'sup_notificacion') {
+    return (
+      <group position={[effect.tx || 0, 0, effect.tz || 0]}>
+        <Ring life={life} color="#e0555f" r0={0.4} r1={2.2} />
+        <group ref={stamp} position={[0, 4, 0]}>
+          <mesh><boxGeometry args={[0.9, 0.12, 0.9]} /><Mat reg={life.reg} color="#e0555f" /></mesh>
+          <mesh position={[0, 0.2, 0]}><boxGeometry args={[0.3, 0.3, 0.3]} /><Mat reg={life.reg} color="#7a1e28" /></mesh>
+        </group>
+        <Sparks life={life} color="#ffffff" n={6} speed={1.1} up={1.4} />
+      </group>
+    );
+  }
+  if (kind === 'sup_vuelva') {
+    return (
+      <>
+        <group position={[effect.fx || 0, 0, effect.fz || 0]}>
+          <Ring life={life} color="#b07cf2" r0={2} r1={0.2} spin={-6} />
+          <Clock life={life} color="#d6b9ff" y={1.4} dir={-1} />
+        </group>
+        <group position={[effect.tx || 0, 0, effect.tz || 0]}>
+          <Ring life={life} color="#b07cf2" r0={0.3} r1={2.4} spin={6} />
+          <Sparks life={life} color="#e9d9ff" n={9} speed={1.4} up={2.2} />
+        </group>
+      </>
+    );
+  }
+  if (kind === 'sup_anulacion') {
+    return (
+      <>
+        <group position={[effect.fx || 0, 0, effect.fz || 0]}>
+          <Ring life={life} color="#f2d154" r0={0.3} r1={2.2} />
+          <Clock life={life} color="#ffe9a0" y={1.5} dir={-1} />
+        </group>
+        <group position={[effect.tx || 0, 0, effect.tz || 0]}>
+          <mesh position={[0, 1.8, 0]}><cylinderGeometry args={[0.5, 0.5, 3.6, 16, 1, true]} /><Mat reg={life.reg} color="#ffe9a0" side={DoubleSide} /></mesh>
+          <Ring life={life} color="#f2d154" r0={2.2} r1={0.3} />
+          <Sparks life={life} color="#fff3c4" n={10} speed={1.2} up={3} />
+        </group>
+      </>
+    );
+  }
+  return null;
 }
 
 function DecoyMark({ d, color }) {
@@ -1303,8 +1547,11 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
 
   return (
     <group ref={groupRef} position={targetPos.current} scale={entityState.scl || 1}>
-      {entityState.bar && <mesh position={[0, 1, 0]}><sphereGeometry args={[3.2 / (entityState.scl || 1), 20, 14]} /><meshBasicMaterial color="#7fd8ff" transparent opacity={0.16} depthWrite={false} side={DoubleSide} /></mesh>}
+      {entityState.chg && <ManaAura />}
+      {entityState.gld && <GlideFx />}
       <group ref={bodyRef}>
+        {entityState.wpn && <RifleBayonet live />}
+        {entityState.bar && <ShieldDisc />}
         <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
         <group ref={headRef} position={[0, 1.62, 0]}>
           <mesh><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
@@ -3247,7 +3494,7 @@ export default function GameScene({
       {pits.map((p) => <MPit key={p.id} p={p} pits={pits} />)}
       {phase !== 'action' && <MLobbyDecor />}
 
-      {phase === 'action' && (effects || []).map((effect) => <SkillEffect key={effect.id} effect={effect} />)}
+      {phase === 'action' && (effects || []).map((effect) => (effect.sup ? <SuperFx key={effect.id} effect={effect} /> : <SkillEffect key={effect.id} effect={effect} />))}
 
       {phase === 'action' && (zones || []).map((zone) => <ZoneDisc key={zone.id} zone={zone} platforms={platforms} ghost={Boolean(playerById.get(myPlayerId)?.isAsymRole)} />)}
 

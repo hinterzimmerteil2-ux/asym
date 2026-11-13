@@ -27,15 +27,16 @@ const SPENT_PER_MANA = 18;
 const MANA_MODULE = 4;
 const MANA_PAIR = 8;
 const STAB_RANGE = 2.6;
-const LUNGE_RANGE = 11;
-const LUNGE_DISTANCE = 9;
-const LUNGE_MS = 340;
+const LUNGE_RANGE = 14;
+const SHOT_RANGE = 14;
 const STAB_STUN_MS = 700;
-const LUNGE_STUN_MS = 900;
+const SHOT_STUN_MS = 900;
 const STAB_PUSH = 6;
-const LUNGE_PUSH = 5;
+const SHOT_PUSH = 5;
+const STAB_RECOIL = 3;
+const SHOT_RECOIL = 6;
 const DOME_MS = 3000;
-const DOME_RADIUS = 3.2;
+const DOME_RADIUS = 2.5;
 const DECOY_MS = 4500;
 const DECOY_BURST_RANGE = 2;
 const DECOY_SLOW_MS = 1400;
@@ -127,6 +128,7 @@ function use(room, playerId, mode, now) {
   if (room.gameState.patients[playerId]?.status !== 'alive') return false;
   if (!DEFS[entity.sup.id].modes.includes(mode)) return false;
   const s = entity.sup;
+  let fx = {};
   if (s.id === 'town_level') return useTown(room, playerId, entity, mode, now);
   if (s.sheets <= 0 || now < s.nextAt) return false;
   if (mode !== 'anulacion' && Status.blocksSkills(entity, now)) return false;
@@ -134,15 +136,18 @@ function use(room, playerId, mode, now) {
     const t = foes(room, entity, NOTIFY_RANGE)[0];
     if (!t || (t.e.ntf && t.e.ntf.until > now)) return false;
     t.e.ntf = { until: now + NOTIFY_DELAY_MS, by: playerId };
+    fx = { tx: t.e.x, tz: t.e.z, tid: t.id };
   } else if (mode === 'vuelva') {
     const t = foes(room, entity, VUELVA_RANGE)[0];
     if (!t || (t.e.size || 1) > 2) return false;
     const spot = pastSpot(t.e, now, REWIND_MS);
     if (!spot) return false;
+    fx = { fx: t.e.x, fz: t.e.z, tx: spot.x, tz: spot.z, tid: t.id };
     rewind(t.e, spot);
   } else if (mode === 'anulacion') {
     const spot = pastSpot(entity, now, REWIND_MS);
     if (!spot) return false;
+    fx = { fx: entity.x, fz: entity.z, tx: spot.x, tz: spot.z };
     rewind(entity, spot);
     Status.clear(entity, 'stun', 'ragdoll', 'slow');
     entity.rag = null;
@@ -151,7 +156,7 @@ function use(room, playerId, mode, now) {
   if (s.copyLeft) s.copyLeft = false;
   else s.sheets -= 1;
   s.nextAt = now + USE_GAP_MS;
-  room.broadcast('super_result', { playerId, mode, sheets: s.sheets });
+  room.broadcast('super_result', { playerId, mode, sheets: s.sheets, ...fx });
   return true;
 }
 
@@ -261,6 +266,7 @@ function useTown(room, playerId, entity, mode, now) {
   const nx = fx / flen;
   const nz = fz / flen;
   let ok = false;
+  let fxp = { x: entity.x, y: entity.y || 0, z: entity.z, dx: nx, dz: nz };
   if (mode === 'bayoneta') {
     if (now < s.cd.bayoneta) return false;
     const inFront = (range, dot, width) => foes(room, entity, range).filter((f) => {
@@ -270,6 +276,7 @@ function useTown(room, playerId, entity, mode, now) {
       return along > 0 && along / (Math.hypot(rx, rz) || 1) >= dot && (width === undefined || Math.abs(rx * nz - rz * nx) <= width);
     });
     const close = inFront(STAB_RANGE, 0.2);
+    let recoil = 0;
     withSource(entity, () => {
       if (close.length) {
         for (const f of close) {
@@ -277,27 +284,39 @@ function useTown(room, playerId, entity, mode, now) {
           Status.push(f.e, (f.e.x - entity.x) / (f.d || 1), (f.e.z - entity.z) / (f.d || 1), STAB_PUSH, 280, now);
         }
         s.cd.bayoneta = now + CD.bayoneta;
-        Status.apply(entity, 'slow', 350, now, { tag: 'endlag', level: 2 });
+        recoil = STAB_RECOIL;
+        fxp.shot = false;
+        fxp.len = STAB_RANGE;
         ok = true;
       } else {
-        const path = inFront(LUNGE_RANGE, 0.7, 1.3);
-        entity.dashUntil = now + LUNGE_MS;
-        entity.dashVX = (nx * LUNGE_DISTANCE) / (LUNGE_MS / 1000);
-        entity.dashVZ = (nz * LUNGE_DISTANCE) / (LUNGE_MS / 1000);
-        entity.dashExhausted = false;
-        for (const f of path) {
-          room.stun(f.id, f.e, LUNGE_STUN_MS, now, 0);
-          Status.push(f.e, nx, nz, LUNGE_PUSH, 320, now);
+        const path = inFront(LUNGE_RANGE, 0.85, 0.9);
+        const first = path[0];
+        let len = SHOT_RANGE;
+        if (first) {
+          room.stun(first.id, first.e, SHOT_STUN_MS, now, 0);
+          Status.push(first.e, nx, nz, SHOT_PUSH, 320, now);
+          len = Math.min(SHOT_RANGE, first.d);
+        } else {
+          s.chain = 0;
         }
         s.cd.bayoneta = now + CD.bayonetaLunge;
-        if (!path.length) s.chain = 0;
+        recoil = SHOT_RECOIL;
+        fxp.shot = true;
+        fxp.len = len;
+        fxp.hit = Boolean(first);
         ok = true;
       }
     });
+    if (ok) {
+      Status.push(entity, -nx, -nz, recoil, 240, now);
+      Status.apply(entity, 'slow', 300, now, { tag: 'endlag', level: 2 });
+      s.wpnUntil = now + 1100;
+    }
   } else if (mode === 'barrera') {
     if (now < s.cd.barrera) return false;
     s.dome = now + DOME_MS;
     s.cd.barrera = now + CD.barrera;
+    s.wpnUntil = 0;
     ok = true;
   } else if (mode === 'senuelo') {
     if (now < s.cd.senuelo) return false;
@@ -306,11 +325,12 @@ function useTown(room, playerId, entity, mode, now) {
     entity.paraUntil = now + DECOY_HIDE_MS;
     entity.paraOn = false;
     s.cd.senuelo = now + CD[mode];
+    fxp.decoy = true;
     ok = true;
   }
   if (!ok) return false;
   s.nextAt = now + USE_GAP_MS;
-  room.broadcast('super_result', { playerId, mode, sheets: 0 });
+  room.broadcast('super_result', { playerId, mode, ...fxp });
   return true;
 }
 
@@ -397,4 +417,4 @@ function glide(room, entity, now, dt) {
   return true;
 }
 
-module.exports = { DEFS, grant, use, claim, tick, view, gainMana, onModule, miss, withSource, scaleStun, scalePush, absorbHeal, domeBlocks, glide, domeRadius: DOME_RADIUS };
+module.exports = { DEFS, wpnActive: (e, now) => Boolean(e.sup && e.sup.wpnUntil > now), grant, use, claim, tick, view, gainMana, onModule, miss, withSource, scaleStun, scalePush, absorbHeal, domeBlocks, glide, domeRadius: DOME_RADIUS };
