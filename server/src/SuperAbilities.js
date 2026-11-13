@@ -49,6 +49,11 @@ const DECOY_RUN_MS = 2200;
 const FLY_RISE = 5;
 const FLY_CEIL = 9;
 const DOME_RADIUS = 2.5;
+const QUEUE_MS = 2000;
+const RESOLUTION_MS = 2000;
+const ANSWER_STILL_MS = 2000;
+const FINE_MS = 10000;
+const OBSERVED_STILL_MS = 1000;
 const DECOY_MS = 4500;
 const DECOY_BURST_RANGE = 2;
 const DECOY_SLOW_MS = 1400;
@@ -74,7 +79,7 @@ function grant(entity, id) {
     entity.sup = null;
     return;
   }
-  entity.sup = { id, sheets: DEFS[id].charges || SHEETS, copyLeft: true, claims: 0, nextAt: 0 };
+  entity.sup = { id, sheets: DEFS[id].charges || SHEETS, copyLeft: false, claims: 0, nextAt: 0, pending: 0, still: 0, lx: null, lz: null, noticeUntil: 0 };
   if (id === 'town_level') {
     Object.assign(entity.sup, { mana: 0, shield: 0, shieldAt: 0, chain: 0, spent: 0, lastFlo: null, charging: false, chMana: 0, chAt: 0, chPush: 0, chStun: 0, cd: { bayoneta: 0, barrera: 0, senuelo: 0 }, glide: false, glideAt: 0, airAt: 0, dome: 0, decoy: null });
     entity.hitScale = (entity.hitScale || 1) * DEFS[id].scale;
@@ -87,7 +92,7 @@ function claim(entity) {
   s.claims += 1;
   if (s.claims >= CLAIMS_FOR_SHEET) {
     s.claims = 0;
-    if (s.sheets < SHEETS) s.sheets += 1;
+    if (s.sheets + s.pending < SHEETS) s.pending += 1;
   }
 }
 
@@ -147,7 +152,8 @@ function use(room, playerId, mode, now) {
   if (mode === 'notificacion') {
     const t = foes(room, entity, NOTIFY_RANGE)[0];
     if (!t || (t.e.ntf && t.e.ntf.until > now)) return false;
-    t.e.ntf = { until: now + NOTIFY_DELAY_MS, by: playerId };
+    t.e.ntf = { until: now + NOTIFY_DELAY_MS, by: playerId, still: 0, sx: t.e.x, sz: t.e.z, sat: now };
+    s.noticeUntil = now + NOTIFY_DELAY_MS;
     fx = { tx: t.e.x, tz: t.e.z, tid: t.id };
   } else if (mode === 'vuelva') {
     const t = foes(room, entity, VUELVA_RANGE)[0];
@@ -156,6 +162,7 @@ function use(room, playerId, mode, now) {
     if (!spot) return false;
     fx = { fx: t.e.x, fz: t.e.z, tx: spot.x, tz: spot.z, tid: t.id };
     rewind(t.e, spot);
+    Status.apply(t.e, 'queue', QUEUE_MS, now);
   } else if (mode === 'anulacion') {
     const spot = pastSpot(entity, now, REWIND_MS);
     if (!spot) return false;
@@ -164,6 +171,7 @@ function use(room, playerId, mode, now) {
     Status.clear(entity, 'stun', 'ragdoll', 'slow');
     entity.rag = null;
     entity.flojera = Math.max(entity.flojera || 0, (entity.flojeraMax || 0) * 0.6);
+    Status.apply(entity, 'slow', RESOLUTION_MS, now, { level: 1 });
   }
   if (s.copyLeft) s.copyLeft = false;
   else s.sheets -= 1;
@@ -176,10 +184,31 @@ function tick(room, now) {
   record(room, now);
   tickTown(room, now);
   for (const e of Object.values(room.gameState.entities)) {
-    if (!e.ntf || e.ntf.until > now) continue;
+    const s = e.sup;
+    if (s && s.id === 'sunat_paperwork' && s.pending > 0 && !e.down) {
+      const moved = s.lx !== null && Math.hypot(e.x - s.lx, e.z - s.lz) > 0.06;
+      s.lx = e.x;
+      s.lz = e.z;
+      s.still = moved ? 0 : s.still + 50;
+      if (s.still >= OBSERVED_STILL_MS) {
+        s.still = 0;
+        s.pending -= 1;
+        s.sheets += 1;
+      }
+    }
+    if (!e.ntf) continue;
+    if (e.ntf.until > now) {
+      const moved = Math.hypot(e.x - e.ntf.sx, e.z - e.ntf.sz) > 0.5;
+      e.ntf.sx = e.x;
+      e.ntf.sz = e.z;
+      e.ntf.still = moved ? 0 : e.ntf.still + 50;
+      if (e.ntf.still >= ANSWER_STILL_MS) e.ntf = null;
+      continue;
+    }
     e.ntf = null;
     if (e.down) continue;
     Status.apply(e, 'stun', EMBARGO_MS, now);
+    Status.apply(e, 'slow', FINE_MS, now, { level: 1 });
   }
 }
 
@@ -189,7 +218,7 @@ function view(entity, now) {
   if (s.id === 'town_level') {
     return { id: s.id, mana: Math.floor(s.mana), manaMax: MANA_MAX, shield: Math.floor(s.shield), shieldMax: SHIELD_MAX, charging: s.charging, charge: Math.round(s.chMana), chargeMax: CHARGE_MAX_MANA, cd: { bayoneta: Math.max(0, s.cd.bayoneta - now), barrera: Math.max(0, s.cd.barrera - now), senuelo: Math.max(0, s.cd.senuelo - now) }, glide: s.glide };
   }
-  return { id: s.id, sheets: s.sheets, max: SHEETS, claims: s.claims, need: CLAIMS_FOR_SHEET, copy: s.copyLeft };
+  return { id: s.id, sheets: s.sheets, max: SHEETS, claims: s.claims, need: CLAIMS_FOR_SHEET, pending: s.pending };
 }
 
 function steps(s) {

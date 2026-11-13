@@ -5,6 +5,7 @@ const KINDS = {
   ragdoll: { blocksMove: true, blocksSkills: true, id: 'ragdoll' },
   slow: { blocksMove: false, blocksSkills: false, id: 'ralentizado' },
   reveal: { blocksMove: false, blocksSkills: false, id: 'revelado' },
+  queue: { blocksMove: false, blocksSkills: true, id: 'en cola' },
   emote: { blocksMove: false, blocksSkills: true, id: 'emote', hidden: true },
 };
 
@@ -28,6 +29,8 @@ function level(entity, kind, now) {
 function apply(entity, kind, ms, now, opts = {}) {
   const store = fx(entity);
   if ((kind === 'stun' || kind === 'ragdoll') && !opts.boss && require('./SuperAbilities').domeBlocks(entity, now)) return store[kind] || { until: 0, level: 1 };
+  if ((kind === 'stun' || kind === 'ragdoll' || kind === 'slow') && entity.ntf && entity.ntf.until > now) ms = Math.round(ms * 1.5);
+  if ((kind === 'stun' || kind === 'ragdoll' || kind === 'slow') && entity.sup && entity.sup.noticeUntil > now) ms = Math.round(ms * 0.8);
   if (kind === 'stun' && entity.size) ms = Math.min(ms, 1900 / Math.sqrt(entity.size));
   if ((kind === 'stun' || kind === 'ragdoll') && entity.size > 2) return store[kind] || { until: 0, level: 1 };
   if ((kind === 'stun' || kind === 'ragdoll') && entity.sup) require('./SuperAbilities').claim(entity);

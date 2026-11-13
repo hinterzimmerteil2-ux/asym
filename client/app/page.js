@@ -41,15 +41,16 @@ const KIT_STYLE = {
 function KitPicker({ roles, onPick }) {
   const [sel, setSel] = useState(0);
   const r = roles[Math.min(sel, roles.length - 1)];
-  const st = KIT_STYLE[r.id] || { color: '#c8a2ff', stats: [3, 3, 3] };
+  const sup = Boolean(r.isSuper);
+  const st = sup ? { color: '#ffe14a', stats: [0, 0, 0] } : KIT_STYLE[r.id] || { color: '#c8a2ff', stats: [3, 3, 3] };
   const labels = ['Movilidad', 'Control', 'Daño'];
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(6,3,5,0.72)', padding: 12 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, width: 'min(680px, 100%)', maxHeight: '100%', overflowY: 'auto', padding: 14, borderRadius: 16, background: 'linear-gradient(160deg, #1d1319, #12141c)', border: `2px solid ${st.color}`, boxShadow: `0 0 40px ${st.color}44` }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: '1 1 190px' }}>
-          <strong style={{ fontSize: 15 }}>Elige tu kit</strong>
+          <strong style={{ fontSize: 15 }}>{sup ? 'Elige tu súper-habilidad' : 'Elige tu kit'}</strong>
           {roles.map((k, i) => {
-            const c = (KIT_STYLE[k.id] || {}).color || '#c8a2ff';
+            const c = k.isSuper ? '#ffe14a' : (KIT_STYLE[k.id] || {}).color || '#c8a2ff';
             return (
               <button key={k.id} type="button" onClick={() => setSel(i)} style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', color: '#e8e9f0', background: i === sel ? `${c}33` : 'rgba(255,255,255,0.04)', border: `2px solid ${i === sel ? c : '#3d2c33'}`, transition: 'transform 140ms, background 140ms', transform: i === sel ? 'translateX(6px)' : 'none' }}>
                 <div style={{ fontWeight: 800, fontSize: 14 }}>{k.name}</div>
@@ -57,7 +58,7 @@ function KitPicker({ roles, onPick }) {
               </button>
             );
           })}
-          <button type="button" onClick={() => onPick('none')} style={{ marginTop: 4, padding: 8, borderRadius: 10, cursor: 'pointer', color: '#cfe8fa', background: 'transparent', border: '1px dashed #4a6a8a' }}>Sin Kit</button>
+          <button type="button" onClick={() => onPick('none')} style={{ marginTop: 4, padding: 8, borderRadius: 10, cursor: 'pointer', color: '#cfe8fa', background: 'transparent', border: '1px dashed #4a6a8a' }}>{sup ? 'Sin súper-habilidad' : 'Sin Kit'}</button>
         </div>
         <div key={r.id} style={{ flex: '2 1 280px', display: 'flex', flexDirection: 'column', gap: 10, animation: 'dealIn 360ms cubic-bezier(.2,.9,.3,1.1) both' }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -68,9 +69,13 @@ function KitPicker({ roles, onPick }) {
             <div>
               <div style={{ fontSize: 18, fontWeight: 800, color: st.color }}>{r.name}</div>
               <div style={{ fontSize: 13, opacity: 0.85 }}>{r.tagline}</div>
-              <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>Carta inicial incluida</div>
+              <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>{sup ? 'Reemplaza tus dos cartas' : 'Carta inicial incluida'}</div>
             </div>
           </div>
+          {sup ? (
+            <div style={{ fontSize: 12, lineHeight: 1.5, opacity: 0.85 }}>{r.card?.description}</div>
+          ) : (
+            <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {labels.map((l, i) => (
               <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
@@ -87,6 +92,8 @@ function KitPicker({ roles, onPick }) {
               {(r.pool || []).map((n) => <span key={n} style={{ padding: '3px 8px', borderRadius: 999, fontSize: 11, background: `${st.color}22`, border: `1px solid ${st.color}88` }}>{n}</span>)}
             </div>
           </div>
+            </>
+          )}
           <button type="button" onClick={() => onPick(r.id)} style={{ marginTop: 'auto', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 800, color: '#10131c', background: st.color, boxShadow: `0 6px 18px ${st.color}66` }}>Elegir este kit</button>
         </div>
       </div>
@@ -1658,8 +1665,9 @@ export default function LobbyPage() {
                 const cd = flojera.sup.cd[m] || 0;
                 const on = m === 'carga' && flojera.sup.charging;
                 return (
-                  <button key={m} type="button" disabled={cd > 0} onClick={() => handleSuper(m)} style={{ pointerEvents: 'auto', padding: '4px 7px', borderRadius: 6, border: '1px solid rgba(242,230,192,0.5)', background: on ? 'rgba(120,90,20,0.85)' : 'rgba(30,24,12,0.75)', color: '#f2e6c0', fontSize: 11, opacity: cd > 0 ? 0.45 : 1 }}>
-                    {i + 3} {label}{cd > 0 ? ` ${Math.ceil(cd / 1000)}` : ''}
+                  <button key={m} type="button" disabled={cd > 0} onClick={() => handleSuper(m)} style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 4, padding: '4px 7px', borderRadius: 6, border: '1px solid rgba(242,230,192,0.5)', background: on ? 'rgba(120,90,20,0.85)' : 'rgba(30,24,12,0.75)', color: '#f2e6c0', fontSize: 11, opacity: cd > 0 ? 0.45 : 1 }}>
+                    <SkillIcon id={`tl_${m}`} size={18} />
+                    <span>{i + 3} {label}{cd > 0 ? ` ${Math.ceil(cd / 1000)}` : ''}</span>
                   </button>
                 );
               })}
@@ -1668,20 +1676,31 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && !isAsymRole && flojera?.sup && flojera.sup.id !== 'town_level' && (
-          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: touch ? 150 : 150, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, fontSize: 11, color: '#fff' }}>
-            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-              <span style={{ opacity: 0.75 }}>{flojera.sup.id === 'town_level' ? 'Orbes' : 'Hojas'}</span>
-              {Array.from({ length: flojera.sup.max }).map((_, i) => (
-                <span key={i} style={{ width: 10, height: 13, borderRadius: 2, background: i < flojera.sup.sheets ? '#f2e6c0' : 'rgba(255,255,255,0.15)', border: '1px solid rgba(0,0,0,0.4)' }} />
-              ))}
-              <span style={{ opacity: 0.7, marginLeft: 6 }}>{flojera.sup.claims}/{flojera.sup.need}{flojera.sup.id === 'town_level' ? ' m' : ''}</span>
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: touch ? 150 : 150, zIndex: 20, width: 300, borderRadius: 4, overflow: 'hidden', border: '1px solid #2e6da4', background: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.45)', fontFamily: 'Arial, Helvetica, sans-serif', color: '#333', fontSize: 12 }}>
+            <div style={{ background: '#337ab7', color: '#fff', padding: '6px 10px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <SkillIcon id="super_sunat_paperwork" size={18} />
+              <span>SUNAT Operaciones en Línea</span>
             </div>
-            <div style={{ display: 'flex', gap: 5 }}>
-              {(SUPER_MODES[flojera.sup.id] || []).map(([m, label], i) => [m, label, i + 3]).map(([m, label, k]) => (
-                <button key={m} type="button" disabled={flojera.sup.sheets <= 0} onClick={() => handleSuper(m)} style={{ pointerEvents: 'auto', padding: '4px 7px', borderRadius: 6, border: '1px solid rgba(242,230,192,0.5)', background: 'rgba(30,24,12,0.75)', color: '#f2e6c0', fontSize: 11, opacity: flojera.sup.sheets <= 0 ? 0.4 : 1 }}>
-                  {k} {label}
+            <div style={{ display: 'flex', padding: '8px 8px 4px', gap: 0 }}>
+              {(SUPER_MODES[flojera.sup.id] || []).map(([m, label], i) => (
+                <button key={m} type="button" disabled={flojera.sup.sheets <= 0} onClick={() => handleSuper(m)} style={{ pointerEvents: 'auto', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '6px 2px', border: '1px solid #ccc', marginLeft: i ? -1 : 0, borderRadius: i === 0 ? '4px 0 0 4px' : i === 2 ? '0 4px 4px 0' : 0, background: '#fff', color: '#333', fontSize: 11, cursor: flojera.sup.sheets <= 0 ? 'not-allowed' : 'pointer', opacity: flojera.sup.sheets <= 0 ? 0.5 : 1 }}>
+                  <SkillIcon id={`sun_${m}`} size={26} />
+                  <span>{i + 3} {label}</span>
                 </button>
               ))}
+            </div>
+            <div style={{ padding: '4px 12px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontWeight: 700, marginRight: 4 }}>Hojas</span>
+                {Array.from({ length: flojera.sup.max }).map((_, i) => (
+                  <span key={i} style={{ width: 10, height: 13, borderRadius: 2, background: i < flojera.sup.sheets ? '#337ab7' : '#e6e6e6', border: '1px solid #2e6da4' }} />
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                <span style={{ fontWeight: 700 }}>Reclamos {flojera.sup.claims}/{flojera.sup.need}</span>
+                {flojera.sup.pending > 0 && <span style={{ color: '#c0392b' }}>Observadas {flojera.sup.pending} (quieto 1 s)</span>}
+              </div>
+              <div style={{ textAlign: 'center', color: '#337ab7', fontSize: 11 }}>¿Olvidaste tu hoja?</div>
             </div>
           </div>
         )}

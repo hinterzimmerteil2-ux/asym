@@ -11,7 +11,6 @@ const ROLES = [
     name: 'Hincha Cantarín del Barrio',
     tagline: 'Gritos, comida y carrera en grupo',
     card: 'grito_animo',
-    sup: 'sunat_paperwork',
     pool: ['acetilcolina', 'goyslop', 'chicharron', 'rodar'],
   },
   {
@@ -19,7 +18,6 @@ const ROLES = [
     name: 'Cobrador de Combi',
     tagline: 'Tajos y escapes',
     card: 'tajo_carmesi',
-    sup: 'town_level',
     pool: ['red_mist', 'tropiezo', 'rodar', 'acetilcolina'],
   },
   {
@@ -51,4 +49,13 @@ function secondOptions(role, count) {
 
 const SUPER_CARD = { sunat_paperwork: 'super_sunat_paperwork', town_level: 'super_town_level' };
 
-module.exports = { SUPER_CARD, ROLES, getRole, list, secondOptions };
+const SUPER_LIST = [
+  { id: 'sunat_paperwork', name: 'Sunat Paperwork', tagline: 'Súper-consumible' },
+  { id: 'town_level', name: 'Town Level Verse Lol', tagline: 'Súper-movilidad' },
+];
+
+function supers(Cards) {
+  return SUPER_LIST.map((x) => ({ id: `super:${x.id}`, name: x.name, tagline: x.tagline, card: Cards.getCard(SUPER_CARD[x.id]), isSuper: true, pool: [] }));
+}
+
+module.exports = { SUPER_CARD, supers, ROLES, getRole, list, secondOptions };

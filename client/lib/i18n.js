@@ -638,12 +638,20 @@ const PAIRS = [
 ["Súper-habilidades","Super-abilities"],
 ["Activadas","Enabled"],
 ["Desactivadas","Disabled"],
-["Súper-habilidad. Reemplaza tus dos cartas. Tres modos con 3 hojas: Notificación (aturde a un enemigo marcado), Vuelva mañana (lo rebobina 4,5 s) y Anulación (te rebobinas y limpias estados). Pasivas: Copia legalizada (primer uso gratis) y Libro de reclamaciones (cada 3 estados recibidos devuelven una hoja). Teclas 3, 4 y 5.","Super-ability. Replaces both of your cards. Three modes with 3 sheets: Notification (stuns a marked enemy), Come Back Tomorrow (rewinds them 4.5 s) and Annulment (rewind yourself and clear statuses). Passives: Certified Copy (first use is free) and Complaints Book (every 3 statuses taken returns a sheet). Keys 3, 4 and 5."],
+["Súper-habilidad. Reemplaza tus dos cartas. Tres modos con 3 hojas: Notificación (marca a un enemigo 3,5 s: si no se queda quieto 2 s, queda aturdido y multado), Vuelva mañana (lo rebobina 4,5 s y lo deja en cola 2 s sin habilidades) y Anulación (te rebobinas y limpias estados, con 2 s de lentitud). Pasivas: Ley para ti, no para mí (el notificado sufre estados 1,5 veces más largos y recargas más lentas, y tú sufres menos) y Libro de reclamaciones (cada 3 estados recibidos dan una hoja observada, que validas quedándote quieto 1 s). Teclas 3, 4 y 5.","Super-ability. Replaces both of your cards. Three modes with 3 sheets: Notification (marks an enemy for 3.5 s: unless they stand still for 2 s, they are stunned and fined), Come Back Tomorrow (rewinds them 4.5 s and queues them for 2 s with no abilities) and Annulment (rewind yourself and clear statuses, with 2 s of slowness). Passives: One Law for You, None for Me (the notified enemy suffers statuses 1.5 times longer and slower cooldowns, and you suffer less) and Complaints Book (every 3 statuses taken gives a flagged sheet, which you validate by standing still for 1 s). Keys 3, 4 and 5."],
 ["Súper-habilidad. Reemplaza tus dos cartas. Bayoneta (estocada o disparo de largo alcance con retroceso), Barrera (parry: si te golpean en 1,2 s, anula el golpe y contraatacas; si falla, endlag y ganas un poco de escudo) y Señuelo (una copia de tu personaje que corre mientras te vuelves invisible). Pasivas: Demonio del Rin (peluca, 40 % más pequeño y maná que potencia empuje y aturdimiento) y Vuelo (mantén el salto en el aire para ascender hasta 9 unidades). Teclas 3, 4, 5 y 6.","Super-ability. Replaces both of your cards. Bayonet (thrust, or a long-range shot with recoil), Barrier (a parry: if you are hit within 1.2 s the blow is cancelled and you counter; if it fails, you get endlag and a little shield) and Decoy (a copy of your character that runs off while you turn invisible). Passives: Rhine Devil (wig, 40% smaller, and mana that boosts knockback and stun) and Flight (hold jump in the air to climb up to 9 units). Keys 3, 4, 5 and 6."],
 ["Súper-habilidad activa","Active super-ability"],
 ["Tu Súper-habilidad ocupa este espacio.","Your super-ability takes up this slot."],
 ["Reemplaza tus 2 cartas","Replaces both cards"],
 ["Reiniciar y volver al lobby","Restart and return to lobby"],
+["Elige tu súper-habilidad","Choose your super-ability"],
+["Sin súper-habilidad","No super-ability"],
+["Reemplaza tus dos cartas","Replaces both of your cards"],
+["Observadas","Flagged"],
+["(quieto 1 s)","(stand still for 1 s)"],
+["Súper-consumible","Super-consumable"],
+["Súper-movilidad","Super-mobility"],
+["¿Olvidaste tu hoja?","Forgotten your sheet?"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

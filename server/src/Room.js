@@ -1528,7 +1528,7 @@ class Room {
 
   startMatch() {
     if (this.isDefault) this.applyVotes();
-    this.supersOn = this.tutorial ? true : this.supers;
+    this.supersOn = this.tutorial ? false : this.supers;
     this.matchCount += 1;
     this.applyMode();
     Boss.prepare(this);
@@ -1542,7 +1542,7 @@ class Room {
       collisionObjects: GameMap.resolveCollisionObjects(this.mapId, GameMap.areaFor(this.mapId)),
       platforms: GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)),
       halfSize: GameMap.areaFor(this.mapId).halfSize,
-      roles: Roles.list(Cards),
+      roles: this.supersOn ? Roles.supers(Cards) : Roles.list(Cards),
       hitbox: { half: PLAYER_HALF, height: PLAYER_HEIGHT, interact: INTERACTION_RADIUS },
     });
   }
@@ -2152,7 +2152,7 @@ class Room {
       });
       return;
     }
-    curadorEntity.skillCooldowns[index] = now + skill.cooldownMs;
+    curadorEntity.skillCooldowns[index] = now + skill.cooldownMs * (curadorEntity.ntf && curadorEntity.ntf.until > now ? 1.25 : 1);
     if (skill.fx) CardEffects.runFx(this, playerId, curadorEntity, skill.fx, 'use', null, now);
 
     const affectedPlayerIds = [];
@@ -3108,14 +3108,29 @@ class Room {
       this.sendTo(playerId, MessageType.ROLE_SELECTED, { roleId: 'none' });
       return;
     }
+    if (typeof roleId === 'string' && roleId.startsWith('super:')) {
+      const supId = roleId.slice(6);
+      const cardId = Roles.SUPER_CARD[supId];
+      if (!this.supersOn || !cardId) return;
+      entity.role = roleId;
+      SuperAbilities.grant(entity, supId);
+      entity.hand[0] = { options: [cardId], chosen: null };
+      this.finalizeChoice(playerId, 0, cardId);
+      entity.hand[1] = { options: [], chosen: null };
+      this.finalizeChoice(playerId, 1, 'super_slot');
+      entity.draftEndsAt = 0;
+      this.sendTo(playerId, MessageType.ROLE_SELECTED, { roleId });
+      this.sendCardOffer(playerId, entity);
+      return;
+    }
+    if (this.supersOn) return;
     const role = Roles.getRole(roleId);
     if (!role) return;
     entity.role = role.id;
     SuperAbilities.grant(entity, null);
-    entity.supOffer = this.supersOn && role.sup ? role.sup : null;
     entity.hand[0] = { options: [role.card], chosen: null };
     this.finalizeChoice(playerId, 0, role.card);
-    entity.hand[1] = { options: [...Roles.secondOptions(role, Cards.OPTIONS_PER_SLOT), ...(entity.supOffer ? [Roles.SUPER_CARD[entity.supOffer]] : [])], chosen: null };
+    entity.hand[1] = { options: Roles.secondOptions(role, Cards.OPTIONS_PER_SLOT), chosen: null };
     entity.draftEndsAt = Date.now() + Cards.DRAFT_DURATION_MS;
     this.sendTo(playerId, MessageType.ROLE_SELECTED, { roleId: role.id });
     this.sendCardOffer(playerId, entity);

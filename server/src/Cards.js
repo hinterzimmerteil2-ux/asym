@@ -149,7 +149,7 @@ const SUPER_CARDS = {
   super_sunat_paperwork: {
     id: 'super_sunat_paperwork', super: true, superId: 'sunat_paperwork', keywords: ['súper'], rarity: 'rare', weight: 0,
     displayName: 'Sunat Paperwork',
-    description: 'Súper-habilidad. Reemplaza tus dos cartas. Tres modos con 3 hojas: Notificación (aturde a un enemigo marcado), Vuelva mañana (lo rebobina 4,5 s) y Anulación (te rebobinas y limpias estados). Pasivas: Copia legalizada (primer uso gratis) y Libro de reclamaciones (cada 3 estados recibidos devuelven una hoja). Teclas 3, 4 y 5.',
+    description: 'Súper-habilidad. Reemplaza tus dos cartas. Tres modos con 3 hojas: Notificación (marca a un enemigo 3,5 s: si no se queda quieto 2 s, queda aturdido y multado), Vuelva mañana (lo rebobina 4,5 s y lo deja en cola 2 s sin habilidades) y Anulación (te rebobinas y limpias estados, con 2 s de lentitud). Pasivas: Ley para ti, no para mí (el notificado sufre estados 1,5 veces más largos y recargas más lentas, y tú sufres menos) y Libro de reclamaciones (cada 3 estados recibidos dan una hoja observada, que validas quedándote quieto 1 s). Teclas 3, 4 y 5.',
   },
   super_town_level: {
     id: 'super_town_level', super: true, superId: 'town_level', keywords: ['súper'], rarity: 'rare', weight: 0,
