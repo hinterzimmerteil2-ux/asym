@@ -29,8 +29,8 @@ const MANA_PAIR = 8;
 const STAB_RANGE = 2.6;
 const LUNGE_RANGE = 14;
 const SHOT_RANGE = 14;
-const STAB_STUN_MS = 700;
-const SHOT_STUN_MS = 900;
+const STAB_STUN_MS = 1100;
+const SHOT_STUN_MS = 1300;
 const STAB_PUSH = 6;
 const SHOT_PUSH = 5;
 const STAB_RECOIL = 3;
@@ -289,7 +289,7 @@ function useTown(room, playerId, entity, mode, now) {
       const along = rx * nx + rz * nz;
       return along > 0 && along / (Math.hypot(rx, rz) || 1) >= dot && (width === undefined || Math.abs(rx * nz - rz * nx) <= width);
     });
-    const close = inFront(STAB_RANGE, 0.2);
+    const close = inFront(STAB_RANGE, 0);
     let recoil = 0;
     withSource(entity, () => {
       if (close.length) {
@@ -303,7 +303,7 @@ function useTown(room, playerId, entity, mode, now) {
         fxp.len = STAB_RANGE;
         ok = true;
       } else {
-        const path = inFront(LUNGE_RANGE, 0.85, 0.9);
+        const path = inFront(LUNGE_RANGE, 0.85, 1.2);
         const first = path[0];
         let len = SHOT_RANGE;
         if (first) {

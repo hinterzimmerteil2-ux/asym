@@ -643,6 +643,7 @@ const PAIRS = [
 ["Súper-habilidad activa","Active super-ability"],
 ["Tu Súper-habilidad ocupa este espacio.","Your super-ability takes up this slot."],
 ["Reemplaza tus 2 cartas","Replaces both cards"],
+["Reiniciar y volver al lobby","Restart and return to lobby"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

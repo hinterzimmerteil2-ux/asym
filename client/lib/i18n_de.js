@@ -641,4 +641,5 @@ export const DE = [
 "Aktive Superfähigkeit",
 "Deine Superfähigkeit belegt diesen Platz.",
 "Ersetzt beide Karten",
+"Neustart und zurück zur Lobby",
 ];

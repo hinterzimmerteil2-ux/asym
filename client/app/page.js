@@ -1642,6 +1642,10 @@ export default function LobbyPage() {
           </div>
         )}
 
+        {phase === 'action' && isHost && !isDefaultRoom && !tutorial.active && (
+          <button type="button" onClick={handleReturnToLobby} style={{ position: 'absolute', top: compact ? 96 : 62, left: 16, zIndex: 25, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(224,85,95,0.7)', background: 'rgba(40,16,20,0.85)', color: '#ffb3b8', fontSize: 11, cursor: 'pointer' }}>Reiniciar y volver al lobby</button>
+        )}
+
         {phase === 'action' && !isAsymRole && flojera?.sup?.id === 'town_level' && (
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: touch ? 150 : 150, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, fontSize: 11, color: '#fff' }}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
