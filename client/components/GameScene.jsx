@@ -1266,6 +1266,49 @@ function SuperFx({ effect }) {
   return null;
 }
 
+const PlayerBody = memo(function PlayerBody({ bodyRef, headRef, rig, lod, color, cosmetics, isCurator, wig, wpn, bar, held, holdRef }) {
+  return (
+    <group ref={bodyRef}>
+        {wpn && <RifleBayonet live />}
+        {bar && <ShieldDisc />}
+        <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+        <group ref={headRef} position={[0, 1.62, 0]}>
+          <mesh><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
+          <group ref={(el) => { lod.current[0] = el; }}>
+          <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+          <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+          <mesh position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+          </group>
+          <mesh position={[0, 0.2, -0.01]}><boxGeometry args={[0.4, 0.1, 0.4]} /><meshStandardMaterial color="#2a2320" roughness={0.9} /></mesh>
+          <group ref={(el) => { lod.current[1] = el; }}>
+          <mesh position={[-0.07, 0.115, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
+          <mesh position={[0.07, 0.115, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
+          </group>
+          {wig && <WigPieces />}
+          <group ref={(el) => { lod.current[7] = el; }}><CosmeticPieces slot="head" cosmetics={cosmetics} /></group>
+        </group>
+        <group ref={(el) => { lod.current[2] = el; }}>
+        <mesh position={[0, 0.78, 0]}><boxGeometry args={[0.76, 0.08, 0.4]} /><meshStandardMaterial color="#1b1d29" roughness={0.8} /></mesh>
+        <mesh position={[0, 1.4, 0.19]}><boxGeometry args={[0.3, 0.06, 0.02]} /><meshStandardMaterial color="#e4c9a8" roughness={0.7} /></mesh>
+        </group>
+        <group ref={(el) => { lod.current[8] = el; }}>
+          <CosmeticPieces slot="torso" cosmetics={cosmetics} />
+          <CosmeticPieces slot="back" cosmetics={cosmetics} />
+        </group>
+        {[['armL', -0.54, 1.44, SKIN], ['armR', 0.54, 1.44, SKIN], ['legL', -0.18, 0.72, '#3a3d52'], ['legR', 0.18, 0.72, '#3a3d52']].map(([key, px, py, col]) => (
+          <group key={key} ref={(el) => { rig.current[key] = el; }} position={[px, py, 0]}>
+            <mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
+            {key.startsWith('leg') && <mesh ref={(el) => { lod.current[3 + (key === 'legL' ? 0 : 1)] = el; }} position={[0, -0.68, 0.05]}><boxGeometry args={[0.4, 0.14, 0.5]} /><meshStandardMaterial color="#1b1d29" roughness={0.7} /></mesh>}
+            {key.startsWith('arm') && <mesh ref={(el) => { lod.current[5 + (key === 'armL' ? 0 : 1)] = el; }} position={[0, -0.7, 0]}><boxGeometry args={[0.38, 0.1, 0.38]} /><meshStandardMaterial color="#e4c9a8" roughness={0.6} /></mesh>}
+            {key === 'armR' && isCurator && <HerbStaff />}
+          </group>
+        ))}
+        <HeldItem held={held} />
+        <StateHeld holdRef={holdRef} />
+      </group>
+  );
+});
+
 function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned, ragdoll, ghost, ghostOpacity = 0.65, cosmetics }) {
   const bodyRef = useRef();
   const lastPos = useRef([entityState.x, entityState.z]);
@@ -1276,6 +1319,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
   const holdStart = useRef({ key: null, at: 0 });
   holdRef.current = entityState.hold || null;
   const groupRef = useRef();
+  const lod = useRef([]);
+  const lodFar = useRef(false);
   const rag = useRef({ on: false });
   const limbRefs = useRef([]);
   const rig = useRef({});
@@ -1301,8 +1346,15 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
     targetPos.current = [entityState.x + l.vx * ahead, entityState.y, entityState.z + l.vz * ahead];
   }, [entityState.x, entityState.y, entityState.z]);
 
-  useFrame((_, delta) => {
+  useFrame((st, delta) => {
     if (!groupRef.current) return;
+    const gp0 = groupRef.current.position;
+    const cp0 = st.camera.position;
+    const far = (cp0.x - gp0.x) ** 2 + (cp0.z - gp0.z) ** 2 > 625;
+    if (lodFar.current !== far) {
+      lodFar.current = far;
+      lod.current.forEach((o) => { if (o) o.visible = !far; });
+    }
     const wantOp = ghost ? ghostOpacity : entityState.invis ? 0.28 : 1;
     if (groupRef.current.userData.ghostOp !== wantOp && (wantOp !== 1 || groupRef.current.userData.ghostOp !== undefined)) {
       groupRef.current.userData.ghostOp = wantOp;
@@ -1545,36 +1597,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
     <group ref={groupRef} position={targetPos.current} scale={entityState.scl || 1}>
       {entityState.chg && <ManaAura />}
       {entityState.gld && <GlideFx />}
-      <group ref={bodyRef}>
-        {entityState.wpn && <RifleBayonet live />}
-        {entityState.bar && <ShieldDisc />}
-        <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
-        <group ref={headRef} position={[0, 1.62, 0]}>
-          <mesh><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
-          <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
-          <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
-          <mesh position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
-          <mesh position={[0, 0.2, -0.01]}><boxGeometry args={[0.4, 0.1, 0.4]} /><meshStandardMaterial color="#2a2320" roughness={0.9} /></mesh>
-          <mesh position={[-0.07, 0.115, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
-          <mesh position={[0.07, 0.115, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
-          {entityState.wig && <WigPieces />}
-          <CosmeticPieces slot="head" cosmetics={cosmetics} />
-        </group>
-        <mesh position={[0, 0.78, 0]}><boxGeometry args={[0.76, 0.08, 0.4]} /><meshStandardMaterial color="#1b1d29" roughness={0.8} /></mesh>
-        <mesh position={[0, 1.4, 0.19]}><boxGeometry args={[0.3, 0.06, 0.02]} /><meshStandardMaterial color="#e4c9a8" roughness={0.7} /></mesh>
-        <CosmeticPieces slot="torso" cosmetics={cosmetics} />
-        <CosmeticPieces slot="back" cosmetics={cosmetics} />
-        {[['armL', -0.54, 1.44, SKIN], ['armR', 0.54, 1.44, SKIN], ['legL', -0.18, 0.72, '#3a3d52'], ['legR', 0.18, 0.72, '#3a3d52']].map(([key, px, py, col]) => (
-          <group key={key} ref={(el) => { rig.current[key] = el; }} position={[px, py, 0]}>
-            <mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
-            {key.startsWith('leg') && <mesh position={[0, -0.68, 0.05]}><boxGeometry args={[0.4, 0.14, 0.5]} /><meshStandardMaterial color="#1b1d29" roughness={0.7} /></mesh>}
-            {key.startsWith('arm') && <mesh position={[0, -0.7, 0]}><boxGeometry args={[0.38, 0.1, 0.38]} /><meshStandardMaterial color="#e4c9a8" roughness={0.6} /></mesh>}
-            {key === 'armR' && isCurator && <HerbStaff />}
-          </group>
-        ))}
-        <HeldItem held={held} />
-        <StateHeld holdRef={holdRef} />
-      </group>
+      <PlayerBody bodyRef={bodyRef} headRef={headRef} rig={rig} lod={lod} color={color} cosmetics={cosmetics} isCurator={isCurator} wig={Boolean(entityState.wig)} wpn={Boolean(entityState.wpn)} bar={Boolean(entityState.bar)} held={held} holdRef={holdRef} />
       {ragdoll && entityState.rag && entityState.rag.p && <RagdollR6 entityState={entityState} color={color} />}
       {stunned && <StunHalo />}
       {isMe && (

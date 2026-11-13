@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useSettings, setSettings, getSettings } from '../lib/settings';
 
-const WINDOW_MS = 3000;
+const WINDOW_MS = 2000;
 const LOW_FPS = 28;
 const STRIKES = 2;
 
@@ -31,7 +31,7 @@ export default function AutoQuality() {
           const q = getSettings().quality;
           if (strikes >= STRIKES && q > 0.05) {
             strikes = 0;
-            setSettings({ quality: Math.max(0.05, Math.round((q - 0.2) * 20) / 20) });
+            setSettings({ quality: Math.max(0.05, Math.round((q - (fps < 18 ? 0.2 : 0.1)) * 20) / 20) });
             setNote(true);
           }
         }
