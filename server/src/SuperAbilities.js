@@ -31,8 +31,9 @@ const LUNGE_RANGE = 14;
 const SHOT_RANGE = 14;
 const STAB_STUN_MS = 1100;
 const SHOT_STUN_MS = 1300;
-const STAB_PUSH = 6;
-const SHOT_PUSH = 5;
+const STAB_PUSH = 11;
+const SHOT_PUSH = 10;
+const PUSH_MUL_CAP = 1.8;
 const STAB_RECOIL = 3;
 const SHOT_RECOIL = 6;
 const DOME_MS = 1200;
@@ -240,7 +241,7 @@ function scaleStun(ms) {
 function scalePush(speed) {
   if (!src) return speed;
   const s = src.sup;
-  return speed * (1 + steps(s) * PUSH_PER_STEP + s.chPush);
+  return speed * Math.min(PUSH_MUL_CAP, 1 + steps(s) * PUSH_PER_STEP + s.chPush);
 }
 
 function absorbHeal(entity, amount) {
@@ -295,7 +296,7 @@ function useTown(room, playerId, entity, mode, now) {
       if (close.length) {
         for (const f of close) {
           room.stun(f.id, f.e, STAB_STUN_MS, now, 0);
-          Status.push(f.e, (f.e.x - entity.x) / (f.d || 1), (f.e.z - entity.z) / (f.d || 1), STAB_PUSH, 280, now);
+          Status.push(f.e, (f.e.x - entity.x) / (f.d || 1), (f.e.z - entity.z) / (f.d || 1), STAB_PUSH, 300, now);
         }
         s.cd.bayoneta = now + CD.bayoneta;
         recoil = STAB_RECOIL;
@@ -308,7 +309,7 @@ function useTown(room, playerId, entity, mode, now) {
         let len = SHOT_RANGE;
         if (first) {
           room.stun(first.id, first.e, SHOT_STUN_MS, now, 0);
-          Status.push(first.e, nx, nz, SHOT_PUSH, 320, now);
+          Status.push(first.e, nx, nz, SHOT_PUSH, 340, now);
           len = Math.min(SHOT_RANGE, first.d);
         } else {
           s.chain = 0;
