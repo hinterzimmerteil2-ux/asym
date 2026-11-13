@@ -1754,3 +1754,34 @@ test('boss: pantallas en cono, borrachera, tentaculo con aviso, TP oscuro y Pant
   Boss.tick(room, t2 + 500, 0.5);
   assert.ok(e.b.sp < sp);
 });
+
+test('las super-habilidades solo las elige quien las tiene activadas', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('b', 'super:town_level');
+  assert.ok(!e.b.role);
+  room.selectRole('a', 'cobrador');
+  assert.ok(!e.a.role);
+  room.selectRole('a', 'super:town_level');
+  assert.strictEqual(e.a.role, 'super:town_level');
+  assert.ok(e.a.sup && e.a.sup.id === 'town_level');
+  room.selectRole('b', 'cobrador');
+  assert.strictEqual(e.b.role, 'cobrador');
+  assert.ok(!e.b.sup || !e.b.sup.id);
+});
+
+test('modo para jugadores elegidos y preferencia propia en sala predeterminada', () => {
+  const room = new Room('t2');
+  room.addPlayer('h', { readyState: 1, send() {} }, 'H');
+  room.addPlayer('x', { readyState: 1, send() {} }, 'X');
+  room.hostId = 'h';
+  room.setSupers('x', 'all', []);
+  assert.strictEqual(room.supersMode, 'off');
+  room.setSupers('h', 'some', ['x', 'zz']);
+  assert.deepStrictEqual([...room.superIds], ['x']);
+  room.isDefault = true;
+  room.setSuperPref('h', true);
+  assert.ok(room.superIds.has('h'));
+  room.setSuperPref('h', false);
+  assert.ok(!room.superIds.has('h'));
+});

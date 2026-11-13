@@ -652,6 +652,10 @@ const PAIRS = [
 ["Súper-consumible","Super-consumable"],
 ["Súper-movilidad","Super-mobility"],
 ["¿Olvidaste tu hoja?","Forgotten your sheet?"],
+["Para todos","For everyone"],
+["Para jugadores elegidos","For chosen players"],
+["Quiero súper-habilidad","I want a super-ability"],
+["Para:","For:"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map() };

@@ -300,7 +300,10 @@ export default function LobbyPage() {
   const [mapSeedWanted, setMapSeedWanted] = useState(null);
   const [mode, setMode] = useState('normal');
   const [bossOn, setBossOn] = useState(false);
-  const [supersOn, setSupersOn] = useState(false);
+  const [supersMode, setSupersMode] = useState('off');
+  const [superIds, setSuperIds] = useState([]);
+  const [superRoles, setSuperRoles] = useState([]);
+  const [matchSuperIds, setMatchSuperIds] = useState([]);
   const [bossId, setBossId] = useState(null);
   const [bossHud, setBossHud] = useState(null);
   const bossHudRef = useRef(null);
@@ -382,7 +385,8 @@ export default function LobbyPage() {
             setMapSeedWanted(payload.mapSeedWanted ?? null);
             setMode(payload.mode || 'normal');
             setBossOn(Boolean(payload.bossOn));
-            setSupersOn(Boolean(payload.supers));
+            setSupersMode(payload.supersMode || 'off');
+            setSuperIds(payload.superIds || []);
             setBossId(payload.bossId || null);
             setSecondCuratorId(payload.secondCuratorRandom ? 'random' : payload.secondCuratorId || null);
             setModeVoteOpen(Boolean(payload.modeVoteOpen));
@@ -406,7 +410,8 @@ export default function LobbyPage() {
             if (payload.mapSeedWanted !== undefined) setMapSeedWanted(payload.mapSeedWanted);
             if (payload.mode !== undefined) setMode(payload.mode);
             if (payload.bossOn !== undefined) setBossOn(Boolean(payload.bossOn));
-            if (payload.supers !== undefined) setSupersOn(Boolean(payload.supers));
+            if (payload.supersMode !== undefined) setSupersMode(payload.supersMode);
+            if (payload.superIds !== undefined) setSuperIds(payload.superIds);
             if (payload.bossId !== undefined) setBossId(payload.bossId || null);
             if (payload.secondCuratorId !== undefined || payload.secondCuratorRandom !== undefined) setSecondCuratorId(payload.secondCuratorRandom ? 'random' : payload.secondCuratorId || null);
             if (payload.modeVoteOpen !== undefined) setModeVoteOpen(Boolean(payload.modeVoteOpen));
@@ -594,6 +599,8 @@ export default function LobbyPage() {
             setPlatforms(payload.platforms || []);
             setMatchHalf(payload.halfSize || 60);
             setRoles(payload.roles || []);
+            setSuperRoles(payload.superRoles || []);
+            setMatchSuperIds(payload.superIds || []);
             setMyRole(null);
             if (payload.hitbox) setHitboxCfg(payload.hitbox);
             break;
@@ -800,8 +807,11 @@ export default function LobbyPage() {
     connRef.current?.send('set_boss', { on, bossId: id });
   }
 
-  function handleSetSupers(on) {
-    connRef.current?.send('set_supers', { on });
+  function handleSetSupers(mode, ids) {
+    connRef.current?.send('set_supers', { mode, ids });
+  }
+  function handleSuperPref(on) {
+    connRef.current?.send('set_super_pref', { on });
   }
 
   function handleSetMode(newMode, secondId) {
@@ -921,12 +931,12 @@ export default function LobbyPage() {
 
   useEffect(() => {
     if (!kitPref.on || kitSentRef.current) return;
-    if (phase !== 'action' || isAsymRole || !roles.length || myRole || !hand[0] || hand[0].chosen) return;
+    if (phase !== 'action' || isAsymRole || !roles.length || myRole || !hand[0] || hand[0].chosen || matchSuperIds.includes(myPlayerId)) return;
     const ids = ['none', ...roles.map((r) => r.id)];
     const pick = kitPref.kit === 'random' || !ids.includes(kitPref.kit) ? ids[Math.floor(Math.random() * ids.length)] : kitPref.kit;
     kitSentRef.current = true;
     connRef.current?.send('select_role', { roleId: pick });
-  }, [kitPref, phase, isAsymRole, roles, myRole, hand]);
+  }, [kitPref, phase, isAsymRole, roles, myRole, hand, matchSuperIds, myPlayerId]);
 
   const handlePulse = useCallback((skill) => {
     // Validamos en el cliente solo para no spamear el servidor con un
@@ -1378,12 +1388,30 @@ export default function LobbyPage() {
               )}
               <p style={{ ...styles.characterPickerLabel, marginTop: 8 }}>Súper-habilidades</p>
               {isHost && !isDefaultRoom ? (
-                <select style={styles.mapSelect} value={supersOn ? 'on' : 'off'} onChange={(e) => handleSetSupers(e.target.value === 'on')}>
-                  <option value="off">Desactivadas</option>
-                  <option value="on">Activadas</option>
-                </select>
+                <>
+                  <select style={styles.mapSelect} value={supersMode} onChange={(e) => handleSetSupers(e.target.value, superIds)}>
+                    <option value="off">Desactivadas</option>
+                    <option value="all">Para todos</option>
+                    <option value="some">Para jugadores elegidos</option>
+                  </select>
+                  {supersMode === 'some' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 6, fontSize: 12 }}>
+                      {players.filter((pl) => !pl.isBot).map((pl) => (
+                        <label key={pl.id} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                          <input type="checkbox" checked={superIds.includes(pl.id)} onChange={(e) => handleSetSupers('some', e.target.checked ? [...superIds, pl.id] : superIds.filter((x) => x !== pl.id))} />
+                          <span>{pl.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : isDefaultRoom ? (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={superIds.includes(myPlayerId)} onChange={(e) => handleSuperPref(e.target.checked)} />
+                  <span>Quiero súper-habilidad</span>
+                </label>
               ) : (
-                <p style={styles.mapReadOnly}>{supersOn ? 'Activadas' : 'Desactivadas'}</p>
+                <p style={styles.mapReadOnly}>{supersMode === 'all' ? 'Para todos' : supersMode === 'some' ? `Para: ${players.filter((pl) => superIds.includes(pl.id)).map((pl) => pl.name).join(', ') || 'nadie'}` : 'Desactivadas'}</p>
               )}
               <p style={{ fontSize: 10, opacity: 0.6, margin: '6px 0 0' }}>Modelo de Jeffrey: SinisterClock, CC-BY-NC 4.0</p>
               <Link href="/editor" style={styles.editorLink}>Crear mapa nuevo →</Link>
@@ -1415,7 +1443,6 @@ export default function LobbyPage() {
                 ['map', 'Mapa', maps.filter((m) => !m.id.startsWith('c_')).map((m) => ({ id: m.id, label: m.name }))],
                 ['mutation', 'Modificador', mutations.map((m) => ({ id: m.id, label: m.name }))],
                 ...(modeVoteOpen ? [['mode', 'Modo de esta ronda', MODE_LIST.map((m) => ({ id: m.id, label: m.name }))]] : []),
-                ['supers', 'Súper-habilidades', [{ id: 'on', label: 'Activadas' }, { id: 'off', label: 'Desactivadas' }]],
                 ['curator', 'Curador', [{ id: 'random', label: 'Al azar' }, ...players.filter((pl) => !pl.isBot).map((pl) => ({ id: pl.id, label: pl.name }))]],
               ].map(([kind, title, options]) => {
                 const counts = {};
@@ -1593,7 +1620,7 @@ export default function LobbyPage() {
           </div>
         )}
         {phase === 'action' && !isAsymRole && roles.length > 0 && !myRole && hand[0] && !hand[0].chosen && (
-          <KitPicker roles={roles} onPick={handleSelectRole} />
+          <KitPicker roles={matchSuperIds.includes(myPlayerId) && superRoles.length ? superRoles : roles} onPick={handleSelectRole} />
         )}
 
         {phase === 'action' && !isAsymRole && hand.length > 0 && (

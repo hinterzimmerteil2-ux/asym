@@ -24,6 +24,7 @@ const MessageType = {
   SET_MUTATION: 'set_mutation',
   SET_MODE: 'set_mode',
   SET_SUPERS: 'set_supers',
+  SET_SUPER_PREF: 'set_super_pref',
   SET_BOSS: 'set_boss',
   BOSS_SIZE: 'boss_size',
   BOSS_CROUCH: 'boss_crouch',

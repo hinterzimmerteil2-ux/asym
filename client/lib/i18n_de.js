@@ -650,4 +650,8 @@ export const DE = [
 "Super-Verbrauchsgut",
 "Super-Mobilität",
 "Blatt vergessen?",
+"Für alle",
+"Für gewählte Spieler",
+"Ich will eine Superfähigkeit",
+"Für:",
 ];

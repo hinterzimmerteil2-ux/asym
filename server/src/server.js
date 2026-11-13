@@ -167,7 +167,8 @@ wss.on('connection', (ws) => {
           secondCuratorRandom: Boolean(room.secondCuratorRandom),
           modeVoteOpen: room.modeVoteOpen(),
           bossOn: room.bossOn,
-          supers: room.supers,
+          supersMode: room.supersMode,
+          superIds: [...room.superIds],
           bossId: room.bossId,
           mutations: Object.entries(Constants.MUTATIONS).map(([id, m]) => ({ id, name: m.name })),
           maps: GameMap.listMaps(),
@@ -209,7 +210,14 @@ wss.on('connection', (ws) => {
       case MessageType.SET_SUPERS: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
-        room.setSupers(playerId, msg.payload.on);
+        room.setSupers(playerId, msg.payload.mode, msg.payload.ids);
+        break;
+      }
+
+      case MessageType.SET_SUPER_PREF: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.setSuperPref(playerId, Boolean(msg.payload.on));
         break;
       }
 

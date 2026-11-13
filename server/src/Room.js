@@ -218,8 +218,9 @@ class Room {
     this.mutation = 'none';
     this.mode = 'normal';
     this.bossOn = false;
-    this.supers = false;
-    this.supersOn = false;
+    this.supersMode = 'off';
+    this.superIds = new Set();
+    this.superSet = new Set();
     this.bossId = null;
     this.bossActive = false;
     this.secondCuratorId = null;
@@ -717,6 +718,7 @@ class Room {
   removePlayer(playerId) {
     const wasAsymRole = this.players.get(playerId)?.isAsymRole;
     this.players.delete(playerId);
+    this.superIds.delete(playerId);
     for (const kind of Object.keys(this.votes)) {
       delete this.votes[kind][playerId];
       for (const [voter, v] of Object.entries(this.votes[kind])) if (v === playerId) delete this.votes[kind][voter];
@@ -887,10 +889,22 @@ class Room {
     this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, bossOn: this.bossOn, bossId: this.bossId });
   }
 
-  setSupers(requesterId, on) {
+  superSummary() {
+    return { supersMode: this.supersMode, superIds: [...this.superIds] };
+  }
+
+  setSupers(requesterId, mode, ids) {
     if (this.phase !== 'lobby' || requesterId !== this.hostId || this.isDefault) return;
-    this.supers = Boolean(on);
-    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, supers: this.supers });
+    this.supersMode = ['off', 'all', 'some'].includes(mode) ? mode : 'off';
+    const humans = new Set([...this.players.entries()].filter(([, p]) => !p.isBot).map(([id]) => id));
+    this.superIds = new Set((Array.isArray(ids) ? ids : []).filter((id) => humans.has(id)));
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, ...this.superSummary() });
+  }
+
+  setSuperPref(playerId, on) {
+    if (this.phase !== 'lobby' || !this.isDefault || !this.players.has(playerId) || this.players.get(playerId).isBot) return;
+    if (on) this.superIds.add(playerId); else this.superIds.delete(playerId);
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId, ...this.superSummary() });
   }
 
   modeVoteOpen() {
@@ -1050,7 +1064,6 @@ class Room {
     const mutation = this.voteWinner('mutation');
     if (mutation) this.mutation = mutation;
     this.mode = this.modeVoteOpen() ? (this.voteWinner('mode') || 'normal') : 'normal';
-    this.supers = this.voteWinner('supers') === 'on';
     const bots = this.voteWinner('bots');
     if (bots !== null && !this.tutorial) {
       for (const [id, p] of [...this.players.entries()]) if (p.isBot) this.removePlayer(id);
@@ -1528,7 +1541,14 @@ class Room {
 
   startMatch() {
     if (this.isDefault) this.applyVotes();
-    this.supersOn = this.tutorial ? false : this.supers;
+    this.superSet = new Set();
+    if (!this.tutorial) {
+      for (const [id, p] of this.players) {
+        if (p.isBot) continue;
+        const has = this.isDefault ? this.superIds.has(id) : this.supersMode === 'all' || (this.supersMode === 'some' && this.superIds.has(id));
+        if (has) this.superSet.add(id);
+      }
+    }
     this.matchCount += 1;
     this.applyMode();
     Boss.prepare(this);
@@ -1542,7 +1562,9 @@ class Room {
       collisionObjects: GameMap.resolveCollisionObjects(this.mapId, GameMap.areaFor(this.mapId)),
       platforms: GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)),
       halfSize: GameMap.areaFor(this.mapId).halfSize,
-      roles: this.supersOn ? Roles.supers(Cards) : Roles.list(Cards),
+      roles: Roles.list(Cards),
+      superRoles: this.superSet.size ? Roles.supers(Cards) : [],
+      superIds: [...this.superSet],
       hitbox: { half: PLAYER_HALF, height: PLAYER_HEIGHT, interact: INTERACTION_RADIUS },
     });
   }
@@ -3111,7 +3133,7 @@ class Room {
     if (typeof roleId === 'string' && roleId.startsWith('super:')) {
       const supId = roleId.slice(6);
       const cardId = Roles.SUPER_CARD[supId];
-      if (!this.supersOn || !cardId) return;
+      if (!this.superSet.has(playerId) || !cardId) return;
       entity.role = roleId;
       SuperAbilities.grant(entity, supId);
       entity.hand[0] = { options: [cardId], chosen: null };
@@ -3123,7 +3145,7 @@ class Room {
       this.sendCardOffer(playerId, entity);
       return;
     }
-    if (this.supersOn) return;
+    if (this.superSet.has(playerId)) return;
     const role = Roles.getRole(roleId);
     if (!role) return;
     entity.role = role.id;
