@@ -35,7 +35,18 @@ const STAB_PUSH = 6;
 const SHOT_PUSH = 5;
 const STAB_RECOIL = 3;
 const SHOT_RECOIL = 6;
-const DOME_MS = 3000;
+const DOME_MS = 1200;
+const PARRY_CD = 9000;
+const PARRY_RANGE = 6;
+const PARRY_STUN_MS = 900;
+const PARRY_PUSH = 7;
+const PARRY_MANA = 8;
+const FAIL_LAG_MS = 600;
+const FAIL_SHIELD = 3;
+const DECOY_SPEED = 5.5;
+const DECOY_RUN_MS = 2200;
+const FLY_RISE = 5;
+const FLY_CEIL = 9;
 const DOME_RADIUS = 2.5;
 const DECOY_MS = 4500;
 const DECOY_BURST_RANGE = 2;
@@ -244,7 +255,10 @@ function domeBlocks(entity, now) {
   if (!domes.length || entity.skillCooldowns) return false;
   for (const d of domes) {
     if (d.until <= now) continue;
-    if (Math.hypot(entity.x - d.x, entity.z - d.z) <= DOME_RADIUS && Math.abs((entity.y || 0) - d.y) < 2.5) return true;
+    if (Math.hypot(entity.x - d.x, entity.z - d.z) <= DOME_RADIUS && Math.abs((entity.y || 0) - d.y) < 2.5) {
+      if (d.owner && d.owner.sup) d.owner.sup.parried = now;
+      return true;
+    }
   }
   return false;
 }
@@ -315,12 +329,14 @@ function useTown(room, playerId, entity, mode, now) {
   } else if (mode === 'barrera') {
     if (now < s.cd.barrera) return false;
     s.dome = now + DOME_MS;
+    s.domeOn = true;
+    s.parried = 0;
     s.cd.barrera = now + CD.barrera;
     s.wpnUntil = 0;
     ok = true;
   } else if (mode === 'senuelo') {
     if (now < s.cd.senuelo) return false;
-    s.decoy = { x: entity.x, y: entity.y || 0, z: entity.z, until: now + DECOY_MS };
+    s.decoy = { x: entity.x, y: entity.y || 0, z: entity.z, until: now + DECOY_MS, born: now, last: now, vx: nx * DECOY_SPEED, vz: nz * DECOY_SPEED };
     entity.paraFrom = now;
     entity.paraUntil = now + DECOY_HIDE_MS;
     entity.paraOn = false;
@@ -366,10 +382,38 @@ function tickTown(room, now) {
         s.shieldAt = now;
       }
     }
-    if (s.dome > now) live.push({ x: e.x, y: e.y || 0, z: e.z, until: s.dome });
+    if (s.parried) {
+      s.parried = 0;
+      s.dome = 0;
+      s.domeOn = false;
+      s.cd.barrera = now + PARRY_CD;
+      gainMana(e, PARRY_MANA);
+      const target = foes(room, e, PARRY_RANGE)[0];
+      if (target) {
+        const ddx = (target.e.x - e.x) / (target.d || 1);
+        const ddz = (target.e.z - e.z) / (target.d || 1);
+        withSource(e, () => {
+          room.stun(target.id, target.e, PARRY_STUN_MS, now, 0);
+          Status.push(target.e, ddx, ddz, PARRY_PUSH, 300, now);
+        });
+      }
+      room.broadcast('super_result', { playerId: id, mode: 'parry', x: e.x, y: e.y || 0, z: e.z, dx: e.faceX || 0, dz: e.faceZ || 1 });
+    } else if (s.domeOn && s.dome <= now) {
+      s.domeOn = false;
+      Status.apply(e, 'slow', FAIL_LAG_MS, now, { tag: 'endlag', level: 2 });
+      s.shield = Math.min(SHIELD_MAX, s.shield + FAIL_SHIELD);
+      s.shieldAt = 0;
+    }
+    if (s.dome > now) live.push({ x: e.x, y: e.y || 0, z: e.z, until: s.dome, owner: e });
     if (s.decoy) {
       if (s.decoy.until <= now) s.decoy = null;
       else {
+        const dd = Math.min(0.1, (now - s.decoy.last) / 1000);
+        s.decoy.last = now;
+        if (now - s.decoy.born < DECOY_RUN_MS) {
+          s.decoy.x += s.decoy.vx * dd;
+          s.decoy.z += s.decoy.vz * dd;
+        }
         for (const f of foes(room, s.decoy, DECOY_BURST_RANGE)) {
           Status.apply(f.e, 'slow', DECOY_SLOW_MS, now, { level: 3 });
           Status.apply(f.e, 'reveal', 1500, now);
@@ -386,35 +430,44 @@ function glide(room, entity, now, dt) {
   const s = entity.sup;
   if (!s || s.id !== 'town_level') return false;
   if (entity.onGround) {
+    s.baseY = entity.y || 0;
     if (s.glide) {
       s.glide = false;
+      s.flying = false;
       Status.apply(entity, 'slow', GLIDE_LAND_LAG_MS, now, { tag: 'endlag', level: 2 });
     }
     s.airAt = 0;
     return false;
   }
   if (!s.airAt) s.airAt = now;
-  const want = entity.input.jump && entity.velocityY < 0 && now - s.airAt >= GLIDE_MIN_AIR_MS && !Status.blocksMove(entity, now);
-  if (!want) {
-    s.glide = false;
-    return false;
-  }
-  if (!s.glide) {
-    if (s.mana < GLIDE_START_COST) return false;
-    s.mana -= GLIDE_START_COST;
-    s.glide = true;
-    Status.apply(entity, 'slow', GLIDE_START_LAG_MS, now, { tag: 'endlag', level: 2 });
-  } else {
-    s.mana -= GLIDE_COST_PER_SEC * dt;
-    if (s.mana <= 0) {
-      s.mana = 0;
-      s.glide = false;
-      return false;
+  if (s.baseY === undefined) s.baseY = entity.y || 0;
+  const want = entity.input.jump && now - s.airAt >= GLIDE_MIN_AIR_MS && !Status.blocksMove(entity, now);
+  if (want) {
+    if (!s.flying && s.mana >= GLIDE_START_COST) {
+      s.mana -= GLIDE_START_COST;
+      s.flying = true;
+      s.glide = true;
+      Status.apply(entity, 'slow', GLIDE_START_LAG_MS, now, { tag: 'endlag', level: 2 });
     }
+    if (s.flying) {
+      s.mana -= GLIDE_COST_PER_SEC * dt;
+      if (s.mana <= 0) {
+        s.mana = 0;
+        s.flying = false;
+      } else {
+        if ((entity.y || 0) < s.baseY + FLY_CEIL) entity.velocityY = Math.max(entity.velocityY, FLY_RISE);
+        else entity.velocityY = 0;
+        return true;
+      }
+    }
+  } else {
+    s.flying = false;
   }
-  if (entity.velocityY < GLIDE_FALL) return false;
-  entity.velocityY = Math.max(entity.velocityY, GLIDE_FALL);
-  return true;
+  if (s.glide && entity.velocityY < GLIDE_FALL) {
+    entity.velocityY = GLIDE_FALL;
+    return true;
+  }
+  return false;
 }
 
 module.exports = { DEFS, wpnActive: (e, now) => Boolean(e.sup && e.sup.wpnUntil > now), grant, use, claim, tick, view, gainMana, onModule, miss, withSource, scaleStun, scalePush, absorbHeal, domeBlocks, glide, domeRadius: DOME_RADIUS };

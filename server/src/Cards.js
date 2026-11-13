@@ -154,7 +154,7 @@ const SUPER_CARDS = {
   super_town_level: {
     id: 'super_town_level', super: true, superId: 'town_level', keywords: ['súper'], rarity: 'rare', weight: 0,
     displayName: 'Town Level Verse Lol',
-    description: 'Súper-habilidad. Reemplaza tus dos cartas. Bayoneta (estocada o disparo de largo alcance con retroceso), Barrera (escudo mágico frontal) y Señuelo (copia con peluca). Pasivas: Demonio del Rin (peluca, 40 % más pequeño y maná que potencia empuje y aturdimiento) y Planeo. Teclas 3, 4, 5 y 6.',
+    description: 'Súper-habilidad. Reemplaza tus dos cartas. Bayoneta (estocada o disparo de largo alcance con retroceso), Barrera (parry: si te golpean en 1,2 s, anula el golpe y contraatacas; si falla, endlag y ganas un poco de escudo) y Señuelo (una copia de tu personaje que corre mientras te vuelves invisible). Pasivas: Demonio del Rin (peluca, 40 % más pequeño y maná que potencia empuje y aturdimiento) y Vuelo (mantén el salto en el aire para ascender hasta 9 unidades). Teclas 3, 4, 5 y 6.',
   },
   super_slot: { id: 'super_slot', super: true, keywords: ['súper'], rarity: 'common', weight: 0, displayName: 'Súper-habilidad activa', description: 'Tu Súper-habilidad ocupa este espacio.' },
 };

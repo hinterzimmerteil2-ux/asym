@@ -637,7 +637,7 @@ export const DE = [
 "Aktiviert",
 "Deaktiviert",
 "Superfähigkeit. Ersetzt beide Karten. Drei Modi mit 3 Blättern: Zustellung (betäubt einen markierten Gegner), Kommen Sie morgen wieder (spult ihn 4,5 s zurück) und Annullierung (spult dich zurück und löscht Zustände). Passiv: Beglaubigte Kopie (erste Nutzung gratis) und Beschwerdebuch (alle 3 erlittenen Zustände geben ein Blatt zurück). Tasten 3, 4 und 5.",
-"Superfähigkeit. Ersetzt beide Karten. Bajonett (Stoß oder Fernschuss mit Rückstoß), Barriere (magischer Schild vor dir) und Köder (Kopie mit Perücke). Passiv: Rheinteufel (Perücke, 40 % kleiner, Mana verstärkt Rückstoß und Betäubung) und Gleiten. Tasten 3, 4, 5 und 6.",
+"Superfähigkeit. Ersetzt beide Karten. Bajonett (Stoß oder Fernschuss mit Rückstoß), Barriere (Parade: Wirst du innerhalb von 1,2 s getroffen, wird der Schlag aufgehoben und du kontterst; misslingt sie, gibt es Endlag und etwas Schild) und Köder (eine Kopie deiner Figur läuft los, während du unsichtbar wirst). Passiv: Rheinteufel (Perücke, 40 % kleiner, Mana verstärkt Rückstoß und Betäubung) und Flug (Sprung in der Luft gedrückt halten, um bis zu 9 Einheiten zu steigen). Tasten 3, 4, 5 und 6.",
 "Aktive Superfähigkeit",
 "Deine Superfähigkeit belegt diesen Platz.",
 "Ersetzt beide Karten",

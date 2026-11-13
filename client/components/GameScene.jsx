@@ -1161,7 +1161,7 @@ function Sparks({ life, color, n = 8, speed = 3, up = 1.5, size = 0.07 }) {
 
 function SuperFx({ effect }) {
   const kind = effect.kind;
-  const dur = kind === 'sup_bayoneta' ? 520 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
+  const dur = kind === 'sup_bayoneta' || kind === 'sup_parry' ? 520 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
   const life = useLife(effect, dur);
   const yaw = Math.atan2(effect.dx || 0, effect.dz || 1);
   const stamp = useRef();
@@ -1193,6 +1193,15 @@ function SuperFx({ effect }) {
             <Sparks life={life} color="#ffffff" n={8} speed={1.4} up={0.9} />
           </group>
         )}
+      </group>
+    );
+  }
+  if (kind === 'sup_parry') {
+    return (
+      <group position={[effect.x, effect.y || 0, effect.z]}>
+        <Ring life={life} color="#ffffff" y={1.2} r0={0.3} r1={3.4} flat={false} spin={3} />
+        <Ring life={life} color="#7fd8ff" y={0.15} r0={0.4} r1={3.8} />
+        <Sparks life={life} color="#ffffff" n={14} speed={2.4} up={2} size={0.1} />
       </group>
     );
   }
@@ -1255,19 +1264,6 @@ function SuperFx({ effect }) {
     );
   }
   return null;
-}
-
-function DecoyMark({ d, color }) {
-  return (
-    <group position={[d.x, d.y, d.z]} scale={0.6}>
-      <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} transparent opacity={0.55} roughness={0.6} /></mesh>
-      <group position={[0, 1.62, 0]}>
-        <mesh><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} transparent opacity={0.55} roughness={0.6} /></mesh>
-        <WigPieces />
-      </group>
-      <mesh position={[0, 0.36, 0]}><boxGeometry args={[0.5, 0.72, 0.3]} /><meshStandardMaterial color="#3a3d52" transparent opacity={0.55} roughness={0.6} /></mesh>
-    </group>
-  );
 }
 
 function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned, ragdoll, ghost, ghostOpacity = 0.65, cosmetics }) {
@@ -3572,7 +3568,16 @@ export default function GameScene({
                 <meshBasicMaterial color="#ff3b3b" depthTest={false} />
               </mesh>
             )}
-            {entityState.dec && <DecoyMark d={entityState.dec} color={color} />}
+            {entityState.dec && !entityState.boss && <PlayerCapsule
+              playerId={`${playerId}_dec`}
+              entityState={{ ...entityState, x: entityState.dec.x, y: entityState.dec.y, z: entityState.dec.z, dec: undefined, wpn: undefined, bar: undefined, chg: undefined, gld: undefined, invis: false, live: false }}
+              color={color}
+              isMe={false}
+              isCurator={false}
+              stunned={false}
+              ragdoll={false}
+              cosmetics={player.cosmetics}
+            />}
             {entityState.boss ? <BossCube e={entityState} /> : <PlayerCapsule
               playerId={playerId}
               entityState={entityState}

@@ -3144,6 +3144,7 @@ class Room {
     const picked = Cards.getCard(cardId);
     if (picked && picked.super && picked.superId) {
       SuperAbilities.grant(entity, picked.superId);
+      if (this.tutorial) SuperAbilities.gainMana(entity, 80);
       this.finalizeChoice(playerId, 0, cardId);
       this.finalizeChoice(playerId, 1, 'super_slot');
       entity.draftEndsAt = 0;
