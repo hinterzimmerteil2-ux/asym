@@ -78,15 +78,15 @@ const GIMMICK_TEXT = {
 
 export default function LmsIntro({ patientCosmetics, curatorCosmetics, gimmick, survivorName }) {
   return (
-    <div translate="no" style={{ position: 'absolute', inset: 0, zIndex: 8, pointerEvents: 'none', overflow: 'hidden', animation: 'lmsFade 5.5s forwards' }}>
+    <div translate="no" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 8, pointerEvents: 'none', overflow: 'hidden', animation: 'lmsFade 5.5s forwards' }}>
       <style>{`
 @keyframes lmsFade{0%{opacity:0}8%{opacity:1}85%{opacity:1}100%{opacity:0}}
 @keyframes lmsSlam{0%{transform:translateY(-140px) scale(3) rotate(var(--r));opacity:0}55%{transform:translateY(8px) scale(0.94) rotate(var(--r));opacity:1}75%{transform:translateY(-4px) scale(1.04) rotate(var(--r))}100%{transform:translateY(0) scale(1) rotate(var(--r))}}
 @keyframes lmsShake{0%,100%{transform:translate(0,0)}20%{transform:translate(-3px,2px)}40%{transform:translate(3px,-2px)}60%{transform:translate(-2px,-3px)}80%{transform:translate(2px,3px)}}
 @keyframes lmsFlash{0%{opacity:.85}100%{opacity:0}}
 `}</style>
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 50%, rgba(10,6,20,0.55) 0, rgba(4,2,10,0.88) 100%)' }} />
-      <div style={{ position: 'absolute', inset: 0, background: '#fff', animation: 'lmsFlash .5s forwards' }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 50% 50%, rgba(10,6,20,0.55) 0, rgba(4,2,10,0.88) 100%)' }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: '#fff', animation: 'lmsFlash .5s forwards' }} />
       <div style={{ position: 'absolute', top: '5%', left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', animation: 'lmsShake .35s 6' }}>
         {LINES.map((word, li) => (
           <div key={word} style={{ display: 'flex', justifyContent: 'center', lineHeight: 0.9 }}>

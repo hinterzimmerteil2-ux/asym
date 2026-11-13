@@ -15,6 +15,7 @@ import {
 import GameScene, { facingOf } from '../components/GameScene';
 import { play as playSfx, trackSteps, unlockAudio } from '../lib/sfx';
 import SkillIcon from '../components/SkillIcon';
+import { watchMedia } from '../lib/settings';
 import HelpPanel from '../components/HelpPanel';
 import StatusColumn from '../components/StatusColumn';
 import RhythmBar from '../components/RhythmBar';
@@ -45,7 +46,7 @@ function KitPicker({ roles, onPick }) {
   const st = sup ? { color: '#ffe14a', stats: [0, 0, 0] } : KIT_STYLE[r.id] || { color: '#c8a2ff', stats: [3, 3, 3] };
   const labels = ['Movilidad', 'Control', 'Daño'];
   return (
-    <div style={{ position: 'absolute', inset: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(6,3,5,0.72)', padding: 12 }}>
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(6,3,5,0.72)', padding: 12 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, width: 'min(680px, 100%)', maxHeight: '100%', overflowY: 'auto', padding: 14, borderRadius: 16, background: 'linear-gradient(160deg, #1d1319, #12141c)', border: `2px solid ${st.color}`, boxShadow: `0 0 40px ${st.color}44` }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: '1 1 190px' }}>
           <strong style={{ fontSize: 15 }}>{sup ? 'Elige tu súper-habilidad' : 'Elige tu kit'}</strong>
@@ -216,10 +217,8 @@ export default function LobbyPage() {
     const mp = window.matchMedia('(orientation: portrait)');
     const upd = () => { setCompact(mc.matches); setTouch(mt.matches); setPortrait(mp.matches); };
     upd();
-    mc.addEventListener('change', upd);
-    mt.addEventListener('change', upd);
-    mp.addEventListener('change', upd);
-    return () => { mc.removeEventListener('change', upd); mt.removeEventListener('change', upd); mp.removeEventListener('change', upd); };
+    const offs = [watchMedia(mc, upd), watchMedia(mt, upd), watchMedia(mp, upd)];
+    return () => offs.forEach((f) => f());
   }, []);
   useEffect(() => { setPanelOpen(null); setChatOpen(false); setSpecIndex(0); }, [phase]);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -1581,7 +1580,7 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && !isAsymRole && heartLevel > 0.03 && patients[myPlayerId]?.status === 'alive' && (
-          <div aria-hidden className="heart-pulse" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3, '--lvl': heartLevel, animationDuration: `${(1.25 - 0.8 * heartLevel).toFixed(2)}s`, boxShadow: `inset 0 0 ${60 + 120 * heartLevel}px rgba(255,40,60,${(0.15 + 0.6 * heartLevel).toFixed(2)})` }} />
+          <div aria-hidden className="heart-pulse" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 3, '--lvl': heartLevel, animationDuration: `${(1.25 - 0.8 * heartLevel).toFixed(2)}s`, boxShadow: `inset 0 0 ${60 + 120 * heartLevel}px rgba(255,40,60,${(0.15 + 0.6 * heartLevel).toFixed(2)})` }} />
         )}
         {phase === 'action' && mode === 'gravity' && (modeBanner || gravityFactor !== 1) && (
           <div className="beat" style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 35, padding: '6px 14px', borderRadius: 10, background: 'rgba(20,10,16,0.8)', border: `1px solid ${gravityFactor < 1 ? '#54d1f2' : '#ff9a5a'}`, color: '#fff', fontWeight: 800, pointerEvents: 'none' }}>
@@ -1846,7 +1845,7 @@ export default function LobbyPage() {
         )}
 
         {cosmeticsOpen && phase === 'lobby' && (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 70, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setCosmeticsOpen(false)}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 70, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setCosmeticsOpen(false)}>
             <div style={{ width: 'min(440px, calc(100% - 24px))', maxHeight: 'calc(100% - 24px)', overflowY: 'auto', boxSizing: 'border-box', padding: 14, borderRadius: 10, background: '#241a1e', border: '1px solid #3d2c33', display: 'flex', flexDirection: 'column', gap: 10 }} onClick={(e) => e.stopPropagation()}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <strong>Personalizar personaje</strong>
@@ -2370,13 +2369,13 @@ const styles = {
   }),
   gameMain: {
     position: 'fixed',
-    inset: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     overflow: 'hidden',
     background: '#0a0b10',
     fontFamily: BODY_FONT,
     color: '#f3e8e5',
   },
-  sceneContainer: { position: 'absolute', inset: 0, userSelect: 'none', WebkitUserSelect: 'none' },
+  sceneContainer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, userSelect: 'none', WebkitUserSelect: 'none' },
   topBar: {
     position: 'absolute',
     top: 16,
@@ -2650,7 +2649,7 @@ const styles = {
   skillKey: { fontSize: 14, fontWeight: 800, lineHeight: 1, color: '#e8e9f0' },
   skillCooldownOverlay: {
     position: 'absolute',
-    inset: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2695,7 +2694,7 @@ const styles = {
   },
   gameOverOverlay: {
     position: 'absolute',
-    inset: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     zIndex: 40,
     background: 'rgba(10, 11, 16, 0.85)',
     display: 'flex',

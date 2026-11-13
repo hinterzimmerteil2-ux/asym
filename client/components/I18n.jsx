@@ -111,9 +111,12 @@ export default function I18n() {
     const mq = window.matchMedia('(pointer: coarse), (max-width: 760px)');
     const upd = () => setNarrow(mq.matches);
     upd();
-    mq.addEventListener('change', upd);
-    return () => mq.removeEventListener('change', upd);
+    if (mq.addEventListener) mq.addEventListener('change', upd); else if (mq.addListener) mq.addListener(upd);
+    return () => { if (mq.removeEventListener) mq.removeEventListener('change', upd); else if (mq.removeListener) mq.removeListener(upd); };
   }, []);
+  useEffect(() => {
+    document.documentElement.classList.toggle('lowfx', ui.quality < 1);
+  }, [ui.quality]);
 
   const choose = (next) => {
     langRef.current = next;

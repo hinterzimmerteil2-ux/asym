@@ -136,7 +136,7 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
 }
 
 const styles = {
-  backdrop: { position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(10, 11, 16, 0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  backdrop: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 60, background: 'rgba(10, 11, 16, 0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
   panel: { width: '100%', maxWidth: 640, maxHeight: '88vh', overflowY: 'auto', background: '#1a1215', border: '1px solid #3d2c33', borderRadius: 12, padding: '16px 20px 20px', color: '#e8e9f0' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   title: { margin: 0, fontSize: 20 },

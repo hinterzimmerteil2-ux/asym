@@ -139,7 +139,7 @@ export default function SelfDamageBar({ gameRef, onPress, onDir }) {
   const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const shortBox = !short && coarse ? { bottom: Math.min(250, Math.max(150, vh - 360)) } : short ? { bottom: 8, width: boxW, padding: '8px 12px 10px', maxHeight: vh - 16, overflow: 'hidden' } : null;
   const frame = (color) => ({ ...BOX, ...shortBox, border: `2px solid ${color}`, boxShadow: `0 0 34px ${color}55, 0 10px 30px rgba(0,0,0,0.5)` });
-  const flash = (color) => hitting ? <div className="sd-anim" key={prev.current.hitAt} style={{ position: 'absolute', inset: 0, background: color, animation: 'sdFlash 420ms ease-out forwards', pointerEvents: 'none' }} /> : null;
+  const flash = (color) => hitting ? <div className="sd-anim" key={prev.current.hitAt} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: color, animation: 'sdFlash 420ms ease-out forwards', pointerEvents: 'none' }} /> : null;
   const left = 1 - pos;
 
   if (g.type === 'needle') {
@@ -229,7 +229,7 @@ export default function SelfDamageBar({ gameRef, onPress, onDir }) {
         <Head title="Machaca" color="#e07cf2" right={`${g.count}/${g.target}`}>pulsa<Key />sin parar</Head>
         <div className="sd-anim" style={{ ...TRACK, height: 60, ...(hitting ? { animation: 'sdShake 140ms linear' } : null) }}>
           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${fill * 100}%`, background: 'linear-gradient(90deg,#a23fc0,#f08cff)', transition: 'width 90ms ease-out', boxShadow: '0 0 18px #e07cf2' }} />
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, textShadow: '0 2px 6px #000', ...hitAnim }} className="sd-anim">{Math.round(fill * 100)}%</div>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, textShadow: '0 2px 6px #000', ...hitAnim }} className="sd-anim">{Math.round(fill * 100)}%</div>
         </div>
         <TimeBar left={left} color="#f2d154" />
         <TapButton onPress={onPress} color="#e07cf2" />

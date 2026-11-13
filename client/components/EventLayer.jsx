@@ -79,7 +79,7 @@ export default function EventLayer({ events, posRef }) {
     <>
       <style>{'@keyframes evShake{0%,100%{transform:translate(0,0)}25%{transform:translate(-1.5px,1px)}50%{transform:translate(1.5px,-1px)}75%{transform:translate(-1px,-1.5px)}}@keyframes evPop{0%{transform:scale(1.6);opacity:0}100%{transform:scale(1);opacity:1}}'}</style>
       {black && (
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 4, background: 'radial-gradient(circle at 50% 55%, rgba(2,3,12,0.25) 0, rgba(2,3,12,0.9) 140px, rgba(2,3,12,0.96) 100%)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 4, background: 'radial-gradient(circle at 50% 55%, rgba(2,3,12,0.25) 0, rgba(2,3,12,0.9) 140px, rgba(2,3,12,0.96) 100%)' }} />
       )}
       <div style={{ position: 'absolute', top: 104, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 6, pointerEvents: 'none' }}>
         {events.filter((ev) => !(ev.permanent && ev.phase === 'active')).map((ev) => <Lamp key={ev.id} ev={ev} />)}

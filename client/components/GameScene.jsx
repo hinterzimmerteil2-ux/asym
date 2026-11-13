@@ -2,8 +2,8 @@
 
 import { useRef, useEffect, useState, useMemo, memo, Suspense } from 'react';
 import { useGLTF, useAnimations } from '@react-three/drei';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, Vector3, Matrix4, Quaternion, Euler, TextureLoader, DoubleSide, SRGBColorSpace, Color } from 'three';
+import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
+import { Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, MeshLambertMaterial, MeshStandardMaterial, Vector3, Matrix4, Quaternion, Euler, TextureLoader, DoubleSide, SRGBColorSpace, Color } from 'three';
 import { itemOf } from '../lib/cosmetics';
 import { getTexture, setTextureQuality } from '../lib/textures';
 import { matches } from '../lib/keybinds';
@@ -3331,9 +3331,18 @@ function ScanMarks({ entities, myId }) {
   );
 }
 
+function onGlCreated(st) {
+  window.__glerr = window.__glerr || [];
+  st.gl.debug.onShaderError = (ctx, prog) => { window.__glerr.push(String(ctx.getProgramInfoLog(prog) || 'shader').slice(0, 200)); };
+  const el = st.gl.domElement;
+  el.addEventListener('webglcontextlost', (e) => { e.preventDefault(); window.__glerr.push('contexto WebGL perdido'); }, false);
+}
+
 function GlProbe() {
   const gl = useThree((st) => st.gl);
+  const scene = useThree((st) => st.scene);
   const n = useRef(0);
+  useEffect(() => { window.__scene = scene; }, [scene]);
   useFrame(() => {
     n.current += 1;
     if (n.current % 30) return;
@@ -3419,6 +3428,13 @@ const PlatformLayer = memo(function PlatformLayer({ platforms, shakeIds, plankHp
   );
 });
 
+function LiteGate({ on, poly }) {
+  setPolyScale(poly);
+  installLowPoly();
+  extend({ MeshStandardMaterial: on ? MeshLambertMaterial : MeshStandardMaterial });
+  return null;
+}
+
 export default function GameScene({
   gameMode,
   lmsActive,
@@ -3454,7 +3470,6 @@ export default function GameScene({
 }) {
   const settings = useSettings();
   const g = gfx(settings.quality);
-  installLowPoly();
   setPolyScale(g.poly);
   setTextureQuality(!g.textures, g.aniso);
   const yawRef = useRef(Math.PI);
@@ -3471,7 +3486,8 @@ export default function GameScene({
   const pits = useMemo(() => (phase === 'action' ? (platforms || []).filter((p) => p.kind === 'pit') : []), [platforms, phase]);
 
   return (
-    <Canvas key={`${g.antialias}-${g.textures}-${g.poly}`} dpr={isBoard() ? Math.min(g.dpr, 1) : coarse ? Math.min(g.dpr, 2) : g.dpr} gl={{ antialias: g.antialias, powerPreference: g.minimal ? 'low-power' : 'high-performance' }} camera={{ position: [0, 3, 7], fov: 60 }}>
+    <Canvas key={`${g.antialias}-${g.textures}-${g.poly}`} dpr={isBoard() ? Math.min(g.dpr, 1) : coarse ? Math.min(g.dpr, 2) : g.dpr} gl={{ antialias: g.antialias, alpha: false, stencil: false, powerPreference: g.minimal ? 'low-power' : 'high-performance' }} onCreated={onGlCreated} camera={{ position: [0, 3, 7], fov: 60 }}>
+      <LiteGate on={g.minimal} poly={g.poly} />
       <ambientLight intensity={phase === 'action' ? (gameMode === 'lights' ? 0.22 : g.lights ? 0.55 : 0.95) : 0.75} color={phase === 'action' ? '#cfc6c4' : '#cfe0ff'} />
       <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? (gameMode === 'lights' ? 0.12 : 0.7) : 1.1} color={phase === 'action' ? '#ffc0a8' : '#ffffff'} />
       <hemisphereLight args={phase === 'action' ? ['#8f7c8a', '#33262e', gameMode === 'lights' ? 0.12 : 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />

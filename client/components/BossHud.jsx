@@ -191,7 +191,7 @@ export default function BossHud({ hud, onAbility, onSize, onCrouch }) {
                   <BossIcon id={i} size={28} />
                   <span style={{ position: 'absolute', left: 4, top: 1, fontSize: 9, opacity: 0.7 }}>{i + 1}</span>
                   {i === 2 && <span style={{ position: 'absolute', right: 5, bottom: 5, width: 8, height: 8, borderRadius: 4, background: SCREEN_COLORS[hud.vm || 0], border: '1px solid #888' }} />}
-                  {cd > 0 && <span style={{ position: 'absolute', inset: 0, borderRadius: 10, background: '#000a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>{Math.ceil(cd)}</span>}
+                  {cd > 0 && <span style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 10, background: '#000a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>{Math.ceil(cd)}</span>}
                 </button>
               );
             })}
@@ -219,12 +219,12 @@ export function BossOverlay({ hud }) {
         @keyframes bossDrunk { 0% { backdrop-filter: blur(0px) hue-rotate(0deg); transform: translateX(0); } 25% { backdrop-filter: blur(2.5px) hue-rotate(25deg); transform: translateX(10px); } 50% { backdrop-filter: blur(1px) hue-rotate(-20deg); transform: translateX(-8px); } 75% { backdrop-filter: blur(3px) hue-rotate(15deg); transform: translateX(6px); } 100% { backdrop-filter: blur(0px) hue-rotate(0deg); transform: translateX(0); } }
         @keyframes bossRedPulse { 0%,100% { opacity: 0.85; } 50% { opacity: 1; } }
       `}</style>
-      {!hud.isBoss && hud.fat > 20 && <div style={{ position: 'fixed', inset: 0, zIndex: 13, pointerEvents: 'none', boxShadow: 'inset 0 0 ' + Math.round(60 + hud.fat * 1.6) + 'px rgba(210,30,40,' + Math.min(0.75, hud.fat / 140).toFixed(2) + ')' }} />}
-      {!hud.isBoss && hud.debt > 4 && <div style={{ position: 'fixed', inset: 0, zIndex: 13, pointerEvents: 'none', boxShadow: 'inset 0 0 ' + Math.round(40 + hud.debt * 3) + 'px rgba(140,70,255,' + Math.min(0.7, hud.debt / 50).toFixed(2) + ')', animation: 'bossRedPulse 1.1s ease-in-out infinite' }} />}
-      {!hud.isBoss && hud.tem > 30 && <div style={{ position: 'fixed', inset: 0, zIndex: 16, pointerEvents: 'none', opacity: Math.min(0.5, (hud.tem - 30) / 120), background: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.14) 0 1px, transparent 1px 4px)', animation: 'bossDrunk 0.35s steps(3) infinite' }} />}
-      {hud.isBoss && hud.sp < -20 && <div style={{ position: 'fixed', inset: 0, zIndex: 13, pointerEvents: 'none', boxShadow: 'inset 0 0 120px rgba(255,60,60,' + Math.min(0.6, (-hud.sp - 20) / 40).toFixed(2) + ')', animation: 'bossRedPulse 0.8s ease-in-out infinite' }} />}
-      {(hud.blue) && <div style={{ position: 'fixed', inset: -20, zIndex: 14, pointerEvents: 'none', background: 'rgba(40,80,255,0.22)', animation: 'bossDrunk 1.6s ease-in-out infinite' }} />}
-      {bg !== 'none' && <div style={{ position: 'fixed', inset: 0, zIndex: 15, pointerEvents: 'none', background: bg, animation: hud.red ? 'bossRedPulse 0.7s linear infinite' : 'none' }} />}
+      {!hud.isBoss && hud.fat > 20 && <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 13, pointerEvents: 'none', boxShadow: 'inset 0 0 ' + Math.round(60 + hud.fat * 1.6) + 'px rgba(210,30,40,' + Math.min(0.75, hud.fat / 140).toFixed(2) + ')' }} />}
+      {!hud.isBoss && hud.debt > 4 && <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 13, pointerEvents: 'none', boxShadow: 'inset 0 0 ' + Math.round(40 + hud.debt * 3) + 'px rgba(140,70,255,' + Math.min(0.7, hud.debt / 50).toFixed(2) + ')', animation: 'bossRedPulse 1.1s ease-in-out infinite' }} />}
+      {!hud.isBoss && hud.tem > 30 && <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 16, pointerEvents: 'none', opacity: Math.min(0.5, (hud.tem - 30) / 120), background: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.14) 0 1px, transparent 1px 4px)', animation: 'bossDrunk 0.35s steps(3) infinite' }} />}
+      {hud.isBoss && hud.sp < -20 && <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 13, pointerEvents: 'none', boxShadow: 'inset 0 0 120px rgba(255,60,60,' + Math.min(0.6, (-hud.sp - 20) / 40).toFixed(2) + ')', animation: 'bossRedPulse 0.8s ease-in-out infinite' }} />}
+      {(hud.blue) && <div style={{ position: 'fixed', top: -20, left: -20, right: -20, bottom: -20, zIndex: 14, pointerEvents: 'none', background: 'rgba(40,80,255,0.22)', animation: 'bossDrunk 1.6s ease-in-out infinite' }} />}
+      {bg !== 'none' && <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 15, pointerEvents: 'none', background: bg, animation: hud.red ? 'bossRedPulse 0.7s linear infinite' : 'none' }} />}
     </>
   );
 }

@@ -74,3 +74,8 @@ export function gfx(quality) {
     fogFar: q < 0.05 ? 30 : q < 0.1 ? 45 : minimal ? 70 : q < 1 ? 100 : 140,
   };
 }
+
+export function watchMedia(mq, fn) {
+  if (mq.addEventListener) mq.addEventListener('change', fn); else if (mq.addListener) mq.addListener(fn);
+  return () => { if (mq.removeEventListener) mq.removeEventListener('change', fn); else if (mq.removeListener) mq.removeListener(fn); };
+}

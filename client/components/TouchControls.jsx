@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getKey, keyLabel } from '../lib/keybinds';
 import SkillIcon from './SkillIcon';
-import { isBoard } from '../lib/settings';
+import { isBoard, watchMedia } from '../lib/settings';
 
 const BS = isBoard() ? 1.8 : 1;
 
@@ -109,8 +109,7 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
     const mq = window.matchMedia('(orientation: portrait)');
     const on = () => setPortrait(mq.matches);
     on();
-    mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
+    return watchMedia(mq, on);
   }, []);
   useEffect(() => {
     if (!getCarry) return undefined;
@@ -120,7 +119,7 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
   if (!show) return null;
   if (lobby) {
     return (
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 20 }}>
         <Stick />
         <div style={{ position: 'absolute', right: SAFE_R, bottom: SAFE_B, display: 'flex', gap: 12, alignItems: 'flex-end' }}>
           <Btn label="Salto" act="jump" size={60} style={{ fontSize: 12 }} />
@@ -131,7 +130,7 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
   }
   if (ghost) {
     return (
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 20 }}>
         <Stick />
         <button
           type="button"
@@ -165,7 +164,7 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
   );
   if (portrait) {
     return (
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 20 }}>
         <Stick />
         <div style={{ position: 'absolute', right: SAFE_R, bottom: SAFE_B, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end', maxWidth: '52%' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-end' }}>
@@ -182,7 +181,7 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
     );
   }
   return (
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 20 }}>
       <Stick />
       <div style={{ position: 'absolute', right: SAFE_R, bottom: SAFE_B, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
         <div style={{ display: 'flex', gap: 10 }}>{actions}</div>

@@ -90,7 +90,7 @@ export default function HelpPanel({ characters, cards, onClose }) {
 const styles = {
   backdrop: {
     position: 'fixed',
-    inset: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     zIndex: 50,
     background: 'rgba(10, 11, 16, 0.7)',
     display: 'flex',

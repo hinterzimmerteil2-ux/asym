@@ -33,7 +33,5 @@ class Capsule extends THREE.CapsuleGeometry {
 }
 
 export function installLowPoly() {
-  if (installed) return;
-  installed = true;
   extend({ SphereGeometry: Sphere, CylinderGeometry: Cylinder, ConeGeometry: Cone, CircleGeometry: Circle, RingGeometry: Ring, TorusGeometry: Torus, CapsuleGeometry: Capsule });
 }
