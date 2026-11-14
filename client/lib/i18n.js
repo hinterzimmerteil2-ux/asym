@@ -1,4 +1,6 @@
 import { DE } from './i18n_de';
+import { PIE } from './i18n_pie';
+import { skb } from './i18n_skb';
 
 const PAIRS = [
 ["Ocurrió un error al iniciar sesión.","An error occurred while signing in."],
@@ -658,10 +660,12 @@ const PAIRS = [
 ["Para:","For:"],
 ];
 
-const MAPS = { 'en-GB': new Map(), de: new Map() };
+const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };
 PAIRS.forEach(([es, en], i) => {
   if (!MAPS['en-GB'].has(es)) MAPS['en-GB'].set(es, en);
   if (!MAPS.de.has(es)) MAPS.de.set(es, DE[i]);
+  if (PIE[i] && !MAPS.pie.has(es)) MAPS.pie.set(es, PIE[i]);
+  if (!MAPS.skb.has(es)) MAPS.skb.set(es, skb(es));
 });
 const KEYS = [...MAPS['en-GB'].keys()].sort((x, y) => y.length - x.length);
 const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -670,8 +674,8 @@ const RX = new RegExp(
   KEYS.map((k) => (isLetter(k[0]) ? '(?<!\\p{L})' : '') + esc(k) + (isLetter(k[k.length - 1]) ? '(?!\\p{L})' : '')).join('|'),
   'gu'
 );
-const EXACT = { 'en-GB': new Map([['o', 'or']]), de: new Map([['o', 'oder']]) };
-const caches = { 'en-GB': new Map(), de: new Map() };
+const EXACT = { 'en-GB': new Map([['o', 'or']]), de: new Map([['o', 'oder']]), pie: new Map([['o', 'u̯é']]), skb: new Map([['o', 'ΔΟΡ']]) };
+const caches = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };
 
 export function translate(text, lang) {
   const map = MAPS[lang];
@@ -687,12 +691,12 @@ export function translate(text, lang) {
   return out;
 }
 
-export const LANGS = ['es', 'en-GB', 'de'];
+export const LANGS = ['es', 'en-GB', 'de', 'pie', 'skb'];
 
 export function detectLang() {
   try {
     const stored = localStorage.getItem('asym_lang');
-    if (stored === 'es' || stored === 'en-GB' || stored === 'de') return stored;
+    if (LANGS.includes(stored)) return stored;
   } catch {}
   const nav = typeof navigator !== 'undefined' ? navigator.language || '' : '';
   return /^en/i.test(nav) ? 'en-GB' : /^de/i.test(nav) ? 'de' : 'es';

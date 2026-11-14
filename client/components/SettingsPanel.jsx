@@ -89,9 +89,9 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
         {langs.length > 0 && (
           <>
             <h3 style={styles.section}>Idioma</h3>
-            <div style={{ ...styles.card, display: 'flex', gap: 6 }} translate="no">
+            <div style={{ ...styles.card, display: 'flex', flexWrap: 'wrap', gap: 6 }} translate="no">
               {langs.map((l) => (
-                <button key={l} type="button" onClick={() => onLang(l)} style={styles.preset(lang === l)}>{l === 'en-GB' ? 'English' : l === 'de' ? 'Deutsch' : 'Español'}</button>
+                <button key={l} type="button" onClick={() => onLang(l)} style={styles.preset(lang === l)}>{l === 'en-GB' ? 'English' : l === 'de' ? 'Deutsch' : l === 'pie' ? 'PIE' : l === 'skb' ? 'SKB' : 'Español'}</button>
               ))}
             </div>
           </>

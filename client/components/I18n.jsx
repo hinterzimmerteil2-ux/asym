@@ -85,7 +85,7 @@ export default function I18n() {
     }
     if (langRef.current !== 'es') walk(document.body);
     document.title = translate('Réplica', langRef.current);
-    document.documentElement.lang = langRef.current;
+    document.documentElement.lang = langRef.current === 'pie' ? 'ine-pro' : langRef.current === 'skb' ? 'x-skb' : langRef.current;
   };
 
   useEffect(() => {
