@@ -76,7 +76,10 @@ let domes = [];
 const DEFS = {
   town_level: { id: 'town_level', name: 'Town Level Verse Lol', modes: ['bayoneta', 'barrera', 'senuelo', 'carga'], charges: 0, wig: true, scale: 0.6 },
   sunat_paperwork: { id: 'sunat_paperwork', name: 'Sunat Paperwork', modes: ['notificacion', 'vuelva', 'anulacion'] },
+  platinum_star: { id: 'platinum_star', name: 'Platinum Star', modes: ['rafaga', 'stellar', 'atrapar', 'pausa'] },
 };
+
+const STAR = { rhythmMax: 100, rafagaRange: 3.6, rafagaStun: 650, rafagaPush: 5, rafagaGain: 14, stellarRange: 20, stellarWidth: 0.9, stellarWind: 400, stellarStun: 1000, stellarPush: 9, stellarGain: 12, catchMs: 900, catchRange: 6, catchStun: 1300, catchPush: 8, catchGain: 20, catchFailLag: 500, pauseRange: 11, pauseStun: 1500, pauseCost: 50, rhythmStun: 0.006, cd: { rafaga: 4500, stellar: 9000, atrapar: 9000, pausa: 5000 } };
 
 function grant(entity, id) {
   if (!DEFS[id]) {
@@ -84,6 +87,9 @@ function grant(entity, id) {
     return;
   }
   entity.sup = { id, sheets: DEFS[id].charges || SHEETS, copyLeft: false, claims: 0, nextAt: 0, pending: 0, still: 0, lx: null, lz: null, noticeUntil: 0 };
+  if (id === 'platinum_star') {
+    Object.assign(entity.sup, { rhythm: 0, cd: { rafaga: 0, stellar: 0, atrapar: 0, pausa: 0 }, poke: null, dome: 0, domeOn: false, parried: 0 });
+  }
   if (id === 'town_level') {
     Object.assign(entity.sup, { mana: 0, shield: 0, shieldAt: 0, chain: 0, spent: 0, lastFlo: null, charging: false, chMana: 0, chAt: 0, chPush: 0, chStun: 0, cd: { bayoneta: 0, barrera: 0, senuelo: 0 }, glide: false, glideAt: 0, airAt: 0, dome: 0, decoy: null });
     entity.hitScale = (entity.hitScale || 1) * DEFS[id].scale;
@@ -151,6 +157,7 @@ function use(room, playerId, mode, now) {
   const s = entity.sup;
   let fx = {};
   if (s.id === 'town_level') return useTown(room, playerId, entity, mode, now);
+  if (s.id === 'platinum_star') return useStar(room, playerId, entity, mode, now);
   if (s.sheets <= 0 || now < s.nextAt) return false;
   if (mode !== 'anulacion' && Status.blocksSkills(entity, now)) return false;
   if (mode === 'notificacion') {
@@ -187,6 +194,7 @@ function use(room, playerId, mode, now) {
 function tick(room, now) {
   record(room, now);
   tickTown(room, now);
+  tickStar(room, now);
   for (const e of Object.values(room.gameState.entities)) {
     const s = e.sup;
     if (s && s.id === 'sunat_paperwork' && s.pending > 0 && !e.down) {
@@ -221,6 +229,9 @@ function view(entity, now) {
   if (!s) return null;
   if (s.id === 'town_level') {
     return { id: s.id, mana: Math.floor(s.mana), manaMax: MANA_MAX, shield: Math.floor(s.shield), shieldMax: SHIELD_MAX, charging: s.charging, charge: Math.round(s.chMana), chargeMax: CHARGE_MAX_MANA, cd: { bayoneta: Math.max(0, s.cd.bayoneta - now), barrera: Math.max(0, s.cd.barrera - now), senuelo: Math.max(0, s.cd.senuelo - now) }, glide: s.glide };
+  }
+  if (s.id === 'platinum_star') {
+    return { id: s.id, rhythm: Math.floor(s.rhythm), rhythmMax: STAR.rhythmMax, pauseCost: STAR.pauseCost, windUp: Boolean(s.poke), catching: s.domeOn, cd: { rafaga: Math.max(0, s.cd.rafaga - now), stellar: Math.max(0, s.cd.stellar - now), atrapar: Math.max(0, s.cd.atrapar - now), pausa: Math.max(0, s.cd.pausa - now) } };
   }
   return { id: s.id, sheets: s.sheets, max: SHEETS, claims: s.claims, need: CLAIMS_FOR_SHEET, pending: s.pending };
 }
@@ -458,6 +469,99 @@ function tickTown(room, now) {
     }
   }
   domes = live;
+}
+
+function starGain(s, n) {
+  s.rhythm = Math.min(STAR.rhythmMax, s.rhythm + n);
+}
+
+function starStun(s, ms) {
+  return Math.round(ms * (1 + s.rhythm * STAR.rhythmStun));
+}
+
+function useStar(room, playerId, entity, mode, now) {
+  const s = entity.sup;
+  if (now < s.nextAt || s.poke || s.domeOn) return false;
+  if (Status.blocksSkills(entity, now)) return false;
+  if (now < s.cd[mode]) return false;
+  const fx = entity.faceX || 0;
+  const fz = entity.faceZ || 1;
+  const flen = Math.hypot(fx, fz) || 1;
+  const nx = fx / flen;
+  const nz = fz / flen;
+  const out = { x: entity.x, y: entity.y || 0, z: entity.z, dx: nx, dz: nz };
+  if (mode === 'rafaga') {
+    const hit = foes(room, entity, STAR.rafagaRange).filter((f) => ((f.e.x - entity.x) * nx + (f.e.z - entity.z) * nz) > 0);
+    for (const f of hit) {
+      room.stun(f.id, f.e, starStun(s, STAR.rafagaStun), now, 0);
+      Status.push(f.e, nx, nz, STAR.rafagaPush, 280, now);
+    }
+    if (hit.length) starGain(s, STAR.rafagaGain);
+    out.hit = hit.length;
+    Status.apply(entity, 'slow', 350, now, { tag: 'endlag', level: 2 });
+  } else if (mode === 'stellar') {
+    s.poke = { at: now + STAR.stellarWind, nx, nz };
+    out.wind = STAR.stellarWind;
+  } else if (mode === 'atrapar') {
+    s.dome = now + STAR.catchMs;
+    s.domeOn = true;
+    s.parried = 0;
+  } else if (mode === 'pausa') {
+    if (s.rhythm < STAR.pauseCost) return false;
+    s.rhythm -= STAR.pauseCost;
+    const all = foes(room, entity, STAR.pauseRange);
+    for (const f of all) room.stun(f.id, f.e, STAR.pauseStun, now, 0);
+    out.count = all.length;
+    out.range = STAR.pauseRange;
+  } else return false;
+  s.cd[mode] = now + STAR.cd[mode];
+  s.nextAt = now + USE_GAP_MS;
+  room.broadcast('super_result', { playerId, mode, ...out });
+  return true;
+}
+
+function tickStar(room, now) {
+  const live = [];
+  for (const [id, e] of Object.entries(room.gameState.entities)) {
+    const s = e.sup;
+    if (!s || s.id !== 'platinum_star' || e.down || e.gone) continue;
+    if (s.poke && now >= s.poke.at) {
+      const { nx, nz } = s.poke;
+      s.poke = null;
+      const path = foes(room, e, STAR.stellarRange).filter((f) => {
+        const rx = f.e.x - e.x;
+        const rz = f.e.z - e.z;
+        return rx * nx + rz * nz > 0 && Math.abs(rx * nz - rz * nx) <= STAR.stellarWidth;
+      });
+      const first = path[0];
+      let len = STAR.stellarRange;
+      if (first) {
+        room.stun(first.id, first.e, starStun(s, STAR.stellarStun), now, 0);
+        Status.push(first.e, nx, nz, STAR.stellarPush, 320, now);
+        len = first.d;
+        starGain(s, STAR.stellarGain);
+      }
+      room.broadcast('super_result', { playerId: id, mode: 'stellar_hit', x: e.x, y: e.y || 0, z: e.z, dx: nx, dz: nz, len, hit: Boolean(first) });
+    }
+    if (s.parried) {
+      s.parried = 0;
+      s.dome = 0;
+      s.domeOn = false;
+      s.cd.atrapar = now + STAR.cd.atrapar;
+      starGain(s, STAR.catchGain);
+      const target = foes(room, e, STAR.catchRange)[0];
+      if (target) {
+        room.stun(target.id, target.e, starStun(s, STAR.catchStun), now, 0);
+        Status.push(target.e, (target.e.x - e.x) / (target.d || 1), (target.e.z - e.z) / (target.d || 1), STAR.catchPush, 300, now);
+      }
+      room.broadcast('super_result', { playerId: id, mode: 'parry', x: e.x, y: e.y || 0, z: e.z, dx: e.faceX || 0, dz: e.faceZ || 1 });
+    } else if (s.domeOn && s.dome <= now) {
+      s.domeOn = false;
+      Status.apply(e, 'slow', STAR.catchFailLag, now, { tag: 'endlag', level: 2 });
+    }
+    if (s.dome > now) live.push({ x: e.x, y: e.y || 0, z: e.z, until: s.dome, owner: e });
+  }
+  domes = domes.concat(live);
 }
 
 function glide(room, entity, now, dt) {

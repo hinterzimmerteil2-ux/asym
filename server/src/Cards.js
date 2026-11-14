@@ -156,6 +156,11 @@ const SUPER_CARDS = {
     displayName: 'Town Level Verse Lol',
     description: 'Súper-habilidad. Reemplaza tus dos cartas. Bayoneta (estocada o disparo de largo alcance con retroceso), Barrera (parry: si te golpean en 1,2 s, anula el golpe y contraatacas; si falla, endlag y ganas un poco de escudo) y Señuelo (una copia de tu personaje que corre mientras te vuelves invisible). Pasivas: Demonio del Rin (peluca, 40 % más pequeño y maná que potencia empuje y aturdimiento) y Vuelo (doble salto muy alto por 4 de maná; mantén el salto en el aire para ascender hasta 14 unidades). Teclas 1, 2, 3 y 4.',
   },
+  super_platinum_star: {
+    id: 'super_platinum_star', super: true, superId: 'platinum_star', keywords: ['súper'], rarity: 'rare', weight: 0,
+    displayName: 'Platinum Star',
+    description: 'Súper-habilidad. Reemplaza tus dos cartas. Ráfaga (golpes rapidísimos al frente), Stellar Finger (dedo estelar de 20 unidades de alcance, 0,4 s de preparación, preciso y aturdidor), Atrapar (si te golpean en 0,9 s, lo atrapas y contraatacas) y Pausa (aturde 1,5 s a todos los enemigos cercanos, cuesta 50 de ritmo). Pasiva: Ritmo (cada golpe sube tu ritmo hasta 100 y alarga tus aturdimientos hasta un 60 %). Teclas 1, 2, 3 y 4.',
+  },
   super_slot: { id: 'super_slot', super: true, keywords: ['súper'], rarity: 'common', weight: 0, displayName: 'Súper-habilidad activa', description: 'Tu Súper-habilidad ocupa este espacio.' },
 };
 

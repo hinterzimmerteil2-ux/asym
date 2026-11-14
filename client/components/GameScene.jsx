@@ -1161,7 +1161,7 @@ function Sparks({ life, color, n = 8, speed = 3, up = 1.5, size = 0.07 }) {
 
 function SuperFx({ effect }) {
   const kind = effect.kind;
-  const dur = kind === 'sup_bayoneta' || kind === 'sup_parry' ? 520 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
+  const dur = kind === 'sup_bayoneta' || kind === 'sup_parry' || kind === 'sup_stellar_hit' || kind === 'sup_rafaga' ? 520 : kind === 'sup_stellar' ? 400 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
   const life = useLife(effect, dur);
   const yaw = Math.atan2(effect.dx || 0, effect.dz || 1);
   const stamp = useRef();
@@ -1193,6 +1193,47 @@ function SuperFx({ effect }) {
             <Sparks life={life} color="#ffffff" n={8} speed={1.4} up={0.9} />
           </group>
         )}
+      </group>
+    );
+  }
+  if (kind === 'sup_rafaga') {
+    const mx = (effect.x || 0) + (effect.dx || 0) * 1.5;
+    const mz = (effect.z || 0) + (effect.dz || 0) * 1.5;
+    return (
+      <group position={[mx, (effect.y || 0) + 1.2, mz]} rotation={[0, yaw, 0]}>
+        {[-0.5, 0, 0.5].map((o, i) => <group key={i} position={[o, (i - 1) * 0.25, 0.3 * i]}><Ring life={life} color="#e6d8ff" y={0} r0={0.15} r1={0.9} flat={false} spin={8 + i} /></group>)}
+        <Sparks life={life} color="#f4ecff" n={16} speed={2.2} up={0.8} size={0.08} />
+        <Sparks life={life} color="#a98be8" n={10} speed={1.6} up={1.2} size={0.1} />
+      </group>
+    );
+  }
+  if (kind === 'sup_stellar') {
+    return (
+      <group position={[effect.x || 0, (effect.y || 0) + 1.3, effect.z || 0]} rotation={[0, yaw, 0]}>
+        <group position={[0, 0, 0.8]}><Ring life={life} color="#e6d8ff" y={0} r0={0.9} r1={0.1} flat={false} spin={6} /></group>
+        <Sparks life={life} color="#f4ecff" n={6} speed={0.6} up={0.4} size={0.07} />
+      </group>
+    );
+  }
+  if (kind === 'sup_stellar_hit') {
+    const len = effect.len || 20;
+    return (
+      <group position={[effect.x || 0, (effect.y || 0) + 1.3, effect.z || 0]} rotation={[0, yaw, 0]}>
+        <mesh position={[0, 0, len / 2]}><boxGeometry args={[0.05, 0.05, len]} /><Mat reg={life.reg} color="#e6d8ff" /></mesh>
+        <mesh position={[0, 0, len / 2]}><boxGeometry args={[0.02, 0.02, len]} /><Mat reg={life.reg} color="#ffffff" /></mesh>
+        <group position={[0, 0, len]}>
+          <Ring life={life} color="#e6d8ff" y={0} r0={0.2} r1={1.4} flat={false} spin={4} />
+          <Sparks life={life} color="#ffffff" n={effect.hit ? 12 : 5} speed={1.8} up={1.2} size={0.09} />
+        </group>
+      </group>
+    );
+  }
+  if (kind === 'sup_pausa') {
+    return (
+      <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
+        <Ring life={life} color="#e6d8ff" r0={0.5} r1={effect.range || 11} />
+        <Ring life={life} color="#a98be8" y={1.2} r0={0.3} r1={(effect.range || 11) * 0.6} flat={false} spin={2} />
+        <Sparks life={life} color="#f4ecff" n={14} speed={2.2} up={2.2} size={0.1} />
       </group>
     );
   }

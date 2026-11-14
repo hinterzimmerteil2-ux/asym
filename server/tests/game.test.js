@@ -1815,3 +1815,31 @@ test('doble salto del Town Level sube alto y gasta maná', () => {
   SA.glide(room, e.a, now, 0.05);
   assert.ok(e.a.velocityY === 0);
 });
+
+test('Platinum Star: ráfaga aturde, atrapar bloquea y pausa cuesta ritmo', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('a', 'super:platinum_star');
+  const SA = require('../src/SuperAbilities');
+  const s = e.a.sup;
+  assert.strictEqual(s.id, 'platinum_star');
+  e.a.faceX = 0;
+  e.a.faceZ = 1;
+  e.c.x = e.a.x;
+  e.c.z = e.a.z + 2;
+  let now = Date.now() + 1000;
+  assert.ok(SA.use(room, 'a', 'rafaga', now));
+  assert.ok(s.rhythm > 0);
+  assert.ok(!SA.use(room, 'a', 'rafaga', now + 800));
+  s.rhythm = 10;
+  assert.ok(!SA.use(room, 'a', 'pausa', now + 5000));
+  s.rhythm = 60;
+  assert.ok(SA.use(room, 'a', 'pausa', now + 6000));
+  assert.strictEqual(s.rhythm, 10);
+  assert.ok(SA.use(room, 'a', 'stellar', now + 8000));
+  assert.ok(s.poke);
+  SA.tick(room, now + 8500);
+  assert.ok(!s.poke);
+  assert.ok(SA.use(room, 'a', 'atrapar', now + 20000));
+  assert.ok(s.domeOn);
+});

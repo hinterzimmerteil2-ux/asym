@@ -146,6 +146,7 @@ function fmtHp(n) {
 
 const SUPER_MODES = {
   sunat_paperwork: [['notificacion', 'Notificación'], ['vuelva', 'Vuelva mañana'], ['anulacion', 'Anulación']],
+  platinum_star: [['rafaga', 'Ráfaga'], ['stellar', 'Stellar Finger'], ['atrapar', 'Atrapar'], ['pausa', 'Pausa']],
   town_level: [['bayoneta', 'Bayoneta'], ['barrera', 'Barrera'], ['senuelo', 'Señuelo'], ['carga', 'Carga']],
 };
 
@@ -1593,7 +1594,7 @@ export default function LobbyPage() {
             ))}
           </div>
         )}
-        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} getCarry={getCarryRef.current}  supIcons={flojera?.sup ? (flojera.sup.id === 'town_level' ? ['tl_bayoneta', 'tl_barrera', 'tl_senuelo', 'tl_carga'] : ['sun_notificacion', 'sun_vuelva', 'sun_anulacion']) : null} />}
+        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} getCarry={getCarryRef.current}  supIcons={flojera?.sup ? (flojera.sup.id === 'town_level' ? ['tl_bayoneta', 'tl_barrera', 'tl_senuelo', 'tl_carga'] : flojera.sup.id === 'platinum_star' ? ['pst_rafaga', 'pst_stellar', 'pst_atrapar', 'pst_pausa'] : ['sun_notificacion', 'sun_vuelva', 'sun_anulacion']) : null} />}
 
         {phase === 'action' && flojera && !bossHud?.isBoss && (
           <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: compact ? (isAsymRole ? 40 : 64) : (isAsymRole ? 80 : 110) })}>
@@ -1679,14 +1680,14 @@ export default function LobbyPage() {
           <button type="button" onClick={handleReturnToLobby} style={{ position: 'absolute', top: compact ? 96 : 62, left: 16, zIndex: 25, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(224,85,95,0.7)', background: 'rgba(40,16,20,0.85)', color: '#ffb3b8', fontSize: 11, cursor: 'pointer' }}>Reiniciar y volver al lobby</button>
         )}
 
-        {phase === 'action' && !isAsymRole && !touch && flojera?.sup?.id === 'town_level' && (
+        {phase === 'action' && !isAsymRole && !touch && (flojera?.sup?.id === 'town_level' || flojera?.sup?.id === 'platinum_star') && (
           <div style={sx(styles.handContainer, { top: 50, bottom: 'auto', right: 8, zIndex: 30 })}>
-            {SUPER_MODES.town_level.map(([m, label], i) => {
+            {SUPER_MODES[flojera.sup.id].map(([m, label], i) => {
               const cd = flojera.sup.cd[m] || 0;
               const on = m === 'carga' && flojera.sup.charging;
               return (
                 <button key={m} type="button" disabled={cd > 0} onClick={() => handleSuper(m)} style={{ ...styles.cardButton(cd > 0), outline: on ? '2px solid #ffd86b' : 'none' }} title={label}>
-                  <SkillIcon id={`tl_${m}`} size={34} />
+                  <SkillIcon id={`${flojera.sup.id === 'town_level' ? 'tl' : 'pst'}_${m}`} size={34} />
                   <span style={styles.skillKey}>{i + 1}</span>
                   {cd > 0 && <span style={styles.skillCooldownOverlay}>{Math.ceil(cd / 1000)}</span>}
                 </button>
@@ -1705,7 +1706,18 @@ export default function LobbyPage() {
           </div>
         )}
 
-        {phase === 'action' && !isAsymRole && flojera?.sup && flojera.sup.id !== 'town_level' && (
+        {phase === 'action' && !isAsymRole && flojera?.sup?.id === 'platinum_star' && (
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 150, zIndex: 20, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#fff' }}>
+            <span>Ritmo {flojera.sup.rhythm}/{flojera.sup.rhythmMax}</span>
+            <div style={{ width: 120, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
+              <div style={{ width: `${flojera.sup.rhythm}%`, height: '100%', background: flojera.sup.rhythm >= flojera.sup.pauseCost ? '#e6d8ff' : '#a98be8' }} />
+            </div>
+            {flojera.sup.windUp && <span style={{ color: '#e6d8ff' }}>Apuntando</span>}
+            {flojera.sup.catching && <span style={{ color: '#7fd8ff' }}>Atrapando</span>}
+          </div>
+        )}
+
+        {phase === 'action' && !isAsymRole && flojera?.sup && flojera.sup.id !== 'town_level' && flojera.sup.id !== 'platinum_star' && flojera.sup.id !== 'platinum_star' && (
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: touch ? 150 : 150, zIndex: 20, width: 300, borderRadius: 4, overflow: 'hidden', border: '1px solid #2e6da4', background: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.45)', fontFamily: 'Arial, Helvetica, sans-serif', color: '#333', fontSize: 12 }}>
             <div style={{ background: '#337ab7', color: '#fff', padding: '6px 10px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
               <SkillIcon id="super_sunat_paperwork" size={18} />

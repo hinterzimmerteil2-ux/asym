@@ -47,11 +47,12 @@ function secondOptions(role, count) {
   return role.pool.slice().sort(() => Math.random() - 0.5).slice(0, count);
 }
 
-const SUPER_CARD = { sunat_paperwork: 'super_sunat_paperwork', town_level: 'super_town_level' };
+const SUPER_CARD = { sunat_paperwork: 'super_sunat_paperwork', town_level: 'super_town_level', platinum_star: 'super_platinum_star' };
 
 const SUPER_LIST = [
   { id: 'sunat_paperwork', name: 'Sunat Paperwork', tagline: 'Súper-consumible' },
   { id: 'town_level', name: 'Town Level Verse Lol', tagline: 'Súper-movilidad' },
+  { id: 'platinum_star', name: 'Platinum Star', tagline: 'Súper-combate' },
 ];
 
 function supers(Cards) {

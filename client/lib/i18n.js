@@ -658,6 +658,13 @@ const PAIRS = [
 ["Para jugadores elegidos","For chosen players"],
 ["Quiero súper-habilidad","I want a super-ability"],
 ["Para:","For:"],
+["Súper-habilidad. Reemplaza tus dos cartas. Ráfaga (golpes rapidísimos al frente), Stellar Finger (dedo estelar de 20 unidades de alcance, 0,4 s de preparación, preciso y aturdidor), Atrapar (si te golpean en 0,9 s, lo atrapas y contraatacas) y Pausa (aturde 1,5 s a todos los enemigos cercanos, cuesta 50 de ritmo). Pasiva: Ritmo (cada golpe sube tu ritmo hasta 100 y alarga tus aturdimientos hasta un 60 %). Teclas 1, 2, 3 y 4.","Super-ability. Replaces both of your cards. Barrage (very fast strikes straight ahead), Stellar Finger (a precise, stunning star finger with 20 units of reach and a 0.4 s wind-up), Catch (if you are hit within 0.9 s, you catch the blow and counter-attack) and Pause (stuns every nearby enemy for 1.5 s, costs 50 rhythm). Passive: Rhythm (every hit raises your rhythm up to 100 and lengthens your stuns by up to 60%). Keys 1, 2, 3 and 4."],
+["Súper-combate","Super-combat"],
+["Apuntando","Aiming"],
+["Atrapando","Catching"],
+["Ráfaga","Barrage"],
+["Atrapar","Catch"],
+["Pausa","Pause"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };
