@@ -159,7 +159,7 @@ const SUPER_CARDS = {
   super_platinum_star: {
     id: 'super_platinum_star', super: true, superId: 'platinum_star', keywords: ['súper'], rarity: 'rare', weight: 0,
     displayName: 'Platinum Star',
-    description: 'Súper-habilidad. Reemplaza tus dos cartas. Ráfaga (golpes rapidísimos al frente), Stellar Finger (dedo estelar de 20 unidades de alcance, 0,4 s de preparación, preciso y aturdidor), Atrapar (si te golpean en 0,9 s, lo atrapas y contraatacas) y Pose Fabulosa (posas con todo el drama y deslumbras 1,5 s a todos los enemigos cercanos, cuesta 50 de ritmo). Pasiva: Ritmo (cada golpe sube tu ritmo hasta 100 y alarga tus aturdimientos hasta un 60 %). Teclas 1, 2, 3 y 4.',
+    description: 'Súper-habilidad. Reemplaza tus dos cartas. Ráfaga (golpes rapidísimos al frente), Stellar Finger (dedo estelar de 20 unidades de alcance, 0,4 s de preparación, preciso y aturdidor), Atrapar (si te golpean en 0,9 s, lo atrapas y contraatacas) y Pose Fabulosa (posas con todo el drama y deslumbras 1,5 s a todos los enemigos cercanos, cuesta 50 de Gay). Pasiva: Gay (cada golpe sube tu Gay hasta 100 y alarga tus aturdimientos hasta un 60 %). Teclas 1, 2, 3 y 4.',
   },
   super_slot: { id: 'super_slot', super: true, keywords: ['súper'], rarity: 'common', weight: 0, displayName: 'Súper-habilidad activa', description: 'Tu Súper-habilidad ocupa este espacio.' },
 };

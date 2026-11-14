@@ -654,7 +654,7 @@ export const DE = [
 "Für gewählte Spieler",
 "Ich will eine Superfähigkeit",
 "Für:",
-"Superfähigkeit. Ersetzt deine beiden Karten. Salve (blitzschnelle Schläge nach vorn), Stellar Finger (präziser, betäubender Sternfinger mit 20 Einheiten Reichweite und 0,4 s Vorbereitung), Abfangen (wirst du innerhalb von 0,9 s getroffen, fängst du den Schlag ab und konterst) und Fabelhafte Pose (du wirfst dich in Pose und blendest alle Gegner in der Nähe 1,5 s lang, kostet 50 Rhythmus). Passiv: Rhythmus (jeder Treffer erhöht deinen Rhythmus bis 100 und verlängert deine Betäubungen um bis zu 60 %). Tasten 1, 2, 3 und 4.",
+"Superfähigkeit. Ersetzt deine beiden Karten. Salve (blitzschnelle Schläge nach vorn), Stellar Finger (präziser, betäubender Sternfinger mit 20 Einheiten Reichweite und 0,4 s Vorbereitung), Abfangen (wirst du innerhalb von 0,9 s getroffen, fängst du den Schlag ab und konterst) und Fabelhafte Pose (du wirfst dich in Pose und blendest alle Gegner in der Nähe 1,5 s lang, kostet 50 Gay). Passiv: Gay (jeder Treffer erhöht dein Gay bis 100 und verlängert deine Betäubungen um bis zu 60 %). Tasten 1, 2, 3 und 4.",
 "Super-Kampf",
 "Zielt",
 "Fängt ab",

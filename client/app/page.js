@@ -1708,7 +1708,7 @@ export default function LobbyPage() {
 
         {phase === 'action' && !isAsymRole && flojera?.sup?.id === 'platinum_star' && (
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 150, zIndex: 20, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#fff' }}>
-            <span>Ritmo {flojera.sup.rhythm}/{flojera.sup.rhythmMax}</span>
+            <span>Gay {flojera.sup.rhythm}/{flojera.sup.rhythmMax}</span>
             <div style={{ width: 120, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
               <div style={{ width: `${flojera.sup.rhythm}%`, height: '100%', background: flojera.sup.rhythm >= flojera.sup.pauseCost ? '#e6d8ff' : '#a98be8' }} />
             </div>
