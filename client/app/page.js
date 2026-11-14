@@ -1712,6 +1712,7 @@ export default function LobbyPage() {
             <div style={{ width: 120, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
               <div style={{ width: `${flojera.sup.rhythm}%`, height: '100%', background: flojera.sup.rhythm >= flojera.sup.pauseCost ? '#e6d8ff' : '#a98be8' }} />
             </div>
+            {flojera.sup.ready && <span style={{ color: '#ffd24a' }}>◆ Contragolpe</span>}
             {flojera.sup.windUp && <span style={{ color: '#e6d8ff' }}>Apuntando</span>}
             {flojera.sup.catching && <span style={{ color: '#7fd8ff' }}>Atrapando</span>}
           </div>
@@ -1739,10 +1740,12 @@ export default function LobbyPage() {
                 ))}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                <span style={{ fontWeight: 700 }}>Reclamos {flojera.sup.claims}/{flojera.sup.need}</span>
-                {flojera.sup.pending > 0 && <span style={{ color: '#c0392b' }}>Observadas {flojera.sup.pending} (quieto 1 s)</span>}
+                <span style={{ fontWeight: 700 }}>Impuestos {flojera.sup.taxRe} + {flojera.sup.taxIm}i</span>
+                <span style={{ color: '#337ab7' }}>{flojera.sup.taxRe}/{flojera.sup.taxNeed}</span>
               </div>
-              <div style={{ textAlign: 'center', color: '#337ab7', fontSize: 11 }}>¿Olvidaste tu hoja?</div>
+              <div style={{ height: 6, borderRadius: 3, background: '#e6e6e6', overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(100, (flojera.sup.taxRe / flojera.sup.taxNeed) * 100)}%`, height: '100%', background: '#337ab7' }} />
+              </div>
             </div>
           </div>
         )}

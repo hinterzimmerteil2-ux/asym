@@ -31,9 +31,10 @@ function apply(entity, kind, ms, now, opts = {}) {
   if ((kind === 'stun' || kind === 'ragdoll') && !opts.boss && require('./SuperAbilities').domeBlocks(entity, now)) return store[kind] || { until: 0, level: 1 };
   if ((kind === 'stun' || kind === 'ragdoll' || kind === 'slow') && entity.ntf && entity.ntf.until > now) ms = Math.round(ms * 1.5);
   if ((kind === 'stun' || kind === 'ragdoll' || kind === 'slow') && entity.sup && entity.sup.noticeUntil > now) ms = Math.round(ms * 0.8);
+  if ((kind === 'stun' || kind === 'ragdoll' || kind === 'slow') && entity.sup && entity.sup.taxIm) ms = Math.round(ms * (1 - Math.min(0.3, entity.sup.taxIm * 0.05)));
   if (kind === 'stun' && entity.size) ms = Math.min(ms, 1900 / Math.sqrt(entity.size));
   if ((kind === 'stun' || kind === 'ragdoll') && entity.size > 2) return store[kind] || { until: 0, level: 1 };
-  if ((kind === 'stun' || kind === 'ragdoll') && entity.sup) require('./SuperAbilities').claim(entity);
+  if ((kind === 'stun' || kind === 'ragdoll') && entity.sup && entity.sup.id === 'platinum_star') require('./SuperAbilities').onStunned(entity, now);
   if (kind === 'stun' || kind === 'ragdoll') {
     delete store.emote;
     entity.emote = null;

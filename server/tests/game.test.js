@@ -1829,8 +1829,10 @@ test('Platinum Star: ráfaga aturde, atrapar bloquea y pausa cuesta ritmo', () =
   e.c.z = e.a.z + 2;
   let now = Date.now() + 1000;
   assert.ok(SA.use(room, 'a', 'rafaga', now));
+  for (let k = 0; k <= 13; k++) SA.tick(room, now + k * 100);
   assert.ok(s.rhythm > 0);
-  assert.ok(!SA.use(room, 'a', 'rafaga', now + 800));
+  assert.ok(!s.barrage);
+  assert.ok(!SA.use(room, 'a', 'rafaga', now + 2000));
   s.rhythm = 10;
   assert.ok(!SA.use(room, 'a', 'pausa', now + 5000));
   s.rhythm = 60;
@@ -1842,4 +1844,48 @@ test('Platinum Star: ráfaga aturde, atrapar bloquea y pausa cuesta ritmo', () =
   assert.ok(!s.poke);
   assert.ok(SA.use(room, 'a', 'atrapar', now + 20000));
   assert.ok(s.domeOn);
+});
+
+test('Impuestos de la SUNAT: la parte real da una hoja a 118 y la imaginaria da velocidad', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('a', 'super:sunat_paperwork');
+  const SA = require('../src/SuperAbilities');
+  const s = e.a.sup;
+  s.sheets = 1;
+  SA.tax(e.a, 100, 0);
+  assert.strictEqual(s.sheets, 1);
+  SA.onModule(e.a);
+  assert.strictEqual(s.sheets, 2);
+  assert.ok(s.taxRe < 118);
+  const before = SA.speedBonus(e.a);
+  SA.tax(e.a, 0, 3);
+  assert.ok(SA.speedBonus(e.a) > before);
+  room.players.get('c').isAsymRole = true;
+  s.evAt = 0;
+  const r0 = s.taxRe;
+  e.c.x = e.a.x + 2;
+  e.c.z = e.a.z;
+  SA.evade(room, 'c', Date.now());
+  assert.ok(s.taxRe > r0);
+});
+
+test('Platinum Star: contragolpe aturde al atacante si hay Gay suficiente', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('a', 'super:platinum_star');
+  const SA = require('../src/SuperAbilities');
+  const Status = require('../src/Status');
+  const s = e.a.sup;
+  s.rhythm = 40;
+  e.c.x = e.a.x + 3;
+  e.c.z = e.a.z;
+  const now = Date.now() + 1000;
+  Status.apply(e.a, 'stun', 800, now);
+  SA.tick(room, now + 50);
+  assert.ok(s.rhythm <= 10.01);
+  assert.ok(Status.active(e.c, 'stun', now + 60));
+  Status.apply(e.a, 'stun', 800, now + 200);
+  SA.tick(room, now + 250);
+  assert.ok(s.rhythm <= 10.01);
 });

@@ -1161,26 +1161,50 @@ function Sparks({ life, color, n = 8, speed = 3, up = 1.5, size = 0.07 }) {
 
 const RAINBOW = ['#ff5a5a', '#ffb347', '#ffe14a', '#6bdc7a', '#5ab8ff', '#b07cf2'];
 
-function StarSpirit({ life, mode }) {
-  const l = useRef();
-  const r = useRef();
+function StarSpirit({ life, mode, act = 0, ready = false }) {
+  const reg = life ? life.reg : undefined;
+  const root = useRef();
+  const la = useRef();
+  const ra = useRef();
+  const tail = useRef();
+  const m = mode === 'rafaga' ? 1 : mode === 'stellar' ? 2 : mode === 'atrapar' ? 3 : mode === 'pausa' ? 4 : act;
   useFrame(() => {
-    const t = life.t();
-    const w = mode === 'rafaga' ? Math.sin(t * 60) * 0.55 : mode === 'stellar' ? Math.min(1, t * 2.5) * 0.9 : 0;
-    if (l.current) l.current.position.z = 0.7 + w;
-    if (r.current) r.current.position.z = 0.7 - (mode === 'rafaga' ? w : 0);
+    const t = performance.now() / 1000;
+    if (root.current) root.current.position.y = 0.2 + Math.sin(t * 2.2) * 0.08;
+    if (tail.current) tail.current.rotation.y = t * 1.6;
+    let lx = 1.0, rx = 1.0, ly = 0, ry = 0, lz = 0, rz = 0;
+    if (m === 1) { lx = 0; rx = 0; const w = Math.sin(t * 38); lz = 0.3 + w * 0.3; rz = 0.3 - w * 0.3; }
+    else if (m === 2) { lx = 0.7; rx = 0; rz = 0.6; }
+    else if (m === 3) { lx = -0.1; rx = -0.1; ly = 0.55; ry = -0.55; lz = 0.1; rz = 0.1; }
+    else if (m === 4) { lx = -1.9; rx = 0.4; ry = -0.9; }
+    if (la.current) { la.current.rotation.set(lx, ly, 0); la.current.position.z = lz; }
+    if (ra.current) { ra.current.rotation.set(rx, ry, 0); ra.current.position.z = rz; }
   });
-  const pose = mode === 'pausa';
+  const arm = (side) => (
+    <group ref={side < 0 ? la : ra} position={[side * 0.46, 1.2, 0]}>
+      <mesh position={[0, 0, 0.22]}><boxGeometry args={[0.15, 0.15, 0.45]} /><Mat reg={reg} color="#9d7cf0" /></mesh>
+      <mesh position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.11, 0.11, 0.2, 6]} /><Mat reg={reg} color="#ffd24a" /></mesh>
+      <mesh position={[0, 0, 0.66]}><sphereGeometry args={[0.14, 6, 6]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
+    </group>
+  );
   return (
-    <group position={[0.9, 0.15, -0.5]} rotation={[0, 0, pose ? -0.25 : 0]}>
-      <mesh position={[0, 1.2, 0]}><octahedronGeometry args={[0.32, 0]} /><Mat reg={life.reg} color="#e6d8ff" /></mesh>
-      <mesh position={[0, 1.2, 0.3]}><octahedronGeometry args={[0.1, 0]} /><Mat reg={life.reg} color="#ffe14a" /></mesh>
-      <mesh position={[0, 0.55, 0]}><boxGeometry args={[0.55, 0.85, 0.3]} /><Mat reg={life.reg} color="#b79cff" /></mesh>
-      <mesh position={[0, 0.6, 0.17]}><boxGeometry args={[0.4, 0.1, 0.04]} /><Mat reg={life.reg} color={RAINBOW[1]} /></mesh>
-      <mesh position={[0, 0.5, 0.17]}><boxGeometry args={[0.4, 0.1, 0.04]} /><Mat reg={life.reg} color={RAINBOW[3]} /></mesh>
-      <mesh position={[0, 0.4, 0.17]}><boxGeometry args={[0.4, 0.1, 0.04]} /><Mat reg={life.reg} color={RAINBOW[4]} /></mesh>
-      <group ref={l} position={[-0.4, 0.8, 0.7]}><mesh><boxGeometry args={[0.2, 0.2, 0.5]} /><Mat reg={life.reg} color="#b79cff" /></mesh><mesh position={[0, 0, 0.3]}><sphereGeometry args={[0.17, 6, 6]} /><Mat reg={life.reg} color="#e6d8ff" /></mesh></group>
-      <group ref={r} position={[0.4, 0.8, pose ? 0 : 0.7]} rotation={[0, 0, pose ? 2.2 : 0]}><mesh><boxGeometry args={[0.2, 0.2, 0.5]} /><Mat reg={life.reg} color="#b79cff" /></mesh><mesh position={[0, 0, 0.3]}><sphereGeometry args={[0.17, 6, 6]} /><Mat reg={life.reg} color="#e6d8ff" /></mesh></group>
+    <group ref={root} scale={0.85}>
+      <mesh position={[0, 1.62, 0]}><icosahedronGeometry args={[0.27, 0]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
+      <mesh position={[0, 1.6, 0.21]}><boxGeometry args={[0.36, 0.09, 0.12]} /><Mat reg={reg} color="#5ab8ff" /></mesh>
+      <mesh position={[0, 2.0, 0]}><coneGeometry args={[0.07, 0.3, 4]} /><Mat reg={reg} color="#ffd24a" /></mesh>
+      <mesh position={[-0.16, 1.93, 0]} rotation={[0, 0, 0.55]}><coneGeometry args={[0.05, 0.22, 4]} /><Mat reg={reg} color="#ffd24a" /></mesh>
+      <mesh position={[0.16, 1.93, 0]} rotation={[0, 0, -0.55]}><coneGeometry args={[0.05, 0.22, 4]} /><Mat reg={reg} color="#ffd24a" /></mesh>
+      <mesh position={[0, 1.05, 0]}><cylinderGeometry args={[0.36, 0.22, 0.75, 6]} /><Mat reg={reg} color="#9d7cf0" /></mesh>
+      <mesh position={[0, 1.12, 0.27]}><octahedronGeometry args={[0.12, 0]} /><Mat reg={reg} color={ready ? '#ffd24a' : '#6a58b0'} /></mesh>
+      {RAINBOW.map((c, i) => <mesh key={i} position={[(i - 2.5) * 0.1, 0.66, 0.14]}><boxGeometry args={[0.1, 0.08, 0.3]} /><Mat reg={reg} color={c} /></mesh>)}
+      <mesh position={[0, 0.3, 0]} rotation={[Math.PI, 0, 0]}><coneGeometry args={[0.24, 0.7, 6]} /><Mat reg={reg} color="#7a5fd0" /></mesh>
+      <mesh position={[-0.46, 1.32, 0]}><octahedronGeometry args={[0.2, 0]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
+      <mesh position={[0.46, 1.32, 0]}><octahedronGeometry args={[0.2, 0]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
+      {arm(-1)}
+      {arm(1)}
+      <group ref={tail} position={[0, -0.1, 0]}>
+        {[0, 1, 2].map((i) => <mesh key={i} position={[Math.cos(i * 2.1) * 0.3, -0.1 - i * 0.18, Math.sin(i * 2.1) * 0.3]}><octahedronGeometry args={[0.07, 0]} /><Mat reg={reg} color={RAINBOW[i * 2]} /></mesh>)}
+      </group>
     </group>
   );
 }
@@ -1227,7 +1251,6 @@ function SuperFx({ effect }) {
     const mz = (effect.z || 0) + (effect.dz || 0) * 1.5;
     return (
       <group position={[mx, (effect.y || 0) + 1.2, mz]} rotation={[0, yaw, 0]}>
-        <group position={[-0.9, -1.2, -1.5]}><StarSpirit life={life} mode="rafaga" /></group>
         {RAINBOW.map((c, i) => <group key={i} position={[(i - 2.5) * 0.18, (i % 3 - 1) * 0.25, 0.3 * (i % 3)]}><Ring life={life} color={c} y={0} r0={0.15} r1={0.9} flat={false} spin={8 + i} /></group>)}
         <Sparks life={life} color="#f4ecff" n={16} speed={2.2} up={0.8} size={0.08} />
         <Sparks life={life} color="#a98be8" n={10} speed={1.6} up={1.2} size={0.1} />
@@ -1237,7 +1260,6 @@ function SuperFx({ effect }) {
   if (kind === 'sup_stellar') {
     return (
       <group position={[effect.x || 0, (effect.y || 0) + 1.3, effect.z || 0]} rotation={[0, yaw, 0]}>
-        <group position={[-0.9, -1.3, -0.9]}><StarSpirit life={life} mode="stellar" /></group>
         <group position={[0, 0, 0.8]}><Ring life={life} color="#e6d8ff" y={0} r0={0.9} r1={0.1} flat={false} spin={6} /></group>
         <Sparks life={life} color="#f4ecff" n={6} speed={0.6} up={0.4} size={0.07} />
       </group>
@@ -1259,11 +1281,23 @@ function SuperFx({ effect }) {
   if (kind === 'sup_pausa') {
     return (
       <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
-        <group rotation={[0, yaw, 0]}><group position={[-0.9, 0, -0.6]}><StarSpirit life={life} mode="pausa" /></group></group>
         {RAINBOW.map((c, i) => <Ring key={i} life={life} color={c} y={0.1 + i * 0.12} r0={0.5} r1={(effect.range || 11) * (1 - i * 0.12)} />)}
         <Ring life={life} color="#ffffff" y={1.2} r0={0.3} r1={(effect.range || 11) * 0.6} flat={false} spin={2} />
         <Sparks life={life} color="#f4ecff" n={14} speed={2.2} up={2.2} size={0.1} />
       </group>
+    );
+  }
+  if (kind === 'sup_react') {
+    return (
+      <>
+        <group position={[effect.tx || 0, 0, effect.tz || 0]}>
+          <Ring life={life} color="#ffd24a" r0={0.3} r1={1.8} />
+          <Sparks life={life} color="#fff3b0" n={8} speed={1.6} up={1.8} size={0.09} />
+        </group>
+        <group position={[effect.x || 0, 0, effect.z || 0]}>
+          <Ring life={life} color="#ffffff" y={1.1} r0={0.2} r1={1.2} flat={false} spin={5} />
+        </group>
+      </>
     );
   }
   if (kind === 'sup_parry') {
@@ -1336,9 +1370,10 @@ function SuperFx({ effect }) {
   return null;
 }
 
-const PlayerBody = memo(function PlayerBody({ bodyRef, headRef, rig, lod, color, cosmetics, isCurator, wig, wpn, bar, held, holdRef }) {
+const PlayerBody = memo(function PlayerBody({ bodyRef, headRef, rig, lod, color, cosmetics, isCurator, wig, wpn, bar, held, holdRef, psd, psa, psr }) {
   return (
     <group ref={bodyRef}>
+        {psd && <group position={[0.85, 0.1, -0.6]}><StarSpirit act={psa || 0} ready={Boolean(psr)} /></group>}
         {wpn && <RifleBayonet live />}
         {bar && <ShieldDisc />}
         <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
@@ -1667,7 +1702,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
     <group ref={groupRef} position={targetPos.current} scale={entityState.scl || 1}>
       {entityState.chg && <ManaAura />}
       {entityState.gld && <GlideFx />}
-      <PlayerBody bodyRef={bodyRef} headRef={headRef} rig={rig} lod={lod} color={color} cosmetics={cosmetics} isCurator={isCurator} wig={Boolean(entityState.wig)} wpn={Boolean(entityState.wpn)} bar={Boolean(entityState.bar)} held={held} holdRef={holdRef} />
+      <PlayerBody bodyRef={bodyRef} headRef={headRef} rig={rig} lod={lod} color={color} cosmetics={cosmetics} isCurator={isCurator} wig={Boolean(entityState.wig)} wpn={Boolean(entityState.wpn)} bar={Boolean(entityState.bar)} held={held} holdRef={holdRef} psd={Boolean(entityState.psd)} psa={entityState.psa || 0} psr={Boolean(entityState.psr)} />
       {ragdoll && entityState.rag && entityState.rag.p && <RagdollR6 entityState={entityState} color={color} />}
       {stunned && <StunHalo />}
       {isMe && (

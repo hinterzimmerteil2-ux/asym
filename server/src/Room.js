@@ -1659,6 +1659,9 @@ class Room {
         chg: entity.sup && entity.sup.charging ? 1 : undefined,
         dec: entity.sup && entity.sup.decoy ? { x: Math.round(entity.sup.decoy.x * 10) / 10, y: Math.round(entity.sup.decoy.y * 10) / 10, z: Math.round(entity.sup.decoy.z * 10) / 10 } : undefined,
         gld: entity.sup && entity.sup.glide ? 1 : undefined,
+        psd: entity.sup && entity.sup.id === 'platinum_star' ? 1 : undefined,
+        psa: entity.sup && entity.sup.id === 'platinum_star' ? (entity.sup.barrage ? 1 : entity.sup.poke ? 2 : entity.sup.domeOn ? 3 : entity.sup.poseUntil > now ? 4 : 0) || undefined : undefined,
+        psr: entity.sup && entity.sup.id === 'platinum_star' && entity.sup.rhythm >= 30 && now >= entity.sup.cd.react ? 1 : undefined,
         wig: entity.sup && SuperAbilities.DEFS[entity.sup.id] && SuperAbilities.DEFS[entity.sup.id].wig ? 1 : undefined,
         ntf: entity.ntf && entity.ntf.until > now ? entity.ntf.until - now : undefined,
         tpMark: entity.tpMark ? { x: Math.round(entity.tpMark.x * 10) / 10, z: Math.round(entity.tpMark.z * 10) / 10 } : undefined,
@@ -1915,6 +1918,7 @@ class Room {
       if (!this.players.get(entityPlayerId)?.isAsymRole) speedMultiplier *= MUTATIONS[this.mutation].speed;
       else speedMultiplier *= this.players.get(entityPlayerId)?.curatorSpeed || 1;
       if (entity.sup && entity.sup.glide) speedMultiplier = Math.min(speedMultiplier, FAST_MULTIPLIER) * 0.8;
+      if (entity.sup) speedMultiplier *= SuperAbilities.speedBonus(entity);
       if (entity.channel || entity.selfDmg) speedMultiplier *= CHANNEL_SLOW;
       if (entity.carry) speedMultiplier *= MODULE_CARRY_SLOW;
       if (entity.acetilUntil <= now && entity.fatigueUntil > now) speedMultiplier *= ACETIL_FATIGUE_FACTOR;
@@ -2463,7 +2467,7 @@ class Room {
           this.resolveCure(win.playerId, owner, hitId, now);
           continue;
         }
-        if (win.endsAt <= now) continue;
+        if (win.endsAt <= now) { SuperAbilities.evade(this, win.playerId, now); continue; }
       } else if (win.kind === 'area') {
         const skill = win.skill;
         const ids = [];
@@ -2502,6 +2506,7 @@ class Room {
           continue;
         }
         if (win.endsAt <= now) {
+          SuperAbilities.evade(this, win.playerId, now);
           this.endlag(win.playerId, owner, now);
           if (skill.fx) CardEffects.runFx(this, win.playerId, owner, skill.fx, 'miss', { enemyIds: [] }, now);
           continue;
@@ -2546,6 +2551,7 @@ class Room {
           continue;
         }
         if (win.endsAt <= now) {
+          SuperAbilities.evade(this, win.playerId, now);
           this.endlag(win.playerId, owner, now, win.skill.missEndlagMs, 1);
           continue;
         }
@@ -2558,6 +2564,7 @@ class Room {
           continue;
         }
         if (win.endsAt <= now) {
+          SuperAbilities.evade(this, win.playerId, now);
           this.endlag(win.playerId, owner, now);
           if (card.fx) CardEffects.runFx(this, win.playerId, owner, card.fx, 'miss', null, now);
           SuperAbilities.miss(owner);
