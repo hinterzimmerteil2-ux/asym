@@ -47,3 +47,12 @@ export function skb(text) {
       return pick;
     });
 }
+
+const GREEK = { a: 'Α', b: 'Β', c: 'Κ', d: 'Δ', e: 'Ε', f: 'Φ', g: 'Γ', h: 'Η', i: 'Ι', j: 'Ι', k: 'Κ', l: 'Λ', m: 'Μ', n: 'Ν', o: 'Ο', p: 'Π', q: 'Κ', r: 'Ρ', s: 'Σ', t: 'Τ', u: 'Υ', v: 'Β', w: 'Ω', x: 'Ξ', y: 'Υ', z: 'Ζ' };
+
+export function toGreek(text) {
+  return text.replace(/[A-Za-z\u00C0-\u00FF]/g, (ch) => {
+    const base = ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    return GREEK[base] || ch;
+  });
+}

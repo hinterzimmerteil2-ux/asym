@@ -1,6 +1,6 @@
 import { DE } from './i18n_de';
 import { PIE } from './i18n_pie';
-import { skb } from './i18n_skb';
+import { skb, toGreek } from './i18n_skb';
 
 const PAIRS = [
 ["Ocurrió un error al iniciar sesión.","An error occurred while signing in."],
@@ -685,7 +685,8 @@ export function translate(text, lang) {
   const cache = caches[lang];
   const hit = cache.get(text);
   if (hit !== undefined) return hit;
-  const out = text.replace(RX, (m) => map.get(m) ?? m);
+  let out = text.replace(RX, (m) => map.get(m) ?? m);
+  if (lang === 'skb') out = toGreek(out);
   if (cache.size > 3000) cache.clear();
   cache.set(text, out);
   return out;
