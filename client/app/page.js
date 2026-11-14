@@ -146,7 +146,7 @@ function fmtHp(n) {
 
 const SUPER_MODES = {
   sunat_paperwork: [['notificacion', 'Notificación'], ['vuelva', 'Vuelva mañana'], ['anulacion', 'Anulación']],
-  platinum_star: [['rafaga', 'Ráfaga'], ['stellar', 'Stellar Finger'], ['atrapar', 'Atrapar'], ['pausa', 'Pausa']],
+  platinum_star: [['rafaga', 'Ráfaga'], ['stellar', 'Stellar Finger'], ['atrapar', 'Atrapar'], ['pausa', 'Pose Fabulosa']],
   town_level: [['bayoneta', 'Bayoneta'], ['barrera', 'Barrera'], ['senuelo', 'Señuelo'], ['carga', 'Carga']],
 };
 
