@@ -23,9 +23,9 @@ const CHARGE_STUN_PER_MANA = 0.0075;
 const CHARGE_PUSH_CAP = 0.4;
 const CHARGE_STUN_CAP = 0.375;
 const SHIELD_DECAY_MS = 3000;
-const SPENT_PER_MANA = 18;
-const MANA_MODULE = 4;
-const MANA_PAIR = 8;
+const SPENT_PER_MANA = 12;
+const MANA_MODULE = 6;
+const MANA_PAIR = 12;
 const STAB_RANGE = 2.6;
 const LUNGE_RANGE = 14;
 const SHOT_RANGE = 14;
@@ -46,8 +46,12 @@ const FAIL_LAG_MS = 600;
 const FAIL_SHIELD = 3;
 const DECOY_SPEED = 5.5;
 const DECOY_RUN_MS = 2200;
-const FLY_RISE = 5;
-const FLY_CEIL = 9;
+const FLY_RISE = 7;
+const FLY_CEIL = 14;
+const DOUBLE_JUMP_V = 15;
+const DOUBLE_JUMP_COST = 4;
+const DOUBLE_JUMP_MIN_AIR_MS = 120;
+const FLY_HOLD_MS = 300;
 const DOME_RADIUS = 2.5;
 const QUEUE_MS = 2000;
 const RESOLUTION_MS = 2000;
@@ -59,12 +63,12 @@ const DECOY_BURST_RANGE = 2;
 const DECOY_SLOW_MS = 1400;
 const DECOY_HIDE_MS = 1500;
 const CD = { bayoneta: 7000, bayonetaLunge: 11000, barrera: 22000, senuelo: 26000 };
-const GLIDE_START_COST = 6;
+const GLIDE_START_COST = 4;
 const GLIDE_COST_PER_SEC = 3;
 const GLIDE_FALL = -2.4;
-const GLIDE_START_LAG_MS = 500;
+const GLIDE_START_LAG_MS = 300;
 const GLIDE_LAND_LAG_MS = 700;
-const GLIDE_MIN_AIR_MS = 250;
+const GLIDE_MIN_AIR_MS = 200;
 
 let src = null;
 let domes = [];
@@ -467,11 +471,25 @@ function glide(room, entity, now, dt) {
       Status.apply(entity, 'slow', GLIDE_LAND_LAG_MS, now, { tag: 'endlag', level: 2 });
     }
     s.airAt = 0;
+    s.dj = false;
+    s.jumpHeld = Boolean(entity.input.jump);
+    s.holdAt = s.jumpHeld ? (s.holdAt || now) : 0;
     return false;
   }
   if (!s.airAt) s.airAt = now;
   if (s.baseY === undefined) s.baseY = entity.y || 0;
-  const want = entity.input.jump && now - s.airAt >= GLIDE_MIN_AIR_MS && !Status.blocksMove(entity, now);
+  const jumping = Boolean(entity.input.jump);
+  const edge = jumping && !s.jumpHeld;
+  s.jumpHeld = jumping;
+  if (!jumping) s.holdAt = 0; else if (edge || !s.holdAt) s.holdAt = now;
+  if (edge && !s.dj && !s.flying && now - s.airAt >= DOUBLE_JUMP_MIN_AIR_MS && s.mana >= DOUBLE_JUMP_COST && !Status.blocksMove(entity, now)) {
+    s.dj = true;
+    s.mana -= DOUBLE_JUMP_COST;
+    entity.velocityY = DOUBLE_JUMP_V;
+    entity.peakY = entity.y;
+    return true;
+  }
+  const want = jumping && now - s.holdAt >= FLY_HOLD_MS && now - s.airAt >= GLIDE_MIN_AIR_MS && !Status.blocksMove(entity, now);
   if (want) {
     if (!s.flying && s.mana >= GLIDE_START_COST) {
       s.mana -= GLIDE_START_COST;

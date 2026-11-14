@@ -149,12 +149,12 @@ const SUPER_CARDS = {
   super_sunat_paperwork: {
     id: 'super_sunat_paperwork', super: true, superId: 'sunat_paperwork', keywords: ['súper'], rarity: 'rare', weight: 0,
     displayName: 'Sunat Paperwork',
-    description: 'Súper-habilidad. Reemplaza tus dos cartas. Tres modos con 3 hojas: Notificación (marca a un enemigo 3,5 s: si no se queda quieto 2 s, queda aturdido y multado), Vuelva mañana (lo rebobina 4,5 s y lo deja en cola 2 s sin habilidades) y Anulación (te rebobinas y limpias estados, con 2 s de lentitud). Pasivas: Ley para ti, no para mí (el notificado sufre estados 1,5 veces más largos y recargas más lentas, y tú sufres menos) y Libro de reclamaciones (cada 3 estados recibidos dan una hoja observada, que validas quedándote quieto 1 s). Teclas 3, 4 y 5.',
+    description: 'Súper-habilidad. Reemplaza tus dos cartas. Tres modos con 3 hojas: Notificación (marca a un enemigo 3,5 s: si no se queda quieto 2 s, queda aturdido y multado), Vuelva mañana (lo rebobina 4,5 s y lo deja en cola 2 s sin habilidades) y Anulación (te rebobinas y limpias estados, con 2 s de lentitud). Pasivas: Ley para ti, no para mí (el notificado sufre estados 1,5 veces más largos y recargas más lentas, y tú sufres menos) y Libro de reclamaciones (cada 3 estados recibidos dan una hoja observada, que validas quedándote quieto 1 s). Teclas 1, 2 y 3.',
   },
   super_town_level: {
     id: 'super_town_level', super: true, superId: 'town_level', keywords: ['súper'], rarity: 'rare', weight: 0,
     displayName: 'Town Level Verse Lol',
-    description: 'Súper-habilidad. Reemplaza tus dos cartas. Bayoneta (estocada o disparo de largo alcance con retroceso), Barrera (parry: si te golpean en 1,2 s, anula el golpe y contraatacas; si falla, endlag y ganas un poco de escudo) y Señuelo (una copia de tu personaje que corre mientras te vuelves invisible). Pasivas: Demonio del Rin (peluca, 40 % más pequeño y maná que potencia empuje y aturdimiento) y Vuelo (mantén el salto en el aire para ascender hasta 9 unidades). Teclas 3, 4, 5 y 6.',
+    description: 'Súper-habilidad. Reemplaza tus dos cartas. Bayoneta (estocada o disparo de largo alcance con retroceso), Barrera (parry: si te golpean en 1,2 s, anula el golpe y contraatacas; si falla, endlag y ganas un poco de escudo) y Señuelo (una copia de tu personaje que corre mientras te vuelves invisible). Pasivas: Demonio del Rin (peluca, 40 % más pequeño y maná que potencia empuje y aturdimiento) y Vuelo (doble salto muy alto por 4 de maná; mantén el salto en el aire para ascender hasta 14 unidades). Teclas 1, 2, 3 y 4.',
   },
   super_slot: { id: 'super_slot', super: true, keywords: ['súper'], rarity: 'common', weight: 0, displayName: 'Súper-habilidad activa', description: 'Tu Súper-habilidad ocupa este espacio.' },
 };

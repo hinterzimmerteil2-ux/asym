@@ -15,10 +15,10 @@ export const ACTIONS = [
   { id: 'dropmod', label: 'Soltar Módulo (Paciente)', def: 'KeyT' },
   { id: 'card1', label: 'Carta 1', def: 'Digit1' },
   { id: 'card2', label: 'Carta 2', def: 'Digit2' },
-  { id: 'sup1', label: 'Súper 1 (Notificación)', def: 'Digit3' },
-  { id: 'sup2', label: 'Súper 2 (Vuelva mañana)', def: 'Digit4' },
-  { id: 'sup3', label: 'Súper 3 (Anulación)', def: 'Digit5' },
-  { id: 'sup4', label: 'Súper 4 (Carga)', def: 'Digit6' },
+  { id: 'sup1', label: 'Súper 1 (Notificación)', def: 'Digit1' },
+  { id: 'sup2', label: 'Súper 2 (Vuelva mañana)', def: 'Digit2' },
+  { id: 'sup3', label: 'Súper 3 (Anulación)', def: 'Digit3' },
+  { id: 'sup4', label: 'Súper 4 (Carga)', def: 'Digit4' },
   { id: 'emote', label: 'Emotes', def: 'KeyV' },
   { id: 'help', label: 'Ayuda', def: 'KeyH' },
   { id: 'hitboxes', label: 'Hitboxes', def: 'KeyB' },
@@ -41,7 +41,8 @@ function load() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORE) || 'null');
     if (raw && typeof raw === 'object') {
-      for (const a of ACTIONS) if (typeof raw[a.id] === 'string' && raw[a.id]) cache[a.id] = raw[a.id];
+      const OLD_SUP = { sup1: 'Digit3', sup2: 'Digit4', sup3: 'Digit5', sup4: 'Digit6' };
+      for (const a of ACTIONS) if (typeof raw[a.id] === 'string' && raw[a.id] && OLD_SUP[a.id] !== raw[a.id]) cache[a.id] = raw[a.id];
     }
   } catch {}
   return cache;

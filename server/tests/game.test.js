@@ -1785,3 +1785,33 @@ test('modo para jugadores elegidos y preferencia propia en sala predeterminada',
   room.setSuperPref('h', false);
   assert.ok(!room.superIds.has('h'));
 });
+
+test('doble salto del Town Level sube alto y gasta maná', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('a', 'super:town_level');
+  const s = e.a.sup;
+  s.mana = 20;
+  e.a.onGround = false;
+  e.a.velocityY = 0;
+  e.a.y = 3;
+  e.a.input = Object.assign(e.a.input || {}, { jump: false });
+  const SA = require('../src/SuperAbilities');
+  let now = Date.now();
+  SA.glide(room, e.a, now, 0.05);
+  now += 300;
+  SA.glide(room, e.a, now, 0.05);
+  e.a.input.jump = true;
+  now += 50;
+  SA.glide(room, e.a, now, 0.05);
+  assert.ok(e.a.velocityY >= 14);
+  assert.ok(s.mana <= 16.01 && s.mana > 15);
+  e.a.input.jump = false;
+  now += 50;
+  SA.glide(room, e.a, now, 0.05);
+  e.a.velocityY = 0;
+  e.a.input.jump = true;
+  now += 50;
+  SA.glide(room, e.a, now, 0.05);
+  assert.ok(e.a.velocityY === 0);
+});
