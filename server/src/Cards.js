@@ -149,7 +149,7 @@ const SUPER_CARDS = {
   super_sunat_paperwork: {
     id: 'super_sunat_paperwork', super: true, superId: 'sunat_paperwork', keywords: ['súper'], rarity: 'rare', weight: 0,
     displayName: 'Sunat Paperwork',
-    description: 'Súper-habilidad. Reemplaza tus dos cartas. Tres modos con 3 hojas: Notificación (marca a un enemigo 3,5 s: si no se queda quieto 2 s, queda aturdido y multado), Vuelva mañana (lo rebobina 4,5 s y lo deja en cola 2 s sin habilidades) y Anulación (te rebobinas y limpias estados, con 2 s de lentitud). Pasivas: Ley para ti, no para mí (el notificado sufre estados 1,5 veces más largos y recargas más lentas, y tú sufres menos) y Impuestos (un número complejo: la parte real sube al completar módulos, esquivar ataques y multar, y al llegar a 118 te da una hoja; la parte imaginaria sube al usar modos y da velocidad y resistencia a estados). Teclas 1, 2 y 3.',
+    description: 'Súper-habilidad. Reemplaza tus dos cartas. Tres modos con 3 hojas: Notificación (marca y revela a un enemigo a 26 unidades o menos durante 3 s: si no se queda quieto 2 s, queda aturdido 2,4 s, sin habilidades y multado), Vuelva mañana (lo rebobina 4,5 s y lo deja en cola 2 s sin habilidades) y Anulación (te rebobinas y limpias estados, con 2 s de lentitud). Pasivas: Ley para ti, no para mí (el notificado sufre estados 1,5 veces más largos y recargas más lentas, y tú sufres menos) y Impuestos (un número complejo: la parte real sube al completar módulos, esquivar ataques y multar, y al llegar a 118 te da una hoja; la parte imaginaria sube al usar modos y da velocidad y resistencia a estados). Teclas 1, 2 y 3.',
   },
   super_town_level: {
     id: 'super_town_level', super: true, superId: 'town_level', keywords: ['súper'], rarity: 'rare', weight: 0,

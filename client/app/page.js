@@ -542,7 +542,7 @@ export default function LobbyPage() {
             setTimeout(() => setLmsUntil(0), 5500);
             break;
           case 'super_result': {
-            const fxe = { ...payload, id: `fx${++effectCounterRef.current}`, sup: true, kind: `sup_${payload.mode}`, startedAt: Date.now() };
+            const fxe = { ...payload, casterId: payload.playerId, id: `fx${++effectCounterRef.current}`, sup: true, kind: `sup_${payload.mode}`, startedAt: Date.now() };
             const own = entitiesRef.current[payload.playerId];
             if (fxe.x === undefined && own) { fxe.x = own.x; fxe.y = own.y || 0; fxe.z = own.z; }
             setEffects((prev) => [...prev.filter((e) => Date.now() - e.startedAt < 1500), fxe]);

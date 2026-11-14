@@ -4,9 +4,9 @@ const SHEETS = 3;
 const TRAIL_STEP_MS = 250;
 const TRAIL_KEEP_MS = 6000;
 const REWIND_MS = 4500;
-const NOTIFY_DELAY_MS = 3500;
-const NOTIFY_RANGE = 20;
-const EMBARGO_MS = 1800;
+const NOTIFY_DELAY_MS = 3000;
+const NOTIFY_RANGE = 26;
+const EMBARGO_MS = 2400;
 const VUELVA_RANGE = 16;
 const USE_GAP_MS = 700;
 const TAX_NEED = 118;
@@ -64,7 +64,7 @@ const DOME_RADIUS = 2.5;
 const QUEUE_MS = 2000;
 const RESOLUTION_MS = 2000;
 const ANSWER_STILL_MS = 2000;
-const FINE_MS = 10000;
+const FINE_MS = 12000;
 const OBSERVED_STILL_MS = 1000;
 const DECOY_MS = 4500;
 const DECOY_BURST_RANGE = 2;
@@ -173,6 +173,13 @@ function rewind(entity, spot) {
   if (entity.vy !== undefined) entity.vy = 0;
 }
 
+function lineBoxes(e, nx, nz, len, half) {
+  const out = [];
+  const y = (e.y || 0) + 0.95;
+  for (let d = half; d - half < len && out.length < 14; d += half * 2) out.push({ x: Math.round((e.x + nx * d) * 100) / 100, z: Math.round((e.z + nz * d) * 100) / 100, y, half });
+  return out;
+}
+
 function foes(room, from, range) {
   const out = [];
   for (const [id, p] of room.players) {
@@ -201,15 +208,16 @@ function use(room, playerId, mode, now) {
   if (mode === 'notificacion') {
     const t = foes(room, entity, NOTIFY_RANGE)[0];
     if (!t || (t.e.ntf && t.e.ntf.until > now)) return false;
+    Status.apply(t.e, 'reveal', NOTIFY_DELAY_MS, now);
     t.e.ntf = { until: now + NOTIFY_DELAY_MS, by: playerId, still: 0, sx: t.e.x, sz: t.e.z, sat: now };
     s.noticeUntil = now + NOTIFY_DELAY_MS;
-    fx = { tx: t.e.x, tz: t.e.z, tid: t.id };
+    fx = { tx: t.e.x, tz: t.e.z, tid: t.id, radius: NOTIFY_RANGE };
   } else if (mode === 'vuelva') {
     const t = foes(room, entity, VUELVA_RANGE)[0];
     if (!t || (t.e.size || 1) > 2) return false;
     const spot = pastSpot(t.e, now, REWIND_MS);
     if (!spot) return false;
-    fx = { fx: t.e.x, fz: t.e.z, tx: spot.x, tz: spot.z, tid: t.id };
+    fx = { fx: t.e.x, fz: t.e.z, tx: spot.x, tz: spot.z, tid: t.id, radius: VUELVA_RANGE };
     rewind(t.e, spot);
     Status.apply(t.e, 'queue', QUEUE_MS, now);
   } else if (mode === 'anulacion') {
@@ -253,6 +261,7 @@ function tick(room, now) {
     e.ntf = null;
     if (e.down) continue;
     Status.apply(e, 'stun', EMBARGO_MS, now);
+    Status.apply(e, 'queue', EMBARGO_MS, now);
     Status.apply(e, 'slow', FINE_MS, now, { level: 1 });
     tax(room.gameState.entities[by], TAX_FINE, 1, now);
   }
@@ -381,6 +390,7 @@ function useTown(room, playerId, entity, mode, now) {
         recoil = STAB_RECOIL;
         fxp.shot = false;
         fxp.len = STAB_RANGE;
+        fxp.radius = STAB_RANGE;
         ok = true;
       } else {
         const path = inFront(LUNGE_RANGE, 0.85, 1.2);
@@ -397,6 +407,7 @@ function useTown(room, playerId, entity, mode, now) {
         recoil = SHOT_RECOIL;
         fxp.shot = true;
         fxp.len = len;
+        fxp.boxes = lineBoxes(entity, nx, nz, LUNGE_RANGE, 1.2);
         fxp.hit = Boolean(first);
         ok = true;
       }
@@ -409,6 +420,7 @@ function useTown(room, playerId, entity, mode, now) {
   } else if (mode === 'barrera') {
     if (now < s.cd.barrera) return false;
     s.dome = now + DOME_MS;
+    fxp.radius = DOME_RADIUS;
     s.domeOn = true;
     s.parried = 0;
     s.cd.barrera = now + CD.barrera;
@@ -422,6 +434,7 @@ function useTown(room, playerId, entity, mode, now) {
     entity.paraOn = false;
     s.cd.senuelo = now + CD[mode];
     fxp.decoy = true;
+    fxp.radius = DECOY_BURST_RANGE;
     ok = true;
   }
   if (!ok) return false;
@@ -477,7 +490,7 @@ function tickTown(room, now) {
           Status.push(target.e, ddx, ddz, PARRY_PUSH, 300, now);
         });
       }
-      room.broadcast('super_result', { playerId: id, mode: 'parry', x: e.x, y: e.y || 0, z: e.z, dx: e.faceX || 0, dz: e.faceZ || 1 });
+      room.broadcast('super_result', { playerId: id, mode: 'parry', radius: DOME_RADIUS, x: e.x, y: e.y || 0, z: e.z, dx: e.faceX || 0, dz: e.faceZ || 1 });
     } else if (s.domeOn && s.dome <= now) {
       s.domeOn = false;
       Status.apply(e, 'slow', FAIL_LAG_MS, now, { tag: 'endlag', level: 2 });
@@ -533,12 +546,14 @@ function useStar(room, playerId, entity, mode, now) {
     s.barrage = { until: now + STAR.barrageMs, next: now, nx, nz };
     out.len = STAR.rafagaRange;
     out.ms = STAR.barrageMs;
+    out.boxes = lineBoxes(entity, nx, nz, STAR.rafagaRange, STAR.rafagaWidth);
     Status.apply(entity, 'slow', STAR.barrageMs, now, { tag: 'endlag', level: 2 });
   } else if (mode === 'stellar') {
     s.poke = { at: now + STAR.stellarWind, nx, nz };
     out.wind = STAR.stellarWind;
   } else if (mode === 'atrapar') {
     s.dome = now + STAR.catchMs;
+    out.radius = DOME_RADIUS;
     s.domeOn = true;
     s.parried = 0;
   } else if (mode === 'pausa') {
@@ -549,6 +564,7 @@ function useStar(room, playerId, entity, mode, now) {
     for (const f of all) room.stun(f.id, f.e, STAR.pauseStun, now, 0);
     out.count = all.length;
     out.range = STAR.pauseRange;
+    out.radius = STAR.pauseRange;
   } else return false;
   s.cd[mode] = now + STAR.cd[mode];
   s.nextAt = now + USE_GAP_MS;
@@ -570,7 +586,7 @@ function tickStar(room, now) {
           s.cd.react = now + STAR.reactCd;
           room.stun(tgt.id, tgt.e, starStun(s, STAR.reactStun), now, 0);
           Status.push(tgt.e, (tgt.e.x - e.x) / (tgt.d || 1), (tgt.e.z - e.z) / (tgt.d || 1), STAR.reactPush, 280, now);
-          room.broadcast('super_result', { playerId: id, mode: 'react', x: e.x, y: e.y || 0, z: e.z, tx: tgt.e.x, tz: tgt.e.z });
+          room.broadcast('super_result', { playerId: id, mode: 'react', radius: STAR.reactRange, x: e.x, y: e.y || 0, z: e.z, tx: tgt.e.x, tz: tgt.e.z });
         }
       }
     }
@@ -606,7 +622,7 @@ function tickStar(room, now) {
         len = first.d;
         starGain(s, STAR.stellarGain);
       }
-      room.broadcast('super_result', { playerId: id, mode: 'stellar_hit', x: e.x, y: e.y || 0, z: e.z, dx: nx, dz: nz, len, hit: Boolean(first) });
+      room.broadcast('super_result', { playerId: id, mode: 'stellar_hit', boxes: lineBoxes(e, nx, nz, STAR.stellarRange, STAR.stellarWidth), x: e.x, y: e.y || 0, z: e.z, dx: nx, dz: nz, len, hit: Boolean(first) });
     }
     if (s.parried) {
       s.parried = 0;
@@ -619,7 +635,7 @@ function tickStar(room, now) {
         room.stun(target.id, target.e, starStun(s, STAR.catchStun), now, 0);
         Status.push(target.e, (target.e.x - e.x) / (target.d || 1), (target.e.z - e.z) / (target.d || 1), STAR.catchPush, 300, now);
       }
-      room.broadcast('super_result', { playerId: id, mode: 'parry', star: true, x: e.x, y: e.y || 0, z: e.z, dx: e.faceX || 0, dz: e.faceZ || 1 });
+      room.broadcast('super_result', { playerId: id, mode: 'parry', star: true, radius: DOME_RADIUS, x: e.x, y: e.y || 0, z: e.z, dx: e.faceX || 0, dz: e.faceZ || 1 });
     } else if (s.domeOn && s.dome <= now) {
       s.domeOn = false;
       Status.apply(e, 'slow', STAR.catchFailLag, now, { tag: 'endlag', level: 2 });
