@@ -56,3 +56,13 @@ export function toGreek(text) {
     return GREEK[base] || ch;
   });
 }
+
+export function skbWord(w) {
+  const lower = w.toLowerCase();
+  const pool = lower.length <= 3 ? SHORT : POOL;
+  return pool[hash(lower) % pool.length];
+}
+
+export function skbLeftovers(text, vocab) {
+  return text.replace(/[A-Za-z\u00C0-\u00FF]+/g, (w) => (vocab.has(w.toLowerCase()) && w.length > 1 ? skbWord(w) : toGreek(w)));
+}

@@ -1,6 +1,6 @@
 import { DE } from './i18n_de';
 import { PIE } from './i18n_pie';
-import { skb, toGreek } from './i18n_skb';
+import { skb, skbLeftovers } from './i18n_skb';
 
 const PAIRS = [
 ["Ocurrió un error al iniciar sesión.","An error occurred while signing in."],
@@ -667,6 +667,10 @@ PAIRS.forEach(([es, en], i) => {
   if (PIE[i] && !MAPS.pie.has(es)) MAPS.pie.set(es, PIE[i]);
   if (!MAPS.skb.has(es)) MAPS.skb.set(es, skb(es));
 });
+const VOCAB = new Set();
+PAIRS.forEach(([es, en]) => {
+  for (const w of `${es} ${en}`.toLowerCase().match(/[a-z\u00e0-\u00ff]{2,}/g) || []) VOCAB.add(w);
+});
 const KEYS = [...MAPS['en-GB'].keys()].sort((x, y) => y.length - x.length);
 const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const isLetter = (c) => /\p{L}/u.test(c);
@@ -686,7 +690,7 @@ export function translate(text, lang) {
   const hit = cache.get(text);
   if (hit !== undefined) return hit;
   let out = text.replace(RX, (m) => map.get(m) ?? m);
-  if (lang === 'skb') out = toGreek(out);
+  if (lang === 'skb') out = skbLeftovers(out, VOCAB);
   if (cache.size > 3000) cache.clear();
   cache.set(text, out);
   return out;
