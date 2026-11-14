@@ -3451,6 +3451,17 @@ const PlatformLayer = memo(function PlatformLayer({ platforms, shakeIds, plankHp
   );
 });
 
+function FrameCap({ fps }) {
+  const last = useRef(0);
+  useFrame(({ gl, scene, camera, clock }) => {
+    const t = clock.elapsedTime;
+    if (t - last.current < 1 / fps - 0.004) return;
+    last.current = t;
+    gl.render(scene, camera);
+  }, 1);
+  return null;
+}
+
 function LiteGate({ on, poly }) {
   setPolyScale(poly);
   installLowPoly();
@@ -3511,6 +3522,7 @@ export default function GameScene({
   return (
     <Canvas key={`${g.antialias}-${g.textures}-${g.poly}`} dpr={isBoard() ? Math.min(g.dpr, 1) : coarse ? Math.min(g.dpr, 2) : g.dpr} gl={{ antialias: g.antialias, alpha: false, stencil: false, powerPreference: g.minimal ? 'low-power' : 'high-performance' }} onCreated={onGlCreated} camera={{ position: [0, 3, 7], fov: 60 }}>
       <LiteGate on={g.minimal} poly={g.poly} />
+      {g.minimal && <FrameCap fps={30} />}
       <ambientLight intensity={phase === 'action' ? (gameMode === 'lights' ? 0.22 : g.lights ? 0.55 : 0.95) : 0.75} color={phase === 'action' ? '#cfc6c4' : '#cfe0ff'} />
       <directionalLight position={phase === 'action' ? [-30, 40, -45] : [8, 12, 6]} intensity={phase === 'action' ? (gameMode === 'lights' ? 0.12 : 0.7) : 1.1} color={phase === 'action' ? '#ffc0a8' : '#ffffff'} />
       <hemisphereLight args={phase === 'action' ? ['#8f7c8a', '#33262e', gameMode === 'lights' ? 0.12 : 0.6] : ['#bcd4ff', '#8a7a68', 0.35]} />
