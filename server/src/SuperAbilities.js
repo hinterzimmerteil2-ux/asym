@@ -106,7 +106,7 @@ function grant(entity, id) {
     Object.assign(entity.sup, { rhythm: 0, cd: { rafaga: 0, stellar: 0, atrapar: 0, pausa: 0, react: 0 }, react: 0, poke: null, barrage: null, dome: 0, domeOn: false, parried: 0 });
   }
   if (id === 'minceraft') {
-    Object.assign(entity.sup, { used: 0, mining: null });
+    Object.assign(entity.sup, { used: 0, mining: null, prev: null, pv: null });
   }
   if (id === 'town_level') {
     Object.assign(entity.sup, { mana: 0, shield: 0, shieldAt: 0, chain: 0, spent: 0, lastFlo: null, charging: false, chMana: 0, chAt: 0, chPush: 0, chStun: 0, ammo: SHOT_AMMO, ammoMax: SHOT_AMMO, freeReloads: FREE_RELOADS, modBullets: [], cd: { bayoneta: 0, barrera: 0, senuelo: 0 }, glide: false, glideAt: 0, airAt: 0, dome: 0, decoy: null });
@@ -729,6 +729,51 @@ function mcActivate(room, d, now) {
   mcChain(room, d, now);
 }
 
+function mcPlan(room, playerId, entity, mode, now) {
+  const w = MC.w[mode];
+  if (!w) return null;
+  const s = entity.sup;
+  const gs = room.gameState;
+  const fl = Math.hypot(entity.faceX || 0, entity.faceZ || 1) || 1;
+  const nx = (entity.faceX || 0) / fl;
+  const nz = (entity.faceZ || 1) / fl;
+  let ok = s.used + w <= MC.max && gs.dyn.length < MC.pieceLimit;
+  const reach = mode === 'telarana' ? 2.6 : 2.2;
+  const px = mcSnap(entity.x + nx * reach);
+  const pz = mcSnap(entity.z + nz * reach);
+  const ey = entity.y || 0;
+  let base = mcBase(room, px, pz, ey);
+  const rock = gs.dyn.filter((o) => o.solid && Math.abs(o.x - px) < 0.1 && Math.abs(o.z - pz) < 0.1 && !o.ramp);
+  if (rock.length && mode !== 'telarana') {
+    const top = Math.max(...rock.map((o) => o.y0 + o.h));
+    if (top > ey + 1.7) ok = false;
+    base = top;
+    if (rock.filter((o) => o.kind === 'andamio').length >= MC.maxLevels || mode !== 'andamio') ok = false;
+  } else if (base > ey + 1.2 && mode !== 'telarana') ok = false;
+  const piece = { id: `mc${(gs.dynSeq = (gs.dynSeq || 0) + 1)}`, kind: mode, owner: playerId, born: now, x: px, z: pz, y0: base, hx: 0.9, hz: 0.9, h: 1.2, ramp: null, solid: true, pulse: 0, cool: 0, fired: 0, w };
+  if (mode === 'telarana') {
+    Object.assign(piece, { solid: false, r: MC.webR, hx: MC.webR, hz: MC.webR, h: 0.3 });
+    piece.x = Math.round((entity.x + nx * reach) * 10) / 10;
+    piece.z = Math.round((entity.z + nz * reach) * 10) / 10;
+    piece.y0 = mcBase(room, piece.x, piece.z, ey);
+  } else if (mode === 'escalera') {
+    const horiz = Math.abs(nx) > Math.abs(nz);
+    piece.ramp = horiz ? (nx > 0 ? '+x' : '-x') : nz > 0 ? '+z' : '-z';
+    piece.hx = horiz ? 1.4 : 0.9;
+    piece.hz = horiz ? 0.9 : 1.4;
+    piece.h = 1.8;
+  } else if (mode === 'slime') {
+    piece.h = 0.9;
+  }
+  for (const o of gs.dyn) {
+    if (o.solid && piece.solid && Math.abs(o.x - piece.x) < 0.1 && Math.abs(o.z - piece.z) < 0.1 && Math.abs(o.y0 - piece.y0) < 0.05) ok = false;
+  }
+  for (const e of Object.values(gs.entities)) {
+    if (piece.solid && !e.down && Math.abs(e.x - piece.x) < piece.hx + 0.35 && Math.abs(e.z - piece.z) < piece.hz + 0.35 && (e.y || 0) < piece.y0 + piece.h - 0.2 && (e.y || 0) + 1.6 > piece.y0) ok = false;
+  }
+  return { piece, ok };
+}
+
 function useMine(room, playerId, entity, mode, now) {
   const s = entity.sup;
   if (now < s.nextAt || Status.blocksSkills(entity, now) || s.mining) return false;
@@ -754,46 +799,11 @@ function useMine(room, playerId, entity, mode, now) {
     room.broadcast('super_result', { playerId, mode, x: best.d.x, y: best.d.y0, z: best.d.z, ms: MC.mineMs, boxes: [{ x: best.d.x, z: best.d.z, y: best.d.y0 + best.d.h / 2, half: Math.max(best.d.hx, best.d.hz) }] });
     return true;
   }
-  const w = MC.w[mode];
-  if (!w || s.used + w > MC.max) return false;
-  if (gs.dyn.length >= MC.pieceLimit) return false;
-  const reach = mode === 'telarana' ? 2.6 : 2.2;
-  const px = mcSnap(entity.x + nx * reach);
-  const pz = mcSnap(entity.z + nz * reach);
-  const ey = entity.y || 0;
-  let base = mcBase(room, px, pz, ey);
-  const rock = gs.dyn.filter((o) => o.solid && Math.abs(o.x - px) < 0.1 && Math.abs(o.z - pz) < 0.1 && !o.ramp);
-  let level = 0;
-  if (rock.length && mode !== 'telarana') {
-    const top = Math.max(...rock.map((o) => o.y0 + o.h));
-    if (top > ey + 1.7) return false;
-    base = top;
-    level = rock.filter((o) => o.kind === 'andamio').length;
-    if (level >= MC.maxLevels || mode !== 'andamio') return false;
-  } else if (base > ey + 1.2 && mode !== 'telarana') return false;
-  const piece = { id: `mc${(gs.dynSeq = (gs.dynSeq || 0) + 1)}`, kind: mode, owner: playerId, born: now, x: px, z: pz, y0: base, hx: 0.9, hz: 0.9, h: 1.2, ramp: null, solid: true, pulse: 0, cool: 0, fired: 0, w };
-  let boxes;
-  if (mode === 'telarana') {
-    Object.assign(piece, { solid: false, r: MC.webR, hx: MC.webR, hz: MC.webR, h: 0.3 });
-    piece.x = Math.round((entity.x + nx * reach) * 10) / 10;
-    piece.z = Math.round((entity.z + nz * reach) * 10) / 10;
-    piece.y0 = mcBase(room, piece.x, piece.z, ey);
-  } else if (mode === 'escalera') {
-    const horiz = Math.abs(nx) > Math.abs(nz);
-    piece.ramp = horiz ? (nx > 0 ? '+x' : '-x') : nz > 0 ? '+z' : '-z';
-    piece.hx = horiz ? 1.4 : 0.9;
-    piece.hz = horiz ? 0.9 : 1.4;
-    piece.h = 1.8;
-  } else if (mode === 'slime') {
-    piece.h = 0.9;
-  }
-  for (const o of gs.dyn) {
-    if (o.solid && piece.solid && Math.abs(o.x - piece.x) < 0.1 && Math.abs(o.z - piece.z) < 0.1 && Math.abs(o.y0 - piece.y0) < 0.05) return false;
-  }
-  for (const [, e] of Object.entries(gs.entities)) {
-    if (piece.solid && !e.down && Math.abs(e.x - piece.x) < piece.hx + 0.35 && Math.abs(e.z - piece.z) < piece.hz + 0.35 && (e.y || 0) < piece.y0 + piece.h - 0.2 && (e.y || 0) + 1.6 > piece.y0) return false;
-  }
-  boxes = piece.kind === 'telarana' ? undefined : [{ x: piece.x, z: piece.z, y: piece.y0 + piece.h / 2, half: Math.max(piece.hx, piece.hz) }];
+  const plan = mcPlan(room, playerId, entity, mode, now);
+  if (!plan || !plan.ok) return false;
+  const piece = plan.piece;
+  const w = piece.w;
+  const boxes = piece.kind === 'telarana' ? undefined : [{ x: piece.x, z: piece.z, y: piece.y0 + piece.h / 2, half: Math.max(piece.hx, piece.hz) }];
   gs.dyn.push(piece);
   gs.dynVer += 1;
   s.used += w;
@@ -814,6 +824,14 @@ function mcRemove(room, d) {
 
 function tickMine(room, now) {
   const gs = room.gameState;
+  for (const [pid, e] of Object.entries(gs.entities)) {
+    const sp = e.sup;
+    if (!sp || sp.id !== 'minceraft') continue;
+    if (sp.prev && sp.prev.until > now) {
+      const pl = mcPlan(room, pid, e, sp.prev.mode, now);
+      sp.pv = pl ? { k: pl.piece.kind, x: pl.piece.x, z: pl.piece.z, y: Math.round(pl.piece.y0 * 100) / 100, hx: pl.piece.hx, hz: pl.piece.hz, h: pl.piece.h, r: pl.piece.ramp || undefined, ra: pl.piece.r || undefined, ok: pl.ok ? 1 : 0 } : null;
+    } else sp.pv = null;
+  }
   if (!gs.dyn || !gs.dyn.length) {
     for (const e of Object.values(gs.entities)) if (e.sup && e.sup.id === 'minceraft') e.sup.mining = null;
     return;

@@ -3353,8 +3353,89 @@ function StairMesh({ p, tops, tint }) {
   );
 }
 
+function Scaffold({ p }) {
+  const y0 = p.y0 || 0;
+  const hx = p.hx;
+  const hz = p.hz;
+  const h = p.h;
+  const wood = p.tint || '#b98a4e';
+  const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+  const diag = Math.hypot(hx * 2, h);
+  const dAng = Math.atan2(h, hx * 2);
+  return (
+    <group position={[p.x, y0, p.z]}>
+      {corners.map(([a, b]) => (
+        <mesh key={`p${a}${b}`} position={[a * (hx - 0.07), h / 2, b * (hz - 0.07)]}>
+          <boxGeometry args={[0.14, h, 0.14]} />
+          <meshStandardMaterial color="#6b4a25" roughness={0.9} />
+        </mesh>
+      ))}
+      {[0.12, h / 2, h - 0.1].map((yy) => (
+        <group key={yy} position={[0, yy, 0]}>
+          <mesh position={[0, 0, hz - 0.07]}><boxGeometry args={[hx * 2, 0.08, 0.08]} /><meshStandardMaterial color={wood} roughness={0.85} /></mesh>
+          <mesh position={[0, 0, -hz + 0.07]}><boxGeometry args={[hx * 2, 0.08, 0.08]} /><meshStandardMaterial color={wood} roughness={0.85} /></mesh>
+          <mesh position={[hx - 0.07, 0, 0]}><boxGeometry args={[0.08, 0.08, hz * 2]} /><meshStandardMaterial color={wood} roughness={0.85} /></mesh>
+          <mesh position={[-hx + 0.07, 0, 0]}><boxGeometry args={[0.08, 0.08, hz * 2]} /><meshStandardMaterial color={wood} roughness={0.85} /></mesh>
+        </group>
+      ))}
+      <mesh position={[0, h / 2, hz - 0.07]} rotation={[0, 0, dAng]}><boxGeometry args={[diag, 0.06, 0.06]} /><meshStandardMaterial color="#8a6a3b" roughness={0.9} /></mesh>
+      <mesh position={[0, h / 2, -hz + 0.07]} rotation={[0, 0, -dAng]}><boxGeometry args={[diag, 0.06, 0.06]} /><meshStandardMaterial color="#8a6a3b" roughness={0.9} /></mesh>
+      <mesh position={[hx - 0.07, h / 2, 0]} rotation={[0, Math.PI / 2, dAng]}><boxGeometry args={[diag, 0.06, 0.06]} /><meshStandardMaterial color="#8a6a3b" roughness={0.9} /></mesh>
+      <mesh position={[-hx + 0.07, h / 2, 0]} rotation={[0, Math.PI / 2, -dAng]}><boxGeometry args={[diag, 0.06, 0.06]} /><meshStandardMaterial color="#8a6a3b" roughness={0.9} /></mesh>
+      <mesh position={[0, h - 0.03, 0]}><boxGeometry args={[hx * 2 + 0.1, 0.1, hz * 2 + 0.1]} /><meshStandardMaterial color={wood} roughness={0.8} /></mesh>
+    </group>
+  );
+}
+
+function SlimeBlock({ p }) {
+  const y0 = p.y0 || 0;
+  return (
+    <group position={[p.x, y0 + p.h / 2, p.z]}>
+      <mesh><boxGeometry args={[p.hx * 2, p.h, p.hz * 2]} /><meshStandardMaterial color={p.tint || '#6fe05a'} roughness={0.2} transparent opacity={0.55} /></mesh>
+      <mesh><boxGeometry args={[p.hx * 1.1, p.h * 0.6, p.hz * 1.1]} /><meshStandardMaterial color="#2f9a2a" roughness={0.3} transparent opacity={0.9} /></mesh>
+    </group>
+  );
+}
+
+function McGhost({ pv }) {
+  const col = pv.ok ? '#6fe05a' : '#e24a4a';
+  const horiz = pv.r === '+x' || pv.r === '-x';
+  const y0 = pv.y || 0;
+  const geo = useMemo(() => new EdgesGeometry(new BoxGeometry(pv.hx * 2, pv.h, pv.hz * 2)), [pv.hx, pv.hz, pv.h]);
+  if (pv.k === 'telarana') {
+    return (
+      <mesh position={[pv.x, y0 + 0.08, pv.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[(pv.ra || 2.5) - 0.08, pv.ra || 2.5, 36]} />
+        <meshBasicMaterial color={col} transparent opacity={0.8} side={DoubleSide} depthWrite={false} />
+      </mesh>
+    );
+  }
+  const rot = pv.r === '+x' ? [0, 0, Math.atan2(pv.h, pv.hx * 2)] : pv.r === '-x' ? [0, 0, -Math.atan2(pv.h, pv.hx * 2)] : [0, 0, 0];
+  const ang = pv.r === '+z' ? -Math.PI / 2 : pv.r === '-z' ? Math.PI / 2 : 0;
+  const dims = pv.r && !horiz ? [pv.hz * 2, pv.h, pv.hx * 2] : [pv.hx * 2, pv.h, pv.hz * 2];
+  return (
+    <group position={[pv.x, y0 + pv.h / 2, pv.z]}>
+      {pv.r ? (
+        <group rotation={[0, ang, 0]}>
+          <mesh rotation={pv.r === '+x' || pv.r === '+z' ? [0, 0, Math.atan2(pv.h, (horiz ? pv.hx : pv.hz) * 2)] : [0, 0, -Math.atan2(pv.h, (horiz ? pv.hx : pv.hz) * 2)]}>
+            <boxGeometry args={[Math.hypot((horiz ? pv.hx : pv.hz) * 2, pv.h), 0.3, (horiz ? pv.hz : pv.hx) * 2]} />
+            <meshBasicMaterial color={col} transparent opacity={0.4} depthWrite={false} />
+          </mesh>
+        </group>
+      ) : (
+        <>
+          <mesh><boxGeometry args={dims} /><meshBasicMaterial color={col} transparent opacity={0.3} depthWrite={false} /></mesh>
+          <lineSegments geometry={geo}><lineBasicMaterial color={col} /></lineSegments>
+        </>
+      )}
+    </group>
+  );
+}
+
 function Platform({ p }) {
   if (p.kind === 'gate' || p.kind === 'pgate') return <GateMesh p={p} />;
+  if (p.mc === 'andamio') return <Scaffold p={p} />;
+  if (p.mc === 'slime') return <SlimeBlock p={p} />;
   if (p.ramp === '+z' || p.ramp === '-z') {
     const q = { ...p, x: 0, z: 0, hx: p.hz, hz: p.hx, ramp: '+x' };
     return (
@@ -3703,6 +3784,8 @@ export default function GameScene({
       {phase !== 'action' && <MLobbyDecor />}
 
       {phase === 'action' && (effects || []).map((effect) => (effect.sup ? <SuperFx key={effect.id} effect={effect} /> : <SkillEffect key={effect.id} effect={effect} />))}
+
+      {phase === 'action' && entities?.[myPlayerId]?.mcv && <McGhost pv={entities[myPlayerId].mcv} />}
 
       {phase === 'action' && (dyn || []).filter((d) => d.k === 'telarana').map((d) => <McWeb key={d.id} d={d} />)}
 

@@ -256,6 +256,9 @@ export default function LobbyPage() {
   const [sdTypes, setSdTypes] = useState({});
   const [zones, setZones] = useState([]);
   const [dyn, setDyn] = useState([]);
+  const [mcSel, setMcSel] = useState(null);
+  const mcSelRef = useRef(null);
+  mcSelRef.current = mcSel;
   const [curatorHp, setCuratorHp] = useState(null);
   const [effects, setEffects] = useState([]);
   const [stunnedIds, setStunnedIds] = useState([]);
@@ -976,8 +979,19 @@ export default function LobbyPage() {
   const handleSuper = useCallback((m) => {
     if (isAsymRole || phase !== 'action') return;
     const mode = typeof m === 'number' ? (SUPER_MODES[supRef.current] || [])[m]?.[0] : m;
+    if (supRef.current === 'minceraft' && mode && mode !== 'minar' && mcSelRef.current !== mode) {
+      setMcSel(mode);
+      connRef.current?.send('super_preview', { mode, face: facingOf(myPlayerIdRef.current) || undefined });
+      return;
+    }
     if (mode) connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined });
   }, [isAsymRole, phase]);
+
+  useEffect(() => {
+    if (!mcSel || phase !== 'action' || isAsymRole) return undefined;
+    const t = setInterval(() => connRef.current?.send('super_preview', { mode: mcSelRef.current, face: facingOf(myPlayerIdRef.current) || undefined }), 100);
+    return () => clearInterval(t);
+  }, [mcSel, phase, isAsymRole]);
 
   const handleUseCard = useCallback((slot) => {
     if (isAsymRole || phase !== 'action') return;
@@ -1709,7 +1723,7 @@ export default function LobbyPage() {
               const full = need > 0 && flojera.sup.used + need > flojera.sup.max;
               const on = m === 'carga' && flojera.sup.charging;
               return (
-                <button key={m} type="button" disabled={cd > 0 || full} onClick={() => handleSuper(m)} style={{ ...styles.cardButton(cd > 0 || full), outline: on ? '2px solid #ffd86b' : 'none' }} title={label}>
+                <button key={m} type="button" disabled={cd > 0 || full} onClick={() => handleSuper(m)} style={{ ...styles.cardButton(cd > 0 || full), outline: on || mcSel === m ? '2px solid #ffd86b' : 'none' }} title={label}>
                   <SkillIcon id={`${flojera.sup.id === 'town_level' ? 'tl' : flojera.sup.id === 'minceraft' ? 'mc' : 'pst'}_${m}`} size={34} />
                   <span style={styles.skillKey}>{i + 1}</span>
                   {cd > 0 && <span style={styles.skillCooldownOverlay}>{Math.ceil(cd / 1000)}</span>}
@@ -1737,6 +1751,7 @@ export default function LobbyPage() {
               {Array.from({ length: flojera.sup.max }).map((_, i) => <div key={i} style={{ width: 9, height: 9, background: i < flojera.sup.used ? '#b98a4e' : 'rgba(255,255,255,0.2)', border: '1px solid rgba(0,0,0,0.5)' }} />)}
             </div>
             {flojera.sup.mining > 0 && <span style={{ color: '#ffd86b' }}>Picando</span>}
+            <span style={{ color: '#ffd86b' }}>{mcSel ? 'Pulsa otra vez para colocar' : 'Elige una pieza (1 a 4)'}</span>
           </div>
         )}
 

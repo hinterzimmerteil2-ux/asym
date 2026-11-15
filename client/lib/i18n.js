@@ -680,6 +680,8 @@ const PAIRS = [
 ["Pico","Pickaxe"],
 ["Bloques","Blocks"],
 ["Picando","Mining"],
+["Pulsa otra vez para colocar","Press again to place"],
+["Elige una pieza (1 a 4)","Choose a piece (1 to 4)"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };

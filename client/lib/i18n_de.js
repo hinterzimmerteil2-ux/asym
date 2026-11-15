@@ -676,4 +676,6 @@ export const DE = [
 "Spitzhacke",
 "Blöcke",
 "Abbauen",
+"Nochmal drücken zum Platzieren",
+"Wähle ein Teil (1 bis 4)",
 ];

@@ -1673,6 +1673,7 @@ class Room {
         chg: entity.sup && entity.sup.charging ? 1 : undefined,
         dec: entity.sup && entity.sup.decoy ? { x: Math.round(entity.sup.decoy.x * 10) / 10, y: Math.round(entity.sup.decoy.y * 10) / 10, z: Math.round(entity.sup.decoy.z * 10) / 10 } : undefined,
         gld: entity.sup && entity.sup.glide ? 1 : undefined,
+        mcv: entity.sup && entity.sup.pv ? entity.sup.pv : undefined,
         psd: entity.sup && entity.sup.id === 'platinum_star' ? 1 : undefined,
         psa: entity.sup && entity.sup.id === 'platinum_star' ? (entity.sup.barrage ? 1 : entity.sup.poke ? 2 : entity.sup.grab ? 3 : entity.sup.poseUntil > now ? 4 : 0) || undefined : undefined,
         psr: entity.sup && entity.sup.id === 'platinum_star' && entity.sup.rhythm >= 30 && now >= entity.sup.cd.react ? 1 : undefined,
@@ -3253,6 +3254,20 @@ class Room {
       }
     }
     SuperAbilities.use(this, playerId, mode, Date.now());
+  }
+
+  superPreview(playerId, mode, face) {
+    if (this.phase !== 'action' || this.gameState.gameOver) return;
+    const e = this.gameState.entities[playerId];
+    if (!e || !e.sup || e.sup.id !== 'minceraft') return;
+    if (face && Number.isFinite(face.x) && Number.isFinite(face.z)) {
+      const fl = Math.hypot(face.x, face.z);
+      if (fl > 0.01) {
+        e.faceX = face.x / fl;
+        e.faceZ = face.z / fl;
+      }
+    }
+    e.sup.prev = ['andamio', 'telarana', 'escalera', 'slime'].includes(mode) ? { mode, until: Date.now() + 600 } : null;
   }
 
   useCard(playerId, slotIndex) {

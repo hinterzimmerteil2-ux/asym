@@ -68,6 +68,7 @@ const MessageType = {
   REROLL_CARD: 'reroll_card',
   CHOOSE_CARD_ACTION: 'choose_card_action', // client(Paciente) -> server: { slot, cardId }
   SUPER_ACTION: 'super_action',             // client(Paciente) -> server: { mode }
+  SUPER_PREVIEW: 'super_preview',
   SELECT_ROLE: 'select_role',               // client(Paciente) -> server: { roleId }
   ROLE_SELECTED: 'role_selected',           // server -> Paciente: { roleId }
   CARD_CHOSEN: 'card_chosen',               // server -> Paciente: { slot, card }

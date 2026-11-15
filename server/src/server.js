@@ -304,6 +304,13 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case MessageType.SUPER_PREVIEW: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.superPreview(playerId, msg.payload && msg.payload.mode, msg.payload && msg.payload.face);
+        break;
+      }
+
       case MessageType.SELECT_ROLE: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
