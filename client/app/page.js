@@ -154,6 +154,7 @@ export default function LobbyPage() {
   const connRef = useRef(null);
   const isAsymRoleRef = useRef(false);
   const chatEndRef = useRef(null);
+  const playersBoxRef = useRef(null);
   const [status, setStatus] = useState('checking_session');
   const [sessionToken, setSessionToken] = useState(null);
   const [displayName, setDisplayName] = useState(null);
@@ -649,8 +650,13 @@ export default function LobbyPage() {
   }, [status === 'logged_in' || status === 'in_room']);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const box = chatEndRef.current && chatEndRef.current.parentElement;
+    if (box) box.scrollTop = box.scrollHeight;
   }, [chatMessages]);
+
+  useEffect(() => {
+    if (playersBoxRef.current) playersBoxRef.current.scrollTop = 0;
+  }, [phase]);
 
   // El host puede reasignar quién es el Curador en cualquier momento del
   // lobby (room_update), así que el propio rol no puede quedar fijo desde
@@ -1227,7 +1233,7 @@ export default function LobbyPage() {
           )}
         </div>
 
-        <div style={{ ...sx(styles.playersOverlay, { top: 52, right: 8, width: 'min(300px, calc(100% - 16px))', maxHeight: 'calc(100% - 64px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', scrollbarWidth: 'thin', boxSizing: 'border-box', padding: 10, zIndex: 30 }), ...(compact && !playersOpen ? { display: 'none' } : {}) }}>
+        <div ref={playersBoxRef} style={{ ...sx(styles.playersOverlay, { top: 52, right: 8, width: 'min(300px, calc(100% - 16px))', maxHeight: 'calc(100% - 64px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', scrollbarWidth: 'thin', boxSizing: 'border-box', padding: 10, zIndex: 30 }), ...(compact && !playersOpen ? { display: 'none' } : {}) }}>
           <ul style={sx(styles.playerList, { maxHeight: 'none', overflowY: 'visible' })}>
             {players.map((p) => {
               const patientInfo = patients[p.id];
