@@ -637,7 +637,7 @@ export const DE = [
 "Aktiviert",
 "Deaktiviert",
 "Superfähigkeit. Ersetzt beide Karten. Drei Modi mit 3 Blättern: Zustellung (markiert und enthüllt einen Gegner im Umkreis von 26 Einheiten 3 s lang: bleibt er nicht 2 s stehen, wird er 2,4 s betäubt, verliert seine Fähigkeiten und wird bestraft), Kommen Sie morgen wieder (spult ihn 4,5 s zurück und stellt ihn 2 s ohne Fähigkeiten in die Warteschlange) und Annullierung (spult dich zurück und löscht Zustände, mit 2 s Verlangsamung). Passiv: Gesetz für dich, nicht für mich (der Zugestellte erleidet Zustände 1,5-mal so lang und langsamere Abklingzeiten, du erleidest weniger) und Steuern (eine komplexe Zahl: der Realteil steigt durch abgeschlossene Module, ausgewichene Angriffe und Bußgelder und gibt bei 118 ein Blatt; der Imaginärteil steigt durch Moduseinsatz und gewährt Tempo und Zustandsresistenz). Tasten 1, 2 und 3.",
-"Superfähigkeit. Ersetzt beide Karten. Bajonett (Stoß oder Fernschuss mit Rückstoß), Barriere (Parade: Wirst du innerhalb von 1,2 s getroffen, wird der Schlag aufgehoben und du kontterst; misslingt sie, gibt es Endlag und etwas Schild) und Köder (eine Kopie deiner Figur läuft los, während du unsichtbar wirst). Passiv: Rheinteufel (Perücke, 40 % kleiner, Mana verstärkt Rückstoß und Betäubung) und Flug (sehr hoher Doppelsprung für 4 Mana; Sprung in der Luft gedrückt halten, um bis zu 14 Einheiten zu steigen). Tasten 1, 2, 3 und 4.",
+"Superfähigkeit. Ersetzt beide Karten. Bajonett (Stoß ohne Rückstoß oder Fernschuss mit 8 Kugeln: ein Fehlschuss gibt starken Rückstoß, ein Treffer wenig Rückstoß und längere Betäubung, und dieser Effekt nimmt mit der Entfernung ab; Nachladen: 2 kostenlose mit Ladung, wenn du keine Kugeln hast, und 1 Kugel pro Modul, bis zu 6 pro Minute), Barriere (Parade: Wirst du innerhalb von 1,2 s getroffen, wird der Schlag aufgehoben und du kontterst; misslingt sie, gibt es Endlag und etwas Schild) und Köder (eine Kopie deiner Figur läuft los, während du unsichtbar wirst). Passiv: Rheinteufel (Perücke, 40 % kleiner, Mana verstärkt Rückstoß und Betäubung) und Flug (sehr hoher Doppelsprung für 4 Mana; Sprung in der Luft gedrückt halten, um bis zu 14 Einheiten zu steigen). Tasten 1, 2, 3 und 4.",
 "Aktive Superfähigkeit",
 "Deine Superfähigkeit belegt diesen Platz.",
 "Ersetzt beide Karten",
@@ -666,4 +666,6 @@ export const DE = [
 "◆ Gegenschlag",
 "Verkaufe deine Daten an ein gewisses Multimilliarden-Unternehmen",
 "Verkaufe deine Seele an die App mit der Moderation von 4chan",
+"Kugeln",
+"Nachladungen",
 ];

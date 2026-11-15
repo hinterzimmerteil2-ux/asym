@@ -39,11 +39,15 @@ const LUNGE_RANGE = 14;
 const SHOT_RANGE = 14;
 const STAB_STUN_MS = 1100;
 const SHOT_STUN_MS = 1300;
-const STAB_PUSH = 11;
+const SHOT_AMMO = 8;
+const FREE_RELOADS = 2;
+const MODULE_BULLETS_PER_MIN = 6;
+const SHOT_RECOIL_MISS = 13;
+const SHOT_RECOIL_HIT = 1.5;
+const SHOT_STUN_BONUS = 0.6;
 const SHOT_PUSH = 10;
 const PUSH_MUL_CAP = 1.8;
-const STAB_RECOIL = 3;
-const SHOT_RECOIL = 6;
+const STAB_RECOIL = 0;
 const DOME_MS = 1200;
 const PARRY_CD = 9000;
 const PARRY_RANGE = 6;
@@ -99,7 +103,7 @@ function grant(entity, id) {
     Object.assign(entity.sup, { rhythm: 0, cd: { rafaga: 0, stellar: 0, atrapar: 0, pausa: 0, react: 0 }, react: 0, poke: null, barrage: null, dome: 0, domeOn: false, parried: 0 });
   }
   if (id === 'town_level') {
-    Object.assign(entity.sup, { mana: 0, shield: 0, shieldAt: 0, chain: 0, spent: 0, lastFlo: null, charging: false, chMana: 0, chAt: 0, chPush: 0, chStun: 0, cd: { bayoneta: 0, barrera: 0, senuelo: 0 }, glide: false, glideAt: 0, airAt: 0, dome: 0, decoy: null });
+    Object.assign(entity.sup, { mana: 0, shield: 0, shieldAt: 0, chain: 0, spent: 0, lastFlo: null, charging: false, chMana: 0, chAt: 0, chPush: 0, chStun: 0, ammo: SHOT_AMMO, ammoMax: SHOT_AMMO, freeReloads: FREE_RELOADS, modBullets: [], cd: { bayoneta: 0, barrera: 0, senuelo: 0 }, glide: false, glideAt: 0, airAt: 0, dome: 0, decoy: null });
     entity.hitScale = (entity.hitScale || 1) * DEFS[id].scale;
   }
 }
@@ -271,7 +275,7 @@ function view(entity, now) {
   const s = entity.sup;
   if (!s) return null;
   if (s.id === 'town_level') {
-    return { id: s.id, mana: Math.floor(s.mana), manaMax: MANA_MAX, shield: Math.floor(s.shield), shieldMax: SHIELD_MAX, charging: s.charging, charge: Math.round(s.chMana), chargeMax: CHARGE_MAX_MANA, cd: { bayoneta: Math.max(0, s.cd.bayoneta - now), barrera: Math.max(0, s.cd.barrera - now), senuelo: Math.max(0, s.cd.senuelo - now) }, glide: s.glide };
+    return { id: s.id, mana: Math.floor(s.mana), manaMax: MANA_MAX, shield: Math.floor(s.shield), shieldMax: SHIELD_MAX, charging: s.charging, ammo: s.ammo, ammoMax: s.ammoMax, freeReloads: s.freeReloads, charge: Math.round(s.chMana), chargeMax: CHARGE_MAX_MANA, cd: { bayoneta: Math.max(0, s.cd.bayoneta - now), barrera: Math.max(0, s.cd.barrera - now), senuelo: Math.max(0, s.cd.senuelo - now) }, glide: s.glide };
   }
   if (s.id === 'platinum_star') {
     return { id: s.id, rhythm: Math.floor(s.rhythm), rhythmMax: STAR.rhythmMax, pauseCost: STAR.pauseCost, ready: s.rhythm >= STAR.reactCost && now >= s.cd.react, windUp: Boolean(s.poke), barrage: Boolean(s.barrage), catching: s.domeOn, cd: { rafaga: Math.max(0, s.cd.rafaga - now), stellar: Math.max(0, s.cd.stellar - now), atrapar: Math.max(0, s.cd.atrapar - now), pausa: Math.max(0, s.cd.pausa - now) } };
@@ -297,6 +301,15 @@ function gainMana(entity, n) {
 
 function onModule(entity) {
   gainMana(entity, MANA_MODULE);
+  const ts = entity && entity.sup;
+  if (ts && ts.id === 'town_level' && ts.ammo < ts.ammoMax) {
+    const t = Date.now();
+    ts.modBullets = ts.modBullets.filter((x) => t - x < 60000);
+    if (ts.modBullets.length < MODULE_BULLETS_PER_MIN) {
+      ts.modBullets.push(t);
+      ts.ammo += 1;
+    }
+  }
   tax(entity, TAX_MODULE, 0);
 }
 
@@ -357,6 +370,13 @@ function useTown(room, playerId, entity, mode, now) {
   if (now < s.nextAt) return false;
   if (mode === 'carga') {
     if (s.charging) { s.charging = false; return true; }
+    if (s.ammo <= 0 && s.freeReloads > 0) {
+      s.freeReloads -= 1;
+      s.ammo = s.ammoMax;
+      s.nextAt = now + USE_GAP_MS;
+      room.broadcast('super_result', { playerId, mode: 'recarga', x: entity.x, y: entity.y || 0, z: entity.z });
+      return true;
+    }
     if (s.mana < CHARGE_RATE) return false;
     s.charging = true;
     s.chAt = now;
@@ -380,11 +400,11 @@ function useTown(room, playerId, entity, mode, now) {
     });
     const close = inFront(STAB_RANGE, 0);
     let recoil = 0;
+    let shotBlocked = false;
     withSource(entity, () => {
       if (close.length) {
         for (const f of close) {
           room.stun(f.id, f.e, STAB_STUN_MS, now, 0);
-          Status.push(f.e, (f.e.x - entity.x) / (f.d || 1), (f.e.z - entity.z) / (f.d || 1), STAB_PUSH, 300, now);
         }
         s.cd.bayoneta = now + CD.bayoneta;
         recoil = STAB_RECOIL;
@@ -393,18 +413,25 @@ function useTown(room, playerId, entity, mode, now) {
         fxp.radius = STAB_RANGE;
         ok = true;
       } else {
+        if (s.ammo <= 0) {
+          shotBlocked = true;
+          return;
+        }
+        s.ammo -= 1;
         const path = inFront(LUNGE_RANGE, 0.85, 1.2);
         const first = path[0];
         let len = SHOT_RANGE;
         if (first) {
-          room.stun(first.id, first.e, SHOT_STUN_MS, now, 0);
+          const near = Math.max(0, 1 - first.d / SHOT_RANGE);
+          room.stun(first.id, first.e, Math.round(SHOT_STUN_MS * (1 + SHOT_STUN_BONUS * near)), now, 0);
           Status.push(first.e, nx, nz, SHOT_PUSH, 340, now);
           len = Math.min(SHOT_RANGE, first.d);
+          recoil = SHOT_RECOIL_HIT + (SHOT_RECOIL_MISS - SHOT_RECOIL_HIT) * (1 - near);
         } else {
           s.chain = 0;
+          recoil = SHOT_RECOIL_MISS;
         }
         s.cd.bayoneta = now + CD.bayonetaLunge;
-        recoil = SHOT_RECOIL;
         fxp.shot = true;
         fxp.len = len;
         fxp.boxes = lineBoxes(entity, nx, nz, LUNGE_RANGE, 1.2);
@@ -412,8 +439,9 @@ function useTown(room, playerId, entity, mode, now) {
         ok = true;
       }
     });
+    if (shotBlocked) return false;
     if (ok) {
-      Status.push(entity, -nx, -nz, recoil, 240, now);
+      if (recoil > 0) Status.push(entity, -nx, -nz, recoil, 240, now);
       Status.apply(entity, 'slow', 300, now, { tag: 'endlag', level: 2 });
       s.wpnUntil = now + 1100;
     }

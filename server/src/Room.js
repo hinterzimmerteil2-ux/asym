@@ -2901,13 +2901,14 @@ class Room {
             const dx = zone.x - entity.x;
             const dz = zone.z - entity.z;
             const l = Math.hypot(dx, dz) || 1;
-            entity.flojera = Math.max(0, entity.flojera - cfg.steal * f);
+            const fp = f * (cfg.power || 1);
+            entity.flojera = Math.max(0, entity.flojera - cfg.steal * fp);
             if (zone.mode === 'pull') {
-              Status.push(entity, dx / l, dz / l, 5.5 * f, 350, now);
-              this.endlagSlow(entity, now, Math.round(650 * f));
+              Status.push(entity, dx / l, dz / l, 5.5 * fp, 350, now);
+              this.endlagSlow(entity, now, Math.round(650 * fp));
             } else {
-              Status.push(entity, -dx / l, -dz / l, 1.6 * f, 200, now);
-              this.endlagSlow(entity, now, Math.round(180 * f));
+              Status.push(entity, -dx / l, -dz / l, 1.6 * fp, 200, now);
+              this.endlagSlow(entity, now, Math.round(180 * fp));
             }
             zone.nextAt = now + cfg.tickMs;
             const owner = this.gameState.entities[zone.ownerId];

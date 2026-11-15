@@ -1889,3 +1889,30 @@ test('Platinum Star: contragolpe aturde al atacante si hay Gay suficiente', () =
   SA.tick(room, now + 250);
   assert.ok(s.rhythm <= 10.01);
 });
+
+test('Town Level: disparo gasta balas, sin balas solo estocada y carga recarga gratis', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('a', 'super:town_level');
+  const SA = require('../src/SuperAbilities');
+  const s = e.a.sup;
+  assert.strictEqual(s.ammo, 8);
+  e.a.faceX = 1;
+  e.a.faceZ = 0;
+  e.c.x = e.a.x + 30;
+  e.c.z = e.a.z;
+  let now = Date.now() + 1000;
+  let shots = 0;
+  for (let k = 0; k < 12; k++) {
+    now += 20000;
+    if (SA.use(room, 'a', 'bayoneta', now)) shots += 1;
+  }
+  assert.strictEqual(shots, 8);
+  assert.strictEqual(s.ammo, 0);
+  now += 20000;
+  assert.ok(SA.use(room, 'a', 'carga', now));
+  assert.strictEqual(s.ammo, 8);
+  assert.strictEqual(s.freeReloads, 1);
+  SA.onModule(e.a);
+  assert.strictEqual(s.ammo, 8);
+});

@@ -1706,6 +1706,7 @@ export default function LobbyPage() {
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: touch ? 150 : 150, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, fontSize: 11, color: '#fff' }}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <span>Maná {flojera.sup.mana}/{flojera.sup.manaMax}</span>
+              <span style={{ color: flojera.sup.ammo > 0 ? '#ffffff' : '#ff8a8a' }}>Balas {flojera.sup.ammo}/{flojera.sup.ammoMax} (recargas {flojera.sup.freeReloads})</span>
               <span style={{ color: '#7fd8ff' }}>Escudo {flojera.sup.shield}/{flojera.sup.shieldMax}</span>
               {flojera.sup.charge > 0 && <span style={{ color: '#ffd86b' }}>Carga {flojera.sup.charge}/{flojera.sup.chargeMax}</span>}
             </div>

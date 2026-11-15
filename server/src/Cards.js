@@ -60,7 +60,7 @@ const CARDS = {
     description: 'MANAGER ESQUIRE',
     rarity: 'uncommon',
     cooldownMs: 18000,
-    spear: { max: 4, maxHp: 91, regenPerSec: 2, levelScale: [0, 0.4, 0.7, 1], radius: 1.7, toggleRadius: 3.5, tickMs: 700, steal: 0.7, nerf: 0.35 },
+    spear: { max: 4, maxHp: 91, regenPerSec: 2, levelScale: [0, 0.4, 0.7, 1], power: 2.25, radius: 1.7, toggleRadius: 3.5, tickMs: 700, steal: 0.7, nerf: 0.35 },
   },
   cascara_platano: {
     id: 'cascara_platano',
@@ -154,7 +154,7 @@ const SUPER_CARDS = {
   super_town_level: {
     id: 'super_town_level', super: true, superId: 'town_level', keywords: ['súper'], rarity: 'rare', weight: 0,
     displayName: 'Town Level Verse Lol',
-    description: 'Súper-habilidad. Reemplaza tus dos cartas. Bayoneta (estocada o disparo de largo alcance con retroceso), Barrera (parry: si te golpean en 1,2 s, anula el golpe y contraatacas; si falla, endlag y ganas un poco de escudo) y Señuelo (una copia de tu personaje que corre mientras te vuelves invisible). Pasivas: Demonio del Rin (peluca, 40 % más pequeño y maná que potencia empuje y aturdimiento) y Vuelo (doble salto muy alto por 4 de maná; mantén el salto en el aire para ascender hasta 14 unidades). Teclas 1, 2, 3 y 4.',
+    description: 'Súper-habilidad. Reemplaza tus dos cartas. Bayoneta (estocada sin retroceso, o disparo de largo alcance con 8 balas: si fallas hay mucho retroceso, si aciertas poco retroceso y más aturdimiento, y ese efecto baja con la distancia; recargas: 2 gratis con Carga cuando no te quedan balas y 1 bala por módulo, hasta 6 por minuto), Barrera (parry: si te golpean en 1,2 s, anula el golpe y contraatacas; si falla, endlag y ganas un poco de escudo) y Señuelo (una copia de tu personaje que corre mientras te vuelves invisible). Pasivas: Demonio del Rin (peluca, 40 % más pequeño y maná que potencia empuje y aturdimiento) y Vuelo (doble salto muy alto por 4 de maná; mantén el salto en el aire para ascender hasta 14 unidades). Teclas 1, 2, 3 y 4.',
   },
   super_platinum_star: {
     id: 'super_platinum_star', super: true, superId: 'platinum_star', keywords: ['súper'], rarity: 'rare', weight: 0,
