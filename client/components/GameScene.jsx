@@ -27,7 +27,14 @@ const COLOR_METAL = '#8a8674';
 const COLOR_WALL_TINT = '#bcd6ea';
 const COLOR_EMERGENCY_LIGHT = '#5468ff';
 
-const MC_AIM = { on: false, has: false, x: 0, z: 0 };
+const MC_AIM = { on: false, has: false, x: 0, z: 0, slopeOn: false, sy: 0 };
+export function setAimSlope(on) {
+  MC_AIM.slopeOn = on;
+  if (!on) MC_AIM.sy = 0;
+}
+export function aimSlope() {
+  return MC_AIM.slopeOn ? Math.round(MC_AIM.sy * 100) / 100 : undefined;
+}
 export function setMcAim(on) {
   MC_AIM.on = on;
   if (!on) MC_AIM.has = false;
@@ -1258,7 +1265,7 @@ function SuperFx({ effect }) {
     const mx = (effect.x || 0) + (effect.dx || 0) * 1.7;
     const mz = (effect.z || 0) + (effect.dz || 0) * 1.7;
     return (
-      <group position={[mx, (effect.y || 0) + 1.2, mz]} rotation={[0, yaw, 0]}>
+      <group position={[mx, (effect.y || 0) + 1.2 + (effect.dy || 0) * 1.7, mz]} rotation={[-Math.atan(effect.dy || 0), yaw, 0, "YXZ"]}>
         {effect.shot ? (
           <>
             <mesh position={[0, 0, len / 2]}><boxGeometry args={[0.07, 0.07, len]} /><Mat reg={life.reg} color="#ffe14a" /></mesh>
@@ -1281,7 +1288,7 @@ function SuperFx({ effect }) {
     const mx = (effect.x || 0) + (effect.dx || 0) * 1.5;
     const mz = (effect.z || 0) + (effect.dz || 0) * 1.5;
     return (
-      <group position={[mx, (effect.y || 0) + 1.2, mz]} rotation={[0, yaw, 0]}>
+      <group position={[mx, (effect.y || 0) + 1.2 + (effect.dy || 0) * 1.7, mz]} rotation={[-Math.atan(effect.dy || 0), yaw, 0, "YXZ"]}>
         {RAINBOW.map((c, i) => <group key={i} position={[(i - 2.5) * 0.18, (i % 3 - 1) * 0.25, 0.3 * (i % 3)]}><Ring life={life} color={c} y={0} r0={0.15} r1={0.9} flat={false} spin={8 + i} /></group>)}
         <Sparks life={life} color="#f4ecff" n={16} speed={2.2} up={0.8} size={0.08} />
         <Sparks life={life} color="#a98be8" n={10} speed={1.6} up={1.2} size={0.1} />
@@ -1290,7 +1297,7 @@ function SuperFx({ effect }) {
   }
   if (kind === 'sup_atrapar') {
     return (
-      <group position={[effect.x || 0, (effect.y || 0) + 1.3, effect.z || 0]} rotation={[0, yaw, 0]}>
+      <group position={[effect.x || 0, (effect.y || 0) + 1.3, effect.z || 0]} rotation={[-Math.atan(effect.dy || 0), yaw, 0, "YXZ"]}>
         <group position={[0, 0, 1]}><Ring life={life} color="#ffd24a" y={0} r0={1.1} r1={0.2} flat={false} spin={-6} /></group>
         <Sparks life={life} color="#fff3b0" n={6} speed={0.8} up={0.4} size={0.07} />
       </group>
@@ -1299,7 +1306,7 @@ function SuperFx({ effect }) {
   if (kind === 'sup_atrapar_hit') {
     const len = effect.len || 8;
     return (
-      <group position={[effect.x || 0, (effect.y || 0) + 1.3, effect.z || 0]} rotation={[0, yaw, 0]}>
+      <group position={[effect.x || 0, (effect.y || 0) + 1.3, effect.z || 0]} rotation={[-Math.atan(effect.dy || 0), yaw, 0, "YXZ"]}>
         <mesh position={[0, 0, len / 2]}><boxGeometry args={[0.6, 0.18, len]} /><Mat reg={life.reg} color="#b9a4ff" /></mesh>
         <group position={[0, 0, len]}>
           <Ring life={life} color="#ffd24a" y={0} r0={0.3} r1={1.8} flat={false} spin={5} />
@@ -1310,7 +1317,7 @@ function SuperFx({ effect }) {
   }
   if (kind === 'sup_stellar') {
     return (
-      <group position={[effect.x || 0, (effect.y || 0) + 1.3, effect.z || 0]} rotation={[0, yaw, 0]}>
+      <group position={[effect.x || 0, (effect.y || 0) + 1.3, effect.z || 0]} rotation={[-Math.atan(effect.dy || 0), yaw, 0, "YXZ"]}>
         <group position={[0, 0, 0.8]}><Ring life={life} color="#e6d8ff" y={0} r0={0.9} r1={0.1} flat={false} spin={6} /></group>
         <Sparks life={life} color="#f4ecff" n={6} speed={0.6} up={0.4} size={0.07} />
       </group>
@@ -1319,7 +1326,7 @@ function SuperFx({ effect }) {
   if (kind === 'sup_stellar_hit') {
     const len = effect.len || 20;
     return (
-      <group position={[effect.x || 0, (effect.y || 0) + 1.3, effect.z || 0]} rotation={[0, yaw, 0]}>
+      <group position={[effect.x || 0, (effect.y || 0) + 1.3, effect.z || 0]} rotation={[-Math.atan(effect.dy || 0), yaw, 0, "YXZ"]}>
         <mesh position={[0, 0, len / 2]}><boxGeometry args={[0.05, 0.05, len]} /><Mat reg={life.reg} color="#e6d8ff" /></mesh>
         <mesh position={[0, 0, len / 2]}><boxGeometry args={[0.02, 0.02, len]} /><Mat reg={life.reg} color="#ffffff" /></mesh>
         <group position={[0, 0, len]}>
@@ -3046,7 +3053,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platfo
 
   const aimRay = useMemo(() => new Raycaster(), []);
   useFrame(({ camera, pointer, gl: renderer }) => {
-    if (!MC_AIM.on || !myEntity) {
+    if ((!MC_AIM.on && !MC_AIM.slopeOn) || !myEntity) {
       MC_AIM.has = false;
       return;
     }
@@ -3054,7 +3061,18 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platfo
     aimRay.setFromCamera(locked ? { x: 0, y: 0 } : pointer, camera);
     const o = aimRay.ray.origin;
     const dir = aimRay.ray.direction;
-    if (dir.y > -0.02) {
+    const horiz = Math.hypot(dir.x, dir.z) || 1;
+    if (MC_AIM.slopeOn) {
+      let sy;
+      if (dir.y < -0.02) {
+        const t = ((myEntity.y || 0) - o.y) / dir.y;
+        const dist = Math.hypot(o.x + dir.x * t - myEntity.x, o.z + dir.z * t - myEntity.z);
+        sy = -1 / Math.max(dist, 1);
+      } else sy = dir.y / horiz;
+      sy = Math.max(-1.2, Math.min(1.2, sy));
+      MC_AIM.sy = Math.abs(sy) < 0.12 ? 0 : sy;
+    }
+    if (!MC_AIM.on || dir.y > -0.02) {
       MC_AIM.has = false;
       return;
     }

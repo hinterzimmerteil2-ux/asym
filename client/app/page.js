@@ -12,7 +12,7 @@ import {
   clearSession,
   updateDisplayName,
 } from '../lib/session';
-import GameScene, { facingOf, setMcAim, mcAimPoint } from '../components/GameScene';
+import GameScene, { facingOf, setMcAim, mcAimPoint, setAimSlope, aimSlope } from '../components/GameScene';
 import { play as playSfx, trackSteps, unlockAudio } from '../lib/sfx';
 import SkillIcon from '../components/SkillIcon';
 import { watchMedia } from '../lib/settings';
@@ -984,8 +984,14 @@ export default function LobbyPage() {
       connRef.current?.send('super_preview', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined });
       return;
     }
-    if (mode) connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: supRef.current === 'minceraft' ? mcAimPoint() || undefined : undefined });
+    if (mode) connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: supRef.current === 'minceraft' ? mcAimPoint() || undefined : undefined, ay: aimSlope() });
   }, [isAsymRole, phase]);
+
+  useEffect(() => {
+    const sid = flojera?.sup?.id;
+    setAimSlope((sid === 'town_level' || sid === 'platinum_star') && phase === 'action' && !isAsymRole);
+    return () => setAimSlope(false);
+  }, [flojera?.sup?.id, phase, isAsymRole]);
 
   useEffect(() => {
     setMcAim(Boolean(mcSel) && phase === 'action' && !isAsymRole);

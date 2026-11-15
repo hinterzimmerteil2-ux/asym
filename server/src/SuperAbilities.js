@@ -183,11 +183,35 @@ function rewind(entity, spot) {
   if (entity.vy !== undefined) entity.vy = 0;
 }
 
-function lineBoxes(e, nx, nz, len, half) {
+const AIM_CHEST = 1.0;
+const AIM_MAX = 1.2;
+
+function aimY(entity, now) {
+  const a = entity.sup && entity.sup.ay;
+  if (!a || now - a.at > 1500) return 0;
+  return Math.max(-AIM_MAX, Math.min(AIM_MAX, a.v));
+}
+
+function lineBoxes(e, nx, nz, len, half, ny = 0) {
   const out = [];
-  const y = (e.y || 0) + 0.95;
-  for (let d = half; d - half < len && out.length < 14; d += half * 2) out.push({ x: Math.round((e.x + nx * d) * 100) / 100, z: Math.round((e.z + nz * d) * 100) / 100, y, half });
+  const h = Math.max(half, 1);
+  for (let d = h; d - h < len && out.length < 14; d += h * 2) out.push({ x: Math.round((e.x + nx * d) * 100) / 100, z: Math.round((e.z + nz * d) * 100) / 100, y: Math.round(((e.y || 0) + AIM_CHEST + ny * d) * 100) / 100, half: h });
   return out;
+}
+
+function rayFoes(room, e, nx, nz, ny, range, width) {
+  const w = Math.max(width, 1);
+  const oy = (e.y || 0) + AIM_CHEST;
+  return foes(room, e, range + w).filter((f) => {
+    const rx = f.e.x - e.x;
+    const rz = f.e.z - e.z;
+    const along = rx * nx + rz * nz;
+    if (along <= 0 || along > range + w) return false;
+    if (Math.abs(rx * nz - rz * nx) > w) return false;
+    const th = f.e.bossHitH ? f.e.bossHitH / 2 : 0.9;
+    const cy = (f.e.y || 0) + th;
+    return Math.abs(cy - (oy + ny * along)) <= w + th - 0.6;
+  });
 }
 
 function foes(room, from, range) {
@@ -397,13 +421,8 @@ function useTown(room, playerId, entity, mode, now) {
   let fxp = { x: entity.x, y: entity.y || 0, z: entity.z, dx: nx, dz: nz };
   if (mode === 'bayoneta') {
     if (now < s.cd.bayoneta) return false;
-    const inFront = (range, dot, width) => foes(room, entity, range).filter((f) => {
-      const rx = f.e.x - entity.x;
-      const rz = f.e.z - entity.z;
-      const along = rx * nx + rz * nz;
-      return along > 0 && along / (Math.hypot(rx, rz) || 1) >= dot && (width === undefined || Math.abs(rx * nz - rz * nx) <= width);
-    });
-    const close = inFront(STAB_RANGE, 0);
+    const ny = aimY(entity, now);
+    const close = foes(room, entity, STAB_RANGE).filter((f) => ((f.e.x - entity.x) * nx + (f.e.z - entity.z) * nz) > 0 && Math.abs((f.e.y || 0) - (entity.y || 0)) < 2.4);
     let recoil = 0;
     let shotBlocked = false;
     withSource(entity, () => {
@@ -423,7 +442,7 @@ function useTown(room, playerId, entity, mode, now) {
           return;
         }
         s.ammo -= 1;
-        const path = inFront(LUNGE_RANGE, 0.85, 1.2);
+        const path = rayFoes(room, entity, nx, nz, ny, LUNGE_RANGE, 1.2);
         const first = path[0];
         let len = SHOT_RANGE;
         if (first) {
@@ -439,7 +458,8 @@ function useTown(room, playerId, entity, mode, now) {
         s.cd.bayoneta = now + CD.bayonetaLunge;
         fxp.shot = true;
         fxp.len = len;
-        fxp.boxes = lineBoxes(entity, nx, nz, LUNGE_RANGE, 1.2);
+        fxp.boxes = lineBoxes(entity, nx, nz, LUNGE_RANGE, 1.2, ny);
+        fxp.dy = ny;
         fxp.hit = Boolean(first);
         ok = true;
       }
@@ -576,19 +596,25 @@ function useStar(room, playerId, entity, mode, now) {
   const nz = fz / flen;
   const out = { x: entity.x, y: entity.y || 0, z: entity.z, dx: nx, dz: nz };
   if (mode === 'rafaga') {
-    s.barrage = { until: now + STAR.barrageMs, next: now, nx, nz };
+    const ny = aimY(entity, now);
+    out.dy = ny;
+    s.barrage = { until: now + STAR.barrageMs, next: now, nx, nz, ny };
     out.len = STAR.rafagaRange;
     out.ms = STAR.barrageMs;
-    out.boxes = lineBoxes(entity, nx, nz, STAR.rafagaRange, STAR.rafagaWidth);
+    out.boxes = lineBoxes(entity, nx, nz, STAR.rafagaRange, STAR.rafagaWidth, ny);
     Status.apply(entity, 'slow', STAR.barrageMs, now, { tag: 'endlag', level: 2 });
   } else if (mode === 'stellar') {
-    s.poke = { at: now + STAR.stellarWind, nx, nz };
+    const ny = aimY(entity, now);
+    out.dy = ny;
+    s.poke = { at: now + STAR.stellarWind, nx, nz, ny };
     out.wind = STAR.stellarWind;
   } else if (mode === 'atrapar') {
-    s.grab = { at: now + STAR.catchMs, nx, nz };
+    const ny = aimY(entity, now);
+    out.dy = ny;
+    s.grab = { at: now + STAR.catchMs, nx, nz, ny };
     out.wind = STAR.catchMs;
     out.len = STAR.catchRange;
-    out.boxes = lineBoxes(entity, nx, nz, STAR.catchRange, STAR.catchWidth);
+    out.boxes = lineBoxes(entity, nx, nz, STAR.catchRange, STAR.catchWidth, ny);
   } else if (mode === 'pausa') {
     if (s.rhythm < STAR.pauseCost) return false;
     s.poseUntil = now + 900;
@@ -626,11 +652,7 @@ function tickStar(room, now) {
     if (s.barrage && now >= s.barrage.next) {
       const b = s.barrage;
       const last = now >= b.until;
-      const targets = foes(room, e, STAR.rafagaRange).filter((f) => {
-        const rx = f.e.x - e.x;
-        const rz = f.e.z - e.z;
-        return rx * b.nx + rz * b.nz > 0 && Math.abs(rx * b.nz - rz * b.nx) <= STAR.rafagaWidth;
-      });
+      const targets = rayFoes(room, e, b.nx, b.nz, b.ny || 0, STAR.rafagaRange, STAR.rafagaWidth);
       for (const f of targets) {
         room.stun(f.id, f.e, starStun(s, last ? STAR.rafagaEndStun : STAR.rafagaStun), now, 0);
         Status.push(f.e, b.nx, b.nz, last ? STAR.rafagaEndPush : STAR.rafagaPush, last ? 320 : 120, now);
@@ -640,13 +662,9 @@ function tickStar(room, now) {
       else b.next = now + STAR.barrageStepMs;
     }
     if (s.poke && now >= s.poke.at) {
-      const { nx, nz } = s.poke;
+      const { nx, nz, ny } = s.poke;
       s.poke = null;
-      const path = foes(room, e, STAR.stellarRange).filter((f) => {
-        const rx = f.e.x - e.x;
-        const rz = f.e.z - e.z;
-        return rx * nx + rz * nz > 0 && Math.abs(rx * nz - rz * nx) <= STAR.stellarWidth;
-      });
+      const path = rayFoes(room, e, nx, nz, ny || 0, STAR.stellarRange, STAR.stellarWidth);
       const first = path[0];
       let len = STAR.stellarRange;
       if (first) {
@@ -655,16 +673,12 @@ function tickStar(room, now) {
         len = first.d;
         starGain(s, STAR.stellarGain);
       }
-      room.broadcast('super_result', { playerId: id, mode: 'stellar_hit', boxes: lineBoxes(e, nx, nz, STAR.stellarRange, STAR.stellarWidth), x: e.x, y: e.y || 0, z: e.z, dx: nx, dz: nz, len, hit: Boolean(first) });
+      room.broadcast('super_result', { playerId: id, mode: 'stellar_hit', boxes: lineBoxes(e, nx, nz, STAR.stellarRange, STAR.stellarWidth, ny || 0), dy: ny || 0, x: e.x, y: e.y || 0, z: e.z, dx: nx, dz: nz, len, hit: Boolean(first) });
     }
     if (s.grab && now >= s.grab.at) {
-      const { nx, nz } = s.grab;
+      const { nx, nz, ny } = s.grab;
       s.grab = null;
-      const target = foes(room, e, STAR.catchRange).filter((f) => {
-        const rx = f.e.x - e.x;
-        const rz = f.e.z - e.z;
-        return rx * nx + rz * nz > 0 && Math.abs(rx * nz - rz * nx) <= STAR.catchWidth;
-      })[0];
+      const target = rayFoes(room, e, nx, nz, ny || 0, STAR.catchRange, STAR.catchWidth)[0];
       if (target) {
         room.stun(target.id, target.e, starStun(s, STAR.catchStun), now, 0);
         Status.push(target.e, -nx, -nz, STAR.catchPush, 380, now);
@@ -672,7 +686,7 @@ function tickStar(room, now) {
       } else {
         Status.apply(e, 'slow', STAR.catchFailLag, now, { tag: 'endlag', level: 2 });
       }
-      room.broadcast('super_result', { playerId: id, mode: 'atrapar_hit', boxes: lineBoxes(e, nx, nz, STAR.catchRange, STAR.catchWidth), x: e.x, y: e.y || 0, z: e.z, dx: nx, dz: nz, len: target ? target.d : STAR.catchRange, hit: Boolean(target) });
+      room.broadcast('super_result', { playerId: id, mode: 'atrapar_hit', boxes: lineBoxes(e, nx, nz, STAR.catchRange, STAR.catchWidth, ny || 0), dy: ny || 0, x: e.x, y: e.y || 0, z: e.z, dx: nx, dz: nz, len: target ? target.d : STAR.catchRange, hit: Boolean(target) });
     }
     if (s.dome > now) live.push({ x: e.x, y: e.y || 0, z: e.z, until: s.dome, owner: e });
   }
