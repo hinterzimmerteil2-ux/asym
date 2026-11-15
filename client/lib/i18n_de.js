@@ -664,4 +664,6 @@ export const DE = [
 "Fabelhafte Pose",
 "Steuern",
 "◆ Gegenschlag",
+"Verkaufe deine Daten an ein gewisses Multimilliarden-Unternehmen",
+"Verkaufe deine Seele an die App mit der Moderation von 4chan",
 ];

@@ -2021,14 +2021,14 @@ export default function LobbyPage() {
               onClick={() => { setOauthLoading('google'); redirectToOAuthLogin('google'); }}
               disabled={oauthLoading !== null}
             >
-              {oauthLoading === 'google' ? 'Redirigiendo...' : 'Continuar con Google'}
+              {oauthLoading === 'google' ? 'Redirigiendo...' : (<><span>Vende tus datos a cierta empresa multimillonaria</span><span style={{ display: 'block', fontSize: 11, opacity: 0.85, fontWeight: 400 }}>Continuar con Google</span></>)}
             </button>
             <button
               style={styles.oauthButton('#5865F2', oauthLoading !== null)}
               onClick={() => { setOauthLoading('discord'); redirectToOAuthLogin('discord'); }}
               disabled={oauthLoading !== null}
             >
-              {oauthLoading === 'discord' ? 'Redirigiendo...' : 'Continuar con Discord'}
+              {oauthLoading === 'discord' ? 'Redirigiendo...' : (<><span>Vende tu alma a la aplicación con moderación de 4chan</span><span style={{ display: 'block', fontSize: 11, opacity: 0.85, fontWeight: 400 }}>Continuar con Discord</span></>)}
             </button>
             <div style={styles.divider}>
               <span style={styles.dividerLine} />

@@ -668,6 +668,8 @@ const PAIRS = [
 ["Pose Fabulosa","Fabulous Pose"],
 ["Impuestos","Taxes"],
 ["◆ Contragolpe","◆ Counterstrike"],
+["Vende tus datos a cierta empresa multimillonaria","Sell your data to a certain multibillion-dollar company"],
+["Vende tu alma a la aplicación con moderación de 4chan","Sell your soul to the app with 4chan-grade moderation"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };
