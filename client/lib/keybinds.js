@@ -19,6 +19,7 @@ export const ACTIONS = [
   { id: 'sup2', label: 'Súper 2 (Vuelva mañana)', def: 'Digit2' },
   { id: 'sup3', label: 'Súper 3 (Anulación)', def: 'Digit3' },
   { id: 'sup4', label: 'Súper 4 (Carga)', def: 'Digit4' },
+  { id: 'sup5', label: 'Súper 5 (Pico)', def: 'Digit5' },
   { id: 'emote', label: 'Emotes', def: 'KeyV' },
   { id: 'help', label: 'Ayuda', def: 'KeyH' },
   { id: 'hitboxes', label: 'Hitboxes', def: 'KeyB' },

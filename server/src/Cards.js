@@ -161,6 +161,11 @@ const SUPER_CARDS = {
     displayName: 'Platinum Star',
     description: 'Súper-habilidad. Reemplaza tus dos cartas. Ráfaga (andanada de 1,1 s de golpes rapidísimos al frente, alcance 5, aturde más al final), Stellar Finger (dedo estelar de 20 unidades de alcance, 0,4 s de preparación, preciso y aturdidor), Atrapar (tu espíritu te cubre: si te golpean en 1,1 s, anula el golpe y aturde 1,8 s a quien atacó) y Pose Fabulosa (posas con todo el drama y deslumbras 1,5 s a todos los enemigos cercanos, cuesta 50 de Gay). Pasivas: Gay (cada golpe sube tu Gay hasta 100 y alarga tus aturdimientos hasta un 60 %) y Contragolpe (si te aturden y tienes 30 de Gay, aturdes 1,1 s a quien tengas a 7 unidades; recarga 8 s). Teclas 1, 2, 3 y 4.',
   },
+  super_minceraft: {
+    id: 'super_minceraft', super: true, superId: 'minceraft', keywords: ['súper'], rarity: 'rare', weight: 0,
+    displayName: 'Minceraft',
+    description: 'Súper-habilidad. Reemplaza tus dos cartas. Construyes con un contador de Bloques (12): Andamio (1, torre escalable de hasta 3 niveles), Telaraña (2, zona de radio 2,5 que frena al Curador y al Jefe), Escalera (1, rampa) y Slime (3, rebota a quien pise). Colocación rápida (0,25 s). Cada pieza dura 20 s, nace casi rota y se va pudriendo: a 1/3 y 2/3 de su vida pierde eficacia (telaraña frena menos, slime rebota menos). Pasivas: Físicas de Minceraft (saltas 2,5 veces más alto, no recibes daño ni aturdimiento por caída, agacharte en el borde evita que te caigas y Pico: rompes un bloque tuyo en 0,4 s y recuperas su espacio) y Redstone (al activarse una pieza, las vecinas se activan en cadena cada 0,2 s).',
+  },
   super_slot: { id: 'super_slot', super: true, keywords: ['súper'], rarity: 'common', weight: 0, displayName: 'Súper-habilidad activa', description: 'Tu Súper-habilidad ocupa este espacio.' },
 };
 

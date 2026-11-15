@@ -1916,3 +1916,33 @@ test('Town Level: disparo gasta balas, sin balas solo estocada y carga recarga g
   SA.onModule(e.a);
   assert.strictEqual(s.ammo, 8);
 });
+
+test('Minceraft: coloca piezas, respeta el contador, decae y se mina', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('a', 'super:minceraft');
+  const SA = require('../src/SuperAbilities');
+  const s = e.a.sup;
+  assert.strictEqual(s.id, 'minceraft');
+  e.a.faceX = 0;
+  e.a.faceZ = 1;
+  const now = Date.now() + 1000;
+  assert.ok(SA.use(room, 'a', 'andamio', now));
+  assert.strictEqual(room.gameState.dyn.length, 1);
+  assert.strictEqual(s.used, 1);
+  assert.ok(room.allPlatforms().some((p) => p.id === room.gameState.dyn[0].id));
+  assert.ok(!SA.use(room, 'a', 'andamio', now + 100));
+  assert.ok(SA.use(room, 'a', 'andamio', now + 1000));
+  assert.strictEqual(room.gameState.dyn.length, 2);
+  assert.ok(SA.use(room, 'a', 'telarana', now + 2000), JSON.stringify({ y: e.a.y, d: room.gameState.dyn, x: e.a.x, z: e.a.z }));
+  const before = s.used;
+  assert.ok(before >= 3);
+  e.a.x = room.gameState.dyn[0].x;
+  e.a.z = room.gameState.dyn[0].z - 2;
+  assert.ok(SA.use(room, 'a', 'minar', now + 3000));
+  SA.tick(room, now + 3500);
+  assert.ok(s.used < before);
+  SA.tick(room, now + 30000);
+  assert.strictEqual(room.gameState.dyn.length, 0);
+  assert.strictEqual(s.used, 0);
+});

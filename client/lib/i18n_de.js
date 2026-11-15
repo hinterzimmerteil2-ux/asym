@@ -668,4 +668,12 @@ export const DE = [
 "Verkaufe deine Seele an die App mit der Moderation von 4chan",
 "Kugeln",
 "Nachladungen",
+"Superfähigkeit. Ersetzt deine zwei Karten. Du baust mit einem Blockzähler (12): Gerüst (1, kletterbarer Turm bis zu 3 Ebenen), Spinnennetz (2, Zone mit Radius 2,5, die den Heiler und den Boss bremst), Leiter (1, Rampe) und Schleim (3, lässt jeden abprallen, der draufsteigt). Schnelles Platzieren (0,25 s). Jedes Teil hält 20 s, startet fast kaputt und verrottet: bei 1/3 und 2/3 seiner Lebenszeit verliert es Wirkung (Netz bremst weniger, Schleim federt weniger). Passive: Minceraft-Physik (du springst 2,5-mal höher, erleidest weder Sturzschaden noch Betäubung, Ducken an der Kante verhindert das Fallen und Spitzhacke: eigenen Block in 0,4 s abbauen und den Platz zurückbekommen) und Redstone (aktiviert sich ein Teil, aktivieren sich die Nachbarn im 0,2-s-Takt in Kette).",
+"Super-Bauwerke",
+"Gerüst",
+"Spinnennetz",
+"Leiter",
+"Spitzhacke",
+"Blöcke",
+"Abbauen",
 ];

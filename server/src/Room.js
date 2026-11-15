@@ -241,6 +241,8 @@ class Room {
       ghosts: {},
       zones: [],
       curator: { hp: CURATOR_HP_START, max: CURATOR_HP_MAX },
+      dyn: [],
+      dynVer: 0,
     };
   }
 
@@ -289,6 +291,16 @@ class Room {
     }
     this.nav = entry;
     return curator ? entry.gridCur : entry.grid;
+  }
+
+  allPlatforms() {
+    const base = GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId));
+    const dyn = this.gameState.dyn;
+    if (!dyn || !dyn.length) return base;
+    if (this.dynCache && this.dynCache.base === base && this.dynCache.ver === this.gameState.dynVer) return this.dynCache.list;
+    const list = base.concat(dyn.filter((d) => d.solid));
+    this.dynCache = { base, ver: this.gameState.dynVer, list };
+    return list;
   }
 
   selfDamageCandidates() {
@@ -1285,6 +1297,8 @@ class Room {
 
     this.lastRelocateAt = Date.now();
     this.gameState.zones = [];
+    this.gameState.dyn = [];
+    this.gameState.dynVer += 1;
     for (const sr of GameMap.resolveSerums(this.mapId, GameMap.areaFor(this.mapId))) {
       this.gameState.zones.push({ id: `sr_${sr.id}`, kind: 'serum', x: sr.x, z: sr.z, y: sr.y, radius: SERUM_RADIUS, ownerId: null, until: Infinity, activeUntil: Date.now() + SERUM_ACTIVE_MS, armedAt: undefined });
     }
@@ -1717,6 +1731,7 @@ class Room {
       }
       const snapFull = {
         flojera,
+        dyn: this.gameState.dyn.length ? SuperAbilities.minceraftView(this, now) : undefined,
         tick: this.tickCount,
         entities: ownHidden(playerId, player, publicEntities, this, now),
         ghosts: ghostsFor(playerId),
@@ -1741,7 +1756,7 @@ class Room {
   tickGhosts(dt) {
     const half = this.getCurrentArea().halfSize;
     const hiddenIds = this.gameState.hiddenPlatforms || [];
-    const platforms = this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)).filter((p) => !hiddenIds.includes(p.id)) : [];
+    const platforms = this.phase === 'action' ? this.allPlatforms().filter((p) => !hiddenIds.includes(p.id)) : [];
     for (const [ghostId, ghost] of Object.entries(this.gameState.ghosts)) {
       const owner = this.gameState.entities[ghostId];
       if (!owner) continue;
@@ -1825,7 +1840,7 @@ class Room {
       this.phase === 'action' ? GameMap.resolveCollisionObjects(this.mapId, GameMap.areaFor(this.mapId)) : [];
     const hiddenIds = this.gameState.hiddenPlatforms || [];
     const allPlatforms =
-      this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)).filter((p) => !hiddenIds.includes(p.id)) : this.phase === 'lobby' ? GameMap.LOBBY_PLATFORMS : [];
+      this.phase === 'action' ? this.allPlatforms().filter((p) => !hiddenIds.includes(p.id)) : this.phase === 'lobby' ? GameMap.LOBBY_PLATFORMS : [];
     const gates = this.gatesState();
     const curPlatforms = gates === 'lock' ? allPlatforms : allPlatforms.filter((p) => p.kind !== 'gate');
     const patPlatforms = (gates === 'open' ? curPlatforms : allPlatforms).filter((p) => p.kind !== 'pgate');
@@ -2020,6 +2035,10 @@ class Room {
       const gPlats = bs.noclip ? platforms.filter((p) => p.kind === 'pit') : platforms;
       const gS = bs.noclip ? 1 : bs.s;
       const stepUpB = bs.s > 1 ? Math.max(stepUp, bs.h * 0.25) : stepUp;
+      if (entity.sup && entity.sup.id === 'minceraft' && input.slow && entity.onGround && (velX || velZ) && groundAt(gPlats, entity.x + velX * dt, entity.z + velZ * dt, entity.y, stepUpB, gS) < entity.y - 0.35) {
+        velX = 0;
+        velZ = 0;
+      }
       const nextX = entity.x + velX * dt;
       const nextZ = entity.z + velZ * dt;
       if (!blockedAt(plats, nextX, nextZ, entity.y, stepUpB, bs.s, bs.h) || blockedAt(plats, prevX, prevZ, entity.y, stepUpB, bs.s, bs.h)) {
@@ -2048,7 +2067,7 @@ class Room {
 
       if (entity.sup) SuperAbilities.glide(this, entity, Date.now(), dt);
       if (input.jump && entity.onGround && !stunned) {
-        entity.velocityY = JUMP_VELOCITY;
+        entity.velocityY = entity.sup && entity.sup.id === 'minceraft' ? SuperAbilities.MC.jumpV : JUMP_VELOCITY;
         entity.onGround = false;
         entity.peakY = entity.y;
       }
@@ -2074,7 +2093,7 @@ class Room {
           entity.velocityY = 0;
           entity.onGround = true;
           const fallingPlayer = this.players.get(entityPlayerId);
-          if (fallingPlayer && fall > FALL_ENDLAG_MIN && inAction) {
+          if (fallingPlayer && fall > FALL_ENDLAG_MIN && inAction && !(entity.sup && entity.sup.id === 'minceraft')) {
             this.endlagSlow(entity, now, FALL_ENDLAG_MS);
           }
         }
@@ -2334,7 +2353,7 @@ class Room {
       zone.left -= step;
       zone.h += 0;
       const half = this.getCurrentArea().halfSize;
-      const platforms = GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId));
+      const platforms = this.allPlatforms();
       const ground = groundAt(platforms, zone.x, zone.z, zone.h, 0.2);
       if (zone.left <= 0 || Math.abs(zone.x) > half || Math.abs(zone.z) > half || zone.h < ground + 0.15) { zone.until = now; return false; }
       zone.y = Math.max(0, ground);
@@ -2635,7 +2654,7 @@ class Room {
 
   addZone(zone) {
     const owner = this.gameState.entities[zone.ownerId];
-    const platforms = this.phase === 'action' ? GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)) : [];
+    const platforms = this.phase === 'action' ? this.allPlatforms() : [];
     zone.y = groundAt(platforms, zone.x, zone.z, owner ? owner.y || 0 : 0, 2);
     this.gameState.zones.push({ id: `z${this.zoneCounter = (this.zoneCounter || 0) + 1}`, ...zone });
   }
@@ -2704,7 +2723,7 @@ class Room {
       claw.h += claw.dy * step;
       claw.y = claw.h - 1.2;
       if (Math.abs(claw.x) > half + 2 || Math.abs(claw.z) > half + 2 || claw.h > 80) { claw.until = now; continue; }
-      if (!platformsNow) platformsNow = GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId));
+      if (!platformsNow) platformsNow = this.allPlatforms();
       if (claw.h < groundAt(platformsNow, claw.x, claw.z, claw.h, 0.2) + 0.15) { claw.until = now; continue; }
       for (const [curatorId, p] of this.players) {
         if (!p.isAsymRole) continue;

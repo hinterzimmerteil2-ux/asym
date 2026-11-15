@@ -144,9 +144,16 @@ function fmtHp(n) {
   return `${m}×10${sup}`;
 }
 
+function hexMix(a, b, t) {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  return '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+
 const SUPER_MODES = {
   sunat_paperwork: [['notificacion', 'Notificación'], ['vuelva', 'Vuelva mañana'], ['anulacion', 'Anulación']],
   platinum_star: [['rafaga', 'Ráfaga'], ['stellar', 'Stellar Finger'], ['atrapar', 'Atrapar'], ['pausa', 'Pose Fabulosa']],
+  minceraft: [['andamio', 'Andamio'], ['telarana', 'Telaraña'], ['escalera', 'Escalera'], ['slime', 'Slime'], ['minar', 'Pico']],
   town_level: [['bayoneta', 'Bayoneta'], ['barrera', 'Barrera'], ['senuelo', 'Señuelo'], ['carga', 'Carga']],
 };
 
@@ -248,6 +255,7 @@ export default function LobbyPage() {
   const [selfDamageObjects, setSelfDamageObjects] = useState({});
   const [sdTypes, setSdTypes] = useState({});
   const [zones, setZones] = useState([]);
+  const [dyn, setDyn] = useState([]);
   const [curatorHp, setCuratorHp] = useState(null);
   const [effects, setEffects] = useState([]);
   const [stunnedIds, setStunnedIds] = useState([]);
@@ -454,6 +462,7 @@ export default function LobbyPage() {
             setSelfDamageObjects((prev) => (sameValue(prev, payload.selfDamageObjects || {}) ? prev : payload.selfDamageObjects || {}));
             setSdTypes((prev) => (sameValue(prev, payload.selfDamageTypes || {}) ? prev : payload.selfDamageTypes || {}));
             setZones((prev) => (sameValue(prev, payload.zones || []) ? prev : payload.zones || []));
+            setDyn((prev) => (sameValue(prev, payload.dyn || []) ? prev : payload.dyn || []));
             setCuratorHp((prev) => (sameValue(prev, payload.curator || null) ? prev : payload.curator || null));
             setSpawnMs(payload.spawnMs || 0);
             setPlankHp((prev) => (sameValue(prev, payload.plankHp || {}) ? prev : payload.plankHp || {}));
@@ -1009,6 +1018,7 @@ export default function LobbyPage() {
       else if (supRef.current && keyMatches('sup2', e.code)) { if (!e.repeat) handleSuper(1); }
       else if (supRef.current && keyMatches('sup3', e.code)) { if (!e.repeat) handleSuper(2); }
       else if (supRef.current && keyMatches('sup4', e.code)) { if (!e.repeat) handleSuper(3); }
+      else if (supRef.current && keyMatches('sup5', e.code)) { if (!e.repeat) handleSuper(4); }
       else if (!supRef.current && keyMatches('card1', e.code)) { if (!e.repeat) handleUseCard(0); }
       else if (!supRef.current && keyMatches('card2', e.code)) { if (!e.repeat) handleUseCard(1); }
     }
@@ -1099,11 +1109,15 @@ export default function LobbyPage() {
   const specId = spectating && specTargets.length ? specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] : null;
   specRef.current.on = spectating;
   const ghostBlocks = useMemo(() => platforms.filter((pl) => pl.blockMax > 0 && blockBroken[pl.id]), [platforms, blockBroken]);
+  const dynPlatforms = useMemo(() => dyn.filter((d) => d.k !== 'telarana').map((d) => {
+    const base = d.k === 'andamio' ? '#b98a4e' : d.k === 'escalera' ? '#9a9aa2' : '#6fe05a';
+    const c = hexMix(hexMix(base, '#2a2118', d.st * 0.28), '#ffffff', d.lit ? 0.45 : 0);
+    return { id: d.id, x: d.x, z: d.z, hx: d.hx, hz: d.hz, h: d.h, y0: d.y, ramp: d.r || null, kind: null, tint: c, mc: d.k };
+  }), [dyn]);
   const visiblePlatforms = useMemo(() => {
-    if (!hiddenPlatforms.length) return platforms;
-    const hid = new Set(hiddenPlatforms);
-    return platforms.filter((p) => !hid.has(p.id));
-  }, [platforms, hiddenPlatforms]);
+    const base = !hiddenPlatforms.length ? platforms : platforms.filter((p) => !new Set(hiddenPlatforms).has(p.id));
+    return dynPlatforms.length ? base.concat(dynPlatforms) : base;
+  }, [platforms, hiddenPlatforms, dynPlatforms]);
   const shakeIds = mapEvents.filter((e) => e.target && e.phase === 'warn').map((e) => e.target);
   const sx = (base, extra) => (compact ? { ...base, ...extra } : base);
   const playersOpen = panelOpen ?? phase === 'lobby';
@@ -1154,6 +1168,7 @@ export default function LobbyPage() {
         <div style={styles.sceneContainer}>
           <LiveScene
             gameMode={mode}
+            dyn={dyn}
             lmsActive={lmsUntil > 0}
             store={sceneStore}
             replay={replay}
@@ -1600,7 +1615,7 @@ export default function LobbyPage() {
             ))}
           </div>
         )}
-        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} getCarry={getCarryRef.current}  supIcons={flojera?.sup ? (flojera.sup.id === 'town_level' ? ['tl_bayoneta', 'tl_barrera', 'tl_senuelo', 'tl_carga'] : flojera.sup.id === 'platinum_star' ? ['pst_rafaga', 'pst_stellar', 'pst_atrapar', 'pst_pausa'] : ['sun_notificacion', 'sun_vuelva', 'sun_anulacion']) : null} />}
+        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} getCarry={getCarryRef.current}  supIcons={flojera?.sup ? (flojera.sup.id === 'town_level' ? ['tl_bayoneta', 'tl_barrera', 'tl_senuelo', 'tl_carga'] : flojera.sup.id === 'platinum_star' ? ['pst_rafaga', 'pst_stellar', 'pst_atrapar', 'pst_pausa'] : flojera.sup.id === 'minceraft' ? ['mc_andamio', 'mc_telarana', 'mc_escalera', 'mc_slime', 'mc_minar'] : ['sun_notificacion', 'sun_vuelva', 'sun_anulacion']) : null} />}
 
         {phase === 'action' && flojera && !bossHud?.isBoss && (
           <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: compact ? (isAsymRole ? 40 : 64) : (isAsymRole ? 80 : 110) })}>
@@ -1686,14 +1701,16 @@ export default function LobbyPage() {
           <button type="button" onClick={handleReturnToLobby} style={{ position: 'absolute', top: compact ? 96 : 62, left: 16, zIndex: 25, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(224,85,95,0.7)', background: 'rgba(40,16,20,0.85)', color: '#ffb3b8', fontSize: 11, cursor: 'pointer' }}>Reiniciar y volver al lobby</button>
         )}
 
-        {phase === 'action' && !isAsymRole && !touch && (flojera?.sup?.id === 'town_level' || flojera?.sup?.id === 'platinum_star') && (
+        {phase === 'action' && !isAsymRole && !touch && (flojera?.sup?.id === 'town_level' || flojera?.sup?.id === 'platinum_star' || flojera?.sup?.id === 'minceraft') && (
           <div style={sx(styles.handContainer, { top: 50, bottom: 'auto', right: 8, zIndex: 30 })}>
             {SUPER_MODES[flojera.sup.id].map(([m, label], i) => {
-              const cd = flojera.sup.cd[m] || 0;
+              const cd = (flojera.sup.cd || {})[m] || 0;
+              const need = flojera.sup.id === 'minceraft' ? ({ andamio: 1, telarana: 2, escalera: 1, slime: 3 })[m] : 0;
+              const full = need > 0 && flojera.sup.used + need > flojera.sup.max;
               const on = m === 'carga' && flojera.sup.charging;
               return (
-                <button key={m} type="button" disabled={cd > 0} onClick={() => handleSuper(m)} style={{ ...styles.cardButton(cd > 0), outline: on ? '2px solid #ffd86b' : 'none' }} title={label}>
-                  <SkillIcon id={`${flojera.sup.id === 'town_level' ? 'tl' : 'pst'}_${m}`} size={34} />
+                <button key={m} type="button" disabled={cd > 0 || full} onClick={() => handleSuper(m)} style={{ ...styles.cardButton(cd > 0 || full), outline: on ? '2px solid #ffd86b' : 'none' }} title={label}>
+                  <SkillIcon id={`${flojera.sup.id === 'town_level' ? 'tl' : flojera.sup.id === 'minceraft' ? 'mc' : 'pst'}_${m}`} size={34} />
                   <span style={styles.skillKey}>{i + 1}</span>
                   {cd > 0 && <span style={styles.skillCooldownOverlay}>{Math.ceil(cd / 1000)}</span>}
                 </button>
@@ -1713,6 +1730,16 @@ export default function LobbyPage() {
           </div>
         )}
 
+        {phase === 'action' && !isAsymRole && flojera?.sup?.id === 'minceraft' && (
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 150, zIndex: 20, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#fff' }}>
+            <span>Bloques {flojera.sup.used}/{flojera.sup.max}</span>
+            <div style={{ display: 'flex', gap: 2 }}>
+              {Array.from({ length: flojera.sup.max }).map((_, i) => <div key={i} style={{ width: 9, height: 9, background: i < flojera.sup.used ? '#b98a4e' : 'rgba(255,255,255,0.2)', border: '1px solid rgba(0,0,0,0.5)' }} />)}
+            </div>
+            {flojera.sup.mining > 0 && <span style={{ color: '#ffd86b' }}>Picando</span>}
+          </div>
+        )}
+
         {phase === 'action' && !isAsymRole && flojera?.sup?.id === 'platinum_star' && (
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 150, zIndex: 20, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#fff' }}>
             <span>Gay {flojera.sup.rhythm}/{flojera.sup.rhythmMax}</span>
@@ -1725,7 +1752,7 @@ export default function LobbyPage() {
           </div>
         )}
 
-        {phase === 'action' && !isAsymRole && flojera?.sup && flojera.sup.id !== 'town_level' && flojera.sup.id !== 'platinum_star' && flojera.sup.id !== 'platinum_star' && (
+        {phase === 'action' && !isAsymRole && flojera?.sup && flojera.sup.id !== 'town_level' && flojera.sup.id !== 'platinum_star' && flojera.sup.id !== 'minceraft' && (
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: touch ? 150 : 150, zIndex: 20, width: 300, borderRadius: 4, overflow: 'hidden', border: '1px solid #2e6da4', background: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.45)', fontFamily: 'Arial, Helvetica, sans-serif', color: '#333', fontSize: 12 }}>
             <div style={{ background: '#337ab7', color: '#fff', padding: '6px 10px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
               <SkillIcon id="super_sunat_paperwork" size={18} />

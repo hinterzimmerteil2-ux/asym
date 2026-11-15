@@ -1,4 +1,5 @@
 const Status = require('./Status');
+const Hitbox = require('./Hitbox');
 
 const SHEETS = 3;
 const TRAIL_STEP_MS = 250;
@@ -89,6 +90,7 @@ const DEFS = {
   town_level: { id: 'town_level', name: 'Town Level Verse Lol', modes: ['bayoneta', 'barrera', 'senuelo', 'carga'], charges: 0, wig: true, scale: 0.6 },
   sunat_paperwork: { id: 'sunat_paperwork', name: 'Sunat Paperwork', modes: ['notificacion', 'vuelva', 'anulacion'] },
   platinum_star: { id: 'platinum_star', name: 'Platinum Star', modes: ['rafaga', 'stellar', 'atrapar', 'pausa'] },
+  minceraft: { id: 'minceraft', name: 'Minceraft', modes: ['andamio', 'telarana', 'escalera', 'slime', 'minar'] },
 };
 
 const STAR = { rhythmMax: 100, barrageMs: 1100, barrageStepMs: 100, rafagaRange: 5, rafagaWidth: 1.8, rafagaStun: 900, rafagaPush: 3, rafagaEndStun: 1500, rafagaEndPush: 9, rafagaGain: 1.5, stellarRange: 24, stellarWidth: 0.9, stellarWind: 400, stellarStun: 1300, stellarPush: 10, stellarGain: 12, catchMs: 1100, catchRange: 8, catchStun: 1800, catchPush: 10, catchGain: 20, catchFailLag: 500, pauseRange: 11, pauseStun: 1500, pauseCost: 50, rhythmStun: 0.006, reactCost: 30, reactStun: 1100, reactRange: 7, reactPush: 7, reactCd: 8000, cd: { rafaga: 6500, stellar: 9000, atrapar: 9000, pausa: 5000 } };
@@ -101,6 +103,9 @@ function grant(entity, id) {
   entity.sup = { id, sheets: DEFS[id].charges || SHEETS, copyLeft: false, claims: 0, nextAt: 0, pending: 0, still: 0, lx: null, lz: null, noticeUntil: 0, taxRe: 0, taxIm: 0, taxAt: 0, evAt: 0 };
   if (id === 'platinum_star') {
     Object.assign(entity.sup, { rhythm: 0, cd: { rafaga: 0, stellar: 0, atrapar: 0, pausa: 0, react: 0 }, react: 0, poke: null, barrage: null, dome: 0, domeOn: false, parried: 0 });
+  }
+  if (id === 'minceraft') {
+    Object.assign(entity.sup, { used: 0, mining: null });
   }
   if (id === 'town_level') {
     Object.assign(entity.sup, { mana: 0, shield: 0, shieldAt: 0, chain: 0, spent: 0, lastFlo: null, charging: false, chMana: 0, chAt: 0, chPush: 0, chStun: 0, ammo: SHOT_AMMO, ammoMax: SHOT_AMMO, freeReloads: FREE_RELOADS, modBullets: [], cd: { bayoneta: 0, barrera: 0, senuelo: 0 }, glide: false, glideAt: 0, airAt: 0, dome: 0, decoy: null });
@@ -207,6 +212,7 @@ function use(room, playerId, mode, now) {
   let fx = {};
   if (s.id === 'town_level') return useTown(room, playerId, entity, mode, now);
   if (s.id === 'platinum_star') return useStar(room, playerId, entity, mode, now);
+  if (s.id === 'minceraft') return useMine(room, playerId, entity, mode, now);
   if (s.sheets <= 0 || now < s.nextAt) return false;
   if (mode !== 'anulacion' && Status.blocksSkills(entity, now)) return false;
   if (mode === 'notificacion') {
@@ -246,6 +252,7 @@ function tick(room, now) {
   record(room, now);
   tickTown(room, now);
   tickStar(room, now);
+  tickMine(room, now);
   for (const e of Object.values(room.gameState.entities)) {
     const s = e.sup;
     if (s && s.id === 'sunat_paperwork' && s.taxIm > 0 && s.taxAt && now - s.taxAt >= TAX_IM_DECAY_MS) {
@@ -277,6 +284,7 @@ function view(entity, now) {
   if (s.id === 'town_level') {
     return { id: s.id, mana: Math.floor(s.mana), manaMax: MANA_MAX, shield: Math.floor(s.shield), shieldMax: SHIELD_MAX, charging: s.charging, ammo: s.ammo, ammoMax: s.ammoMax, freeReloads: s.freeReloads, charge: Math.round(s.chMana), chargeMax: CHARGE_MAX_MANA, cd: { bayoneta: Math.max(0, s.cd.bayoneta - now), barrera: Math.max(0, s.cd.barrera - now), senuelo: Math.max(0, s.cd.senuelo - now) }, glide: s.glide };
   }
+  if (s.id === 'minceraft') return { id: s.id, used: s.used, max: MC.max, mining: s.mining ? Math.max(0, s.mining.until - now) : 0 };
   if (s.id === 'platinum_star') {
     return { id: s.id, rhythm: Math.floor(s.rhythm), rhythmMax: STAR.rhythmMax, pauseCost: STAR.pauseCost, ready: s.rhythm >= STAR.reactCost && now >= s.cd.react, windUp: Boolean(s.poke), barrage: Boolean(s.barrage), catching: s.domeOn, cd: { rafaga: Math.max(0, s.cd.rafaga - now), stellar: Math.max(0, s.cd.stellar - now), atrapar: Math.max(0, s.cd.atrapar - now), pausa: Math.max(0, s.cd.pausa - now) } };
   }
@@ -673,6 +681,203 @@ function tickStar(room, now) {
   domes = domes.concat(live);
 }
 
+
+const MC = {
+  max: 12, life: 20000, cell: 1.8, gap: 300, endlag: 250, mineMs: 400, mineRange: 3.4, jumpV: 7.3, maxLevels: 3,
+  w: { andamio: 1, telarana: 2, escalera: 1, slime: 3 },
+  webR: 2.5, webSlow: 2, slimeV: 11, chainStep: 200, chainReach: 2.3, chainCool: 1500, pieceLimit: 40,
+};
+
+function mcStage(d, now) {
+  return Math.min(2, Math.floor(((now - d.born) / MC.life) * 3));
+}
+
+function mcBase(room, x, z, y) {
+  return Hitbox.groundAt(room.allPlatforms(), x, z, y, 3);
+}
+
+function mcSnap(v) {
+  return Math.round(v / MC.cell) * MC.cell;
+}
+
+function mcChain(room, d, now) {
+  const dyn = room.gameState.dyn;
+  const seen = new Set([d.id]);
+  let frontier = [d];
+  let hop = 0;
+  while (frontier.length && hop < 12) {
+    hop += 1;
+    const next = [];
+    for (const f of frontier) {
+      for (const o of dyn) {
+        if (seen.has(o.id) || o.owner !== d.owner) continue;
+        if (Math.hypot(o.x - f.x, o.z - f.z) > MC.chainReach || Math.abs(o.y0 - f.y0) > 2.2) continue;
+        seen.add(o.id);
+        next.push(o);
+        if (now >= (o.cool || 0)) {
+          o.pulse = now + hop * MC.chainStep;
+          o.cool = o.pulse + MC.chainCool;
+        }
+      }
+    }
+    frontier = next;
+  }
+}
+
+function mcActivate(room, d, now) {
+  if (now < (d.cool || 0)) return;
+  d.pulse = now;
+  d.cool = now + MC.chainCool;
+  mcChain(room, d, now);
+}
+
+function useMine(room, playerId, entity, mode, now) {
+  const s = entity.sup;
+  if (now < s.nextAt || Status.blocksSkills(entity, now) || s.mining) return false;
+  const gs = room.gameState;
+  const fx = entity.faceX || 0;
+  const fz = entity.faceZ || 1;
+  const fl = Math.hypot(fx, fz) || 1;
+  const nx = fx / fl;
+  const nz = fz / fl;
+  if (mode === 'minar') {
+    let best = null;
+    for (const d of gs.dyn) {
+      if (d.owner !== playerId) continue;
+      const dist = Math.hypot(d.x - entity.x, d.z - entity.z);
+      if (dist > MC.mineRange || Math.abs((entity.y || 0) + 1 - (d.y0 + d.h / 2)) > 3) continue;
+      const facing = ((d.x - entity.x) * nx + (d.z - entity.z) * nz) / (dist || 1);
+      const score = dist - facing * 1.2;
+      if (!best || score < best.score) best = { d, score };
+    }
+    if (!best) return false;
+    s.mining = { id: best.d.id, until: now + MC.mineMs, x: entity.x, z: entity.z };
+    s.nextAt = now + 150;
+    room.broadcast('super_result', { playerId, mode, x: best.d.x, y: best.d.y0, z: best.d.z, ms: MC.mineMs, boxes: [{ x: best.d.x, z: best.d.z, y: best.d.y0 + best.d.h / 2, half: Math.max(best.d.hx, best.d.hz) }] });
+    return true;
+  }
+  const w = MC.w[mode];
+  if (!w || s.used + w > MC.max) return false;
+  if (gs.dyn.length >= MC.pieceLimit) return false;
+  const reach = mode === 'telarana' ? 2.6 : 2.2;
+  const px = mcSnap(entity.x + nx * reach);
+  const pz = mcSnap(entity.z + nz * reach);
+  const ey = entity.y || 0;
+  let base = mcBase(room, px, pz, ey);
+  const rock = gs.dyn.filter((o) => o.solid && Math.abs(o.x - px) < 0.1 && Math.abs(o.z - pz) < 0.1 && !o.ramp);
+  let level = 0;
+  if (rock.length && mode !== 'telarana') {
+    const top = Math.max(...rock.map((o) => o.y0 + o.h));
+    if (top > ey + 1.7) return false;
+    base = top;
+    level = rock.filter((o) => o.kind === 'andamio').length;
+    if (level >= MC.maxLevels || mode !== 'andamio') return false;
+  } else if (base > ey + 1.2 && mode !== 'telarana') return false;
+  const piece = { id: `mc${(gs.dynSeq = (gs.dynSeq || 0) + 1)}`, kind: mode, owner: playerId, born: now, x: px, z: pz, y0: base, hx: 0.9, hz: 0.9, h: 1.2, ramp: null, solid: true, pulse: 0, cool: 0, fired: 0, w };
+  let boxes;
+  if (mode === 'telarana') {
+    Object.assign(piece, { solid: false, r: MC.webR, hx: MC.webR, hz: MC.webR, h: 0.3 });
+    piece.x = Math.round((entity.x + nx * reach) * 10) / 10;
+    piece.z = Math.round((entity.z + nz * reach) * 10) / 10;
+    piece.y0 = mcBase(room, piece.x, piece.z, ey);
+  } else if (mode === 'escalera') {
+    const horiz = Math.abs(nx) > Math.abs(nz);
+    piece.ramp = horiz ? (nx > 0 ? '+x' : '-x') : nz > 0 ? '+z' : '-z';
+    piece.hx = horiz ? 1.4 : 0.9;
+    piece.hz = horiz ? 0.9 : 1.4;
+    piece.h = 1.8;
+  } else if (mode === 'slime') {
+    piece.h = 0.9;
+  }
+  for (const o of gs.dyn) {
+    if (o.solid && piece.solid && Math.abs(o.x - piece.x) < 0.1 && Math.abs(o.z - piece.z) < 0.1 && Math.abs(o.y0 - piece.y0) < 0.05) return false;
+  }
+  for (const [, e] of Object.entries(gs.entities)) {
+    if (piece.solid && !e.down && Math.abs(e.x - piece.x) < piece.hx + 0.35 && Math.abs(e.z - piece.z) < piece.hz + 0.35 && (e.y || 0) < piece.y0 + piece.h - 0.2 && (e.y || 0) + 1.6 > piece.y0) return false;
+  }
+  boxes = piece.kind === 'telarana' ? undefined : [{ x: piece.x, z: piece.z, y: piece.y0 + piece.h / 2, half: Math.max(piece.hx, piece.hz) }];
+  gs.dyn.push(piece);
+  gs.dynVer += 1;
+  s.used += w;
+  s.nextAt = now + MC.gap;
+  Status.apply(entity, 'slow', MC.endlag, now, { tag: 'endlag', level: 1 });
+  room.broadcast('super_result', { playerId, mode, x: piece.x, y: piece.y0, z: piece.z, radius: piece.r, boxes, used: s.used });
+  mcActivate(room, piece, now);
+  return true;
+}
+
+function mcRemove(room, d) {
+  const gs = room.gameState;
+  gs.dyn = gs.dyn.filter((o) => o !== d);
+  gs.dynVer += 1;
+  const owner = gs.entities[d.owner];
+  if (owner && owner.sup && owner.sup.id === 'minceraft') owner.sup.used = Math.max(0, owner.sup.used - d.w);
+}
+
+function tickMine(room, now) {
+  const gs = room.gameState;
+  if (!gs.dyn || !gs.dyn.length) {
+    for (const e of Object.values(gs.entities)) if (e.sup && e.sup.id === 'minceraft') e.sup.mining = null;
+    return;
+  }
+  for (const e of Object.values(gs.entities)) {
+    const s = e.sup;
+    if (!s || s.id !== 'minceraft' || !s.mining) continue;
+    const d = gs.dyn.find((o) => o.id === s.mining.id);
+    if (!d || Status.blocksSkills(e, now) || Math.hypot(e.x - s.mining.x, e.z - s.mining.z) > 1.2) { s.mining = null; continue; }
+    if (now >= s.mining.until) {
+      s.mining = null;
+      mcRemove(room, d);
+      room.broadcast('super_result', { playerId: Object.keys(gs.entities).find((k) => gs.entities[k] === e), mode: 'roto', x: d.x, y: d.y0, z: d.z });
+    }
+  }
+  const asym = [];
+  for (const [id, p] of room.players) {
+    const e = gs.entities[id];
+    if (e && (p.isAsymRole || p.isBoss)) asym.push(e);
+  }
+  for (const d of gs.dyn.slice()) {
+    if (now - d.born >= MC.life) {
+      mcRemove(room, d);
+      continue;
+    }
+    const stage = mcStage(d, now);
+    const fire = d.pulse && now >= d.pulse && d.fired !== d.pulse;
+    if (fire) d.fired = d.pulse;
+    if (d.kind === 'telarana') {
+      const slow = Math.max(1, MC.webSlow - (stage === 2 ? 1 : 0)) + (d.pulse && now - d.pulse < 1500 ? 1 : 0);
+      for (const e of asym) {
+        if (e.down || e.gone || e.corpse) continue;
+        if (Math.hypot(e.x - d.x, e.z - d.z) > d.r || Math.abs((e.y || 0) - d.y0) > 2) continue;
+        Status.apply(e, 'slow', 400, now, { level: Math.min(3, slow) });
+        if (now >= (d.cool || 0)) mcActivate(room, d, now);
+      }
+    } else if (d.kind === 'slime' && (fire || now - (d.lastCheck || 0) > 100)) {
+      d.lastCheck = now;
+      const v = MC.slimeV - stage * 1.5;
+      for (const e of Object.values(gs.entities)) {
+        if (e.down || e.gone || e.corpse || !e.onGround) continue;
+        if (Math.abs(e.x - d.x) > d.hx + 0.2 || Math.abs(e.z - d.z) > d.hz + 0.2 || Math.abs((e.y || 0) - (d.y0 + d.h)) > 0.3) continue;
+        mcActivate(room, d, now);
+        e.velocityY = v;
+        e.onGround = false;
+        e.peakY = e.y;
+      }
+    } else if (d.kind === 'andamio' && !d.pulse) {
+      for (const e of Object.values(gs.entities)) {
+        if (e.onGround && Math.abs(e.x - d.x) <= d.hx && Math.abs(e.z - d.z) <= d.hz && Math.abs((e.y || 0) - (d.y0 + d.h)) < 0.2) {
+          mcActivate(room, d, now);
+          break;
+        }
+      }
+    }
+  }
+}
+
+function minceraftView(room, now) {
+  return (room.gameState.dyn || []).map((d) => ({ id: d.id, k: d.kind, x: d.x, z: d.z, y: Math.round(d.y0 * 100) / 100, hx: d.hx, hz: d.hz, h: d.h, r: d.ramp || undefined, o: d.owner, st: mcStage(d, now), lit: d.pulse && now - d.pulse < 400 ? 1 : undefined, ra: d.r || undefined }));
+}
+
 function glide(room, entity, now, dt) {
   const s = entity.sup;
   if (!s || s.id !== 'town_level') return false;
@@ -731,4 +936,4 @@ function glide(room, entity, now, dt) {
   return false;
 }
 
-module.exports = { onStunned, evade, speedBonus, tax, DEFS, wpnActive: (e, now) => Boolean(e.sup && e.sup.wpnUntil > now), grant, use, claim, tick, view, gainMana, onModule, miss, withSource, scaleStun, scalePush, absorbHeal, domeBlocks, glide, domeRadius: DOME_RADIUS };
+module.exports = { minceraftView, MC, onStunned, evade, speedBonus, tax, DEFS, wpnActive: (e, now) => Boolean(e.sup && e.sup.wpnUntil > now), grant, use, claim, tick, view, gainMana, onModule, miss, withSource, scaleStun, scalePush, absorbHeal, domeBlocks, glide, domeRadius: DOME_RADIUS };

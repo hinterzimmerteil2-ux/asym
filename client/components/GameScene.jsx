@@ -1209,6 +1209,32 @@ function StarSpirit({ life, mode, act = 0, ready = false }) {
   );
 }
 
+function McWeb({ d }) {
+  const r = d.ra || 2.5;
+  const op = 0.55 - d.st * 0.15;
+  const lines = useMemo(() => {
+    const out = [];
+    for (let i = 0; i < 8; i++) out.push(i * Math.PI / 4);
+    return out;
+  }, []);
+  return (
+    <group position={[d.x, d.y + 0.06, d.z]}>
+      {[0.35, 0.65, 1].map((k) => (
+        <mesh key={k} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[r * k - 0.03, r * k, 24]} />
+          <meshBasicMaterial color={d.lit ? '#ffffff' : '#e8f0f0'} transparent opacity={op} side={DoubleSide} depthWrite={false} />
+        </mesh>
+      ))}
+      {lines.map((a) => (
+        <mesh key={a} position={[Math.cos(a) * r * 0.5, 0, Math.sin(a) * r * 0.5]} rotation={[-Math.PI / 2, 0, -a]}>
+          <planeGeometry args={[r, 0.05]} />
+          <meshBasicMaterial color="#e8f0f0" transparent opacity={op} side={DoubleSide} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function SuperFx({ effect }) {
   const kind = effect.kind;
   const dur = kind === 'sup_bayoneta' || kind === 'sup_parry' || kind === 'sup_stellar_hit' || kind === 'sup_rafaga' ? 520 : kind === 'sup_stellar' ? 400 : kind === 'sup_pausa' ? 1100 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
@@ -1275,6 +1301,15 @@ function SuperFx({ effect }) {
           <Ring life={life} color="#e6d8ff" y={0} r0={0.2} r1={1.4} flat={false} spin={4} />
           <Sparks life={life} color="#ffffff" n={effect.hit ? 12 : 5} speed={1.8} up={1.2} size={0.09} />
         </group>
+      </group>
+    );
+  }
+  if (kind === 'sup_andamio' || kind === 'sup_escalera' || kind === 'sup_slime' || kind === 'sup_telarana' || kind === 'sup_roto' || kind === 'sup_minar') {
+    const col = kind === 'sup_slime' ? '#6fe05a' : kind === 'sup_telarana' ? '#f2f6f6' : kind === 'sup_roto' || kind === 'sup_minar' ? '#d9c7a0' : '#d6a766';
+    return (
+      <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
+        <Ring life={life} color={col} y={0.1} r0={0.3} r1={kind === 'sup_telarana' ? effect.radius || 2.5 : 1.4} />
+        <Sparks life={life} color={col} n={kind === 'sup_roto' ? 14 : 8} speed={1.8} up={1.6} size={0.09} />
       </group>
     );
   }
@@ -3583,6 +3618,7 @@ export default function GameScene({
   phase,
   selfDamageObjects,
   zones,
+  dyn,
   effects,
   stunnedIds,
   ragdollIds,
@@ -3647,6 +3683,8 @@ export default function GameScene({
       {phase !== 'action' && <MLobbyDecor />}
 
       {phase === 'action' && (effects || []).map((effect) => (effect.sup ? <SuperFx key={effect.id} effect={effect} /> : <SkillEffect key={effect.id} effect={effect} />))}
+
+      {phase === 'action' && (dyn || []).filter((d) => d.k === 'telarana').map((d) => <McWeb key={d.id} d={d} />)}
 
       {phase === 'action' && (zones || []).map((zone) => <ZoneDisc key={zone.id} zone={zone} platforms={platforms} ghost={Boolean(playerById.get(myPlayerId)?.isAsymRole)} />)}
 

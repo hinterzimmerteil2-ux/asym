@@ -672,6 +672,14 @@ const PAIRS = [
 ["Vende tu alma a la aplicación con moderación de 4chan","Sell your soul to the app with 4chan-grade moderation"],
 ["Balas","Bullets"],
 ["recargas","reloads"],
+["Súper-habilidad. Reemplaza tus dos cartas. Construyes con un contador de Bloques (12): Andamio (1, torre escalable de hasta 3 niveles), Telaraña (2, zona de radio 2,5 que frena al Curador y al Jefe), Escalera (1, rampa) y Slime (3, rebota a quien pise). Colocación rápida (0,25 s). Cada pieza dura 20 s, nace casi rota y se va pudriendo: a 1/3 y 2/3 de su vida pierde eficacia (telaraña frena menos, slime rebota menos). Pasivas: Físicas de Minceraft (saltas 2,5 veces más alto, no recibes daño ni aturdimiento por caída, agacharte en el borde evita que te caigas y Pico: rompes un bloque tuyo en 0,4 s y recuperas su espacio) y Redstone (al activarse una pieza, las vecinas se activan en cadena cada 0,2 s).","Super-ability. Replaces your two cards. You build with a Blocks counter (12): Scaffold (1, climbable tower up to 3 levels), Cobweb (2, radius 2.5 zone that slows the Healer and the Boss), Ladder (1, ramp) and Slime (3, bounces whoever steps on it). Fast placement (0.25 s). Each piece lasts 20 s, starts nearly broken and rots away: at 1/3 and 2/3 of its life it loses effectiveness (cobweb slows less, slime bounces less). Passives: Minceraft Physics (you jump 2.5 times higher, take no fall damage or stun, crouching at an edge stops you falling, and Pickaxe: break one of your own blocks in 0.4 s and get its space back) and Redstone (when a piece activates, its neighbours chain-activate every 0.2 s)."],
+["Súper-estructuras","Super-structures"],
+["Andamio","Scaffold"],
+["Telaraña","Cobweb"],
+["Escalera","Ladder"],
+["Pico","Pickaxe"],
+["Bloques","Blocks"],
+["Picando","Mining"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };
