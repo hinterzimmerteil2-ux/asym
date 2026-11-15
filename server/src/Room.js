@@ -3244,7 +3244,7 @@ class Room {
     this.sendCardOffer(playerId, entity);
   }
 
-  superAction(playerId, mode, face) {
+  superAction(playerId, mode, face, aim) {
     if (this.phase !== 'action' || this.gameState.gameOver || this.gameState.frozen) return;
     const e = this.gameState.entities[playerId];
     if (e && face && Number.isFinite(face.x) && Number.isFinite(face.z)) {
@@ -3254,10 +3254,11 @@ class Room {
         e.faceZ = face.z / fl;
       }
     }
+    if (e && e.sup) e.sup.aim = aim && Number.isFinite(aim.x) && Number.isFinite(aim.z) ? { x: aim.x, z: aim.z, at: Date.now() } : null;
     SuperAbilities.use(this, playerId, mode, Date.now());
   }
 
-  superPreview(playerId, mode, face) {
+  superPreview(playerId, mode, face, aim) {
     if (this.phase !== 'action' || this.gameState.gameOver) return;
     const e = this.gameState.entities[playerId];
     if (!e || !e.sup || e.sup.id !== 'minceraft') return;
@@ -3268,6 +3269,7 @@ class Room {
         e.faceZ = face.z / fl;
       }
     }
+    e.sup.aim = aim && Number.isFinite(aim.x) && Number.isFinite(aim.z) ? { x: aim.x, z: aim.z, at: Date.now() } : null;
     e.sup.prev = ['andamio', 'telarana', 'redstone', 'slime'].includes(mode) ? { mode, until: Date.now() + 600 } : null;
   }
 

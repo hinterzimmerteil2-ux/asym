@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, useMemo, memo, Suspense } from 'react';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
-import { Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, MeshLambertMaterial, MeshStandardMaterial, Vector3, Matrix4, Quaternion, Euler, TextureLoader, DoubleSide, SRGBColorSpace, Color } from 'three';
+import { Raycaster, Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, MeshLambertMaterial, MeshStandardMaterial, Vector3, Matrix4, Quaternion, Euler, TextureLoader, DoubleSide, SRGBColorSpace, Color } from 'three';
 import { itemOf } from '../lib/cosmetics';
 import { getTexture, setTextureQuality } from '../lib/textures';
 import { matches } from '../lib/keybinds';
@@ -27,6 +27,14 @@ const COLOR_METAL = '#8a8674';
 const COLOR_WALL_TINT = '#bcd6ea';
 const COLOR_EMERGENCY_LIGHT = '#5468ff';
 
+const MC_AIM = { on: false, has: false, x: 0, z: 0 };
+export function setMcAim(on) {
+  MC_AIM.on = on;
+  if (!on) MC_AIM.has = false;
+}
+export function mcAimPoint() {
+  return MC_AIM.on && MC_AIM.has ? { x: Math.round(MC_AIM.x * 100) / 100, z: Math.round(MC_AIM.z * 100) / 100 } : null;
+}
 const FACING = new Map();
 export function facingOf(id) {
   const y = FACING.get(id);
@@ -3035,6 +3043,26 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platfo
       canvas.removeEventListener('wheel', onWheel);
     };
   }, [gl, shiftLock]);
+
+  const aimRay = useMemo(() => new Raycaster(), []);
+  useFrame(({ camera, pointer, gl: renderer }) => {
+    if (!MC_AIM.on || !myEntity) {
+      MC_AIM.has = false;
+      return;
+    }
+    const locked = document.pointerLockElement === renderer.domElement;
+    aimRay.setFromCamera(locked ? { x: 0, y: 0 } : pointer, camera);
+    const o = aimRay.ray.origin;
+    const dir = aimRay.ray.direction;
+    if (dir.y > -0.02) {
+      MC_AIM.has = false;
+      return;
+    }
+    const t = ((myEntity.y || 0) - o.y) / dir.y;
+    MC_AIM.x = o.x + dir.x * t;
+    MC_AIM.z = o.z + dir.z * t;
+    MC_AIM.has = Number.isFinite(MC_AIM.x) && Number.isFinite(MC_AIM.z);
+  });
 
   useFrame((_, delta) => {
     if (!myEntity) return;

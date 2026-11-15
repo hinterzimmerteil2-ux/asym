@@ -681,7 +681,7 @@ function tickStar(room, now) {
 
 
 const MC = {
-  max: 12, life: 20000, cell: 2, gap: 300, endlag: 250, mineMs: 400, mineRange: 4.2, jumpV: 7.3, climbV: 4.2, fallSlow: 1.8,
+  max: 12, life: 20000, cell: 2, gap: 300, endlag: 250, mineMs: 400, mineRange: 4.2, range: 7, jumpV: 7.3, climbV: 4.2, fallSlow: 1.8,
   w: { andamio: 1, telarana: 1, redstone: 2, slime: 2 },
   webSlow: 2, slimeV: 11, chainStep: 200, chainReach: 2.1, redstoneReach: 4.1, redstoneR: 3.2, redstoneStun: 600, chainCool: 1500, pieceLimit: 40,
 };
@@ -738,8 +738,28 @@ function mcPlan(room, playerId, entity, mode, now) {
   const nx = (entity.faceX || 0) / fl;
   const nz = (entity.faceZ || 1) / fl;
   let ok = s.used + w <= MC.max && gs.dyn.length < MC.pieceLimit;
-  const px = mcSnap(entity.x + nx * 2.8);
-  const pz = mcSnap(entity.z + nz * 2.8);
+  let tx = entity.x + nx * 2.8;
+  let tz = entity.z + nz * 2.8;
+  let adx = nx;
+  let adz = nz;
+  if (s.aim && now - s.aim.at < 1500) {
+    const dx = s.aim.x - entity.x;
+    const dz = s.aim.z - entity.z;
+    const dl = Math.hypot(dx, dz);
+    if (dl > 0.01) {
+      adx = dx / dl;
+      adz = dz / dl;
+      const reach = Math.min(dl, MC.range);
+      tx = entity.x + adx * reach;
+      tz = entity.z + adz * reach;
+    }
+  }
+  let px = mcSnap(tx);
+  let pz = mcSnap(tz);
+  if (Math.hypot(px - entity.x, pz - entity.z) > MC.range) {
+    px = mcSnap(tx - adx * MC.cell * 0.6);
+    pz = mcSnap(tz - adz * MC.cell * 0.6);
+  }
   const ey = entity.y || 0;
   const inCell = (o) => Math.abs(o.x - px) < 0.1 && Math.abs(o.z - pz) < 0.1;
   const stack = gs.dyn.filter((o) => inCell(o) && o.kind !== 'telarana');

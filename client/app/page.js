@@ -12,7 +12,7 @@ import {
   clearSession,
   updateDisplayName,
 } from '../lib/session';
-import GameScene, { facingOf } from '../components/GameScene';
+import GameScene, { facingOf, setMcAim, mcAimPoint } from '../components/GameScene';
 import { play as playSfx, trackSteps, unlockAudio } from '../lib/sfx';
 import SkillIcon from '../components/SkillIcon';
 import { watchMedia } from '../lib/settings';
@@ -981,15 +981,20 @@ export default function LobbyPage() {
     const mode = typeof m === 'number' ? (SUPER_MODES[supRef.current] || [])[m]?.[0] : m;
     if (supRef.current === 'minceraft' && mode && mode !== 'minar' && mcSelRef.current !== mode) {
       setMcSel(mode);
-      connRef.current?.send('super_preview', { mode, face: facingOf(myPlayerIdRef.current) || undefined });
+      connRef.current?.send('super_preview', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined });
       return;
     }
-    if (mode) connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined });
+    if (mode) connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: supRef.current === 'minceraft' ? mcAimPoint() || undefined : undefined });
   }, [isAsymRole, phase]);
 
   useEffect(() => {
+    setMcAim(Boolean(mcSel) && phase === 'action' && !isAsymRole);
+    return () => setMcAim(false);
+  }, [mcSel, phase, isAsymRole]);
+
+  useEffect(() => {
     if (!mcSel || phase !== 'action' || isAsymRole) return undefined;
-    const t = setInterval(() => connRef.current?.send('super_preview', { mode: mcSelRef.current, face: facingOf(myPlayerIdRef.current) || undefined }), 100);
+    const t = setInterval(() => connRef.current?.send('super_preview', { mode: mcSelRef.current, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined }), 100);
     return () => clearInterval(t);
   }, [mcSel, phase, isAsymRole]);
 

@@ -300,14 +300,14 @@ wss.on('connection', (ws) => {
       case MessageType.SUPER_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
-        room.superAction(playerId, msg.payload && msg.payload.mode, msg.payload && msg.payload.face);
+        room.superAction(playerId, msg.payload && msg.payload.mode, msg.payload && msg.payload.face, msg.payload && msg.payload.aim);
         break;
       }
 
       case MessageType.SUPER_PREVIEW: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
-        room.superPreview(playerId, msg.payload && msg.payload.mode, msg.payload && msg.payload.face);
+        room.superPreview(playerId, msg.payload && msg.payload.mode, msg.payload && msg.payload.face, msg.payload && msg.payload.aim);
         break;
       }
 
