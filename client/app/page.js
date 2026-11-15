@@ -2166,7 +2166,7 @@ const BODY_FONT = '"Bricolage Grotesque", system-ui, -apple-system, sans-serif';
 function Wordmark() {
   return (
     <div style={{ marginBottom: 22 }}>
-      <div style={{ fontWeight: 800, fontSize: 46, letterSpacing: '-0.035em', lineHeight: 1, color: '#f3e8e5' }}>réplica</div>
+      <div className="cube3d" style={{ fontWeight: 800, fontSize: 46, letterSpacing: '-0.035em', lineHeight: 1.2, color: '#f3e8e5' }}>réplica</div>
       <svg viewBox="0 0 240 28" width="100%" height="28" preserveAspectRatio="xMinYMid meet" aria-hidden="true" style={{ display: 'block', marginTop: 10, overflow: 'visible' }}>
         <path className="beat" pathLength="1" d="M0 14 H56 L63 14 L69 3 L77 25 L84 8 L89 14 H134" fill="none" stroke="#d94a52" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M134 14 H240" fill="none" stroke="#7fe08b" strokeWidth="2" strokeLinecap="round" strokeDasharray="1 7" opacity="0.85" />
