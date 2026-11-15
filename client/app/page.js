@@ -1134,7 +1134,7 @@ export default function LobbyPage() {
   const specId = spectating && specTargets.length ? specTargets[((specIndex % specTargets.length) + specTargets.length) % specTargets.length] : null;
   specRef.current.on = spectating;
   const ghostBlocks = useMemo(() => platforms.filter((pl) => pl.blockMax > 0 && blockBroken[pl.id]), [platforms, blockBroken]);
-  const dynPlatforms = useMemo(() => dyn.filter((d) => d.k !== 'telarana').map((d) => {
+  const dynPlatforms = useMemo(() => dyn.map((d) => {
     const base = d.k === 'andamio' ? '#b98a4e' : d.k === 'redstone' ? '#c0261f' : '#6fe05a';
     const c = hexMix(hexMix(base, '#2a2118', d.st * 0.28), '#ffffff', d.lit ? 0.45 : 0);
     return { id: d.id, x: d.x, z: d.z, hx: d.hx, hz: d.hz, h: d.h, y0: d.y, ramp: d.r || null, kind: null, tint: c, mc: d.k, lit: d.lit };

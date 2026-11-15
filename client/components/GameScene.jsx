@@ -3481,6 +3481,7 @@ function McGhost({ pv }) {
 
 function Platform({ p }) {
   if (p.kind === 'gate' || p.kind === 'pgate') return <GateMesh p={p} />;
+  if (p.mc === 'telarana') return null;
   if (p.mc === 'andamio') return <Scaffold p={p} />;
   if (p.mc === 'slime') return <SlimeBlock p={p} />;
   if (p.mc === 'redstone') return <RedstoneBlock p={p} />;
@@ -3564,6 +3565,38 @@ function RampFrame({ p, color, opacity }) {
 function bossBox(e) {
   const s = e.size || 1;
   return { half: e.hh ?? Math.max(0.8, 2.2 * s) * (e.cr ? 0.9 : 1), h: e.hv ?? Math.max(2.4, 5.5 * s * (e.cr ? 0.55 : 1)) };
+}
+
+function BossAbilityFrames({ e, opacity }) {
+  const st = useRef({ t: null, at: 0, fx: null });
+  const [, force] = useState(0);
+  const fx = e.bfx;
+  if (fx && fx.t !== st.current.t) {
+    st.current = { t: fx.t, at: performance.now(), fx };
+  }
+  useFrame(() => {
+    const on = st.current.fx && performance.now() - st.current.at < 900;
+    if (on !== st.current.on) {
+      st.current.on = on;
+      force((v) => v + 1);
+    }
+  });
+  const f = st.current.fx;
+  if (!f || performance.now() - st.current.at >= 900) return null;
+  const mid = e.y + 1.5;
+  if (f.k === 3 && f.w && f.len) {
+    const dx = (f.tx ?? e.x + 1) - e.x;
+    const dz = (f.tz ?? e.z) - e.z;
+    const dl = Math.hypot(dx, dz) || 1;
+    const half = f.w / 2;
+    const out = [];
+    for (let d = half; d - half < f.len && out.length < 16; d += half * 2) out.push(d);
+    return out.map((d, i) => <SquareFrame key={i} x={e.x + (dx / dl) * d} z={e.z + (dz / dl) * d} y={mid} half={half} hy={Math.max(1.5, half)} color="#e0555f" opacity={opacity} />);
+  }
+  if ((f.k === 5 || f.k === 6) && f.r) {
+    return <SquareFrame x={e.x} z={e.z} y={mid} half={f.r} hy={3} color="#e0555f" opacity={opacity} />;
+  }
+  return null;
 }
 
 function BossM1Frame({ e, opacity }) {
@@ -3687,6 +3720,7 @@ function Hitboxes({ entities, myPlayerId, collisionObjects, selfDamageObjects, z
         </group>
       ))}
       {Object.entries(entities || {}).filter(([, en]) => en.boss).map(([id, en]) => <BossM1Frame key={'m1' + id} e={en} opacity={opacity} />)}
+      {Object.entries(entities || {}).filter(([, en]) => en.boss).map(([id, en]) => <BossAbilityFrames key={'ba' + id} e={en} opacity={opacity} />)}
       {(collisionObjects || []).map((obj) => (
         <SquareFrame key={obj.id} x={obj.x} z={obj.z} y={(obj.height || 1.2) / 2} half={obj.radius} hy={(obj.height || 1.2) / 2} color="#e0555f" opacity={opacity} />
       ))}
