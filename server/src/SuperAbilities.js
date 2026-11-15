@@ -5,9 +5,11 @@ const SHEETS = 3;
 const TRAIL_STEP_MS = 250;
 const TRAIL_KEEP_MS = 6000;
 const REWIND_MS = 4500;
-const NOTIFY_DELAY_MS = 3000;
+const NOTIFY_DELAY_MS = 6000;
+const DEBT_BASE_MS = 1200;
+const DEBT_STEP_MS = 500;
+const DEBT_MAX_MS = 3600;
 const NOTIFY_RANGE = 26;
-const EMBARGO_MS = 2400;
 const VUELVA_RANGE = 16;
 const USE_GAP_MS = 700;
 const TAX_NEED = 118;
@@ -68,7 +70,6 @@ const FLY_HOLD_MS = 300;
 const DOME_RADIUS = 2.5;
 const QUEUE_MS = 2000;
 const RESOLUTION_MS = 2000;
-const ANSWER_STILL_MS = 2000;
 const FINE_MS = 12000;
 const OBSERVED_STILL_MS = 1000;
 const DECOY_MS = 4500;
@@ -93,7 +94,7 @@ const DEFS = {
   minceraft: { id: 'minceraft', name: 'Minceraft', modes: ['andamio', 'telarana', 'escalera', 'slime', 'minar'] },
 };
 
-const STAR = { rhythmMax: 100, barrageMs: 1100, barrageStepMs: 100, rafagaRange: 5, rafagaWidth: 1.8, rafagaStun: 900, rafagaPush: 3, rafagaEndStun: 1500, rafagaEndPush: 9, rafagaGain: 1.5, stellarRange: 24, stellarWidth: 0.9, stellarWind: 400, stellarStun: 1300, stellarPush: 10, stellarGain: 12, catchMs: 1100, catchRange: 8, catchStun: 1800, catchPush: 10, catchGain: 20, catchFailLag: 500, pauseRange: 11, pauseStun: 1500, pauseCost: 50, rhythmStun: 0.006, reactCost: 30, reactStun: 1100, reactRange: 7, reactPush: 7, reactCd: 8000, cd: { rafaga: 6500, stellar: 9000, atrapar: 9000, pausa: 5000 } };
+const STAR = { rhythmMax: 100, barrageMs: 1100, barrageStepMs: 100, rafagaRange: 5, rafagaWidth: 1.8, rafagaStun: 900, rafagaPush: 3, rafagaEndStun: 1500, rafagaEndPush: 9, rafagaGain: 1.5, stellarRange: 24, stellarWidth: 0.9, stellarWind: 400, stellarStun: 1300, stellarPush: 10, stellarGain: 12, catchMs: 300, catchRange: 8, catchWidth: 1.5, catchStun: 1800, catchPush: 13, catchGain: 20, catchFailLag: 500, pauseRange: 11, pauseStun: 1500, pauseCost: 50, rhythmStun: 0.006, reactCost: 30, reactStun: 1100, reactRange: 7, reactPush: 7, reactCd: 8000, cd: { rafaga: 6500, stellar: 9000, atrapar: 9000, pausa: 5000 } };
 
 function grant(entity, id) {
   if (!DEFS[id]) {
@@ -219,7 +220,7 @@ function use(room, playerId, mode, now) {
     const t = foes(room, entity, NOTIFY_RANGE)[0];
     if (!t || (t.e.ntf && t.e.ntf.until > now)) return false;
     Status.apply(t.e, 'reveal', NOTIFY_DELAY_MS, now);
-    t.e.ntf = { until: now + NOTIFY_DELAY_MS, by: playerId, still: 0, sx: t.e.x, sz: t.e.z, sat: now };
+    t.e.ntf = { until: now + NOTIFY_DELAY_MS, by: playerId, debt: 0, sat: now };
     s.noticeUntil = now + NOTIFY_DELAY_MS;
     fx = { tx: t.e.x, tz: t.e.z, tid: t.id, radius: NOTIFY_RANGE };
   } else if (mode === 'vuelva') {
@@ -261,18 +262,14 @@ function tick(room, now) {
     }
     if (!e.ntf) continue;
     if (e.ntf.until > now) {
-      const moved = Math.hypot(e.x - e.ntf.sx, e.z - e.ntf.sz) > 0.5;
-      e.ntf.sx = e.x;
-      e.ntf.sz = e.z;
-      e.ntf.still = moved ? 0 : e.ntf.still + 50;
-      if (e.ntf.still >= ANSWER_STILL_MS) e.ntf = null;
       continue;
     }
     const by = e.ntf.by;
+    const embargo = Math.min(DEBT_MAX_MS, DEBT_BASE_MS + DEBT_STEP_MS * (e.ntf.debt || 0));
     e.ntf = null;
     if (e.down) continue;
-    Status.apply(e, 'stun', EMBARGO_MS, now);
-    Status.apply(e, 'queue', EMBARGO_MS, now);
+    Status.apply(e, 'stun', embargo, now);
+    Status.apply(e, 'queue', embargo, now);
     Status.apply(e, 'slow', FINE_MS, now, { level: 1 });
     tax(room.gameState.entities[by], TAX_FINE, 1, now);
   }
@@ -569,7 +566,7 @@ function onStunned(entity, now) {
 
 function useStar(room, playerId, entity, mode, now) {
   const s = entity.sup;
-  if (now < s.nextAt || s.poke || s.domeOn || s.barrage) return false;
+  if (now < s.nextAt || s.poke || s.grab || s.barrage) return false;
   if (Status.blocksSkills(entity, now)) return false;
   if (now < s.cd[mode]) return false;
   const fx = entity.faceX || 0;
@@ -588,10 +585,10 @@ function useStar(room, playerId, entity, mode, now) {
     s.poke = { at: now + STAR.stellarWind, nx, nz };
     out.wind = STAR.stellarWind;
   } else if (mode === 'atrapar') {
-    s.dome = now + STAR.catchMs;
-    out.radius = DOME_RADIUS;
-    s.domeOn = true;
-    s.parried = 0;
+    s.grab = { at: now + STAR.catchMs, nx, nz };
+    out.wind = STAR.catchMs;
+    out.len = STAR.catchRange;
+    out.boxes = lineBoxes(entity, nx, nz, STAR.catchRange, STAR.catchWidth);
   } else if (mode === 'pausa') {
     if (s.rhythm < STAR.pauseCost) return false;
     s.poseUntil = now + 900;
@@ -660,21 +657,22 @@ function tickStar(room, now) {
       }
       room.broadcast('super_result', { playerId: id, mode: 'stellar_hit', boxes: lineBoxes(e, nx, nz, STAR.stellarRange, STAR.stellarWidth), x: e.x, y: e.y || 0, z: e.z, dx: nx, dz: nz, len, hit: Boolean(first) });
     }
-    if (s.parried) {
-      s.parried = 0;
-      s.dome = 0;
-      s.domeOn = false;
-      s.cd.atrapar = now + STAR.cd.atrapar;
-      starGain(s, STAR.catchGain);
-      const target = foes(room, e, STAR.catchRange)[0];
+    if (s.grab && now >= s.grab.at) {
+      const { nx, nz } = s.grab;
+      s.grab = null;
+      const target = foes(room, e, STAR.catchRange).filter((f) => {
+        const rx = f.e.x - e.x;
+        const rz = f.e.z - e.z;
+        return rx * nx + rz * nz > 0 && Math.abs(rx * nz - rz * nx) <= STAR.catchWidth;
+      })[0];
       if (target) {
         room.stun(target.id, target.e, starStun(s, STAR.catchStun), now, 0);
-        Status.push(target.e, (target.e.x - e.x) / (target.d || 1), (target.e.z - e.z) / (target.d || 1), STAR.catchPush, 300, now);
+        Status.push(target.e, -nx, -nz, STAR.catchPush, 380, now);
+        starGain(s, STAR.catchGain);
+      } else {
+        Status.apply(e, 'slow', STAR.catchFailLag, now, { tag: 'endlag', level: 2 });
       }
-      room.broadcast('super_result', { playerId: id, mode: 'parry', star: true, radius: DOME_RADIUS, x: e.x, y: e.y || 0, z: e.z, dx: e.faceX || 0, dz: e.faceZ || 1 });
-    } else if (s.domeOn && s.dome <= now) {
-      s.domeOn = false;
-      Status.apply(e, 'slow', STAR.catchFailLag, now, { tag: 'endlag', level: 2 });
+      room.broadcast('super_result', { playerId: id, mode: 'atrapar_hit', boxes: lineBoxes(e, nx, nz, STAR.catchRange, STAR.catchWidth), x: e.x, y: e.y || 0, z: e.z, dx: nx, dz: nz, len: target ? target.d : STAR.catchRange, hit: Boolean(target) });
     }
     if (s.dome > now) live.push({ x: e.x, y: e.y || 0, z: e.z, until: s.dome, owner: e });
   }

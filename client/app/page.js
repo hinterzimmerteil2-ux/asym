@@ -152,7 +152,7 @@ function hexMix(a, b, t) {
 
 const SUPER_MODES = {
   sunat_paperwork: [['notificacion', 'Notificación'], ['vuelva', 'Vuelva mañana'], ['anulacion', 'Anulación']],
-  platinum_star: [['rafaga', 'Ráfaga'], ['stellar', 'Stellar Finger'], ['atrapar', 'Atrapar'], ['pausa', 'Pose Fabulosa']],
+  platinum_star: [['rafaga', 'Ráfaga'], ['stellar', 'Stellar Finger'], ['atrapar', 'Lanzamiento'], ['pausa', 'Pose Fabulosa']],
   minceraft: [['andamio', 'Andamio'], ['telarana', 'Telaraña'], ['escalera', 'Escalera'], ['slime', 'Slime'], ['minar', 'Pico']],
   town_level: [['bayoneta', 'Bayoneta'], ['barrera', 'Barrera'], ['senuelo', 'Señuelo'], ['carga', 'Carga']],
 };

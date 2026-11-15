@@ -1237,7 +1237,7 @@ function McWeb({ d }) {
 
 function SuperFx({ effect }) {
   const kind = effect.kind;
-  const dur = kind === 'sup_bayoneta' || kind === 'sup_parry' || kind === 'sup_stellar_hit' || kind === 'sup_rafaga' ? 520 : kind === 'sup_stellar' ? 400 : kind === 'sup_pausa' ? 1100 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
+  const dur = kind === 'sup_bayoneta' || kind === 'sup_parry' || kind === 'sup_stellar_hit' || kind === 'sup_atrapar_hit' || kind === 'sup_atrapar' || kind === 'sup_rafaga' ? 520 : kind === 'sup_stellar' ? 400 : kind === 'sup_pausa' ? 1100 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
   const life = useLife(effect, dur);
   const yaw = Math.atan2(effect.dx || 0, effect.dz || 1);
   const stamp = useRef();
@@ -1280,6 +1280,26 @@ function SuperFx({ effect }) {
         {RAINBOW.map((c, i) => <group key={i} position={[(i - 2.5) * 0.18, (i % 3 - 1) * 0.25, 0.3 * (i % 3)]}><Ring life={life} color={c} y={0} r0={0.15} r1={0.9} flat={false} spin={8 + i} /></group>)}
         <Sparks life={life} color="#f4ecff" n={16} speed={2.2} up={0.8} size={0.08} />
         <Sparks life={life} color="#a98be8" n={10} speed={1.6} up={1.2} size={0.1} />
+      </group>
+    );
+  }
+  if (kind === 'sup_atrapar') {
+    return (
+      <group position={[effect.x || 0, (effect.y || 0) + 1.3, effect.z || 0]} rotation={[0, yaw, 0]}>
+        <group position={[0, 0, 1]}><Ring life={life} color="#ffd24a" y={0} r0={1.1} r1={0.2} flat={false} spin={-6} /></group>
+        <Sparks life={life} color="#fff3b0" n={6} speed={0.8} up={0.4} size={0.07} />
+      </group>
+    );
+  }
+  if (kind === 'sup_atrapar_hit') {
+    const len = effect.len || 8;
+    return (
+      <group position={[effect.x || 0, (effect.y || 0) + 1.3, effect.z || 0]} rotation={[0, yaw, 0]}>
+        <mesh position={[0, 0, len / 2]}><boxGeometry args={[0.6, 0.18, len]} /><Mat reg={life.reg} color="#b9a4ff" /></mesh>
+        <group position={[0, 0, len]}>
+          <Ring life={life} color="#ffd24a" y={0} r0={0.3} r1={1.8} flat={false} spin={5} />
+          <Sparks life={life} color="#ffffff" n={effect.hit ? 14 : 5} speed={2} up={1.2} size={0.09} />
+        </group>
       </group>
     );
   }

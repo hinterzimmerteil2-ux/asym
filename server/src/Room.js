@@ -1674,7 +1674,7 @@ class Room {
         dec: entity.sup && entity.sup.decoy ? { x: Math.round(entity.sup.decoy.x * 10) / 10, y: Math.round(entity.sup.decoy.y * 10) / 10, z: Math.round(entity.sup.decoy.z * 10) / 10 } : undefined,
         gld: entity.sup && entity.sup.glide ? 1 : undefined,
         psd: entity.sup && entity.sup.id === 'platinum_star' ? 1 : undefined,
-        psa: entity.sup && entity.sup.id === 'platinum_star' ? (entity.sup.barrage ? 1 : entity.sup.poke ? 2 : entity.sup.domeOn ? 3 : entity.sup.poseUntil > now ? 4 : 0) || undefined : undefined,
+        psa: entity.sup && entity.sup.id === 'platinum_star' ? (entity.sup.barrage ? 1 : entity.sup.poke ? 2 : entity.sup.grab ? 3 : entity.sup.poseUntil > now ? 4 : 0) || undefined : undefined,
         psr: entity.sup && entity.sup.id === 'platinum_star' && entity.sup.rhythm >= 30 && now >= entity.sup.cd.react ? 1 : undefined,
         wig: entity.sup && SuperAbilities.DEFS[entity.sup.id] && SuperAbilities.DEFS[entity.sup.id].wig ? 1 : undefined,
         ntf: entity.ntf && entity.ntf.until > now ? entity.ntf.until - now : undefined,
@@ -2198,6 +2198,7 @@ class Room {
       return;
     }
     curadorEntity.skillCooldowns[index] = now + skill.cooldownMs * (curadorEntity.ntf && curadorEntity.ntf.until > now ? 1.25 : 1);
+    if (curadorEntity.ntf && curadorEntity.ntf.until > now) curadorEntity.ntf.debt = (curadorEntity.ntf.debt || 0) + 1;
     if (skill.fx) CardEffects.runFx(this, playerId, curadorEntity, skill.fx, 'use', null, now);
 
     const affectedPlayerIds = [];

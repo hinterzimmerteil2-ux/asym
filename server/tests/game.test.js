@@ -1843,7 +1843,9 @@ test('Platinum Star: ráfaga aturde, atrapar bloquea y pausa cuesta ritmo', () =
   SA.tick(room, now + 8500);
   assert.ok(!s.poke);
   assert.ok(SA.use(room, 'a', 'atrapar', now + 20000));
-  assert.ok(s.domeOn);
+  assert.ok(s.grab);
+  SA.tick(room, now + 20400);
+  assert.ok(!s.grab);
 });
 
 test('Impuestos de la SUNAT: la parte real da una hoja a 118 y la imaginaria da velocidad', () => {
