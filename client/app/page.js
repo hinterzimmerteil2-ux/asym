@@ -153,7 +153,7 @@ function hexMix(a, b, t) {
 const SUPER_MODES = {
   sunat_paperwork: [['notificacion', 'Notificación'], ['vuelva', 'Vuelva mañana'], ['anulacion', 'Anulación']],
   platinum_star: [['rafaga', 'Ráfaga'], ['stellar', 'Stellar Finger'], ['atrapar', 'Lanzamiento'], ['pausa', 'Pose Fabulosa']],
-  minceraft: [['andamio', 'Andamio'], ['telarana', 'Telaraña'], ['escalera', 'Escalera'], ['slime', 'Slime'], ['minar', 'Pico']],
+  minceraft: [['andamio', 'Andamio'], ['telarana', 'Telaraña'], ['redstone', 'Redstone'], ['slime', 'Slime'], ['minar', 'Pico']],
   town_level: [['bayoneta', 'Bayoneta'], ['barrera', 'Barrera'], ['senuelo', 'Señuelo'], ['carga', 'Carga']],
 };
 
@@ -1124,9 +1124,9 @@ export default function LobbyPage() {
   specRef.current.on = spectating;
   const ghostBlocks = useMemo(() => platforms.filter((pl) => pl.blockMax > 0 && blockBroken[pl.id]), [platforms, blockBroken]);
   const dynPlatforms = useMemo(() => dyn.filter((d) => d.k !== 'telarana').map((d) => {
-    const base = d.k === 'andamio' ? '#b98a4e' : d.k === 'escalera' ? '#9a9aa2' : '#6fe05a';
+    const base = d.k === 'andamio' ? '#b98a4e' : d.k === 'redstone' ? '#c0261f' : '#6fe05a';
     const c = hexMix(hexMix(base, '#2a2118', d.st * 0.28), '#ffffff', d.lit ? 0.45 : 0);
-    return { id: d.id, x: d.x, z: d.z, hx: d.hx, hz: d.hz, h: d.h, y0: d.y, ramp: d.r || null, kind: null, tint: c, mc: d.k };
+    return { id: d.id, x: d.x, z: d.z, hx: d.hx, hz: d.hz, h: d.h, y0: d.y, ramp: d.r || null, kind: null, tint: c, mc: d.k, lit: d.lit };
   }), [dyn]);
   const visiblePlatforms = useMemo(() => {
     const base = !hiddenPlatforms.length ? platforms : platforms.filter((p) => !new Set(hiddenPlatforms).has(p.id));
@@ -1629,7 +1629,7 @@ export default function LobbyPage() {
             ))}
           </div>
         )}
-        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} getCarry={getCarryRef.current}  supIcons={flojera?.sup ? (flojera.sup.id === 'town_level' ? ['tl_bayoneta', 'tl_barrera', 'tl_senuelo', 'tl_carga'] : flojera.sup.id === 'platinum_star' ? ['pst_rafaga', 'pst_stellar', 'pst_atrapar', 'pst_pausa'] : flojera.sup.id === 'minceraft' ? ['mc_andamio', 'mc_telarana', 'mc_escalera', 'mc_slime', 'mc_minar'] : ['sun_notificacion', 'sun_vuelva', 'sun_anulacion']) : null} />}
+        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} getCarry={getCarryRef.current}  supIcons={flojera?.sup ? (flojera.sup.id === 'town_level' ? ['tl_bayoneta', 'tl_barrera', 'tl_senuelo', 'tl_carga'] : flojera.sup.id === 'platinum_star' ? ['pst_rafaga', 'pst_stellar', 'pst_atrapar', 'pst_pausa'] : flojera.sup.id === 'minceraft' ? ['mc_andamio', 'mc_telarana', 'mc_redstone', 'mc_slime', 'mc_minar'] : ['sun_notificacion', 'sun_vuelva', 'sun_anulacion']) : null} />}
 
         {phase === 'action' && flojera && !bossHud?.isBoss && (
           <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: compact ? (isAsymRole ? 40 : 64) : (isAsymRole ? 80 : 110) })}>
@@ -1719,7 +1719,7 @@ export default function LobbyPage() {
           <div style={sx(styles.handContainer, { top: 50, bottom: 'auto', right: 8, zIndex: 30 })}>
             {SUPER_MODES[flojera.sup.id].map(([m, label], i) => {
               const cd = (flojera.sup.cd || {})[m] || 0;
-              const need = flojera.sup.id === 'minceraft' ? ({ andamio: 1, telarana: 2, escalera: 1, slime: 3 })[m] : 0;
+              const need = flojera.sup.id === 'minceraft' ? ({ andamio: 1, telarana: 1, redstone: 2, slime: 2 })[m] : 0;
               const full = need > 0 && flojera.sup.used + need > flojera.sup.max;
               const on = m === 'carga' && flojera.sup.charging;
               return (

@@ -2085,6 +2085,7 @@ class Room {
         entity.velocityY += GRAVITY * (this.phase === 'lobby' ? LOBBY_GRAVITY_FACTOR : MUTATIONS[this.mutation].gravity * this.modeGravityFactor(Date.now())) * dt;
         if (entity.velocityY < 0) entity.velocityY += AIR_DRAG * entity.velocityY * entity.velocityY * dt;
         if (entity.sup) SuperAbilities.glide(this, entity, Date.now(), dt);
+        SuperAbilities.climb(this, entity, input);
         entity.y += entity.velocityY * dt;
         entity.peakY = Math.max(entity.peakY || entity.y, entity.y);
         ground = groundAt(gPlats, entity.x, entity.z, entity.y - entity.velocityY * dt, STEP_UP, gS);
@@ -3267,7 +3268,7 @@ class Room {
         e.faceZ = face.z / fl;
       }
     }
-    e.sup.prev = ['andamio', 'telarana', 'escalera', 'slime'].includes(mode) ? { mode, until: Date.now() + 600 } : null;
+    e.sup.prev = ['andamio', 'telarana', 'redstone', 'slime'].includes(mode) ? { mode, until: Date.now() + 600 } : null;
   }
 
   useCard(playerId, slotIndex) {

@@ -1210,27 +1210,24 @@ function StarSpirit({ life, mode, act = 0, ready = false }) {
 }
 
 function McWeb({ d }) {
-  const r = d.ra || 2.5;
-  const op = 0.55 - d.st * 0.15;
-  const lines = useMemo(() => {
-    const out = [];
-    for (let i = 0; i < 8; i++) out.push(i * Math.PI / 4);
-    return out;
-  }, []);
+  const hx = d.hx || 1;
+  const h = d.h || 2;
+  const op = 0.7 - d.st * 0.2;
+  const col = d.lit ? '#ffffff' : '#e8f0f0';
+  const geo = useMemo(() => new EdgesGeometry(new BoxGeometry(hx * 2, h, hx * 2)), [hx, h]);
+  const diag = Math.hypot(hx * 2, h);
+  const ang = Math.atan2(h, hx * 2);
   return (
-    <group position={[d.x, d.y + 0.06, d.z]}>
-      {[0.35, 0.65, 1].map((k) => (
-        <mesh key={k} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[r * k - 0.03, r * k, 24]} />
-          <meshBasicMaterial color={d.lit ? '#ffffff' : '#e8f0f0'} transparent opacity={op} side={DoubleSide} depthWrite={false} />
-        </mesh>
+    <group position={[d.x, d.y + h / 2, d.z]}>
+      <lineSegments geometry={geo}><lineBasicMaterial color={col} transparent opacity={op} /></lineSegments>
+      {[[0, 0], [Math.PI / 2, 0]].map(([ry], i) => (
+        <group key={i} rotation={[0, ry, 0]}>
+          <mesh rotation={[0, 0, ang]}><boxGeometry args={[diag, 0.04, 0.04]} /><meshBasicMaterial color={col} transparent opacity={op} /></mesh>
+          <mesh rotation={[0, 0, -ang]}><boxGeometry args={[diag, 0.04, 0.04]} /><meshBasicMaterial color={col} transparent opacity={op} /></mesh>
+        </group>
       ))}
-      {lines.map((a) => (
-        <mesh key={a} position={[Math.cos(a) * r * 0.5, 0, Math.sin(a) * r * 0.5]} rotation={[-Math.PI / 2, 0, -a]}>
-          <planeGeometry args={[r, 0.05]} />
-          <meshBasicMaterial color="#e8f0f0" transparent opacity={op} side={DoubleSide} depthWrite={false} />
-        </mesh>
-      ))}
+      <mesh rotation={[Math.PI / 2, 0, 0]}><ringGeometry args={[hx * 0.45, hx * 0.5, 4]} /><meshBasicMaterial color={col} transparent opacity={op} side={DoubleSide} depthWrite={false} /></mesh>
+      <mesh><boxGeometry args={[hx * 2, h, hx * 2]} /><meshBasicMaterial color="#f2f6f6" transparent opacity={0.08} depthWrite={false} /></mesh>
     </group>
   );
 }
@@ -1324,11 +1321,11 @@ function SuperFx({ effect }) {
       </group>
     );
   }
-  if (kind === 'sup_andamio' || kind === 'sup_escalera' || kind === 'sup_slime' || kind === 'sup_telarana' || kind === 'sup_roto' || kind === 'sup_minar') {
-    const col = kind === 'sup_slime' ? '#6fe05a' : kind === 'sup_telarana' ? '#f2f6f6' : kind === 'sup_roto' || kind === 'sup_minar' ? '#d9c7a0' : '#d6a766';
+  if (kind === 'sup_andamio' || kind === 'sup_redstone' || kind === 'sup_redstone_pulso' || kind === 'sup_slime' || kind === 'sup_telarana' || kind === 'sup_roto' || kind === 'sup_minar') {
+    const col = kind === 'sup_slime' ? '#6fe05a' : kind === 'sup_redstone' || kind === 'sup_redstone_pulso' ? '#ff3a2a' : kind === 'sup_telarana' ? '#f2f6f6' : kind === 'sup_roto' || kind === 'sup_minar' ? '#d9c7a0' : '#d6a766';
     return (
       <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
-        <Ring life={life} color={col} y={0.1} r0={0.3} r1={kind === 'sup_telarana' ? effect.radius || 2.5 : 1.4} />
+        <Ring life={life} color={col} y={0.1} r0={0.3} r1={kind === 'sup_redstone_pulso' ? effect.radius || 3.2 : 1.4} />
         <Sparks life={life} color={col} n={kind === 'sup_roto' ? 14 : 8} speed={1.8} up={1.6} size={0.09} />
       </group>
     );
@@ -3397,19 +3394,23 @@ function SlimeBlock({ p }) {
   );
 }
 
+function RedstoneBlock({ p }) {
+  const y0 = p.y0 || 0;
+  const lit = Boolean(p.lit);
+  const geo = useMemo(() => new EdgesGeometry(new BoxGeometry(p.hx * 2, p.h, p.hz * 2)), [p.hx, p.hz, p.h]);
+  return (
+    <group position={[p.x, y0 + p.h / 2, p.z]}>
+      <mesh><boxGeometry args={[p.hx * 2, p.h, p.hz * 2]} /><meshStandardMaterial color={p.tint || '#c0261f'} roughness={0.7} emissive="#ff2a1a" emissiveIntensity={lit ? 0.9 : 0.3} /></mesh>
+      <lineSegments geometry={geo}><lineBasicMaterial color="#3a0a07" /></lineSegments>
+    </group>
+  );
+}
+
 function McGhost({ pv }) {
   const col = pv.ok ? '#6fe05a' : '#e24a4a';
   const horiz = pv.r === '+x' || pv.r === '-x';
   const y0 = pv.y || 0;
   const geo = useMemo(() => new EdgesGeometry(new BoxGeometry(pv.hx * 2, pv.h, pv.hz * 2)), [pv.hx, pv.hz, pv.h]);
-  if (pv.k === 'telarana') {
-    return (
-      <mesh position={[pv.x, y0 + 0.08, pv.z]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[(pv.ra || 2.5) - 0.08, pv.ra || 2.5, 36]} />
-        <meshBasicMaterial color={col} transparent opacity={0.8} side={DoubleSide} depthWrite={false} />
-      </mesh>
-    );
-  }
   const rot = pv.r === '+x' ? [0, 0, Math.atan2(pv.h, pv.hx * 2)] : pv.r === '-x' ? [0, 0, -Math.atan2(pv.h, pv.hx * 2)] : [0, 0, 0];
   const ang = pv.r === '+z' ? -Math.PI / 2 : pv.r === '-z' ? Math.PI / 2 : 0;
   const dims = pv.r && !horiz ? [pv.hz * 2, pv.h, pv.hx * 2] : [pv.hx * 2, pv.h, pv.hz * 2];
@@ -3436,6 +3437,7 @@ function Platform({ p }) {
   if (p.kind === 'gate' || p.kind === 'pgate') return <GateMesh p={p} />;
   if (p.mc === 'andamio') return <Scaffold p={p} />;
   if (p.mc === 'slime') return <SlimeBlock p={p} />;
+  if (p.mc === 'redstone') return <RedstoneBlock p={p} />;
   if (p.ramp === '+z' || p.ramp === '-z') {
     const q = { ...p, x: 0, z: 0, hx: p.hz, hz: p.hx, ramp: '+x' };
     return (
