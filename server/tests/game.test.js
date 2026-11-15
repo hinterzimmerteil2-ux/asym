@@ -1889,3 +1889,31 @@ test('Platinum Star: contragolpe aturde al atacante si hay Gay suficiente', () =
   SA.tick(room, now + 250);
   assert.ok(s.rhythm <= 10.01);
 });
+
+test('Superlumínica: estela aturde, eco vuelve y paradoja reinicia recargas una vez', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('a', 'super:superluminica');
+  const SA = require('../src/SuperAbilities');
+  const s = e.a.sup;
+  assert.strictEqual(s.id, 'superluminica');
+  e.a.faceX = 1;
+  e.a.faceZ = 0;
+  const now = Date.now() + 1000;
+  assert.ok(SA.use(room, 'a', 'estela', now));
+  assert.ok(!SA.use(room, 'a', 'estela', now + 900));
+  const ox = e.a.x;
+  const oz = e.a.z;
+  assert.ok(SA.use(room, 'a', 'eco', now + 1000));
+  e.a.x += 5;
+  SA.tick(room, now + 1100);
+  assert.ok(s.echo);
+  SA.tick(room, now + 3100);
+  assert.ok(!s.echo);
+  assert.strictEqual(e.a.x, ox);
+  assert.strictEqual(e.a.z, oz);
+  assert.ok(SA.use(room, 'a', 'paradoja', now + 4000));
+  assert.strictEqual(s.cd.estela, 0);
+  assert.ok(SA.speedBonus(e.a) >= 1);
+  assert.ok(!SA.use(room, 'a', 'paradoja', now + 6000));
+});

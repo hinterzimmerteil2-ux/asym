@@ -161,6 +161,11 @@ const SUPER_CARDS = {
     displayName: 'Platinum Star',
     description: 'Súper-habilidad. Reemplaza tus dos cartas. Ráfaga (andanada de 1,1 s de golpes rapidísimos al frente, alcance 5, aturde más al final), Stellar Finger (dedo estelar de 20 unidades de alcance, 0,4 s de preparación, preciso y aturdidor), Atrapar (tu espíritu te cubre: si te golpean en 1,1 s, anula el golpe y aturde 1,8 s a quien atacó) y Pose Fabulosa (posas con todo el drama y deslumbras 1,5 s a todos los enemigos cercanos, cuesta 50 de Gay). Pasivas: Gay (cada golpe sube tu Gay hasta 100 y alarga tus aturdimientos hasta un 60 %) y Contragolpe (si te aturden y tienes 30 de Gay, aturdes 1,1 s a quien tengas a 7 unidades; recarga 8 s). Teclas 1, 2, 3 y 4.',
   },
+  super_superluminica: {
+    id: 'super_superluminica', super: true, superId: 'superluminica', keywords: ['súper'], rarity: 'rare', weight: 0,
+    displayName: 'Superlumínica',
+    description: 'Súper-habilidad. Reemplaza tus dos cartas. Estela (carrera de 7 unidades que deja una estela de 3 s que aturde 0,8 s a quien la cruce), Eco (marcas tu lugar y a los 2 s vuelves a él aturdiendo 0,6 s a los cercanos; si pulsas de nuevo, vuelves antes), Doppler (marca 5 s a un enemigo a 18 unidades o menos: ralentiza mientras se aleja y lo revela) y Paradoja (una vez por partida: reinicia tus tiempos de recarga y corres 50 % más rápido 3 s). Teclas 1, 2, 3 y 4.',
+  },
   super_slot: { id: 'super_slot', super: true, keywords: ['súper'], rarity: 'common', weight: 0, displayName: 'Súper-habilidad activa', description: 'Tu Súper-habilidad ocupa este espacio.' },
 };
 

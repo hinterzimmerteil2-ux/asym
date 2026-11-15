@@ -1287,6 +1287,42 @@ function SuperFx({ effect }) {
       </group>
     );
   }
+  if (kind === 'sup_estela') {
+    const len = 7;
+    return (
+      <group position={[effect.x || 0, (effect.y || 0) + 1.1, effect.z || 0]} rotation={[0, yaw, 0]}>
+        {[-0.4, 0, 0.4].map((o, i) => <mesh key={i} position={[o, (i - 1) * 0.3, len / 2]}><boxGeometry args={[0.05, 0.05, len]} /><Mat reg={life.reg} color={i === 1 ? '#ffffff' : '#7fd8ff'} /></mesh>)}
+        <Ring life={life} color="#bfe9ff" y={0} r0={0.2} r1={1.6} flat={false} spin={3} />
+        <Sparks life={life} color="#e6f7ff" n={10} speed={2.4} up={0.6} size={0.08} />
+      </group>
+    );
+  }
+  if (kind === 'sup_eco' || kind === 'sup_eco_back') {
+    return (
+      <group position={[effect.x || 0, 0, effect.z || 0]}>
+        <Ring life={life} color="#7fd8ff" r0={0.4} r1={effect.radius || 3} />
+        <Ring life={life} color="#ffffff" y={1.2} r0={0.2} r1={1.1} flat={false} spin={4} />
+        <Sparks life={life} color="#bfe9ff" n={12} speed={2} up={2} size={0.09} />
+      </group>
+    );
+  }
+  if (kind === 'sup_doppler') {
+    return (
+      <group position={[effect.tx ?? effect.x ?? 0, 0, effect.tz ?? effect.z ?? 0]}>
+        <Ring life={life} color="#7fd8ff" y={0.1} r0={0.4} r1={3.2} />
+        <Ring life={life} color="#ff9a9a" y={0.25} r0={0.2} r1={2} />
+        <Ring life={life} color="#ffffff" y={1.4} r0={0.2} r1={1.2} flat={false} spin={5} />
+      </group>
+    );
+  }
+  if (kind === 'sup_paradoja') {
+    return (
+      <group position={[effect.x || 0, 0, effect.z || 0]}>
+        {RAINBOW.map((c, i) => <Ring key={i} life={life} color={i % 2 ? '#7fd8ff' : '#ffffff'} y={0.1 + i * 0.25} r0={0.4} r1={3 - i * 0.3} />)}
+        <Sparks life={life} color="#e6f7ff" n={16} speed={2.6} up={2.6} size={0.1} />
+      </group>
+    );
+  }
   if (kind === 'sup_react') {
     return (
       <>

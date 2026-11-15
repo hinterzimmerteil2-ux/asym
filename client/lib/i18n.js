@@ -670,6 +670,13 @@ const PAIRS = [
 ["◆ Contragolpe","◆ Counterstrike"],
 ["Vende tus datos a cierta empresa multimillonaria","Sell your data to a certain multibillion-dollar company"],
 ["Vende tu alma a la aplicación con moderación de 4chan","Sell your soul to the app with 4chan-grade moderation"],
+["Súper-habilidad. Reemplaza tus dos cartas. Estela (carrera de 7 unidades que deja una estela de 3 s que aturde 0,8 s a quien la cruce), Eco (marcas tu lugar y a los 2 s vuelves a él aturdiendo 0,6 s a los cercanos; si pulsas de nuevo, vuelves antes), Doppler (marca 5 s a un enemigo a 18 unidades o menos: ralentiza mientras se aleja y lo revela) y Paradoja (una vez por partida: reinicia tus tiempos de recarga y corres 50 % más rápido 3 s). Teclas 1, 2, 3 y 4.","Super-ability. Replaces both of your cards. Streak (a 7-unit dash that leaves a 3 s trail stunning anyone who crosses it for 0.8 s), Echo (you mark your spot and return to it after 2 s, stunning nearby enemies for 0.6 s; press again to return sooner), Doppler (marks an enemy within 18 units for 5 s: slows them while they move away and reveals them) and Paradox (once per match: resets your cooldowns and you run 50% faster for 3 s). Keys 1, 2, 3 and 4."],
+["Superlumínica","Superluminal"],
+["Súper-velocidad","Super-speed"],
+["Estela","Streak"],
+["Eco","Echo"],
+["Doppler","Doppler"],
+["Paradoja","Paradox"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };

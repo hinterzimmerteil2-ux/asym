@@ -666,4 +666,11 @@ export const DE = [
 "◆ Gegenschlag",
 "Verkaufe deine Daten an ein gewisses Multimilliarden-Unternehmen",
 "Verkaufe deine Seele an die App mit der Moderation von 4chan",
+"Superfähigkeit. Ersetzt deine beiden Karten. Spur (7 Einheiten Sprint, der 3 s lang eine Spur hinterlässt, die jeden 0,8 s betäubt, der sie kreuzt), Echo (du markierst deinen Ort und kehrst nach 2 s dorthin zurück, wobei Gegner in der Nähe 0,6 s betäubt werden; erneut drücken, um früher zurückzukehren), Doppler (markiert einen Gegner im Umkreis von 18 Einheiten 5 s lang: verlangsamt ihn, solange er sich entfernt, und enthüllt ihn) und Paradoxon (einmal pro Spiel: setzt deine Abklingzeiten zurück und du rennst 3 s lang 50 % schneller). Tasten 1, 2, 3 und 4.",
+"Überlichtschnell",
+"Super-Tempo",
+"Spur",
+"Echo",
+"Doppler",
+"Paradoxon",
 ];
