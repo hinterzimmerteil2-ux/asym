@@ -1181,25 +1181,25 @@ function StarSpirit({ life, mode, act = 0, ready = false }) {
     if (ra.current) { ra.current.rotation.set(rx, ry, 0); ra.current.position.z = rz; }
   });
   const arm = (side) => (
-    <group ref={side < 0 ? la : ra} position={[side * 0.46, 1.2, 0]}>
-      <mesh position={[0, 0, 0.22]}><boxGeometry args={[0.15, 0.15, 0.45]} /><Mat reg={reg} color="#9d7cf0" /></mesh>
-      <mesh position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.11, 0.11, 0.2, 6]} /><Mat reg={reg} color="#ffd24a" /></mesh>
-      <mesh position={[0, 0, 0.66]}><sphereGeometry args={[0.14, 6, 6]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
+    <group ref={side < 0 ? la : ra} position={[side * 0.56, 1.2, 0]}>
+      <mesh position={[0, 0, 0.22]}><boxGeometry args={[0.22, 0.22, 0.45]} /><Mat reg={reg} color="#9d7cf0" /></mesh>
+      <mesh position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.16, 0.16, 0.22, 6]} /><Mat reg={reg} color="#ffd24a" /></mesh>
+      <mesh position={[0, 0, 0.66]}><sphereGeometry args={[0.19, 6, 6]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
     </group>
   );
   return (
-    <group ref={root} scale={0.85}>
+    <group ref={root} scale={1.55}>
       <mesh position={[0, 1.62, 0]}><icosahedronGeometry args={[0.27, 0]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
       <mesh position={[0, 1.6, 0.21]}><boxGeometry args={[0.36, 0.09, 0.12]} /><Mat reg={reg} color="#5ab8ff" /></mesh>
       <mesh position={[0, 2.0, 0]}><coneGeometry args={[0.07, 0.3, 4]} /><Mat reg={reg} color="#ffd24a" /></mesh>
       <mesh position={[-0.16, 1.93, 0]} rotation={[0, 0, 0.55]}><coneGeometry args={[0.05, 0.22, 4]} /><Mat reg={reg} color="#ffd24a" /></mesh>
       <mesh position={[0.16, 1.93, 0]} rotation={[0, 0, -0.55]}><coneGeometry args={[0.05, 0.22, 4]} /><Mat reg={reg} color="#ffd24a" /></mesh>
-      <mesh position={[0, 1.05, 0]}><cylinderGeometry args={[0.36, 0.22, 0.75, 6]} /><Mat reg={reg} color="#9d7cf0" /></mesh>
+      <mesh position={[0, 1.05, 0]}><cylinderGeometry args={[0.46, 0.26, 0.78, 6]} /><Mat reg={reg} color="#9d7cf0" /></mesh>
       <mesh position={[0, 1.12, 0.27]}><octahedronGeometry args={[0.12, 0]} /><Mat reg={reg} color={ready ? '#ffd24a' : '#6a58b0'} /></mesh>
       {RAINBOW.map((c, i) => <mesh key={i} position={[(i - 2.5) * 0.1, 0.66, 0.14]}><boxGeometry args={[0.1, 0.08, 0.3]} /><Mat reg={reg} color={c} /></mesh>)}
       <mesh position={[0, 0.3, 0]} rotation={[Math.PI, 0, 0]}><coneGeometry args={[0.24, 0.7, 6]} /><Mat reg={reg} color="#7a5fd0" /></mesh>
-      <mesh position={[-0.46, 1.32, 0]}><octahedronGeometry args={[0.2, 0]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
-      <mesh position={[0.46, 1.32, 0]}><octahedronGeometry args={[0.2, 0]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
+      <mesh position={[-0.56, 1.32, 0]}><octahedronGeometry args={[0.26, 0]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
+      <mesh position={[0.56, 1.32, 0]}><octahedronGeometry args={[0.26, 0]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
       {arm(-1)}
       {arm(1)}
       <group ref={tail} position={[0, -0.1, 0]}>
@@ -1373,7 +1373,7 @@ function SuperFx({ effect }) {
 const PlayerBody = memo(function PlayerBody({ bodyRef, headRef, rig, lod, color, cosmetics, isCurator, wig, wpn, bar, held, holdRef, psd, psa, psr }) {
   return (
     <group ref={bodyRef}>
-        {psd && <group position={[0.85, 0.1, -0.6]}><StarSpirit act={psa || 0} ready={Boolean(psr)} /></group>}
+        {psd && <group position={[0.9, 0.1, -1.1]}><StarSpirit act={psa || 0} ready={Boolean(psr)} /></group>}
         {wpn && <RifleBayonet live />}
         {bar && <ShieldDisc />}
         <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
