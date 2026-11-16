@@ -1185,7 +1185,7 @@ function StarSpirit({ life, mode, act = 0, ready = false }) {
   const m = mode === 'rafaga' ? 1 : mode === 'stellar' ? 2 : mode === 'atrapar' ? 3 : mode === 'pausa' ? 4 : act;
   useFrame(() => {
     const t = performance.now() / 1000;
-    if (root.current) root.current.position.y = 0.2 + Math.sin(t * 2.2) * 0.08;
+    if (root.current) root.current.position.y = 0.25 + Math.sin(t * 2.2) * 0.06;
     if (tail.current) tail.current.rotation.y = t * 1.6;
     let lx = 1.0, rx = 1.0, ly = 0, ry = 0, lz = 0, rz = 0;
     if (m === 1) { lx = 0; rx = 0; const w = Math.sin(t * 38); lz = 0.3 + w * 0.3; rz = 0.3 - w * 0.3; }
@@ -1195,30 +1195,49 @@ function StarSpirit({ life, mode, act = 0, ready = false }) {
     if (la.current) { la.current.rotation.set(lx, ly, 0); la.current.position.z = lz; }
     if (ra.current) { ra.current.rotation.set(rx, ry, 0); ra.current.position.z = rz; }
   });
+  const VIO = '#8a6ae6';
+  const DARK = '#5a46b0';
+  const GOLD = '#ffd24a';
+  const PALE = '#e6d8ff';
   const arm = (side) => (
-    <group ref={side < 0 ? la : ra} position={[side * 0.56, 1.2, 0]}>
-      <mesh position={[0, 0, 0.22]}><boxGeometry args={[0.22, 0.22, 0.45]} /><Mat reg={reg} color="#9d7cf0" /></mesh>
-      <mesh position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.16, 0.16, 0.22, 6]} /><Mat reg={reg} color="#ffd24a" /></mesh>
-      <mesh position={[0, 0, 0.66]}><sphereGeometry args={[0.19, 6, 6]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
+    <group ref={side < 0 ? la : ra} position={[side * 0.6, 1.5, 0]}>
+      <mesh position={[0, 0, 0.2]}><boxGeometry args={[0.24, 0.26, 0.46]} /><Mat reg={reg} color={VIO} /></mesh>
+      <mesh position={[0, 0, 0.46]}><sphereGeometry args={[0.15, 6, 6]} /><Mat reg={reg} color={GOLD} /></mesh>
+      <mesh position={[0, 0, 0.72]}><boxGeometry args={[0.21, 0.23, 0.46]} /><Mat reg={reg} color={VIO} /></mesh>
+      <mesh position={[0, 0, 0.74]}><boxGeometry args={[0.27, 0.27, 0.2]} /><Mat reg={reg} color={GOLD} /></mesh>
+      <mesh position={[0, 0, 1.02]}><boxGeometry args={[0.24, 0.24, 0.24]} /><Mat reg={reg} color={PALE} /></mesh>
+      {[-1, 0, 1].map((k) => <mesh key={k} position={[k * 0.07, 0.02, 1.18]}><boxGeometry args={[0.05, 0.07, 0.14]} /><Mat reg={reg} color={PALE} /></mesh>)}
+    </group>
+  );
+  const leg = (side) => (
+    <group position={[side * 0.2, 0.95, 0]}>
+      <mesh position={[0, -0.22, 0]}><boxGeometry args={[0.3, 0.5, 0.32]} /><Mat reg={reg} color={VIO} /></mesh>
+      <mesh position={[0, -0.5, 0.05]}><sphereGeometry args={[0.15, 6, 6]} /><Mat reg={reg} color={GOLD} /></mesh>
+      <mesh position={[0, -0.78, 0]}><boxGeometry args={[0.26, 0.5, 0.28]} /><Mat reg={reg} color={DARK} /></mesh>
+      <mesh position={[0, -1.02, 0.1]}><boxGeometry args={[0.3, 0.14, 0.5]} /><Mat reg={reg} color={GOLD} /></mesh>
     </group>
   );
   return (
-    <group ref={root} scale={1.55}>
-      <mesh position={[0, 1.62, 0]}><icosahedronGeometry args={[0.27, 0]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
-      <mesh position={[0, 1.6, 0.21]}><boxGeometry args={[0.36, 0.09, 0.12]} /><Mat reg={reg} color="#5ab8ff" /></mesh>
-      <mesh position={[0, 2.0, 0]}><coneGeometry args={[0.07, 0.3, 4]} /><Mat reg={reg} color="#ffd24a" /></mesh>
-      <mesh position={[-0.16, 1.93, 0]} rotation={[0, 0, 0.55]}><coneGeometry args={[0.05, 0.22, 4]} /><Mat reg={reg} color="#ffd24a" /></mesh>
-      <mesh position={[0.16, 1.93, 0]} rotation={[0, 0, -0.55]}><coneGeometry args={[0.05, 0.22, 4]} /><Mat reg={reg} color="#ffd24a" /></mesh>
-      <mesh position={[0, 1.05, 0]}><cylinderGeometry args={[0.46, 0.26, 0.78, 6]} /><Mat reg={reg} color="#9d7cf0" /></mesh>
-      <mesh position={[0, 1.12, 0.27]}><octahedronGeometry args={[0.12, 0]} /><Mat reg={reg} color={ready ? '#ffd24a' : '#6a58b0'} /></mesh>
-      {RAINBOW.map((c, i) => <mesh key={i} position={[(i - 2.5) * 0.1, 0.66, 0.14]}><boxGeometry args={[0.1, 0.08, 0.3]} /><Mat reg={reg} color={c} /></mesh>)}
-      <mesh position={[0, 0.3, 0]} rotation={[Math.PI, 0, 0]}><coneGeometry args={[0.24, 0.7, 6]} /><Mat reg={reg} color="#7a5fd0" /></mesh>
-      <mesh position={[-0.56, 1.32, 0]}><octahedronGeometry args={[0.26, 0]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
-      <mesh position={[0.56, 1.32, 0]}><octahedronGeometry args={[0.26, 0]} /><Mat reg={reg} color="#e6d8ff" /></mesh>
+    <group ref={root} scale={1.5}>
+      <mesh position={[0, 1.96, 0]}><boxGeometry args={[0.44, 0.46, 0.42]} /><Mat reg={reg} color={PALE} /></mesh>
+      <mesh position={[0, 1.96, 0.22]}><boxGeometry args={[0.4, 0.1, 0.06]} /><Mat reg={reg} color="#5ab8ff" /></mesh>
+      <mesh position={[0, 1.8, 0.2]}><boxGeometry args={[0.2, 0.1, 0.06]} /><Mat reg={reg} color={DARK} /></mesh>
+      <mesh position={[0, 2.3, -0.02]}><coneGeometry args={[0.09, 0.4, 4]} /><Mat reg={reg} color={GOLD} /></mesh>
+      <mesh position={[-0.2, 2.22, -0.02]} rotation={[0, 0, 0.6]}><coneGeometry args={[0.06, 0.3, 4]} /><Mat reg={reg} color={GOLD} /></mesh>
+      <mesh position={[0.2, 2.22, -0.02]} rotation={[0, 0, -0.6]}><coneGeometry args={[0.06, 0.3, 4]} /><Mat reg={reg} color={GOLD} /></mesh>
+      <mesh position={[0, 1.66, 0]}><cylinderGeometry args={[0.12, 0.14, 0.16, 6]} /><Mat reg={reg} color={DARK} /></mesh>
+      <mesh position={[0, 1.38, 0]}><boxGeometry args={[0.84, 0.5, 0.42]} /><Mat reg={reg} color={VIO} /></mesh>
+      <mesh position={[0, 1.4, 0.22]}><octahedronGeometry args={[0.13, 0]} /><Mat reg={reg} color={ready ? GOLD : '#6a58b0'} /></mesh>
+      <mesh position={[0, 0.98, 0]}><boxGeometry args={[0.5, 0.36, 0.34]} /><Mat reg={reg} color={DARK} /></mesh>
+      {RAINBOW.map((c, i) => <mesh key={i} position={[(i - 2.5) * 0.085, 0.9, 0.2]}><boxGeometry args={[0.08, 0.1, 0.06]} /><Mat reg={reg} color={c} /></mesh>)}
+      <mesh position={[-0.52, 1.56, 0]}><octahedronGeometry args={[0.24, 0]} /><Mat reg={reg} color={PALE} /></mesh>
+      <mesh position={[0.52, 1.56, 0]}><octahedronGeometry args={[0.24, 0]} /><Mat reg={reg} color={PALE} /></mesh>
+      {leg(-1)}
+      {leg(1)}
       {arm(-1)}
       {arm(1)}
-      <group ref={tail} position={[0, -0.1, 0]}>
-        {[0, 1, 2].map((i) => <mesh key={i} position={[Math.cos(i * 2.1) * 0.3, -0.1 - i * 0.18, Math.sin(i * 2.1) * 0.3]}><octahedronGeometry args={[0.07, 0]} /><Mat reg={reg} color={RAINBOW[i * 2]} /></mesh>)}
+      <group ref={tail} position={[0, 1.3, -0.3]}>
+        {[0, 1, 2, 3].map((i) => <mesh key={i} position={[Math.cos(i * 1.6) * 0.18, -i * 0.14, -0.1 - i * 0.12]}><octahedronGeometry args={[0.08, 0]} /><Mat reg={reg} color={RAINBOW[i * 2 % 6]} /></mesh>)}
       </group>
     </group>
   );
