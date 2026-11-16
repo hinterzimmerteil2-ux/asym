@@ -3343,7 +3343,7 @@ class Room {
       }
     }
     e.sup.aim = aim && Number.isFinite(aim.x) && Number.isFinite(aim.z) ? { x: aim.x, z: aim.z, at: Date.now() } : null;
-    e.sup.prev = ['andamio', 'telarana', 'redstone', 'slime'].includes(mode) ? { mode, until: Date.now() + 600 } : null;
+    e.sup.prev = ['andamio', 'telarana', 'redstone', 'slime', 'piston', 'polvo', 'tnt', 'miel'].includes(mode) ? { mode, until: Date.now() + 600 } : null;
   }
 
   useCard(playerId, slotIndex) {

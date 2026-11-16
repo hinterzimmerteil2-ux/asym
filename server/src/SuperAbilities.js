@@ -45,17 +45,17 @@ const SHOT_STUN_MS = 1300;
 const SHOT_AMMO = 8;
 const FREE_RELOADS = 2;
 const MODULE_BULLETS_PER_MIN = 6;
-const SHOT_RECOIL_MISS = 13;
-const SHOT_RECOIL_HIT = 1.5;
+const SHOT_RECOIL_MISS = 21;
+const SHOT_RECOIL_HIT = 4.5;
 const SHOT_STUN_BONUS = 0.6;
 const SHOT_PUSH = 10;
 const PUSH_MUL_CAP = 1.8;
 const STAB_RECOIL = 0;
 const RECOIL_MS = 500;
-const RECOIL_VERT = 0.9;
+const RECOIL_VERT = 1.3;
 const CHAIN_MUL = 0.7;
 const CHAIN_MAX = 2;
-const CHAIN_VY_CAP = 9;
+const CHAIN_VY_CAP = 11;
 const DOME_MS = 1200;
 const PARRY_CD = 9000;
 const PARRY_RANGE = 6;
@@ -96,7 +96,7 @@ const DEFS = {
   town_level: { id: 'town_level', name: 'Town Level Verse Lol', modes: ['bayoneta', 'barrera', 'senuelo', 'carga'], charges: 0, wig: true, scale: 0.6 },
   sunat_paperwork: { id: 'sunat_paperwork', name: 'Sunat Paperwork', modes: ['notificacion', 'vuelva', 'anulacion'] },
   platinum_star: { id: 'platinum_star', name: 'Platinum Star', modes: ['rafaga', 'stellar', 'atrapar', 'pausa'] },
-  minceraft: { id: 'minceraft', name: 'Minceraft', modes: ['andamio', 'telarana', 'redstone', 'slime', 'minar'] },
+  minceraft: { id: 'minceraft', name: 'Minceraft', modes: ['andamio', 'telarana', 'slime', 'redstone', 'piston', 'polvo', 'tnt', 'miel', 'minar'] },
 };
 
 const STAR = { rhythmMax: 100, barrageMs: 1100, barrageStepMs: 100, rafagaRange: 5, rafagaWidth: 1.8, rafagaStun: 900, rafagaPush: 3, rafagaEndStun: 1500, rafagaEndPush: 9, rafagaGain: 1.5, stellarRange: 24, stellarWidth: 0.9, stellarWind: 400, stellarStun: 1300, stellarPush: 10, stellarGain: 12, catchMs: 300, catchRange: 8, catchWidth: 1.5, catchStun: 1800, catchPush: 13, catchGain: 20, catchFailLag: 500, pauseRange: 11, pauseStun: 1500, pauseCost: 50, rhythmStun: 0.006, reactCost: 30, reactStun: 1100, reactRange: 7, reactPush: 7, reactCd: 8000, cd: { rafaga: 6500, stellar: 9000, atrapar: 9000, pausa: 5000 } };
@@ -717,8 +717,9 @@ function tickStar(room, now) {
 
 
 const MC = {
-  max: 48, life: 20000, cell: 1, gap: 300, endlag: 250, mineMs: 400, mineRange: 4.2, range: 7, size: 1, jumpV: 7.3, climbV: 4.2, fallSlow: 1.8,
-  w: { andamio: 1, telarana: 1, redstone: 2, slime: 2 },
+  max: 64, life: 12000, cell: 1, gap: 300, endlag: 250, mineMs: 400, mineRange: 4.2, range: 7, size: 1, jumpV: 7.3, climbV: 4.2, fallSlow: 1.8,
+  w: { andamio: 1, telarana: 1, slime: 2, redstone: 2, piston: 3, polvo: 1, tnt: 4, miel: 2 },
+  pistonPush: 14, pistonLen: 1.8, pistonStun: 350, tntFuse: 1400, tntR: 3.6, tntPush: 13, tntUp: 6.5, tntStun: 900, honeyLevel: 3, honeyFall: 1.4,
   webSlow: 2, slimeV: 11, chainStep: 200, chainReach: 1.1, redstoneReach: 2.1, redstoneR: 2.6, redstoneStun: 600, chainCool: 1500, pieceLimit: 160,
 };
 
@@ -745,9 +746,10 @@ function mcChain(room, d, now) {
     for (const f of frontier) {
       for (const o of dyn) {
         if (seen.has(o.id) || o.owner !== d.owner) continue;
-        if (Math.hypot(o.x - f.x, o.z - f.z) > (f.kind === 'redstone' || o.kind === 'redstone' ? MC.redstoneReach : MC.chainReach) || Math.abs(o.y0 - f.y0) > 1.2) continue;
+        if (Math.hypot(o.x - f.x, o.z - f.z) > (f.kind === 'redstone' || o.kind === 'redstone' || f.kind === 'polvo' || o.kind === 'polvo' ? MC.redstoneReach : MC.chainReach) || Math.abs(o.y0 - f.y0) > 1.2) continue;
         seen.add(o.id);
         next.push(o);
+        o.pw = true;
         if (now >= (o.cool || 0)) {
           o.pulse = now + hop * MC.chainStep;
           o.cool = o.pulse + MC.chainCool;
@@ -798,19 +800,35 @@ function mcPlan(room, playerId, entity, mode, now) {
   }
   const ey = entity.y || 0;
   const inCell = (o) => Math.abs(o.x - px) < 0.1 && Math.abs(o.z - pz) < 0.1;
-  const stack = gs.dyn.filter((o) => inCell(o) && o.kind !== 'telarana');
+  const stack = gs.dyn.filter((o) => inCell(o) && o.solid);
   let base = mcBase(room, px, pz, ey);
-  const under = gs.dyn.find((o) => o.kind !== 'telarana' && Math.abs(entity.x - o.x) <= o.hx && Math.abs(entity.z - o.z) <= o.hz && Math.abs(o.y0 + o.h - ey) < 0.3);
+  const under = gs.dyn.find((o) => o.solid && Math.abs(entity.x - o.x) <= o.hx && Math.abs(entity.z - o.z) <= o.hz && Math.abs(o.y0 + o.h - ey) < 0.3);
   if (stack.length) base = Math.max(...stack.map((o) => o.y0 + o.h));
   else if (under && base < under.y0 - 0.5) base = under.y0;
   if (base > ey + 2.2) ok = false;
   const piece = { id: `mc${(gs.dynSeq = (gs.dynSeq || 0) + 1)}`, kind: mode, owner: playerId, born: now, x: px, z: pz, y0: base, hx: 0.5, hz: 0.5, h: 1, ramp: null, solid: true, pulse: 0, cool: 0, fired: 0, w };
-  if (mode === 'andamio') piece.slab = 0.12;
+  if (mode === 'andamio') piece.oneway = true;
   if (mode === 'telarana') piece.solid = false;
+  if (mode === 'polvo') {
+    piece.solid = false;
+    piece.h = 0.08;
+    const below = stack.find((o) => Math.abs(o.y0 + o.h - base) < 0.1);
+    if (below) piece.sup = below.id;
+    else ok = false;
+  }
+  if (mode === 'piston') {
+    if (Math.abs(adx) >= Math.abs(adz)) {
+      piece.dx = adx >= 0 ? 1 : -1;
+      piece.dz = 0;
+    } else {
+      piece.dx = 0;
+      piece.dz = adz >= 0 ? 1 : -1;
+    }
+  }
   for (const o of gs.dyn) {
     if (inCell(o) && Math.abs(o.y0 - piece.y0) < 0.1) ok = false;
   }
-  if (piece.solid) {
+  if (piece.solid && !piece.oneway) {
     for (const e of Object.values(gs.entities)) {
       if (!e.down && Math.abs(e.x - piece.x) < piece.hx + 0.35 && Math.abs(e.z - piece.z) < piece.hz + 0.35 && (e.y || 0) < piece.y0 + piece.h - 0.2 && (e.y || 0) + 1.6 > piece.y0) ok = false;
     }
@@ -865,7 +883,7 @@ function useMine(room, playerId, entity, mode, now) {
   if (!plan || !plan.ok) return false;
   const piece = plan.piece;
   const w = piece.w;
-  const boxes = piece.kind === 'telarana' ? undefined : [{ x: piece.x, z: piece.z, y: piece.y0 + piece.h / 2, half: Math.max(piece.hx, piece.hz) }];
+  const boxes = piece.kind === 'telarana' || piece.kind === 'polvo' ? undefined : [{ x: piece.x, z: piece.z, y: piece.y0 + piece.h / 2, half: Math.max(piece.hx, piece.hz) }];
   gs.dyn.push(piece);
   gs.dynVer += 1;
   s.used += w;
@@ -882,6 +900,40 @@ function mcRemove(room, d) {
   gs.dynVer += 1;
   const owner = gs.entities[d.owner];
   if (owner && owner.sup && owner.sup.id === 'minceraft') owner.sup.used = Math.max(0, owner.sup.used - d.w);
+  for (const o of gs.dyn.slice()) if (o.sup === d.id) mcRemove(room, o);
+}
+
+function mcExplode(room, d, now) {
+  const gs = room.gameState;
+  const stage = mcStage(d, now);
+  const cy = d.y0 + 0.5;
+  let hit = 0;
+  for (const [pid, e] of Object.entries(gs.entities)) {
+    if (e.down || e.gone || e.corpse) continue;
+    const dx = e.x - d.x;
+    const dz = e.z - d.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist > MC.tntR || Math.abs((e.y || 0) + 0.9 - cy) > 3) continue;
+    const k = 1 - Math.min(1, dist / MC.tntR) * 0.5;
+    const asymE = Boolean(room.players.get(pid) && (room.players.get(pid).isAsymRole || room.players.get(pid).isBoss));
+    if (asymE) {
+      room.stun(pid, e, MC.tntStun - stage * 150, now, 0);
+      hit += 1;
+    }
+    Status.push(e, dx / (dist || 1), dz / (dist || 1), MC.tntPush * k, 350, now);
+    e.velocityY = Math.max(e.velocityY || 0, MC.tntUp * k);
+    e.onGround = false;
+    e.peakY = e.y;
+  }
+  const wasHere = gs.dyn.filter((o) => o !== d && Math.hypot(o.x - d.x, o.z - d.z) <= 1.9 && Math.abs(o.y0 - d.y0) <= 1.5);
+  mcRemove(room, d);
+  for (const o of wasHere) {
+    if (!gs.dyn.includes(o)) continue;
+    if (o.kind === 'tnt') {
+      if (!o.fuse) o.fuse = now + 250;
+    } else mcRemove(room, o);
+  }
+  room.broadcast('super_result', { playerId: d.owner, mode: 'tnt_boom', x: d.x, y: cy, z: d.z, radius: MC.tntR, hit });
 }
 
 function tickMine(room, now) {
@@ -953,6 +1005,46 @@ function tickMine(room, now) {
         e.onGround = false;
         e.peakY = e.y;
       }
+    } else if (d.kind === 'piston') {
+      if (fire && d.pw) {
+        d.pw = false;
+        d.ext = now + 450;
+        const cx = d.x + d.dx * (0.5 + MC.pistonLen / 2);
+        const cz = d.z + d.dz * (0.5 + MC.pistonLen / 2);
+        for (const [pid, e] of Object.entries(gs.entities)) {
+          if (e.down || e.gone || e.corpse) continue;
+          const along = (e.x - cx) * d.dx + (e.z - cz) * d.dz;
+          const side = Math.abs((e.x - cx) * d.dz) + Math.abs((e.z - cz) * d.dx);
+          if (Math.abs(along) > MC.pistonLen / 2 + 0.3 || side > 0.95 || (e.y || 0) < d.y0 - 0.6 || (e.y || 0) > d.y0 + 1.8) continue;
+          const asymE = Boolean(room.players.get(pid) && (room.players.get(pid).isAsymRole || room.players.get(pid).isBoss));
+          if (asymE) room.stun(pid, e, MC.pistonStun - stage * 80, now, 0);
+          Status.push(e, d.dx, d.dz, MC.pistonPush, 320, now);
+          if (e.onGround) {
+            e.velocityY = 3;
+            e.onGround = false;
+          }
+        }
+        room.broadcast('super_result', { playerId: d.owner, mode: 'piston_golpe', x: d.x + d.dx, y: d.y0 + 0.5, z: d.z + d.dz });
+      } else if (fire) d.pw = false;
+    } else if (d.kind === 'polvo') {
+      for (const e of asym) {
+        if (e.down || e.gone || e.corpse) continue;
+        if (Math.abs(e.x - d.x) > 0.6 || Math.abs(e.z - d.z) > 0.6 || Math.abs((e.y || 0) - d.y0) > 0.5) continue;
+        if (now >= (d.cool || 0)) mcActivate(room, d, now);
+      }
+    } else if (d.kind === 'tnt') {
+      if (fire && d.pw && !d.fuse) d.fuse = now + MC.tntFuse;
+      if (fire) d.pw = false;
+      if (d.fuse && now >= d.fuse) mcExplode(room, d, now);
+    } else if (d.kind === 'miel') {
+      for (const e of asym) {
+        if (e.down || e.gone || e.corpse) continue;
+        const yy = e.y || 0;
+        if (Math.abs(e.x - d.x) > d.hx + 0.55 || Math.abs(e.z - d.z) > d.hz + 0.55 || yy < d.y0 - 0.4 || yy > d.y0 + d.h + 0.15) continue;
+        Status.apply(e, 'slow', 400, now, { level: MC.honeyLevel });
+        if (!e.onGround && e.velocityY < -MC.honeyFall) e.velocityY = -MC.honeyFall;
+        if (now >= (d.cool || 0)) mcActivate(room, d, now);
+      }
     } else if (d.kind === 'andamio' && !d.pulse) {
       for (const e of Object.values(gs.entities)) {
         if (e.onGround && Math.abs(e.x - d.x) <= d.hx && Math.abs(e.z - d.z) <= d.hz && Math.abs((e.y || 0) - (d.y0 + d.h)) < 0.2) {
@@ -965,7 +1057,7 @@ function tickMine(room, now) {
 }
 
 function minceraftView(room, now) {
-  return (room.gameState.dyn || []).map((d) => ({ id: d.id, k: d.kind, x: d.x, z: d.z, y: Math.round(d.y0 * 100) / 100, hx: d.hx, hz: d.hz, h: d.h, r: d.ramp || undefined, o: d.owner, st: mcStage(d, now), lit: d.pulse && now - d.pulse < 400 ? 1 : undefined, ra: d.r || undefined }));
+  return (room.gameState.dyn || []).map((d) => ({ id: d.id, k: d.kind, x: d.x, z: d.z, y: Math.round(d.y0 * 100) / 100, hx: d.hx, hz: d.hz, h: d.h, r: d.ramp || undefined, o: d.owner, st: mcStage(d, now), lit: d.pulse && now - d.pulse < 400 ? 1 : undefined, ra: d.r || undefined, dx: d.dx, dz: d.dz, ex: d.ext && d.ext > now ? 1 : undefined, fz: d.fuse ? Math.max(0, d.fuse - now) : undefined, ow: d.oneway ? 1 : undefined }));
 }
 
 function glide(room, entity, now, dt) {

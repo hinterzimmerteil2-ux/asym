@@ -61,6 +61,7 @@ function blockedAt(platforms, x, z, y, stepUp = STEP_UP, s = 1, height = PLAYER_
   const FP = fpFor(s);
   for (const [ox, oz] of FP) if (baseAt(platforms, x + ox, z + oz) > y + stepUp) return true;
   for (const p of platforms) {
+    if (p.oneway) continue;
     for (const [ox, oz] of FP) {
       const top = platformTop(p, x + ox, z + oz);
       if (top !== null && top > y + stepUp && (p.ramp || p.slab ? top - (p.slab || RAMP_SLAB) : p.y0 || 0) < y + height) return true;

@@ -668,7 +668,7 @@ export const DE = [
 "Verkaufe deine Seele an die App mit der Moderation von 4chan",
 "Kugeln",
 "Nachladungen",
-"Superfähigkeit. Ersetzt deine zwei Karten. Du baust mit Würfelblöcken von 1 Meter (etwas mehr als ein halber Spieler) und einem Blockzähler (48). Wähle das Teil mit 1 bis 4 (ein grüner oder roter Geist folgt dem Cursor, maximale Reichweite 7 Blöcke) und klicke zum Platzieren: Gerüst (1, wie in Minecraft: man geht hindurch, klettert durch Springen, Ducken hält dich fest und die Oberseite ist ein Boden; stapeln oder seitlich verlängern), Spinnennetz (1, bremst den Heiler und den Boss im Würfel), Redstone (2, bei Kettenaktivierung sendet es einen Puls, der wegstößt und 0,6 s betäubt; die Kette reicht dadurch doppelt so weit) und Schleim (2, lässt jeden abprallen, der draufsteigt). Schnelles Platzieren (0,25 s). Jedes Teil hält 20 s, startet fast kaputt und verrottet: bei 1/3 und 2/3 seiner Lebenszeit verliert es Wirkung. Passive: Minceraft-Physik (du springst 2,5-mal höher, erleidest weder Sturzschaden noch Betäubung, Ducken an der Kante verhindert das Fallen und Spitzhacke, Taste 5: eigenen Block in 0,4 s abbauen und den Platz zurückbekommen) und Redstone (aktiviert sich ein Teil, aktivieren sich die Nachbarn im 0,2-s-Takt in Kette).",
+"Superfähigkeit. Ersetzt deine zwei Karten. Du baust mit 1-Meter-Würfelblöcken (etwas mehr als ein halber Spieler) und einem Blockzähler (64). Wähle das Teil mit 1 bis 8 (ein grünes oder rotes Phantom folgt dem Cursor, maximale Reichweite 7 Blöcke) und klicke zum Platzieren: Gerüst (1, wie in Minecraft: man geht hindurch, klettert durch Springen und die Oberseite ist ein Boden), Spinnennetz (1, bremst den Heiler und den Boss), Schleim (2, lässt jeden hochfedern, der darauf tritt), Redstoneblock (2, bei Aktivierung sendet er einen Puls, der schiebt und 0,6 s betäubt), Kolben (3, wenn die Redstonekette ihn erreicht, schiebt er alles vor sich kräftig weg), Redstonestaub (1, nur auf einem deiner Blöcke platzierbar und er bricht, wenn der Block verschwindet; die Kette reicht doppelt so weit und löst aus, wenn der Heiler darauf tritt), TNT (4, die Redstonekette zündet es und nach 1,4 s explodiert es: schiebt alle weg, betäubt den Heiler 0,9 s und zerstört deine Teile in der Nähe, nützlich zum Abheben) und Honig (2, bremst den Heiler stark und klebt ihn an die Wand). Schnelles Platzieren (0,3 s). Jedes Teil hält 12 s, entsteht fast kaputt und verrottet: bei 1/3 und 2/3 seiner Lebenszeit verliert es an Wirkung. Passiv: Minceraft-Physik (du springst 2,5-mal höher, erleidest keinen Fallschaden oder Betäubung, Ducken am Rand verhindert das Fallen und Spitzhacke, Taste 9: einen eigenen Block in 0,4 s abbauen und seinen Platz zurückbekommen) und Redstone (wird ein Teil aktiviert, aktivieren sich die Nachbarn alle 0,2 s in Kette).",
 "Super-Bauwerke",
 "Gerüst",
 "Spinnennetz",
@@ -678,6 +678,6 @@ export const DE = [
 "Abbauen",
 "Platzieren",
 "Klicken zum Platzieren",
-"Wähle ein Teil (1 bis 4)",
+"Wähle ein Teil (1 bis 8)",
 "Rechtliche Hinweise und Kontakt",
 ];

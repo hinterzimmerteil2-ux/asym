@@ -153,7 +153,7 @@ function hexMix(a, b, t) {
 const SUPER_MODES = {
   sunat_paperwork: [['notificacion', 'Notificación'], ['vuelva', 'Vuelva mañana'], ['anulacion', 'Anulación']],
   platinum_star: [['rafaga', 'Ráfaga'], ['stellar', 'Stellar Finger'], ['atrapar', 'Lanzamiento'], ['pausa', 'Pose Fabulosa']],
-  minceraft: [['andamio', 'Andamio'], ['telarana', 'Telaraña'], ['redstone', 'Redstone'], ['slime', 'Slime'], ['minar', 'Pico']],
+  minceraft: [['andamio', 'Andamio'], ['telarana', 'Telaraña'], ['slime', 'Slime'], ['redstone', 'Redstone'], ['piston', 'Pistón'], ['polvo', 'Polvo de redstone'], ['tnt', 'TNT'], ['miel', 'Miel'], ['minar', 'Pico']],
   town_level: [['bayoneta', 'Bayoneta'], ['barrera', 'Barrera'], ['senuelo', 'Señuelo'], ['carga', 'Carga']],
 };
 
@@ -1067,6 +1067,10 @@ export default function LobbyPage() {
       else if (supRef.current && keyMatches('sup3', e.code)) { if (!e.repeat) handleSuper(2); }
       else if (supRef.current && keyMatches('sup4', e.code)) { if (!e.repeat) handleSuper(3); }
       else if (supRef.current && keyMatches('sup5', e.code)) { if (!e.repeat) handleSuper(4); }
+      else if (supRef.current && keyMatches('sup6', e.code)) { if (!e.repeat) handleSuper(5); }
+      else if (supRef.current && keyMatches('sup7', e.code)) { if (!e.repeat) handleSuper(6); }
+      else if (supRef.current && keyMatches('sup8', e.code)) { if (!e.repeat) handleSuper(7); }
+      else if (supRef.current && keyMatches('sup9', e.code)) { if (!e.repeat) handleSuper(8); }
       else if (!supRef.current && keyMatches('card1', e.code)) { if (!e.repeat) handleUseCard(0); }
       else if (!supRef.current && keyMatches('card2', e.code)) { if (!e.repeat) handleUseCard(1); }
     }
@@ -1158,9 +1162,9 @@ export default function LobbyPage() {
   specRef.current.on = spectating;
   const ghostBlocks = useMemo(() => platforms.filter((pl) => pl.blockMax > 0 && blockBroken[pl.id]), [platforms, blockBroken]);
   const dynPlatforms = useMemo(() => dyn.map((d) => {
-    const base = d.k === 'andamio' ? '#b98a4e' : d.k === 'redstone' ? '#c0261f' : '#6fe05a';
+    const base = ({ andamio: '#b98a4e', redstone: '#c0261f', slime: '#6fe05a', piston: '#8a8a8a', polvo: '#b01810', tnt: '#d4332a', miel: '#e8a020' })[d.k] || '#6fe05a';
     const c = hexMix(hexMix(base, '#2a2118', d.st * 0.28), '#ffffff', d.lit ? 0.45 : 0);
-    return { id: d.id, x: d.x, z: d.z, hx: d.hx, hz: d.hz, h: d.h, y0: d.y, ramp: d.r || null, kind: null, tint: c, mc: d.k, lit: d.lit };
+    return { id: d.id, x: d.x, z: d.z, hx: d.hx, hz: d.hz, h: d.h, y0: d.y, ramp: d.r || null, kind: null, tint: c, mc: d.k, lit: d.lit, dx: d.dx, dz: d.dz, ex: d.ex, fz: d.fz };
   }), [dyn]);
   const visiblePlatforms = useMemo(() => {
     const base = !hiddenPlatforms.length ? platforms : platforms.filter((p) => !new Set(hiddenPlatforms).has(p.id));
@@ -1754,7 +1758,7 @@ export default function LobbyPage() {
           <div style={sx(styles.handContainer, { top: 50, bottom: 'auto', right: 8, zIndex: 30 })}>
             {SUPER_MODES[flojera.sup.id].map(([m, label], i) => {
               const cd = (flojera.sup.cd || {})[m] || 0;
-              const need = flojera.sup.id === 'minceraft' ? ({ andamio: 1, telarana: 1, redstone: 2, slime: 2 })[m] : 0;
+              const need = flojera.sup.id === 'minceraft' ? ({ andamio: 1, telarana: 1, slime: 2, redstone: 2, piston: 3, polvo: 1, tnt: 4, miel: 2 })[m] : 0;
               const full = need > 0 && flojera.sup.used + need > flojera.sup.max;
               const on = m === 'carga' && flojera.sup.charging;
               return (
@@ -1786,7 +1790,7 @@ export default function LobbyPage() {
               {Array.from({ length: flojera.sup.max }).map((_, i) => <div key={i} style={{ width: 9, height: 9, background: i < flojera.sup.used ? '#b98a4e' : 'rgba(255,255,255,0.2)', border: '1px solid rgba(0,0,0,0.5)' }} />)}
             </div>
             {flojera.sup.mining > 0 && <span style={{ color: '#ffd86b' }}>Picando</span>}
-            <span style={{ color: '#ffd86b' }}>{mcSel ? 'Clic para colocar' : 'Elige una pieza (1 a 4)'}</span>
+            <span style={{ color: '#ffd86b' }}>{mcSel ? 'Clic para colocar' : 'Elige una pieza (1 a 8)'}</span>
             {mcSel && <button type="button" onClick={placeMc} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>Colocar</button>}
           </div>
         )}

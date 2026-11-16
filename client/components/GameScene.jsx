@@ -1355,8 +1355,25 @@ function SuperFx({ effect }) {
       </group>
     );
   }
-  if (kind === 'sup_andamio' || kind === 'sup_redstone' || kind === 'sup_redstone_pulso' || kind === 'sup_slime' || kind === 'sup_telarana' || kind === 'sup_roto' || kind === 'sup_minar') {
-    const col = kind === 'sup_slime' ? '#6fe05a' : kind === 'sup_redstone' || kind === 'sup_redstone_pulso' ? '#ff3a2a' : kind === 'sup_telarana' ? '#f2f6f6' : kind === 'sup_roto' || kind === 'sup_minar' ? '#d9c7a0' : '#d6a766';
+  if (kind === 'sup_tnt_boom') {
+    return (
+      <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
+        <Ring life={life} color="#ffb02a" y={0} r0={0.4} r1={effect.radius || 3.6} />
+        <Ring life={life} color="#ff4a1a" y={0.3} r0={0.2} r1={(effect.radius || 3.6) * 0.7} />
+        <Sparks life={life} color="#ffcf5a" n={26} speed={4} up={3} size={0.16} />
+      </group>
+    );
+  }
+  if (kind === 'sup_piston_golpe') {
+    return (
+      <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
+        <Ring life={life} color="#d9d9d9" y={0} r0={0.3} r1={1.6} />
+        <Sparks life={life} color="#e8e8e8" n={10} speed={2.4} up={1} size={0.1} />
+      </group>
+    );
+  }
+  if (kind === 'sup_piston' || kind === 'sup_polvo' || kind === 'sup_tnt' || kind === 'sup_miel' || kind === 'sup_andamio' || kind === 'sup_redstone' || kind === 'sup_redstone_pulso' || kind === 'sup_slime' || kind === 'sup_telarana' || kind === 'sup_roto' || kind === 'sup_minar') {
+    const col = kind === 'sup_slime' ? '#6fe05a' : kind === 'sup_miel' ? '#e8a020' : kind === 'sup_tnt' ? '#ff6a2a' : kind === 'sup_polvo' ? '#ff3a2a' : kind === 'sup_piston' ? '#d0d0d0' : kind === 'sup_redstone' || kind === 'sup_redstone_pulso' ? '#ff3a2a' : kind === 'sup_telarana' ? '#f2f6f6' : kind === 'sup_roto' || kind === 'sup_minar' ? '#d9c7a0' : '#d6a766';
     return (
       <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
         <Ring life={life} color={col} y={0.1} r0={0.3} r1={kind === 'sup_redstone_pulso' ? effect.radius || 3.2 : 1.4} />
@@ -3157,7 +3174,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platfo
         const pz = tz + cz * f;
         for (let i = 0; i < platforms.length; i++) {
           const q = platforms[i];
-          if (q.ramp || q.kind === 'pit' || q.kind === 'gate' || q.kind === 'pgate') continue;
+          if (q.ramp || q.kind === 'pit' || q.kind === 'gate' || q.kind === 'pgate' || q.mc === 'andamio' || q.mc === 'telarana' || q.mc === 'polvo') continue;
           const top = (q.y0 || 0) + q.h;
           if (top <= floorY) continue;
           const bottom = q.slab ? top - q.slab : (q.y0 || 0);
@@ -3428,24 +3445,70 @@ function Scaffold({ p }) {
   return (
     <group position={[p.x, y0, p.z]} scale={[sc, sc, sc]}>
       {corners.map(([a, b]) => (
-        <mesh key={`p${a}${b}`} position={[a * (hx - 0.07), h / 2, b * (hz - 0.07)]}>
-          <boxGeometry args={[0.14, h, 0.14]} />
-          <meshStandardMaterial color="#6b4a25" roughness={0.9} />
+        <mesh key={`p${a}${b}`} position={[a * (hx - 0.05), h / 2, b * (hz - 0.05)]}>
+          <cylinderGeometry args={[0.06, 0.06, h, 6]} />
+          <meshStandardMaterial color="#c9a45e" roughness={0.8} />
         </mesh>
       ))}
-      {[0.12, h / 2, h - 0.1].map((yy) => (
-        <group key={yy} position={[0, yy, 0]}>
-          <mesh position={[0, 0, hz - 0.07]}><boxGeometry args={[hx * 2, 0.08, 0.08]} /><meshStandardMaterial color={wood} roughness={0.85} /></mesh>
-          <mesh position={[0, 0, -hz + 0.07]}><boxGeometry args={[hx * 2, 0.08, 0.08]} /><meshStandardMaterial color={wood} roughness={0.85} /></mesh>
-          <mesh position={[hx - 0.07, 0, 0]}><boxGeometry args={[0.08, 0.08, hz * 2]} /><meshStandardMaterial color={wood} roughness={0.85} /></mesh>
-          <mesh position={[-hx + 0.07, 0, 0]}><boxGeometry args={[0.08, 0.08, hz * 2]} /><meshStandardMaterial color={wood} roughness={0.85} /></mesh>
-        </group>
+      <mesh position={[0, h / 2, hz - 0.05]}><boxGeometry args={[hx * 2, 0.05, 0.05]} /><meshStandardMaterial color="#7a5a2e" roughness={0.9} /></mesh>
+      <mesh position={[0, h / 2, -hz + 0.05]}><boxGeometry args={[hx * 2, 0.05, 0.05]} /><meshStandardMaterial color="#7a5a2e" roughness={0.9} /></mesh>
+      <mesh position={[0, h / 2, hz - 0.05]} rotation={[0, 0, dAng]}><boxGeometry args={[diag, 0.04, 0.04]} /><meshStandardMaterial color="#7a5a2e" roughness={0.9} /></mesh>
+      <mesh position={[0, h / 2, -hz + 0.05]} rotation={[0, 0, -dAng]}><boxGeometry args={[diag, 0.04, 0.04]} /><meshStandardMaterial color="#7a5a2e" roughness={0.9} /></mesh>
+      {[-0.66, 0, 0.66].map((zz) => (
+        <mesh key={zz} position={[0, h - 0.04, zz]}><boxGeometry args={[hx * 2 + 0.06, 0.07, 0.5]} /><meshStandardMaterial color={wood} roughness={0.8} /></mesh>
       ))}
-      <mesh position={[0, h / 2, hz - 0.07]} rotation={[0, 0, dAng]}><boxGeometry args={[diag, 0.06, 0.06]} /><meshStandardMaterial color="#8a6a3b" roughness={0.9} /></mesh>
-      <mesh position={[0, h / 2, -hz + 0.07]} rotation={[0, 0, -dAng]}><boxGeometry args={[diag, 0.06, 0.06]} /><meshStandardMaterial color="#8a6a3b" roughness={0.9} /></mesh>
-      <mesh position={[hx - 0.07, h / 2, 0]} rotation={[0, Math.PI / 2, dAng]}><boxGeometry args={[diag, 0.06, 0.06]} /><meshStandardMaterial color="#8a6a3b" roughness={0.9} /></mesh>
-      <mesh position={[-hx + 0.07, h / 2, 0]} rotation={[0, Math.PI / 2, -dAng]}><boxGeometry args={[diag, 0.06, 0.06]} /><meshStandardMaterial color="#8a6a3b" roughness={0.9} /></mesh>
-      <mesh position={[0, h - 0.03, 0]}><boxGeometry args={[hx * 2 + 0.1, 0.1, hz * 2 + 0.1]} /><meshStandardMaterial color={wood} roughness={0.8} /></mesh>
+    </group>
+  );
+}
+
+function PistonBlock({ p }) {
+  const y0 = p.y0 || 0;
+  const dx = p.dx || 0;
+  const dz = p.dz || 1;
+  const ang = Math.atan2(dx, dz);
+  const ext = p.ex ? 0.85 : 0;
+  return (
+    <group position={[p.x, y0 + p.h / 2, p.z]} rotation={[0, ang, 0]}>
+      <mesh position={[0, 0, -0.1]}><boxGeometry args={[p.hx * 2, p.h, p.hz * 2 - 0.2]} /><meshStandardMaterial color="#8a8a8a" roughness={0.9} /></mesh>
+      <mesh position={[0, 0, p.hz - 0.1 + ext]}><boxGeometry args={[p.hx * 2, p.h, 0.2]} /><meshStandardMaterial color="#b98a4e" roughness={0.8} /></mesh>
+      {p.ex ? <mesh position={[0, 0, p.hz + ext / 2]}><boxGeometry args={[0.18, 0.18, ext]} /><meshStandardMaterial color="#d9d9d9" roughness={0.5} /></mesh> : null}
+      <mesh position={[0, 0, p.hz - 0.1 + ext + 0.12]}><boxGeometry args={[p.hx * 1.3, p.h * 0.5, 0.06]} /><meshStandardMaterial color="#6a6a6a" roughness={0.8} /></mesh>
+    </group>
+  );
+}
+
+function RedstoneDust({ p }) {
+  const y0 = p.y0 || 0;
+  const lit = Boolean(p.lit);
+  const col = lit ? '#ff4a30' : '#7a120c';
+  return (
+    <group position={[p.x, y0 + 0.03, p.z]}>
+      <mesh><boxGeometry args={[0.18, 0.05, 0.18]} /><meshStandardMaterial color={col} emissive="#ff2a1a" emissiveIntensity={lit ? 1 : 0.15} /></mesh>
+      {[[0.3, 0], [-0.3, 0], [0, 0.3], [0, -0.3]].map(([a, b]) => (
+        <mesh key={`${a}${b}`} position={[a, 0, b]}><boxGeometry args={[a ? 0.4 : 0.16, 0.04, b ? 0.4 : 0.16]} /><meshStandardMaterial color={col} emissive="#ff2a1a" emissiveIntensity={lit ? 1 : 0.15} /></mesh>
+      ))}
+    </group>
+  );
+}
+
+function TntBlock({ p }) {
+  const y0 = p.y0 || 0;
+  const flash = p.fz != null && Math.floor((p.fz || 0) / 120) % 2 === 0;
+  return (
+    <group position={[p.x, y0 + p.h / 2, p.z]} scale={p.fz != null ? 1 + (1 - Math.min(1, (p.fz || 0) / 1400)) * 0.12 : 1}>
+      <mesh><boxGeometry args={[p.hx * 2, p.h, p.hz * 2]} /><meshStandardMaterial color={flash ? '#ffffff' : '#d4332a'} roughness={0.7} emissive={flash ? '#ffffff' : '#000000'} emissiveIntensity={flash ? 0.8 : 0} /></mesh>
+      <mesh><boxGeometry args={[p.hx * 2 + 0.02, p.h * 0.34, p.hz * 2 + 0.02]} /><meshStandardMaterial color="#f0ece0" roughness={0.8} /></mesh>
+      {[-0.28, 0, 0.28].map((o) => <mesh key={o} position={[o, 0, p.hz + 0.02]}><boxGeometry args={[0.1, 0.16, 0.01]} /><meshBasicMaterial color="#1a1a1a" /></mesh>)}
+    </group>
+  );
+}
+
+function HoneyBlock({ p }) {
+  const y0 = p.y0 || 0;
+  return (
+    <group position={[p.x, y0 + p.h / 2, p.z]}>
+      <mesh><boxGeometry args={[p.hx * 2, p.h, p.hz * 2]} /><meshStandardMaterial color={p.tint || '#e8a020'} roughness={0.15} transparent opacity={0.6} /></mesh>
+      <mesh><boxGeometry args={[p.hx * 1.2, p.h * 0.65, p.hz * 1.2]} /><meshStandardMaterial color="#b86a10" roughness={0.3} transparent opacity={0.9} /></mesh>
     </group>
   );
 }
@@ -3505,6 +3568,10 @@ function Platform({ p }) {
   if (p.mc === 'andamio') return <Scaffold p={p} />;
   if (p.mc === 'slime') return <SlimeBlock p={p} />;
   if (p.mc === 'redstone') return <RedstoneBlock p={p} />;
+  if (p.mc === 'piston') return <PistonBlock p={p} />;
+  if (p.mc === 'polvo') return <RedstoneDust p={p} />;
+  if (p.mc === 'tnt') return <TntBlock p={p} />;
+  if (p.mc === 'miel') return <HoneyBlock p={p} />;
   if (p.ramp === '+z' || p.ramp === '-z') {
     const q = { ...p, x: 0, z: 0, hx: p.hz, hz: p.hx, ramp: '+x' };
     return (
