@@ -1919,6 +1919,33 @@ test('Town Level: disparo gasta balas, sin balas solo estocada y carga recarga g
   assert.strictEqual(s.ammo, 8);
 });
 
+test('Town Level: disparo hacia abajo impulsa arriba y el encadenado en el aire gasta de más', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('a', 'super:town_level');
+  const SA = require('../src/SuperAbilities');
+  const s = e.a.sup;
+  e.a.faceX = 1;
+  e.a.faceZ = 0;
+  e.c.x = e.a.x + 30;
+  e.c.z = e.a.z;
+  e.a.onGround = true;
+  let now = Date.now() + 1000;
+  s.ay = { v: -1, at: now };
+  assert.ok(SA.use(room, 'a', 'bayoneta', now));
+  assert.ok(e.a.velocityY > 3);
+  assert.strictEqual(e.a.onGround, false);
+  assert.strictEqual(s.ammo, 7);
+  assert.ok(e.a.kbUntil - now >= 500);
+  now += 20000;
+  s.ay = { v: -1, at: now };
+  const v1 = e.a.velocityY;
+  assert.ok(SA.use(room, 'a', 'bayoneta', now));
+  assert.strictEqual(s.ammo, 5);
+  assert.strictEqual(s.airShots, 1);
+  assert.ok(e.a.velocityY >= v1);
+});
+
 test('Minceraft: coloca piezas, respeta el contador, decae y se mina', () => {
   const { room, e } = setup();
   room.superSet = new Set(['a']);

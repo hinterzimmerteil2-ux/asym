@@ -51,6 +51,11 @@ const SHOT_STUN_BONUS = 0.6;
 const SHOT_PUSH = 10;
 const PUSH_MUL_CAP = 1.8;
 const STAB_RECOIL = 0;
+const RECOIL_MS = 500;
+const RECOIL_VERT = 0.9;
+const CHAIN_MUL = 0.7;
+const CHAIN_MAX = 2;
+const CHAIN_VY_CAP = 9;
 const DOME_MS = 1200;
 const PARRY_CD = 9000;
 const PARRY_RANGE = 6;
@@ -425,6 +430,7 @@ function useTown(room, playerId, entity, mode, now) {
     const close = foes(room, entity, STAB_RANGE).filter((f) => ((f.e.x - entity.x) * nx + (f.e.z - entity.z) * nz) > 0 && Math.abs((f.e.y || 0) - (entity.y || 0)) < 2.4);
     let recoil = 0;
     let shotBlocked = false;
+    let chained = false;
     withSource(entity, () => {
       if (close.length) {
         for (const f of close) {
@@ -442,6 +448,11 @@ function useTown(room, playerId, entity, mode, now) {
           return;
         }
         s.ammo -= 1;
+        if (!entity.onGround && (s.airShots || 0) < CHAIN_MAX && s.ammo > 0) {
+          s.ammo -= 1;
+          s.airShots = (s.airShots || 0) + 1;
+          chained = true;
+        }
         const path = rayFoes(room, entity, nx, nz, ny, LUNGE_RANGE, 1.2);
         const first = path[0];
         let len = SHOT_RANGE;
@@ -466,7 +477,18 @@ function useTown(room, playerId, entity, mode, now) {
     });
     if (shotBlocked) return false;
     if (ok) {
-      if (recoil > 0) Status.push(entity, -nx, -nz, recoil, 240, now);
+      if (recoil > 0) {
+        const mul = chained ? 1 + CHAIN_MUL : 1;
+        Status.push(entity, -nx, -nz, recoil * Math.sqrt(Math.max(0.15, 1 - ny * ny)), RECOIL_MS, now);
+        entity.kbSoft = true;
+        if (fxp.shot) {
+          const vy = Math.max(-4, Math.min(CHAIN_VY_CAP, -ny * recoil * RECOIL_VERT * mul));
+          if (vy > 0.5 || (vy < 0 && !entity.onGround)) {
+            entity.velocityY = chained ? Math.min(CHAIN_VY_CAP, Math.max(entity.velocityY, 0) + vy) : vy;
+            if (vy > 0.5) entity.onGround = false;
+          }
+        }
+      }
       Status.apply(entity, 'slow', 300, now, { tag: 'endlag', level: 2 });
       s.wpnUntil = now + 1100;
     }

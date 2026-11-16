@@ -77,6 +77,7 @@ function push(entity, dx, dz, speed, ms, now, opts = {}) {
   entity.kbX = dx * speed;
   entity.kbZ = dz * speed;
   entity.kbUntil = now + ms;
+  entity.kbSoft = false;
 }
 
 function list(entity, now) {

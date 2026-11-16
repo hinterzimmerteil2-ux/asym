@@ -1999,7 +1999,7 @@ class Room {
       if (entity.kbUntil > now) {
         velX += entity.kbX;
         velZ += entity.kbZ;
-        const decay = Math.pow(0.05, dt);
+        const decay = Math.pow(entity.kbSoft ? 0.18 : 0.05, dt);
         entity.kbX *= decay;
         entity.kbZ *= decay;
       }
@@ -2079,6 +2079,7 @@ class Room {
         entity.peakY = entity.y;
       }
       if (entity.onGround) {
+        if (entity.sup && entity.sup.airShots) entity.sup.airShots = 0;
         entity.velocityY = 0;
         entity.y = Math.max(entity.y, ground);
       } else {
