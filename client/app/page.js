@@ -383,6 +383,7 @@ export default function LobbyPage() {
             setJoinLoading(false);
             setStatus('in_room');
             setMyPlayerId(payload.playerId);
+            if (payload.phase) setPhase(payload.phase);
             setIsAsymRole(payload.isAsymRole);
             setPlayers(payload.players);
             setChatMessages(payload.chatHistory || []);
@@ -1305,7 +1306,7 @@ export default function LobbyPage() {
               return (
                 <li key={p.id} style={styles.playerItem}>
                   <span>
-                    {p.isAsymRole ? '🩺 ' : ''}<span translate="no">{p.name}</span>{p.id === myPlayerId ? ' (tú)' : ''}
+                    {p.isAsymRole ? '🩺 ' : ''}<span translate="no">{p.name}</span>{p.id === myPlayerId ? ' (tú)' : ''}{p.offline ? ' (sin conexión)' : ''}
                   </span>
                   <span style={styles.playerTag}>
                     {p.id === hostId ? 'Host' : ''} {characterTag}

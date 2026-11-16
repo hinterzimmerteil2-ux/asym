@@ -1946,6 +1946,30 @@ test('Town Level: disparo hacia abajo impulsa arriba y el encadenado en el aire 
   assert.ok(e.a.velocityY >= v1);
 });
 
+test('Reconexión: conserva al jugador en partida y lo retoma con otro socket', async () => {
+  const { room, e } = setup();
+  const oldWs = room.players.get('a').ws;
+  e.a.x = 12.5;
+  let expired = 0;
+  assert.ok(room.detachPlayer('a', oldWs, () => { expired += 1; }));
+  assert.ok(room.players.has('a'));
+  assert.strictEqual(e.a.x, 12.5);
+  assert.ok(room.getPlayersSummary().find((pl) => pl.id === 'a').offline);
+  assert.strictEqual(room.detachPlayer('a', oldWs, () => {}), false);
+  const got = [];
+  const newWs = { readyState: 1, send: (m) => got.push(JSON.parse(m)), close() {} };
+  assert.ok(room.canResume('a'));
+  assert.ok(room.reattachPlayer('a', newWs));
+  room.resumeFor('a');
+  assert.ok(got.some((m) => m.type === 'game_started' && m.payload.resumed));
+  assert.strictEqual(e.a.x, 12.5);
+  assert.ok(!room.getPlayersSummary().find((pl) => pl.id === 'a').offline);
+  assert.strictEqual(expired, 0);
+  const stale = room.players.get('a').ws;
+  assert.strictEqual(stale, newWs);
+  assert.strictEqual(room.detachPlayer('a', oldWs, () => {}), false);
+});
+
 test('Minceraft: coloca piezas, respeta el contador, decae y se mina', () => {
   const { room, e } = setup();
   room.superSet = new Set(['a']);

@@ -139,17 +139,20 @@ wss.on('connection', (ws) => {
         const playerName = session.displayName;
 
         const room = roomManager.getOrCreateRoom(roomId);
-        if (room.isFull()) {
+        const resuming = room.canResume(playerId);
+        if (!resuming && room.isFull()) {
           ws.send(encode(MessageType.ROOM_FULL, {}));
           return;
         }
 
-        room.addPlayer(playerId, ws, playerName);
+        if (resuming) room.reattachPlayer(playerId, ws);
+        else room.addPlayer(playerId, ws, playerName);
         currentRoomId = roomId;
 
         ws.send(encode(MessageType.ROOM_JOINED, {
           roomId,
           playerId,
+          phase: room.phase,
           players: room.getPlayersSummary(),
           isAsymRole: room.players.get(playerId).isAsymRole,
           chatHistory: room.chatHistory,
@@ -175,6 +178,7 @@ wss.on('connection', (ws) => {
           lobbyPlatforms: GameMap.LOBBY_PLATFORMS,
         }));
 
+        if (resuming) room.resumeFor(playerId);
         room.broadcast(MessageType.ROOM_UPDATE, { players: room.getPlayersSummary(), hostId: room.hostId }, playerId);
         break;
       }
@@ -427,17 +431,27 @@ wss.on('connection', (ws) => {
     }
   });
 
-  ws.on('close', handleLeave);
-  ws.on('error', handleLeave);
+  ws.on('close', () => handleLeave(false));
+  ws.on('error', () => handleLeave(false));
 
-  function handleLeave() {
+  function handleLeave(force = true) {
     if (!currentRoomId) return;
-    const room = roomManager.getRoom(currentRoomId);
+    const roomIdNow = currentRoomId;
+    const room = roomManager.getRoom(roomIdNow);
     if (!room) return;
-    room.removePlayer(playerId);
-    room.broadcast(MessageType.ROOM_UPDATE, { players: room.getPlayersSummary(), hostId: room.hostId });
-    roomManager.removeRoomIfEmpty(currentRoomId);
+    const mine = room.players.get(playerId);
+    if (!mine || mine.ws !== ws) {
+      currentRoomId = null;
+      return;
+    }
+    const finish = () => {
+      room.removePlayer(playerId);
+      room.broadcast(MessageType.ROOM_UPDATE, { players: room.getPlayersSummary(), hostId: room.hostId });
+      roomManager.removeRoomIfEmpty(roomIdNow);
+    };
     currentRoomId = null;
+    if (!force && room.detachPlayer(playerId, ws, finish)) return;
+    finish();
   }
 });
 

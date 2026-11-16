@@ -203,6 +203,10 @@ const LOCK_DAMAGE = 20;
 const KEYS_PARTS = [1, 2, 3, 4, 4, 4];
 const KEYS_LEN = [3, 3, 4, 4, 5, 5];
 
+const DEAD_WS = { readyState: 3, send() {}, close() {} };
+const GRACE_LOBBY_MS = 20000;
+const GRACE_ACTION_MS = 90000;
+
 class Room {
   constructor(roomId) {
     this.roomId = roomId;
@@ -727,6 +731,72 @@ class Room {
     this.startTickLoop();
   }
 
+  detachPlayer(playerId, ws, onExpire) {
+    const p = this.players.get(playerId);
+    if (!p || p.isBot || p.ws !== ws) return false;
+    p.ws = DEAD_WS;
+    p.detachedAt = Date.now();
+    if (p.graceTimer) clearTimeout(p.graceTimer);
+    p.graceTimer = setTimeout(() => {
+      const cur = this.players.get(playerId);
+      if (!cur || cur.ws !== DEAD_WS) return;
+      cur.graceTimer = null;
+      onExpire();
+    }, this.phase === 'lobby' ? GRACE_LOBBY_MS : GRACE_ACTION_MS);
+    const entity = this.gameState.entities[playerId];
+    if (entity && entity.input) {
+      entity.input.moveX = 0;
+      entity.input.moveZ = 0;
+      entity.input.jump = false;
+    }
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
+    return true;
+  }
+
+  canResume(playerId) {
+    const p = this.players.get(playerId);
+    return Boolean(p) && !p.isBot;
+  }
+
+  reattachPlayer(playerId, ws) {
+    const p = this.players.get(playerId);
+    if (!p) return false;
+    if (p.graceTimer) {
+      clearTimeout(p.graceTimer);
+      p.graceTimer = null;
+    }
+    const old = p.ws;
+    p.ws = ws;
+    p.detachedAt = 0;
+    if (old && old !== DEAD_WS && old !== ws) {
+      try { old.close(); } catch (e) {}
+    }
+    return true;
+  }
+
+  gameStartedPayload() {
+    return {
+      phase: 'action',
+      resumed: true,
+      mapSeed: this.mapChoice === 'random' ? this.mapSeed : null,
+      state: this.gameState,
+      collisionObjects: GameMap.resolveCollisionObjects(this.mapId, GameMap.areaFor(this.mapId)),
+      platforms: GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)),
+      halfSize: GameMap.areaFor(this.mapId).halfSize,
+      roles: Roles.list(Cards),
+      superRoles: this.superSet && this.superSet.size ? Roles.supers(Cards) : [],
+      superIds: this.superSet ? [...this.superSet] : [],
+      hitbox: { half: PLAYER_HALF, height: PLAYER_HEIGHT, interact: INTERACTION_RADIUS },
+    };
+  }
+
+  resumeFor(playerId) {
+    if (this.phase !== 'action') return;
+    this.sendTo(playerId, MessageType.GAME_STARTED, this.gameStartedPayload());
+    const entity = this.gameState.entities[playerId];
+    if (entity && entity.hand && entity.hand.length) this.sendCardOffer(playerId, entity);
+  }
+
   removePlayer(playerId) {
     const wasAsymRole = this.players.get(playerId)?.isAsymRole;
     this.players.delete(playerId);
@@ -770,6 +840,7 @@ class Room {
         name: p.name,
         isAsymRole: p.isAsymRole,
         isBot: Boolean(p.isBot),
+        offline: Boolean(p.detachedAt),
         cosmetics: p.cosmetics || {},
         characterId: p.isAsymRole ? (p.characterId || Characters.DEFAULT_CHARACTER_ID) : null,
         character: characterData
@@ -1569,18 +1640,9 @@ class Room {
     this.prepareMap();
     this.switchPhase('action', 'inicio de partida');
     this.startAt = null;
-    this.broadcast(MessageType.GAME_STARTED, {
-      phase: 'action',
-      mapSeed: this.mapChoice === 'random' ? this.mapSeed : null,
-      state: this.gameState,
-      collisionObjects: GameMap.resolveCollisionObjects(this.mapId, GameMap.areaFor(this.mapId)),
-      platforms: GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)),
-      halfSize: GameMap.areaFor(this.mapId).halfSize,
-      roles: Roles.list(Cards),
-      superRoles: this.superSet.size ? Roles.supers(Cards) : [],
-      superIds: [...this.superSet],
-      hitbox: { half: PLAYER_HALF, height: PLAYER_HEIGHT, interact: INTERACTION_RADIUS },
-    });
+    const started = this.gameStartedPayload();
+    delete started.resumed;
+    this.broadcast(MessageType.GAME_STARTED, started);
   }
 
   tickLobbyTimer(now) {
