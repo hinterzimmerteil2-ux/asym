@@ -654,7 +654,7 @@ export const DE = [
 "Für gewählte Spieler",
 "Ich will eine Superfähigkeit",
 "Für:",
-"Superfähigkeit. Ersetzt deine beiden Karten. Salve (1,1 s lange Salve blitzschneller Schläge nach vorn, Reichweite 5, stärkere Betäubung am Ende), Stellar Finger (präziser, betäubender Sternfinger mit 20 Einheiten Reichweite und 0,4 s Vorbereitung), Wurf (dein Geist stürmt in 0,3 s 8 Einheiten vor, packt den ersten Gegner und schleudert ihn hinter dich, 1,8 s betäubt; bei einem Fehlschlag bist du 0,5 s verlangsamt) und Fabelhafte Pose (du wirfst dich in Pose und blendest alle Gegner in der Nähe 1,5 s lang, kostet 50 Gay). Passive: Gay (jeder Treffer erhöht dein Gay bis 100 und verlängert deine Betäubungen um bis zu 60 %) und Gegenschlag (wirst du mit 30 Gay betäubt, betäubst du jeden innerhalb von 7 Einheiten 1,1 s lang; 8 s Abklingzeit). Tasten 1, 2, 3 und 4.",
+"Superfähigkeit. Ersetzt deine beiden Karten. Salve (1,1 s lange Salve blitzschneller Schläge nach vorn, Reichweite 5, stärkere Betäubung am Ende), Stellar Finger (präziser, betäubender Sternfinger mit 20 Einheiten Reichweite und 0,4 s Vorbereitung), Wurf (dein Geist stürmt in 0,3 s 8 Einheiten vor, packt den ersten Gegner und schleudert ihn nach vorn, 1,8 s betäubt und im Ragdoll: je mehr Leben er hat, desto weniger wird er geschleudert, bei wenig Leben fliegt er davon; bei einem Fehlschlag bist du 0,5 s verlangsamt) und Fabelhafte Pose (du wirfst dich in Pose und blendest alle Gegner in der Nähe 1,5 s lang, kostet 50 Gay). Passive: Gay (jeder Treffer erhöht dein Gay bis 100 und verlängert deine Betäubungen um bis zu 60 %) und Gegenschlag (wirst du mit 30 Gay betäubt, betäubst du jeden innerhalb von 7 Einheiten 1,1 s lang; 8 s Abklingzeit). Tasten 1, 2, 3 und 4.",
 "Super-Kampf",
 "Zielt",
 "Fängt ab",

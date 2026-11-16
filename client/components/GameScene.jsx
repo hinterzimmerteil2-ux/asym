@@ -1176,69 +1176,84 @@ function Sparks({ life, color, n = 8, speed = 3, up = 1.5, size = 0.07 }) {
 
 const RAINBOW = ['#ff5a5a', '#ffb347', '#ffe14a', '#6bdc7a', '#5ab8ff', '#b07cf2'];
 
+function StarMat({ reg, color, rough = 0.75, metal = 0 }) {
+  return <meshStandardMaterial ref={reg} color={color} roughness={rough} metalness={metal} transparent />;
+}
+
 function StarSpirit({ life, mode, act = 0, ready = false }) {
   const reg = life ? life.reg : undefined;
   const root = useRef();
   const la = useRef();
   const ra = useRef();
-  const tail = useRef();
+  const hairR = useRef();
+  const ghost = useRef();
   const m = mode === 'rafaga' ? 1 : mode === 'stellar' ? 2 : mode === 'atrapar' ? 3 : mode === 'pausa' ? 4 : act;
   useFrame(() => {
     const t = performance.now() / 1000;
-    if (root.current) root.current.position.y = 0.25 + Math.sin(t * 2.2) * 0.06;
-    if (tail.current) tail.current.rotation.y = t * 1.6;
+    if (root.current) {
+      root.current.position.y = 0.25 + Math.sin(t * 2.2) * 0.05;
+      root.current.rotation.x = m === 1 ? 0.18 + Math.sin(t * 30) * 0.03 : m === 2 ? 0.1 : 0;
+    }
+    if (hairR.current) hairR.current.rotation.x = Math.sin(t * 2.6) * 0.08 - (m === 1 ? 0.35 : 0);
     let lx = 1.0, rx = 1.0, ly = 0, ry = 0, lz = 0, rz = 0;
-    if (m === 1) { lx = 0; rx = 0; const w = Math.sin(t * 38); lz = 0.3 + w * 0.3; rz = 0.3 - w * 0.3; }
-    else if (m === 2) { lx = 0.7; rx = 0; rz = 0.6; }
-    else if (m === 3) { lx = -0.1; rx = -0.1; ly = 0.55; ry = -0.55; lz = 0.1; rz = 0.1; }
+    if (m === 1) { lx = 0.05; rx = 0.05; const w = Math.sin(t * 40); lz = 0.55 + w * 0.5; rz = 0.55 - w * 0.5; }
+    else if (m === 2) { lx = 0.8; rx = 0.05; rz = 0.9; }
+    else if (m === 3) { lx = -0.1; rx = -0.1; ly = 0.55; ry = -0.55; lz = 0.2; rz = 0.2; }
     else if (m === 4) { lx = -1.9; rx = 0.4; ry = -0.9; }
     if (la.current) { la.current.rotation.set(lx, ly, 0); la.current.position.z = lz; }
     if (ra.current) { ra.current.rotation.set(rx, ry, 0); ra.current.position.z = rz; }
+    if (ghost.current) ghost.current.visible = m === 1;
   });
-  const VIO = '#8a6ae6';
-  const DARK = '#5a46b0';
-  const GOLD = '#ffd24a';
-  const PALE = '#e6d8ff';
+  const BODY = '#5b4aa8';
+  const DARK = '#3a2f78';
+  const TRIM = '#b8902c';
+  const SKIN = '#c9bde0';
+  const HAIR = '#1c1736';
   const arm = (side) => (
     <group ref={side < 0 ? la : ra} position={[side * 0.6, 1.5, 0]}>
-      <mesh position={[0, 0, 0.2]}><boxGeometry args={[0.24, 0.26, 0.46]} /><Mat reg={reg} color={VIO} /></mesh>
-      <mesh position={[0, 0, 0.46]}><sphereGeometry args={[0.15, 6, 6]} /><Mat reg={reg} color={GOLD} /></mesh>
-      <mesh position={[0, 0, 0.72]}><boxGeometry args={[0.21, 0.23, 0.46]} /><Mat reg={reg} color={VIO} /></mesh>
-      <mesh position={[0, 0, 0.74]}><boxGeometry args={[0.27, 0.27, 0.2]} /><Mat reg={reg} color={GOLD} /></mesh>
-      <mesh position={[0, 0, 1.02]}><boxGeometry args={[0.24, 0.24, 0.24]} /><Mat reg={reg} color={PALE} /></mesh>
-      {[-1, 0, 1].map((k) => <mesh key={k} position={[k * 0.07, 0.02, 1.18]}><boxGeometry args={[0.05, 0.07, 0.14]} /><Mat reg={reg} color={PALE} /></mesh>)}
+      <mesh position={[0, 0, 0.2]}><boxGeometry args={[0.26, 0.28, 0.46]} /><StarMat reg={reg} color={BODY} /></mesh>
+      <mesh position={[0, 0, 0.46]}><sphereGeometry args={[0.15, 8, 8]} /><StarMat reg={reg} color={TRIM} metal={0.3} /></mesh>
+      <mesh position={[0, 0, 0.72]}><boxGeometry args={[0.23, 0.25, 0.46]} /><StarMat reg={reg} color={BODY} /></mesh>
+      <mesh position={[0, 0, 0.74]}><boxGeometry args={[0.29, 0.29, 0.2]} /><StarMat reg={reg} color={TRIM} metal={0.3} /></mesh>
+      <mesh position={[0, 0, 1.04]}><boxGeometry args={[0.28, 0.28, 0.28]} /><StarMat reg={reg} color={SKIN} /></mesh>
+      {[-1, 0, 1].map((k) => <mesh key={k} position={[k * 0.08, 0.03, 1.22]}><boxGeometry args={[0.06, 0.08, 0.14]} /><StarMat reg={reg} color={SKIN} /></mesh>)}
+      <group ref={side < 0 ? undefined : ghost}>
+        {[0.45, 0.9].map((o) => <mesh key={o} position={[0, 0, 1.04 + o]}><boxGeometry args={[0.26, 0.26, 0.2]} /><meshBasicMaterial color="#8d7fd0" transparent opacity={0.22} depthWrite={false} /></mesh>)}
+      </group>
     </group>
   );
   const leg = (side) => (
     <group position={[side * 0.2, 0.95, 0]}>
-      <mesh position={[0, -0.22, 0]}><boxGeometry args={[0.3, 0.5, 0.32]} /><Mat reg={reg} color={VIO} /></mesh>
-      <mesh position={[0, -0.5, 0.05]}><sphereGeometry args={[0.15, 6, 6]} /><Mat reg={reg} color={GOLD} /></mesh>
-      <mesh position={[0, -0.78, 0]}><boxGeometry args={[0.26, 0.5, 0.28]} /><Mat reg={reg} color={DARK} /></mesh>
-      <mesh position={[0, -1.02, 0.1]}><boxGeometry args={[0.3, 0.14, 0.5]} /><Mat reg={reg} color={GOLD} /></mesh>
+      <mesh position={[0, -0.22, 0]}><boxGeometry args={[0.32, 0.5, 0.34]} /><StarMat reg={reg} color={BODY} /></mesh>
+      <mesh position={[0, -0.5, 0.05]}><sphereGeometry args={[0.15, 8, 8]} /><StarMat reg={reg} color={TRIM} metal={0.3} /></mesh>
+      <mesh position={[0, -0.78, 0]}><boxGeometry args={[0.28, 0.5, 0.3]} /><StarMat reg={reg} color={DARK} /></mesh>
+      <mesh position={[0, -1.02, 0.1]}><boxGeometry args={[0.32, 0.14, 0.52]} /><StarMat reg={reg} color={TRIM} metal={0.3} /></mesh>
     </group>
   );
   return (
     <group ref={root} scale={1.5}>
-      <mesh position={[0, 1.96, 0]}><boxGeometry args={[0.44, 0.46, 0.42]} /><Mat reg={reg} color={PALE} /></mesh>
-      <mesh position={[0, 1.96, 0.22]}><boxGeometry args={[0.4, 0.1, 0.06]} /><Mat reg={reg} color="#5ab8ff" /></mesh>
-      <mesh position={[0, 1.8, 0.2]}><boxGeometry args={[0.2, 0.1, 0.06]} /><Mat reg={reg} color={DARK} /></mesh>
-      <mesh position={[0, 2.3, -0.02]}><coneGeometry args={[0.09, 0.4, 4]} /><Mat reg={reg} color={GOLD} /></mesh>
-      <mesh position={[-0.2, 2.22, -0.02]} rotation={[0, 0, 0.6]}><coneGeometry args={[0.06, 0.3, 4]} /><Mat reg={reg} color={GOLD} /></mesh>
-      <mesh position={[0.2, 2.22, -0.02]} rotation={[0, 0, -0.6]}><coneGeometry args={[0.06, 0.3, 4]} /><Mat reg={reg} color={GOLD} /></mesh>
-      <mesh position={[0, 1.66, 0]}><cylinderGeometry args={[0.12, 0.14, 0.16, 6]} /><Mat reg={reg} color={DARK} /></mesh>
-      <mesh position={[0, 1.38, 0]}><boxGeometry args={[0.84, 0.5, 0.42]} /><Mat reg={reg} color={VIO} /></mesh>
-      <mesh position={[0, 1.4, 0.22]}><octahedronGeometry args={[0.13, 0]} /><Mat reg={reg} color={ready ? GOLD : '#6a58b0'} /></mesh>
-      <mesh position={[0, 0.98, 0]}><boxGeometry args={[0.5, 0.36, 0.34]} /><Mat reg={reg} color={DARK} /></mesh>
-      {RAINBOW.map((c, i) => <mesh key={i} position={[(i - 2.5) * 0.085, 0.9, 0.2]}><boxGeometry args={[0.08, 0.1, 0.06]} /><Mat reg={reg} color={c} /></mesh>)}
-      <mesh position={[-0.52, 1.56, 0]}><octahedronGeometry args={[0.24, 0]} /><Mat reg={reg} color={PALE} /></mesh>
-      <mesh position={[0.52, 1.56, 0]}><octahedronGeometry args={[0.24, 0]} /><Mat reg={reg} color={PALE} /></mesh>
+      <mesh position={[0, 1.96, 0]}><boxGeometry args={[0.44, 0.46, 0.42]} /><StarMat reg={reg} color={SKIN} /></mesh>
+      <mesh position={[0, 1.98, 0.22]}><boxGeometry args={[0.4, 0.09, 0.05]} /><StarMat reg={reg} color="#1a2a4a" /></mesh>
+      <mesh position={[0, 1.8, 0.21]}><boxGeometry args={[0.18, 0.06, 0.05]} /><StarMat reg={reg} color={DARK} /></mesh>
+      <mesh position={[0, 2.22, -0.02]}><boxGeometry args={[0.5, 0.16, 0.5]} /><StarMat reg={reg} color={HAIR} /></mesh>
+      <mesh position={[0, 2.08, -0.26]}><boxGeometry args={[0.5, 0.34, 0.12]} /><StarMat reg={reg} color={HAIR} /></mesh>
+      {[-0.22, 0.22].map((x) => <mesh key={x} position={[x, 2.05, 0.02]}><boxGeometry args={[0.08, 0.3, 0.42]} /><StarMat reg={reg} color={HAIR} /></mesh>)}
+      <group ref={hairR} position={[0, 2.18, -0.28]}>
+        {[-0.2, -0.07, 0.07, 0.2].map((x, i) => (
+          <mesh key={x} position={[x, -0.1 - (i % 2) * 0.08, -0.14]} rotation={[0.6, 0, x * 1.2]}><boxGeometry args={[0.1, 0.5 + (i % 2) * 0.14, 0.1]} /><StarMat reg={reg} color={HAIR} /></mesh>
+        ))}
+      </group>
+      <mesh position={[0, 1.66, 0]}><cylinderGeometry args={[0.12, 0.14, 0.16, 8]} /><StarMat reg={reg} color={DARK} /></mesh>
+      <mesh position={[0, 1.38, 0]}><boxGeometry args={[0.84, 0.5, 0.42]} /><StarMat reg={reg} color={BODY} /></mesh>
+      <mesh position={[0, 1.4, 0.22]}><boxGeometry args={[0.26, 0.26, 0.04]} /><StarMat reg={reg} color={ready ? '#d8b040' : TRIM} metal={0.4} /></mesh>
+      <mesh position={[0, 0.98, 0]}><boxGeometry args={[0.5, 0.36, 0.34]} /><StarMat reg={reg} color={DARK} /></mesh>
+      <mesh position={[0, 0.88, 0.18]}><boxGeometry args={[0.52, 0.08, 0.06]} /><StarMat reg={reg} color={TRIM} metal={0.3} /></mesh>
+      <mesh position={[-0.52, 1.58, 0]}><boxGeometry args={[0.3, 0.2, 0.36]} /><StarMat reg={reg} color={TRIM} metal={0.3} /></mesh>
+      <mesh position={[0.52, 1.58, 0]}><boxGeometry args={[0.3, 0.2, 0.36]} /><StarMat reg={reg} color={TRIM} metal={0.3} /></mesh>
       {leg(-1)}
       {leg(1)}
       {arm(-1)}
       {arm(1)}
-      <group ref={tail} position={[0, 1.3, -0.3]}>
-        {[0, 1, 2, 3].map((i) => <mesh key={i} position={[Math.cos(i * 1.6) * 0.18, -i * 0.14, -0.1 - i * 0.12]}><octahedronGeometry args={[0.08, 0]} /><Mat reg={reg} color={RAINBOW[i * 2 % 6]} /></mesh>)}
-      </group>
     </group>
   );
 }

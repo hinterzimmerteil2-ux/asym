@@ -99,7 +99,7 @@ const DEFS = {
   minceraft: { id: 'minceraft', name: 'Minceraft', modes: ['andamio', 'telarana', 'slime', 'redstone', 'piston', 'polvo', 'tnt', 'miel', 'minar'] },
 };
 
-const STAR = { rhythmMax: 100, barrageMs: 1100, barrageStepMs: 100, rafagaRange: 5, rafagaWidth: 1.8, rafagaStun: 900, rafagaPush: 3, rafagaEndStun: 1500, rafagaEndPush: 9, rafagaGain: 1.5, stellarRange: 24, stellarWidth: 0.9, stellarWind: 400, stellarStun: 1300, stellarPush: 10, stellarGain: 12, catchMs: 300, catchRange: 8, catchWidth: 1.5, catchStun: 1800, catchPush: 13, catchGain: 20, catchFailLag: 500, pauseRange: 11, pauseStun: 1500, pauseCost: 50, rhythmStun: 0.006, reactCost: 30, reactStun: 1100, reactRange: 7, reactPush: 7, reactCd: 8000, cd: { rafaga: 6500, stellar: 9000, atrapar: 9000, pausa: 5000 } };
+const STAR = { rhythmMax: 100, barrageMs: 1100, barrageStepMs: 100, rafagaRange: 5, rafagaWidth: 1.8, rafagaStun: 900, rafagaPush: 3, rafagaEndStun: 1500, rafagaEndPush: 9, rafagaGain: 1.5, stellarRange: 24, stellarWidth: 0.9, stellarWind: 400, stellarStun: 1300, stellarPush: 10, stellarGain: 12, catchMs: 300, catchRange: 8, catchWidth: 1.5, catchStun: 1800, catchPush: 13, throwMin: 7, throwMax: 28, throwRagMin: 800, throwRagMax: 2400, catchGain: 20, catchFailLag: 500, pauseRange: 11, pauseStun: 1500, pauseCost: 50, rhythmStun: 0.006, reactCost: 30, reactStun: 1100, reactRange: 7, reactPush: 7, reactCd: 8000, cd: { rafaga: 6500, stellar: 9000, atrapar: 9000, pausa: 5000 } };
 
 function grant(entity, id) {
   if (!DEFS[id]) {
@@ -702,8 +702,19 @@ function tickStar(room, now) {
       s.grab = null;
       const target = rayFoes(room, e, nx, nz, ny || 0, STAR.catchRange, STAR.catchWidth)[0];
       if (target) {
+        const tp = room.players.get(target.id);
+        const boss = Boolean(tp && tp.isBoss);
+        let frac = 0.5;
+        if (boss && target.e.hpMax) frac = target.e.hp / target.e.hpMax;
+        else if (room.gameState.curator && room.gameState.curator.max) frac = room.gameState.curator.hp / room.gameState.curator.max;
+        frac = Math.max(0, Math.min(1, frac));
+        const force = (STAR.throwMin + (STAR.throwMax - STAR.throwMin) * (1 - frac)) * (boss ? 0.5 : 1);
         room.stun(target.id, target.e, starStun(s, STAR.catchStun), now, 0);
-        Status.push(target.e, -nx, -nz, STAR.catchPush, 380, now);
+        if (!boss) room.ragdoll(target.id, target.e, Math.round(STAR.throwRagMin + (STAR.throwRagMax - STAR.throwRagMin) * (1 - frac)), now);
+        Status.push(target.e, nx, nz, force, 520, now);
+        target.e.velocityY = Math.max(target.e.velocityY || 0, 3 + force * 0.14);
+        target.e.onGround = false;
+        target.e.peakY = target.e.y;
         starGain(s, STAR.catchGain);
       } else {
         Status.apply(e, 'slow', STAR.catchFailLag, now, { tag: 'endlag', level: 2 });

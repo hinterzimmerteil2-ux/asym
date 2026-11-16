@@ -1848,6 +1848,29 @@ test('Platinum Star: ráfaga aturde, atrapar bloquea y pausa cuesta ritmo', () =
   assert.ok(!s.grab);
 });
 
+test('Platinum Star: el Lanzamiento arroja más lejos cuanto menos vida tiene el enemigo y lo deja en ragdoll', () => {
+  const SA = require('../src/SuperAbilities');
+  const run = (hp) => {
+    const { room, e } = setup();
+    room.superSet = new Set(['a']);
+    room.selectRole('a', 'super:platinum_star');
+    room.gameState.curator.hp = hp;
+    room.gameState.curator.max = 100;
+    e.a.faceX = 0;
+    e.a.faceZ = 1;
+    e.c.x = e.a.x;
+    e.c.z = e.a.z + 3;
+    const now = Date.now() + 1000;
+    assert.ok(SA.use(room, 'a', 'atrapar', now));
+    SA.tick(room, now + 400);
+    return { kb: Math.hypot(e.c.kbX || 0, e.c.kbZ || 0), vy: e.c.velocityY, rag: room.constructor && Boolean(e.c.statuses && e.c.statuses.ragdoll) };
+  };
+  const low = run(10);
+  const high = run(95);
+  assert.ok(low.kb > high.kb * 2, JSON.stringify({ low, high }));
+  assert.ok(low.vy > high.vy);
+});
+
 test('Impuestos de la SUNAT: la parte real da una hoja a 118 y la imaginaria da velocidad', () => {
   const { room, e } = setup();
   room.superSet = new Set(['a']);
