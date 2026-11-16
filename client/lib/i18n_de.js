@@ -679,4 +679,5 @@ export const DE = [
 "Platzieren",
 "Klicken zum Platzieren",
 "Wähle ein Teil (1 bis 4)",
+"Rechtliche Hinweise und Kontakt",
 ];

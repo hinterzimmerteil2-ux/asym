@@ -683,6 +683,7 @@ const PAIRS = [
 ["Colocar","Place"],
 ["Clic para colocar","Click to place"],
 ["Elige una pieza (1 a 4)","Choose a piece (1 to 4)"],
+["Aviso legal y contacto","Legal notice and contact"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };
