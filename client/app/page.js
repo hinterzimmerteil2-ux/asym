@@ -1273,7 +1273,7 @@ export default function LobbyPage() {
           )}
         </div>
 
-        <div ref={playersBoxRef} style={{ ...sx(styles.playersOverlay, { top: 52, right: 8, width: 'min(300px, calc(100% - 16px))', maxHeight: 'calc(100% - 64px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', scrollbarWidth: 'thin', boxSizing: 'border-box', padding: 10, zIndex: 30 }), ...(compact && !playersOpen ? { display: 'none' } : {}) }}>
+        <div ref={playersBoxRef} style={{ ...sx(styles.playersOverlay, { top: 52, right: 8, width: 'min(300px, calc(100% - 16px))', maxHeight: 'calc(100dvh - 72px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', scrollbarWidth: 'thin', boxSizing: 'border-box', padding: 10, zIndex: 30 }), ...(compact && !playersOpen ? { display: 'none' } : {}) }}>
           <ul style={sx(styles.playerList, { maxHeight: 'none', overflowY: 'visible' })}>
             {players.map((p) => {
               const patientInfo = patients[p.id];
@@ -1952,7 +1952,7 @@ export default function LobbyPage() {
 
         {cosmeticsOpen && phase === 'lobby' && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 70, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setCosmeticsOpen(false)}>
-            <div style={{ width: 'min(440px, calc(100% - 24px))', maxHeight: 'calc(100% - 24px)', overflowY: 'auto', boxSizing: 'border-box', padding: 14, borderRadius: 10, background: '#241a1e', border: '1px solid #3d2c33', display: 'flex', flexDirection: 'column', gap: 10 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ width: 'min(440px, calc(100% - 24px))', maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', boxSizing: 'border-box', padding: 14, borderRadius: 10, background: '#241a1e', border: '1px solid #3d2c33', display: 'flex', flexDirection: 'column', gap: 10 }} onClick={(e) => e.stopPropagation()}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <strong>Personalizar personaje</strong>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
@@ -2508,7 +2508,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: 10,
-    maxHeight: 'calc(100% - 68px)',
+    maxHeight: 'calc(100dvh - 72px)',
     overflowY: 'auto',
     boxSizing: 'border-box',
     overscrollBehavior: 'contain',
@@ -2808,7 +2808,7 @@ const styles = {
     justifyContent: 'center',
     backdropFilter: 'blur(2px)',
   },
-  gameOverCard: { width: 'min(380px, calc(100% - 32px))', maxHeight: '90%', overflowY: 'auto', boxSizing: 'border-box', padding: 28, borderRadius: 12, background: '#241a1e', border: '1px solid #3d2c33' },
+  gameOverCard: { width: 'min(380px, calc(100% - 32px))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box', padding: 28, borderRadius: 12, background: '#241a1e', border: '1px solid #3d2c33' },
   gameOverTitle: (curatorWon) => ({
     fontSize: 18,
     fontWeight: 700,
