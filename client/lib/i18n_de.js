@@ -668,7 +668,7 @@ export const DE = [
 "Verkaufe deine Seele an die App mit der Moderation von 4chan",
 "Kugeln",
 "Nachladungen",
-"Superfähigkeit. Ersetzt deine zwei Karten. Du baust mit Würfelblöcken von 2x2x2 und einem Blockzähler (12). Wähle das Teil mit 1 bis 4 (ein grüner oder roter Geist folgt dem Cursor, maximale Reichweite 3,5 Blöcke) und drücke nochmal zum Platzieren: Gerüst (1, wie in Minecraft: man geht hindurch, klettert durch Springen, Ducken hält dich fest und die Oberseite ist ein Boden; stapeln oder seitlich verlängern), Spinnennetz (1, bremst den Heiler und den Boss im Würfel), Redstone (2, bei Kettenaktivierung sendet es einen Puls, der wegstößt und 0,6 s betäubt; die Kette reicht dadurch doppelt so weit) und Schleim (2, lässt jeden abprallen, der draufsteigt). Schnelles Platzieren (0,25 s). Jedes Teil hält 20 s, startet fast kaputt und verrottet: bei 1/3 und 2/3 seiner Lebenszeit verliert es Wirkung. Passive: Minceraft-Physik (du springst 2,5-mal höher, erleidest weder Sturzschaden noch Betäubung, Ducken an der Kante verhindert das Fallen und Spitzhacke, Taste 5: eigenen Block in 0,4 s abbauen und den Platz zurückbekommen) und Redstone (aktiviert sich ein Teil, aktivieren sich die Nachbarn im 0,2-s-Takt in Kette).",
+"Superfähigkeit. Ersetzt deine zwei Karten. Du baust mit Würfelblöcken von 1 Meter (etwas mehr als ein halber Spieler) und einem Blockzähler (48). Wähle das Teil mit 1 bis 4 (ein grüner oder roter Geist folgt dem Cursor, maximale Reichweite 7 Blöcke) und klicke zum Platzieren: Gerüst (1, wie in Minecraft: man geht hindurch, klettert durch Springen, Ducken hält dich fest und die Oberseite ist ein Boden; stapeln oder seitlich verlängern), Spinnennetz (1, bremst den Heiler und den Boss im Würfel), Redstone (2, bei Kettenaktivierung sendet es einen Puls, der wegstößt und 0,6 s betäubt; die Kette reicht dadurch doppelt so weit) und Schleim (2, lässt jeden abprallen, der draufsteigt). Schnelles Platzieren (0,25 s). Jedes Teil hält 20 s, startet fast kaputt und verrottet: bei 1/3 und 2/3 seiner Lebenszeit verliert es Wirkung. Passive: Minceraft-Physik (du springst 2,5-mal höher, erleidest weder Sturzschaden noch Betäubung, Ducken an der Kante verhindert das Fallen und Spitzhacke, Taste 5: eigenen Block in 0,4 s abbauen und den Platz zurückbekommen) und Redstone (aktiviert sich ein Teil, aktivieren sich die Nachbarn im 0,2-s-Takt in Kette).",
 "Super-Bauwerke",
 "Gerüst",
 "Spinnennetz",
@@ -676,6 +676,7 @@ export const DE = [
 "Spitzhacke",
 "Blöcke",
 "Abbauen",
-"Nochmal drücken zum Platzieren",
+"Platzieren",
+"Klicken zum Platzieren",
 "Wähle ein Teil (1 bis 4)",
 ];

@@ -3398,15 +3398,16 @@ function StairMesh({ p, tops, tint }) {
 
 function Scaffold({ p }) {
   const y0 = p.y0 || 0;
-  const hx = p.hx;
-  const hz = p.hz;
-  const h = p.h;
+  const hx = 1;
+  const hz = 1;
+  const h = 2;
+  const sc = p.hx;
   const wood = p.tint || '#b98a4e';
   const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
   const diag = Math.hypot(hx * 2, h);
   const dAng = Math.atan2(h, hx * 2);
   return (
-    <group position={[p.x, y0, p.z]}>
+    <group position={[p.x, y0, p.z]} scale={[sc, sc, sc]}>
       {corners.map(([a, b]) => (
         <mesh key={`p${a}${b}`} position={[a * (hx - 0.07), h / 2, b * (hz - 0.07)]}>
           <boxGeometry args={[0.14, h, 0.14]} />

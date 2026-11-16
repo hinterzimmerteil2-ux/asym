@@ -979,7 +979,11 @@ export default function LobbyPage() {
   const handleSuper = useCallback((m) => {
     if (isAsymRole || phase !== 'action') return;
     const mode = typeof m === 'number' ? (SUPER_MODES[supRef.current] || [])[m]?.[0] : m;
-    if (supRef.current === 'minceraft' && mode && mode !== 'minar' && mcSelRef.current !== mode) {
+    if (supRef.current === 'minceraft' && mode && mode !== 'minar') {
+      if (mcSelRef.current === mode) {
+        setMcSel(null);
+        return;
+      }
       setMcSel(mode);
       connRef.current?.send('super_preview', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined });
       return;
@@ -1003,6 +1007,23 @@ export default function LobbyPage() {
     const t = setInterval(() => connRef.current?.send('super_preview', { mode: mcSelRef.current, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined }), 100);
     return () => clearInterval(t);
   }, [mcSel, phase, isAsymRole]);
+
+  const placeMc = useCallback(() => {
+    const mode = mcSelRef.current;
+    if (!mode || supRef.current !== 'minceraft') return;
+    connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined });
+  }, []);
+
+  useEffect(() => {
+    function onClickPlace(e) {
+      if (e.button !== 0 || !mcSelRef.current || supRef.current !== 'minceraft') return;
+      const t = e.target;
+      if (!t || t.tagName !== 'CANVAS') return;
+      placeMc();
+    }
+    window.addEventListener('pointerdown', onClickPlace);
+    return () => window.removeEventListener('pointerdown', onClickPlace);
+  }, [placeMc]);
 
   const handleUseCard = useCallback((slot) => {
     if (isAsymRole || phase !== 'action') return;
@@ -1762,7 +1783,8 @@ export default function LobbyPage() {
               {Array.from({ length: flojera.sup.max }).map((_, i) => <div key={i} style={{ width: 9, height: 9, background: i < flojera.sup.used ? '#b98a4e' : 'rgba(255,255,255,0.2)', border: '1px solid rgba(0,0,0,0.5)' }} />)}
             </div>
             {flojera.sup.mining > 0 && <span style={{ color: '#ffd86b' }}>Picando</span>}
-            <span style={{ color: '#ffd86b' }}>{mcSel ? 'Pulsa otra vez para colocar' : 'Elige una pieza (1 a 4)'}</span>
+            <span style={{ color: '#ffd86b' }}>{mcSel ? 'Clic para colocar' : 'Elige una pieza (1 a 4)'}</span>
+            {mcSel && <button type="button" onClick={placeMc} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>Colocar</button>}
           </div>
         )}
 

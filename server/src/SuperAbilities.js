@@ -695,9 +695,9 @@ function tickStar(room, now) {
 
 
 const MC = {
-  max: 12, life: 20000, cell: 2, gap: 300, endlag: 250, mineMs: 400, mineRange: 4.2, range: 7, jumpV: 7.3, climbV: 4.2, fallSlow: 1.8,
+  max: 48, life: 20000, cell: 1, gap: 300, endlag: 250, mineMs: 400, mineRange: 4.2, range: 7, size: 1, jumpV: 7.3, climbV: 4.2, fallSlow: 1.8,
   w: { andamio: 1, telarana: 1, redstone: 2, slime: 2 },
-  webSlow: 2, slimeV: 11, chainStep: 200, chainReach: 2.1, redstoneReach: 4.1, redstoneR: 3.2, redstoneStun: 600, chainCool: 1500, pieceLimit: 40,
+  webSlow: 2, slimeV: 11, chainStep: 200, chainReach: 1.1, redstoneReach: 2.1, redstoneR: 2.6, redstoneStun: 600, chainCool: 1500, pieceLimit: 160,
 };
 
 function mcStage(d, now) {
@@ -723,7 +723,7 @@ function mcChain(room, d, now) {
     for (const f of frontier) {
       for (const o of dyn) {
         if (seen.has(o.id) || o.owner !== d.owner) continue;
-        if (Math.hypot(o.x - f.x, o.z - f.z) > (f.kind === 'redstone' || o.kind === 'redstone' ? MC.redstoneReach : MC.chainReach) || Math.abs(o.y0 - f.y0) > 2.2) continue;
+        if (Math.hypot(o.x - f.x, o.z - f.z) > (f.kind === 'redstone' || o.kind === 'redstone' ? MC.redstoneReach : MC.chainReach) || Math.abs(o.y0 - f.y0) > 1.2) continue;
         seen.add(o.id);
         next.push(o);
         if (now >= (o.cool || 0)) {
@@ -752,8 +752,8 @@ function mcPlan(room, playerId, entity, mode, now) {
   const nx = (entity.faceX || 0) / fl;
   const nz = (entity.faceZ || 1) / fl;
   let ok = s.used + w <= MC.max && gs.dyn.length < MC.pieceLimit;
-  let tx = entity.x + nx * 2.8;
-  let tz = entity.z + nz * 2.8;
+  let tx = entity.x + nx * 1.6;
+  let tz = entity.z + nz * 1.6;
   let adx = nx;
   let adz = nz;
   if (s.aim && now - s.aim.at < 1500) {
@@ -782,8 +782,8 @@ function mcPlan(room, playerId, entity, mode, now) {
   if (stack.length) base = Math.max(...stack.map((o) => o.y0 + o.h));
   else if (under && base < under.y0 - 0.5) base = under.y0;
   if (base > ey + 2.2) ok = false;
-  const piece = { id: `mc${(gs.dynSeq = (gs.dynSeq || 0) + 1)}`, kind: mode, owner: playerId, born: now, x: px, z: pz, y0: base, hx: 1, hz: 1, h: 2, ramp: null, solid: true, pulse: 0, cool: 0, fired: 0, w };
-  if (mode === 'andamio') piece.slab = 0.2;
+  const piece = { id: `mc${(gs.dynSeq = (gs.dynSeq || 0) + 1)}`, kind: mode, owner: playerId, born: now, x: px, z: pz, y0: base, hx: 0.5, hz: 0.5, h: 1, ramp: null, solid: true, pulse: 0, cool: 0, fired: 0, w };
+  if (mode === 'andamio') piece.slab = 0.12;
   if (mode === 'telarana') piece.solid = false;
   for (const o of gs.dyn) {
     if (inCell(o) && Math.abs(o.y0 - piece.y0) < 0.1) ok = false;
@@ -802,7 +802,7 @@ function scaffoldAt(room, entity) {
   const y = entity.y || 0;
   for (const d of dyn) {
     if (d.kind !== 'andamio') continue;
-    if (Math.abs(entity.x - d.x) <= d.hx && Math.abs(entity.z - d.z) <= d.hz && y >= d.y0 - 0.2 && y < d.y0 + d.h - 0.1) return d;
+    if (Math.abs(entity.x - d.x) <= d.hx + 0.2 && Math.abs(entity.z - d.z) <= d.hz + 0.2 && y >= d.y0 - 0.2 && y < d.y0 + d.h - 0.1) return d;
   }
   return null;
 }
@@ -904,7 +904,7 @@ function tickMine(room, now) {
       const slow = Math.max(1, MC.webSlow - (stage === 2 ? 1 : 0)) + (d.pulse && now - d.pulse < 1500 ? 1 : 0);
       for (const e of asym) {
         if (e.down || e.gone || e.corpse) continue;
-        if (Math.abs(e.x - d.x) > d.hx || Math.abs(e.z - d.z) > d.hz || (e.y || 0) < d.y0 - 0.5 || (e.y || 0) > d.y0 + d.h) continue;
+        if (Math.abs(e.x - d.x) > d.hx + 0.35 || Math.abs(e.z - d.z) > d.hz + 0.35 || (e.y || 0) < d.y0 - 1.5 || (e.y || 0) > d.y0 + d.h) continue;
         Status.apply(e, 'slow', 400, now, { level: Math.min(3, slow) });
         if (now >= (d.cool || 0)) mcActivate(room, d, now);
       }
@@ -913,13 +913,13 @@ function tickMine(room, now) {
       for (const e of asym) {
         if (e.down || e.gone || e.corpse) continue;
         const dist = Math.hypot(e.x - d.x, e.z - d.z);
-        if (dist > MC.redstoneR || Math.abs((e.y || 0) - (d.y0 + 1)) > 2.5) continue;
+        if (dist > MC.redstoneR || Math.abs((e.y || 0) - (d.y0 + 0.5)) > 2.5) continue;
         const pid = Object.keys(gs.entities).find((k) => gs.entities[k] === e);
         room.stun(pid, e, MC.redstoneStun - stage * 150, now, 0);
         Status.push(e, (e.x - d.x) / (dist || 1), (e.z - d.z) / (dist || 1), 6, 250, now);
         hit += 1;
       }
-      room.broadcast('super_result', { playerId: d.owner, mode: 'redstone_pulso', x: d.x, y: d.y0 + 1, z: d.z, radius: MC.redstoneR, hit });
+      room.broadcast('super_result', { playerId: d.owner, mode: 'redstone_pulso', x: d.x, y: d.y0 + 0.5, z: d.z, radius: MC.redstoneR, hit });
     } else if (d.kind === 'slime' && (fire || now - (d.lastCheck || 0) > 100)) {
       d.lastCheck = now;
       const v = MC.slimeV - stage * 1.5;

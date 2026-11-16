@@ -1941,8 +1941,8 @@ test('Minceraft: coloca piezas, respeta el contador, decae y se mina', () => {
   const before = s.used;
   assert.ok(before >= 3);
   const d0 = room.gameState.dyn[0];
-  assert.strictEqual(d0.h, 2);
-  assert.strictEqual(d0.hx, 1);
+  assert.strictEqual(d0.h, 1);
+  assert.strictEqual(d0.hx, 0.5);
   e.a.x = d0.x;
   e.a.z = d0.z;
   e.a.y = d0.y0 + 0.5;
