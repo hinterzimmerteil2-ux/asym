@@ -245,6 +245,7 @@ export default function LobbyPage() {
   const [cosmeticsOpen, setCosmeticsOpen] = useState(false);
   const [desgracias, setDesgracias] = useState({ balance: emptyQ(), owned: FREE_ITEMS });
   const [lastAward, setLastAward] = useState(null);
+  const AXIS_COLOR = { r: '#e6d8ff', i: '#ff8a8a', j: '#8ae6a0', k: '#ffd24a' };
   const [tutorial, setTutorial] = useState({ launching: false, active: false, minimized: false, flags: {} });
   const tutStartRef = useRef(null);
   const tutSentRef = useRef({ role: false, start: false });
@@ -2039,15 +2040,31 @@ export default function LobbyPage() {
                     ? `Perdiste como ${players.find((p) => p.id === myPlayerId)?.character?.displayName || 'Curador'}`
                     : '¡Los Pacientes ganaron!'}
               </h2>
+              {lastAward && lastAward.practice && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0', fontSize: 13, color: '#a8959a' }}>
+                  <img src="/desgracias.png" alt="Desgracias" width={22} height={22} style={{ opacity: 0.5 }} />
+                  <span>Esta partida no da Desgracias</span>
+                </div>
+              )}
               {lastAward && lastAward.total > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '6px 0', fontSize: 13 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '8px 0', fontSize: 13, padding: 10, borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(217,74,82,0.3)', maxHeight: '34dvh', overflowY: 'auto' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <img src="/desgracias.png" alt="Desgracias" width={28} height={28} />
-                    <strong>+{Math.round(normQ(awardToQ(lastAward.items)))} ℍ, {formatQ(awardToQ(lastAward.items))}</strong>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <strong>+{Math.round(normQ(awardToQ(lastAward.items)))} ℍ{lastAward.boss ? ' (partida contra el Jefe, x3)' : ''}</strong>
+                      <span style={{ color: '#a8959a', fontSize: 12 }}>{formatQ(awardToQ(lastAward.items))}</span>
+                    </div>
                   </div>
-                  {lastAward.items.map((it) => (
-                    <div key={it.label} style={{ display: 'flex', justifyContent: 'space-between', color: '#a8959a' }}><span>{it.label}</span><span>+{it.amount}{it.axis && it.axis !== 'r' ? it.axis : ''}</span></div>
+                  {[...lastAward.items].sort((x, y) => y.amount - x.amount).map((it) => (
+                    <div key={it.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: '#c9b8bd' }}>
+                      <span>{it.label}</span>
+                      <span style={{ color: AXIS_COLOR[it.axis] || '#a8959a' }}>+{Math.round(it.amount * 10) / 10}{it.axis && it.axis !== 'r' ? it.axis : ''}</span>
+                    </div>
                   ))}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 4, marginTop: 2 }}>
+                    <span>Saldo total</span>
+                    <strong>{Math.round(normQ(desgracias.balance))} ℍ</strong>
+                  </div>
                 </div>
               )}
               <p style={styles.gameOverReason}>

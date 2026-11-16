@@ -1970,6 +1970,30 @@ test('Reconexión: conserva al jugador en partida y lo retoma con otro socket', 
   assert.strictEqual(room.detachPlayer('a', oldWs, () => {}), false);
 });
 
+test('Desgracias: tiempo vivo e hitos, bonus x3 contra el Jefe y nada en tutorial', () => {
+  const { room, clock } = setup();
+  room.gameState.desgracias = {};
+  room.gameState.patients.a = { status: 'alive', hp: 50, maxHp: 100 };
+  room.gameState.patients.b = { status: 'alive', hp: 50, maxHp: 100 };
+  room.tickDesgracias(clock.t);
+  clock.t += 31000;
+  room.gameState.timeRemainingMs -= 31000;
+  room.tickDesgracias(clock.t);
+  assert.strictEqual(room.gameState.desgracias.a['Tiempo vivo'], 2);
+  clock.t += 31000;
+  room.gameState.timeRemainingMs -= 31000;
+  room.tickDesgracias(clock.t);
+  assert.strictEqual(room.gameState.desgracias.a['Resistencia'], 6);
+  room.gameState.bossMatch = true;
+  room.award('a', 4, 'Golpe al Jefe');
+  assert.strictEqual(room.gameState.desgracias.a['Golpe al Jefe'], 12);
+  const before = room.gameState.desgracias.b['Tiempo vivo'];
+  room.tutorial = true;
+  room.award('b', 5, 'Tiempo vivo');
+  assert.strictEqual(room.gameState.desgracias.b['Tiempo vivo'], before);
+  room.tutorial = false;
+});
+
 test('Minceraft: coloca piezas, respeta el contador, decae y se mina', () => {
   const { room, e } = setup();
   room.superSet = new Set(['a']);

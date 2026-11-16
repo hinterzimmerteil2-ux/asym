@@ -173,7 +173,15 @@ const DESGRACIA_AXES = {
   'Golpe al Curador': 'i', 'Botellazo': 'i', 'Cáscara de plátano': 'i',
   'Cura': 'j', 'Auto-daño': 'j',
   'Escapaste': 'k', 'Victoria del Curador': 'k',
+  'Tiempo vivo': 'r', 'Resistencia': 'r', 'Partida contra el Jefe': 'r',
+  'Golpe al Jefe': 'i', 'Jefe derrotado': 'k', 'Victoria del Jefe': 'k',
+  'Último en pie': 'k', 'Pacientes eliminados': 'k',
+  'Auto-daño perfecto': 'j', 'Módulo entregado': 'j',
+  'Pulso certero': 'i', 'Habilidad certera': 'i', 'Aturdiste a un Paciente': 'i',
 };
+const BOSS_DG_MUL = 3;
+const DG_TICK_MS = 30000;
+const DG_MILESTONES = [[60000, 6], [120000, 12], [180000, 20], [300000, 35], [420000, 50]];
 
 const SD_VARIANTS = {
   pulso: { base: 'rhythm', tier: 'easy', beats: 1, tol: 1.3, scale: 0.5 },
@@ -1694,6 +1702,7 @@ class Room {
       this.autoPickExpiredDrafts(now);
       this.tickZones(now, dt);
       Boss.tick(this, now, dt);
+      this.tickDesgracias(now);
       SuperAbilities.tick(this, now);
       this.tickAstral(now, dt);
       this.tickEating(now);
@@ -3474,11 +3483,33 @@ class Room {
     return Boolean(GameMap.MAPS[this.mapId] && GameMap.MAPS[this.mapId].custom);
   }
 
+  tickDesgracias(now) {
+    const gs = this.gameState;
+    if (this.bossActive) gs.bossMatch = true;
+    if (this.tutorial || !gs.desgracias) return;
+    const elapsed = GAME_DURATION_MS - gs.timeRemainingMs;
+    if (!gs.dgNext) {
+      gs.dgNext = now + DG_TICK_MS;
+      gs.dgMile = 0;
+    }
+    const alive = () => Object.entries(gs.patients).filter(([, pt]) => pt.status === 'alive');
+    if (now >= gs.dgNext) {
+      gs.dgNext = now + DG_TICK_MS;
+      for (const [id] of alive()) this.award(id, 2, 'Tiempo vivo');
+    }
+    while (gs.dgMile < DG_MILESTONES.length && elapsed >= DG_MILESTONES[gs.dgMile][0]) {
+      const amount = DG_MILESTONES[gs.dgMile][1];
+      gs.dgMile += 1;
+      for (const [id] of alive()) this.award(id, amount, 'Resistencia');
+    }
+  }
+
   award(playerId, amount, reason) {
     const player = this.players.get(playerId);
-    if (!player || player.isBot || !this.gameState.desgracias || this.isPractice()) return;
+    if (!player || player.isBot || this.tutorial || !this.gameState.desgracias || this.isPractice()) return;
     const lms = this.gameState.lms;
     if (lms && lms.gimmick === 'codicia' && (lms.survivorId === playerId || lms.curatorId === playerId)) amount *= 2;
+    if (this.gameState.bossMatch) amount *= BOSS_DG_MUL;
     const book = this.gameState.desgracias[playerId] || (this.gameState.desgracias[playerId] = {});
     book[reason] = (book[reason] || 0) + amount;
   }
@@ -3945,23 +3976,34 @@ class Room {
     const majorityThreshold = Math.ceil(this.gameState.patientsInitialCount / 2);
     const curatorWon = curatorLost ? false : eliminatedCount >= majorityThreshold;
 
+    const gsEnd = this.gameState;
+    const bossMatch = Boolean(gsEnd.bossMatch);
+    const lmsEnd = gsEnd.lms;
     for (const [playerId, player] of this.players) {
       if (player.isBot) continue;
-      if (player.isAsymRole) {
-        this.award(playerId, 5, 'Partida jugada');
+      this.award(playerId, 5, 'Partida jugada');
+      if (bossMatch) this.award(playerId, 10, 'Partida contra el Jefe');
+      if (player.isBoss) {
+        if (reason === 'boss_won') this.award(playerId, 40, 'Victoria del Jefe');
+      } else if (player.isAsymRole) {
         if (curatorWon) this.award(playerId, 40, 'Victoria del Curador');
+        if (eliminatedCount > 0) this.award(playerId, 6 * eliminatedCount, 'Pacientes eliminados');
       } else {
-        this.award(playerId, 5, 'Partida jugada');
         const status = patientResults[playerId]?.status;
         if (status === 'self_won') this.award(playerId, 40, 'Escapaste');
         else if (status === 'timeout') this.award(playerId, 15, 'Sobreviviste');
+        if (lmsEnd && lmsEnd.survivorId === playerId && (status === 'self_won' || status === 'timeout')) this.award(playerId, 25, 'Último en pie');
+        if (gsEnd.bossDefeated) this.award(playerId, 40, 'Jefe derrotado');
       }
     }
     this.broadcast(MessageType.GAME_OVER, { curatorWon, patientResults, reason });
     for (const [playerId, book] of Object.entries(this.gameState.desgracias || {})) {
       const items = Object.entries(book).map(([label, amount]) => ({ label, amount, axis: DESGRACIA_AXES[label] || 'r' }));
       const total = items.reduce((sum, i) => sum + i.amount, 0);
-      if (total > 0) this.sendTo(playerId, MessageType.DESGRACIAS_AWARD, { total, items });
+      if (total > 0) this.sendTo(playerId, MessageType.DESGRACIAS_AWARD, { total, items, boss: Boolean(this.gameState.bossMatch) });
+    }
+    if (this.tutorial || this.isPractice()) {
+      for (const [playerId, player] of this.players) if (!player.isBot) this.sendTo(playerId, MessageType.DESGRACIAS_AWARD, { total: 0, items: [], practice: true });
     }
   }
 

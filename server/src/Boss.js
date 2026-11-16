@@ -688,6 +688,7 @@ function hurt(room, owner, win, now) {
   } else return;
   if (Math.hypot(px - boss.x, pz - boss.z) > radius + (boss.bossHitHalf || 1)) return;
   boss.hp = Math.max(0, boss.hp - dmg);
+  for (const [id, e] of Object.entries(room.gameState.entities)) if (e === owner) room.award(id, 1, 'Golpe al Jefe');
   loseSp(boss, SP_HIT, 'golpe');
   if (boss.hp <= 0) defeat(room, bossId, boss);
 }
