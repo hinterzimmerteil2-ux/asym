@@ -3645,7 +3645,34 @@ function McGhost({ pv }) {
   );
 }
 
+function SmoothMove({ p, children }) {
+  const g = useRef();
+  const last = useRef([p.x, p.y0 || 0, p.z]);
+  const off = useRef([0, 0, 0]);
+  const cur = [p.x, p.y0 || 0, p.z];
+  const L = last.current;
+  if (L[0] !== cur[0] || L[1] !== cur[1] || L[2] !== cur[2]) {
+    const d = Math.abs(L[0] - cur[0]) + Math.abs(L[1] - cur[1]) + Math.abs(L[2] - cur[2]);
+    if (d < 12) { off.current[0] += L[0] - cur[0]; off.current[1] += L[1] - cur[1]; off.current[2] += L[2] - cur[2]; }
+    last.current = cur;
+  }
+  useFrame((_, delta) => {
+    if (!g.current) return;
+    const o = off.current;
+    const k = Math.exp(-delta * 16);
+    o[0] *= k; o[1] *= k; o[2] *= k;
+    if (Math.abs(o[0]) + Math.abs(o[1]) + Math.abs(o[2]) < 0.002) { o[0] = o[1] = o[2] = 0; }
+    g.current.position.set(o[0], o[1], o[2]);
+  });
+  return <group ref={g}>{children}</group>;
+}
+
 function Platform({ p }) {
+  if (p.mc && p.mc !== 'telarana') return <SmoothMove p={p}><PlatformInner p={p} /></SmoothMove>;
+  return <PlatformInner p={p} />;
+}
+
+function PlatformInner({ p }) {
   if (p.kind === 'gate' || p.kind === 'pgate') return <GateMesh p={p} />;
   if (p.mc === 'telarana') return null;
   if (p.mc === 'andamio') return <Scaffold p={p} />;
