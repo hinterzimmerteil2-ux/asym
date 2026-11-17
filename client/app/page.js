@@ -1164,7 +1164,7 @@ export default function LobbyPage() {
   const dynPlatforms = useMemo(() => dyn.map((d) => {
     const base = ({ andamio: '#b98a4e', redstone: '#c0261f', slime: '#6fe05a', piston: '#8a8a8a', polvo: '#b01810', tnt: '#d4332a', miel: '#e8a020' })[d.k] || '#6fe05a';
     const c = hexMix(hexMix(base, '#2a2118', d.st * 0.28), '#ffffff', d.lit ? 0.45 : 0);
-    return { id: d.id, x: d.x, z: d.z, hx: d.hx, hz: d.hz, h: d.h, y0: d.y, ramp: d.r || null, kind: null, tint: c, mc: d.k, lit: d.lit, dx: d.dx, dz: d.dz, ex: d.ex, fz: d.fz };
+    return { id: d.id, x: d.x, z: d.z, hx: d.hx, hz: d.hz, h: d.h, y0: d.y, ramp: d.r || null, kind: null, tint: c, mc: d.k, lit: d.lit, dx: d.dx, dz: d.dz, dy: d.dy, ex: d.ex, fz: d.fz };
   }), [dyn]);
   const visiblePlatforms = useMemo(() => {
     const base = !hiddenPlatforms.length ? platforms : platforms.filter((p) => !new Set(hiddenPlatforms).has(p.id));
@@ -1776,7 +1776,7 @@ export default function LobbyPage() {
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: touch ? 150 : 150, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, fontSize: 11, color: '#fff' }}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <span>Maná {flojera.sup.mana}/{flojera.sup.manaMax}</span>
-              <span style={{ color: flojera.sup.ammo > 0 ? '#ffffff' : '#ff8a8a' }}>Balas {flojera.sup.ammo}/{flojera.sup.ammoMax} (recargas {flojera.sup.freeReloads})</span>
+              <span style={{ color: flojera.sup.ammo > 0 ? '#ffffff' : '#ff8a8a' }}>{flojera.sup.reload > 0 ? `Recargando ${Math.round((1 - flojera.sup.reload / Math.max(1, flojera.sup.reloadMax)) * 100)}%` : `Balas ${flojera.sup.ammo}/${flojera.sup.ammoMax}`} (cargadores {flojera.sup.freeReloads})</span>
               <span style={{ color: '#7fd8ff' }}>Escudo {flojera.sup.shield}/{flojera.sup.shieldMax}</span>
               {flojera.sup.charge > 0 && <span style={{ color: '#ffd86b' }}>Carga {flojera.sup.charge}/{flojera.sup.chargeMax}</span>}
             </div>

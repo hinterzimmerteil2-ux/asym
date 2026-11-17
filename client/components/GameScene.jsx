@@ -1204,11 +1204,11 @@ function StarSpirit({ life, mode, act = 0, ready = false }) {
     if (ra.current) { ra.current.rotation.set(rx, ry, 0); ra.current.position.z = rz; }
     if (ghost.current) ghost.current.visible = m === 1;
   });
-  const BODY = '#5b4aa8';
-  const DARK = '#3a2f78';
-  const TRIM = '#b8902c';
-  const SKIN = '#c9bde0';
-  const HAIR = '#1c1736';
+  const BODY = '#6b6f78';
+  const DARK = '#45484f';
+  const TRIM = '#9a9da4';
+  const SKIN = '#c4c7cc';
+  const HAIR = '#25262b';
   const arm = (side) => (
     <group ref={side < 0 ? la : ra} position={[side * 0.6, 1.5, 0]}>
       <mesh position={[0, 0, 0.2]}><boxGeometry args={[0.26, 0.28, 0.46]} /><StarMat reg={reg} color={BODY} /></mesh>
@@ -1218,7 +1218,7 @@ function StarSpirit({ life, mode, act = 0, ready = false }) {
       <mesh position={[0, 0, 1.04]}><boxGeometry args={[0.28, 0.28, 0.28]} /><StarMat reg={reg} color={SKIN} /></mesh>
       {[-1, 0, 1].map((k) => <mesh key={k} position={[k * 0.08, 0.03, 1.22]}><boxGeometry args={[0.06, 0.08, 0.14]} /><StarMat reg={reg} color={SKIN} /></mesh>)}
       <group ref={side < 0 ? undefined : ghost}>
-        {[0.45, 0.9].map((o) => <mesh key={o} position={[0, 0, 1.04 + o]}><boxGeometry args={[0.26, 0.26, 0.2]} /><meshBasicMaterial color="#8d7fd0" transparent opacity={0.22} depthWrite={false} /></mesh>)}
+        {[0.45, 0.9].map((o) => <mesh key={o} position={[0, 0, 1.04 + o]}><boxGeometry args={[0.26, 0.26, 0.2]} /><meshBasicMaterial color="#a9acb3" transparent opacity={0.22} depthWrite={false} /></mesh>)}
       </group>
     </group>
   );
@@ -1233,7 +1233,7 @@ function StarSpirit({ life, mode, act = 0, ready = false }) {
   return (
     <group ref={root} scale={1.5}>
       <mesh position={[0, 1.96, 0]}><boxGeometry args={[0.44, 0.46, 0.42]} /><StarMat reg={reg} color={SKIN} /></mesh>
-      <mesh position={[0, 1.98, 0.22]}><boxGeometry args={[0.4, 0.09, 0.05]} /><StarMat reg={reg} color="#1a2a4a" /></mesh>
+      <mesh position={[0, 1.98, 0.22]}><boxGeometry args={[0.4, 0.09, 0.05]} /><StarMat reg={reg} color="#2b2d33" /></mesh>
       <mesh position={[0, 1.8, 0.21]}><boxGeometry args={[0.18, 0.06, 0.05]} /><StarMat reg={reg} color={DARK} /></mesh>
       <mesh position={[0, 2.22, -0.02]}><boxGeometry args={[0.5, 0.16, 0.5]} /><StarMat reg={reg} color={HAIR} /></mesh>
       <mesh position={[0, 2.08, -0.26]}><boxGeometry args={[0.5, 0.34, 0.12]} /><StarMat reg={reg} color={HAIR} /></mesh>
@@ -1245,7 +1245,7 @@ function StarSpirit({ life, mode, act = 0, ready = false }) {
       </group>
       <mesh position={[0, 1.66, 0]}><cylinderGeometry args={[0.12, 0.14, 0.16, 8]} /><StarMat reg={reg} color={DARK} /></mesh>
       <mesh position={[0, 1.38, 0]}><boxGeometry args={[0.84, 0.5, 0.42]} /><StarMat reg={reg} color={BODY} /></mesh>
-      <mesh position={[0, 1.4, 0.22]}><boxGeometry args={[0.26, 0.26, 0.04]} /><StarMat reg={reg} color={ready ? '#d8b040' : TRIM} metal={0.4} /></mesh>
+      <mesh position={[0, 1.4, 0.22]}><boxGeometry args={[0.26, 0.26, 0.04]} /><StarMat reg={reg} color={ready ? '#d0d3d8' : TRIM} metal={0.4} /></mesh>
       <mesh position={[0, 0.98, 0]}><boxGeometry args={[0.5, 0.36, 0.34]} /><StarMat reg={reg} color={DARK} /></mesh>
       <mesh position={[0, 0.88, 0.18]}><boxGeometry args={[0.52, 0.08, 0.06]} /><StarMat reg={reg} color={TRIM} metal={0.3} /></mesh>
       <mesh position={[-0.52, 1.58, 0]}><boxGeometry args={[0.3, 0.2, 0.36]} /><StarMat reg={reg} color={TRIM} metal={0.3} /></mesh>
@@ -1283,7 +1283,7 @@ function McWeb({ d }) {
 
 function SuperFx({ effect }) {
   const kind = effect.kind;
-  const dur = kind === 'sup_bayoneta' || kind === 'sup_parry' || kind === 'sup_stellar_hit' || kind === 'sup_atrapar_hit' || kind === 'sup_atrapar' || kind === 'sup_rafaga' ? 520 : kind === 'sup_stellar' ? 400 : kind === 'sup_pausa' ? 1100 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
+  const dur = kind === 'sup_recarga_inicio' ? Math.max(600, effect.dur || 1300) : kind === 'sup_deslizar' ? 600 : kind === 'sup_recarga' ? 420 : kind === 'sup_bayoneta' || kind === 'sup_parry' || kind === 'sup_stellar_hit' || kind === 'sup_atrapar_hit' || kind === 'sup_atrapar' || kind === 'sup_rafaga' ? 520 : kind === 'sup_stellar' ? 400 : kind === 'sup_pausa' ? 1100 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
   const life = useLife(effect, dur);
   const yaw = Math.atan2(effect.dx || 0, effect.dz || 1);
   const stamp = useRef();
@@ -1370,6 +1370,13 @@ function SuperFx({ effect }) {
       </group>
     );
   }
+  if (kind === 'sup_sunat_tramite') {
+    return (
+      <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
+        <Ring life={life} color="#d9c27a" y={0.1} r0={0.3} r1={1.4} />
+      </group>
+    );
+  }
   if (kind === 'sup_tnt_boom') {
     return (
       <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
@@ -1424,6 +1431,36 @@ function SuperFx({ effect }) {
         <Ring life={life} color="#ffffff" y={1.2} r0={0.3} r1={3.4} flat={false} spin={3} />
         <Ring life={life} color="#7fd8ff" y={0.15} r0={0.4} r1={3.8} />
         <Sparks life={life} color="#ffffff" n={14} speed={2.4} up={2} size={0.1} />
+      </group>
+    );
+  }
+  if (kind === 'sup_deslizar') {
+    const yawS = Math.atan2(effect.dx || 0, effect.dz || 1);
+    return (
+      <group position={[effect.x || 0, (effect.y || 0) + 0.1, effect.z || 0]} rotation={[0, yawS, 0]}>
+        {[-0.5, -0.2, 0.2, 0.5].map((o, i) => (
+          <mesh key={o} position={[o, 0.2 + i * 0.25, -1.6 - i * 0.2]}><boxGeometry args={[0.04, 0.04, 3.2 + i * 0.4]} /><Mat reg={life.reg} color="#c8f1ff" /></mesh>
+        ))}
+        <Ring life={life} color="#7fd8ff" r0={0.3} r1={1.6} />
+        <Sparks life={life} color="#c8f1ff" n={10} speed={2.4} up={0.6} size={0.08} />
+      </group>
+    );
+  }
+  if (kind === 'sup_recarga_inicio') {
+    const prog = effect.tactical ? 0.5 : 1;
+    return (
+      <group position={[effect.x || 0, (effect.y || 0) + 1.1, effect.z || 0]}>
+        <Ring life={life} color="#ffe14a" y={-0.6} r0={0.9} r1={0.9} spin={3} />
+        <Ring life={life} color="#fff3b0" y={0.2 * prog} r0={0.4} r1={0.4} flat={false} spin={6} />
+        <Sparks life={life} color="#ffe14a" n={5} speed={0.6} up={0.4} size={0.06} />
+      </group>
+    );
+  }
+  if (kind === 'sup_recarga') {
+    return (
+      <group position={[effect.x || 0, (effect.y || 0) + 1.1, effect.z || 0]}>
+        <Ring life={life} color="#ffffff" y={0} r0={0.2} r1={1.4} flat={false} />
+        <Sparks life={life} color="#ffe14a" n={12} speed={2} up={1.2} size={0.08} />
       </group>
     );
   }
@@ -3479,11 +3516,12 @@ function Scaffold({ p }) {
 function PistonBlock({ p }) {
   const y0 = p.y0 || 0;
   const dx = p.dx || 0;
-  const dz = p.dz || 1;
+  const dz = p.dx || p.dy ? p.dz || 0 : p.dz || 1;
+  const dy = p.dy || 0;
   const ang = Math.atan2(dx, dz);
   const ext = p.ex ? 0.85 : 0;
   return (
-    <group position={[p.x, y0 + p.h / 2, p.z]} rotation={[0, ang, 0]}>
+    <group position={[p.x, y0 + p.h / 2, p.z]} rotation={dy ? [-dy * Math.PI / 2, 0, 0] : [0, ang, 0]}>
       <mesh position={[0, 0, -0.1]}><boxGeometry args={[p.hx * 2, p.h, p.hz * 2 - 0.2]} /><meshStandardMaterial color="#8a8a8a" roughness={0.9} /></mesh>
       <mesh position={[0, 0, p.hz - 0.1 + ext]}><boxGeometry args={[p.hx * 2, p.h, 0.2]} /><meshStandardMaterial color="#b98a4e" roughness={0.8} /></mesh>
       {p.ex ? <mesh position={[0, 0, p.hz + ext / 2]}><boxGeometry args={[0.18, 0.18, ext]} /><meshStandardMaterial color="#d9d9d9" roughness={0.5} /></mesh> : null}
@@ -3571,6 +3609,7 @@ function McGhost({ pv }) {
         <>
           <mesh><boxGeometry args={dims} /><meshBasicMaterial color={col} transparent opacity={0.3} depthWrite={false} /></mesh>
           <lineSegments geometry={geo}><lineBasicMaterial color={col} /></lineSegments>
+          {(pv.dx || pv.dz || pv.dy) ? <mesh position={[(pv.dx || 0) * 0.75, (pv.dy || 0) * 0.75, (pv.dz || 0) * 0.75]} rotation={pv.dy ? [pv.dy > 0 ? 0 : Math.PI, 0, 0] : [Math.PI / 2 * (pv.dz || 0), 0, -Math.PI / 2 * (pv.dx || 0)]}><coneGeometry args={[0.2, 0.45, 8]} /><meshBasicMaterial color={col} /></mesh> : null}
         </>
       )}
     </group>

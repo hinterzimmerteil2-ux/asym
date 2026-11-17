@@ -17,6 +17,11 @@ const TAX_MODULE = 20;
 const TAX_EVADE = 12;
 const TAX_FINE = 10;
 const TAX_IM_MAX = 8;
+const PAD_EVERY_MS = 18000;
+const PAD_LAG_MS = 900;
+const PAD_RE = 9;
+const PAD_IM = 0.5;
+const PAD_MAX = 10;
 const TAX_IM_DECAY_MS = 25000;
 const TAX_SPEED = 0.04;
 const TAX_EVADE_GAP = 1500;
@@ -43,6 +48,11 @@ const SHOT_RANGE = 14;
 const STAB_STUN_MS = 1100;
 const SHOT_STUN_MS = 1300;
 const SHOT_AMMO = 8;
+const SLIDE_WINDOW_MS = 200;
+const SLIDE_SPEED = 32;
+const SLIDE_MS = 450;
+const RELOAD_TACTICAL_MS = 1300;
+const RELOAD_EMPTY_MS = 1900;
 const FREE_RELOADS = 2;
 const MODULE_BULLETS_PER_MIN = 6;
 const SHOT_RECOIL_MISS = 21;
@@ -100,6 +110,17 @@ const DEFS = {
 };
 
 const STAR = { rhythmMax: 100, barrageMs: 1100, barrageStepMs: 100, rafagaRange: 5, rafagaWidth: 1.8, rafagaStun: 900, rafagaPush: 3, rafagaEndStun: 1500, rafagaEndPush: 9, rafagaGain: 1.5, stellarRange: 24, stellarWidth: 0.9, stellarWind: 400, stellarStun: 1300, stellarPush: 10, stellarGain: 12, catchMs: 300, catchRange: 8, catchWidth: 1.5, catchStun: 1800, catchPush: 13, throwMin: 7, throwMax: 28, throwRagMin: 800, throwRagMax: 2400, catchGain: 20, catchFailLag: 500, pauseRange: 11, pauseStun: 1500, pauseCost: 50, rhythmStun: 0.006, reactCost: 30, reactStun: 1100, reactRange: 7, reactPush: 7, reactCd: 8000, cd: { rafaga: 6500, stellar: 9000, atrapar: 9000, pausa: 5000 } };
+
+function resetMatch(room) {
+  const mine = new Set(Object.values(room.gameState.entities));
+  domes = domes.filter((d) => !mine.has(d.owner));
+  for (const e of mine) {
+    e.sup = null;
+    e.hitScale = 1;
+    e.ntf = null;
+    e.kbSoft = false;
+  }
+}
 
 function grant(entity, id) {
   if (!DEFS[id]) {
@@ -289,6 +310,16 @@ function tick(room, now) {
       s.taxIm = Math.max(0, s.taxIm - 1);
       s.taxAt = now;
     }
+    if (s && s.id === 'sunat_paperwork' && !e.down && !e.gone && !e.corpse) {
+      if (!s.padAt) s.padAt = now + PAD_EVERY_MS;
+      if (now >= s.padAt && (s.padN || 0) < PAD_MAX && !Status.blocksSkills(e, now)) {
+        s.padAt = now + PAD_EVERY_MS;
+        s.padN = (s.padN || 0) + 1;
+        Status.apply(e, 'slow', PAD_LAG_MS, now, { tag: 'endlag', level: 3 });
+        tax(e, PAD_RE, PAD_IM, now);
+        room.broadcast('super_result', { playerId: Object.keys(room.gameState.entities).find((k) => room.gameState.entities[k] === e), mode: 'sunat_tramite', x: e.x, y: e.y || 0, z: e.z });
+      }
+    }
     if (!e.ntf) continue;
     if (e.ntf.until > now) {
       continue;
@@ -308,7 +339,7 @@ function view(entity, now) {
   const s = entity.sup;
   if (!s) return null;
   if (s.id === 'town_level') {
-    return { id: s.id, mana: Math.floor(s.mana), manaMax: MANA_MAX, shield: Math.floor(s.shield), shieldMax: SHIELD_MAX, charging: s.charging, ammo: s.ammo, ammoMax: s.ammoMax, freeReloads: s.freeReloads, charge: Math.round(s.chMana), chargeMax: CHARGE_MAX_MANA, cd: { bayoneta: Math.max(0, s.cd.bayoneta - now), barrera: Math.max(0, s.cd.barrera - now), senuelo: Math.max(0, s.cd.senuelo - now) }, glide: s.glide };
+    return { id: s.id, mana: Math.floor(s.mana), manaMax: MANA_MAX, shield: Math.floor(s.shield), shieldMax: SHIELD_MAX, charging: s.charging, ammo: s.ammo, ammoMax: s.ammoMax, reload: s.reload ? Math.max(0, s.reload.until - now) : 0, reloadMax: s.reload ? s.reload.until - s.reload.at : 0, freeReloads: s.freeReloads, charge: Math.round(s.chMana), chargeMax: CHARGE_MAX_MANA, cd: { bayoneta: Math.max(0, s.cd.bayoneta - now), barrera: Math.max(0, s.cd.barrera - now), senuelo: Math.max(0, s.cd.senuelo - now) }, glide: s.glide };
   }
   if (s.id === 'minceraft') return { id: s.id, used: s.used, max: MC.max, mining: s.mining ? Math.max(0, s.mining.until - now) : 0 };
   if (s.id === 'platinum_star') {
@@ -403,12 +434,15 @@ function useTown(room, playerId, entity, mode, now) {
   const s = entity.sup;
   if (now < s.nextAt) return false;
   if (mode === 'carga') {
+    if (s.reload) return false;
     if (s.charging) { s.charging = false; return true; }
-    if (s.ammo <= 0 && s.freeReloads > 0) {
-      s.freeReloads -= 1;
-      s.ammo = s.ammoMax;
+    if (s.ammo < s.ammoMax + (s.ammo > 0 ? 1 : 0) && s.freeReloads > 0 && !Status.blocksSkills(entity, now)) {
+      const tactical = s.ammo > 0;
+      const ms = tactical ? RELOAD_TACTICAL_MS : RELOAD_EMPTY_MS;
+      s.reload = { until: now + ms, tactical, at: now };
       s.nextAt = now + USE_GAP_MS;
-      room.broadcast('super_result', { playerId, mode: 'recarga', x: entity.x, y: entity.y || 0, z: entity.z });
+      Status.apply(entity, 'slow', ms, now, { level: 1 });
+      room.broadcast('super_result', { playerId, mode: 'recarga_inicio', x: entity.x, y: entity.y || 0, z: entity.z, dur: ms, tactical });
       return true;
     }
     if (s.mana < CHARGE_RATE) return false;
@@ -417,6 +451,10 @@ function useTown(room, playerId, entity, mode, now) {
     return true;
   }
   if (Status.blocksSkills(entity, now)) return false;
+  if (s.reload && mode !== 'bayoneta') {
+    s.reload = null;
+    Status.clear && Status.clear(entity, 'slow');
+  }
   const fx = entity.faceX || 0;
   const fz = entity.faceZ || 1;
   const flen = Math.hypot(fx, fz) || 1;
@@ -443,7 +481,7 @@ function useTown(room, playerId, entity, mode, now) {
         fxp.radius = STAB_RANGE;
         ok = true;
       } else {
-        if (s.ammo <= 0) {
+        if (s.ammo <= 0 || s.reload) {
           shotBlocked = true;
           return;
         }
@@ -494,6 +532,7 @@ function useTown(room, playerId, entity, mode, now) {
     }
   } else if (mode === 'barrera') {
     if (now < s.cd.barrera) return false;
+    s.slide = { aimUntil: now + SLIDE_WINDOW_MS, dx: nx, dz: nz, started: false };
     s.dome = now + DOME_MS;
     fxp.radius = DOME_RADIUS;
     s.domeOn = true;
@@ -531,6 +570,13 @@ function tickTown(room, now) {
       }
     }
     s.lastFlo = e.flojera;
+    if (s.reload && now >= s.reload.until) {
+      s.ammo = s.reload.tactical ? s.ammoMax + 1 : s.ammoMax;
+      s.freeReloads = Math.max(0, s.freeReloads - 1);
+      s.reload = null;
+      room.broadcast('super_result', { playerId: id, mode: 'recarga', x: e.x, y: e.y || 0, z: e.z });
+    }
+    if (s.reload && (e.down || Status.blocksSkills(e, now))) s.reload = null;
     if (s.charging) {
       if (now - s.chAt >= 1000 && s.mana >= CHARGE_RATE && s.chMana < CHARGE_MAX_MANA) {
         s.chAt = now;
@@ -542,6 +588,26 @@ function tickTown(room, now) {
       if (s.mana < CHARGE_RATE || s.chMana >= CHARGE_MAX_MANA) s.charging = false;
     } else if (s.chMana > 0 && !s.chPush && !s.chStun) {
       s.chMana = 0;
+    }
+    if (s.slide) {
+      const sl = s.slide;
+      if (now < sl.aimUntil) {
+        const mx = e.input ? e.input.moveX : 0;
+        const mz = e.input ? e.input.moveZ : 0;
+        const ml = Math.hypot(mx, mz);
+        if (ml > 0.1) {
+          sl.dx = mx / ml;
+          sl.dz = mz / ml;
+        }
+      } else if (!sl.started) {
+        sl.started = true;
+        if (!Status.blocksMove(e, now)) {
+          Status.push(e, sl.dx, sl.dz, SLIDE_SPEED, SLIDE_MS, now, { boss: true });
+          e.kbSoft = true;
+          room.broadcast('super_result', { playerId: id, mode: 'deslizar', x: e.x, y: e.y || 0, z: e.z, dx: sl.dx, dz: sl.dz });
+        }
+        s.slide = null;
+      }
     }
     if (s.shield > 0) {
       if (!s.shieldAt) s.shieldAt = now;
@@ -730,12 +796,16 @@ function tickStar(room, now) {
 const MC = {
   max: 64, life: 12000, cell: 1, gap: 300, endlag: 250, mineMs: 400, mineRange: 4.2, range: 7, size: 1, jumpV: 7.3, climbV: 4.2, fallSlow: 1.8,
   w: { andamio: 1, telarana: 1, slime: 2, redstone: 2, piston: 3, polvo: 1, tnt: 4, miel: 2 },
-  pistonPush: 14, pistonLen: 1.8, pistonStun: 350, tntFuse: 1400, tntR: 3.6, tntPush: 13, tntUp: 6.5, tntStun: 900, honeyLevel: 3, honeyFall: 1.4,
+  pistonPush: 14, pistonLen: 1.8, pistonStun: 350, pistonLife: 6000, pistonPlaneV: 13, pistonMax: 5, tntDmg: 6, tntBossDmg: 150000, tntRagMs: 1300, tntFuse: 1400, tntR: 3.6, tntPush: 13, tntUp: 6.5, tntStun: 900, honeyLevel: 3, honeyFall: 1.4,
   webSlow: 2, slimeV: 11, chainStep: 200, chainReach: 1.1, redstoneReach: 2.1, redstoneR: 2.6, redstoneStun: 600, chainCool: 1500, pieceLimit: 160,
 };
 
+function mcLife(d) {
+  return d.life || MC.life;
+}
+
 function mcStage(d, now) {
-  return Math.min(2, Math.floor(((now - d.born) / MC.life) * 3));
+  return Math.min(2, Math.floor(((now - d.born) / mcLife(d)) * 3));
 }
 
 function mcBase(room, x, z, y) {
@@ -746,25 +816,38 @@ function mcSnap(v) {
   return Math.round(v / MC.cell) * MC.cell;
 }
 
+const MC_CONDUCT = new Set(['polvo', 'redstone']);
+const MC_CONSUME = new Set(['piston', 'tnt', 'redstone']);
+
+function mcAdjacent(a, b) {
+  const dx = Math.abs(a.x - b.x);
+  const dz = Math.abs(a.z - b.z);
+  const dy = Math.abs(a.y0 - b.y0);
+  if (dx + dz > 1.15) return false;
+  if (dx + dz < 0.5) return dy > 0.5 && dy <= 1.1;
+  return dy <= 1.1;
+}
+
 function mcChain(room, d, now) {
   const dyn = room.gameState.dyn;
   const seen = new Set([d.id]);
   let frontier = [d];
   let hop = 0;
-  while (frontier.length && hop < 12) {
+  while (frontier.length && hop < 16) {
     hop += 1;
     const next = [];
     for (const f of frontier) {
+      if (f !== d && !MC_CONDUCT.has(f.kind)) continue;
       for (const o of dyn) {
         if (seen.has(o.id) || o.owner !== d.owner) continue;
-        if (Math.hypot(o.x - f.x, o.z - f.z) > (f.kind === 'redstone' || o.kind === 'redstone' || f.kind === 'polvo' || o.kind === 'polvo' ? MC.redstoneReach : MC.chainReach) || Math.abs(o.y0 - f.y0) > 1.2) continue;
+        if (!MC_CONDUCT.has(o.kind) && !MC_CONSUME.has(o.kind)) continue;
+        if (!mcAdjacent(f, o)) continue;
         seen.add(o.id);
-        next.push(o);
+        if (now < (o.cool || 0)) continue;
         o.pw = true;
-        if (now >= (o.cool || 0)) {
-          o.pulse = now + hop * MC.chainStep;
-          o.cool = o.pulse + MC.chainCool;
-        }
+        o.pulse = now + hop * MC.chainStep;
+        o.cool = o.pulse + MC.chainCool;
+        next.push(o);
       }
     }
     frontier = next;
@@ -828,13 +911,14 @@ function mcPlan(room, playerId, entity, mode, now) {
     else ok = false;
   }
   if (mode === 'piston') {
-    if (Math.abs(adx) >= Math.abs(adz)) {
-      piece.dx = adx >= 0 ? 1 : -1;
-      piece.dz = 0;
-    } else {
-      piece.dx = 0;
-      piece.dz = adz >= 0 ? 1 : -1;
-    }
+    const ny = aimY(entity, now);
+    piece.life = MC.pistonLife;
+    piece.dx = 0;
+    piece.dz = 0;
+    piece.dy = 0;
+    if (Math.abs(ny) > 0.75) piece.dy = ny > 0 ? 1 : -1;
+    else if (Math.abs(adx) >= Math.abs(adz)) piece.dx = adx >= 0 ? 1 : -1;
+    else piece.dz = adz >= 0 ? 1 : -1;
   }
   for (const o of gs.dyn) {
     if (inCell(o) && Math.abs(o.y0 - piece.y0) < 0.1) ok = false;
@@ -901,7 +985,6 @@ function useMine(room, playerId, entity, mode, now) {
   s.nextAt = now + MC.gap;
   Status.apply(entity, 'slow', MC.endlag, now, { tag: 'endlag', level: 1 });
   room.broadcast('super_result', { playerId, mode, x: piece.x, y: piece.y0, z: piece.z, radius: piece.r, boxes, used: s.used });
-  mcActivate(room, piece, now);
   return true;
 }
 
@@ -914,11 +997,97 @@ function mcRemove(room, d) {
   for (const o of gs.dyn.slice()) if (o.sup === d.id) mcRemove(room, o);
 }
 
+function mcPistonFire(room, d, stage, now) {
+  const gs = room.gameState;
+  const dx = d.dx || 0;
+  const dz = d.dz || 0;
+  const dy = d.dy || 0;
+  const len = MC.pistonLen;
+  for (const [pid, e] of Object.entries(gs.entities)) {
+    if (e.down || e.gone || e.corpse) continue;
+    const ey = e.y || 0;
+    let inside = false;
+    if (dy) {
+      const along = dy > 0 ? ey - (d.y0 + d.h) : d.y0 - (ey + 1.6);
+      inside = Math.abs(e.x - d.x) <= 0.95 && Math.abs(e.z - d.z) <= 0.95 && along > -0.6 && along < len;
+    } else {
+      const cx = d.x + dx * (0.5 + len / 2);
+      const cz = d.z + dz * (0.5 + len / 2);
+      const along = (e.x - cx) * dx + (e.z - cz) * dz;
+      const side = Math.abs((e.x - cx) * dz) + Math.abs((e.z - cz) * dx);
+      inside = Math.abs(along) <= len / 2 + 0.3 && side <= 0.95 && ey >= d.y0 - 0.6 && ey <= d.y0 + 1.8;
+    }
+    if (!inside) continue;
+    const pl = room.players.get(pid);
+    const asymE = Boolean(pl && (pl.isAsymRole || pl.isBoss));
+    if (asymE) room.stun(pid, e, MC.pistonStun - stage * 80, now, 0);
+    if (dy) {
+      e.velocityY = dy * MC.pistonPlaneV;
+      e.onGround = false;
+      e.peakY = e.y;
+    } else {
+      Status.push(e, dx, dz, MC.pistonPush, 320, now);
+      if (e.onGround) {
+        e.velocityY = 3;
+        e.onGround = false;
+      }
+    }
+  }
+  const sameCell = (o, x, z) => Math.abs(o.x - x) < 0.1 && Math.abs(o.z - z) < 0.1;
+  const at = (x, z, y0) => gs.dyn.find((o) => o !== d && sameCell(o, x, z) && Math.abs(o.y0 - y0) < 0.6 && o.solid);
+  const moved = [];
+  let cx = d.x + dx;
+  let cz = d.z + dz;
+  let cy = dy > 0 ? d.y0 + d.h : dy < 0 ? d.y0 - 1 : d.y0;
+  let freeAt = null;
+  for (let k = 0; k < MC.pistonMax + 1; k++) {
+    const hit = at(cx, cz, cy);
+    if (!hit) {
+      freeAt = k;
+      break;
+    }
+    moved.push(hit);
+    cx += dx;
+    cz += dz;
+    cy += dy;
+  }
+  if (freeAt !== null && moved.length) {
+    const set = new Set(moved);
+    const addDependents = (p) => {
+      for (const o of gs.dyn) {
+        if (set.has(o) || o === d) continue;
+        if (o.sup === p.id || (sameCell(o, p.x, p.z) && Math.abs(o.y0 - (p.y0 + p.h)) < 0.15 && !(dy < 0))) {
+          set.add(o);
+          addDependents(o);
+        }
+      }
+    };
+    for (const p of moved.slice()) addDependents(p);
+    const lim = room.gameState.halfSize || 60;
+    let ok = true;
+    for (const p of set) {
+      const nx = p.x + dx;
+      const nz = p.z + dz;
+      if (Math.abs(nx) > lim || Math.abs(nz) > lim || p.y0 + dy < -0.01) ok = false;
+    }
+    if (ok) {
+      for (const p of set) {
+        p.x += dx;
+        p.z += dz;
+        p.y0 += dy;
+      }
+      gs.dynVer += 1;
+    }
+  }
+  room.broadcast('super_result', { playerId: d.owner, mode: 'piston_golpe', x: d.x + dx, y: d.y0 + 0.5 + dy, z: d.z + dz });
+}
+
 function mcExplode(room, d, now) {
   const gs = room.gameState;
   const stage = mcStage(d, now);
   const cy = d.y0 + 0.5;
   let hit = 0;
+  let dmgDone = false;
   for (const [pid, e] of Object.entries(gs.entities)) {
     if (e.down || e.gone || e.corpse) continue;
     const dx = e.x - d.x;
@@ -926,13 +1095,25 @@ function mcExplode(room, d, now) {
     const dist = Math.hypot(dx, dz);
     if (dist > MC.tntR || Math.abs((e.y || 0) + 0.9 - cy) > 3) continue;
     const k = 1 - Math.min(1, dist / MC.tntR) * 0.5;
-    const asymE = Boolean(room.players.get(pid) && (room.players.get(pid).isAsymRole || room.players.get(pid).isBoss));
+    const pl = room.players.get(pid);
+    const isBoss = Boolean(pl && pl.isBoss);
+    const asymE = Boolean(pl && (pl.isAsymRole || isBoss));
+    const near = dist < 1.6 ? 1.3 : 1;
     if (asymE) {
       room.stun(pid, e, MC.tntStun - stage * 150, now, 0);
       hit += 1;
+      if (isBoss) {
+        const Boss = require('./Boss');
+        Boss.tntHit(room, MC.tntBossDmg);
+      } else if (!dmgDone) {
+        dmgDone = true;
+        room.adjustCuratorHp(-MC.tntDmg);
+        room.checkGameEndConditions();
+      }
     }
-    Status.push(e, dx / (dist || 1), dz / (dist || 1), MC.tntPush * k, 350, now);
-    e.velocityY = Math.max(e.velocityY || 0, MC.tntUp * k);
+    Status.push(e, dx / (dist || 1), dz / (dist || 1), MC.tntPush * k * near, 380, now);
+    if (!isBoss) room.ragdoll(pid, e, MC.tntRagMs, now);
+    e.velocityY = Math.max(e.velocityY || 0, MC.tntUp * k * near);
     e.onGround = false;
     e.peakY = e.y;
   }
@@ -954,7 +1135,7 @@ function tickMine(room, now) {
     if (!sp || sp.id !== 'minceraft') continue;
     if (sp.prev && sp.prev.until > now) {
       const pl = mcPlan(room, pid, e, sp.prev.mode, now);
-      sp.pv = pl ? { k: pl.piece.kind, x: pl.piece.x, z: pl.piece.z, y: Math.round(pl.piece.y0 * 100) / 100, hx: pl.piece.hx, hz: pl.piece.hz, h: pl.piece.h, r: pl.piece.ramp || undefined, ra: pl.piece.r || undefined, ok: pl.ok ? 1 : 0 } : null;
+      sp.pv = pl ? { k: pl.piece.kind, x: pl.piece.x, z: pl.piece.z, y: Math.round(pl.piece.y0 * 100) / 100, hx: pl.piece.hx, hz: pl.piece.hz, h: pl.piece.h, r: pl.piece.ramp || undefined, ra: pl.piece.r || undefined, ok: pl.ok ? 1 : 0, dx: pl.piece.dx, dz: pl.piece.dz, dy: pl.piece.dy } : null;
     } else sp.pv = null;
   }
   if (!gs.dyn || !gs.dyn.length) {
@@ -978,7 +1159,7 @@ function tickMine(room, now) {
     if (e && (p.isAsymRole || p.isBoss)) asym.push(e);
   }
   for (const d of gs.dyn.slice()) {
-    if (now - d.born >= MC.life) {
+    if (now - d.born >= mcLife(d)) {
       mcRemove(room, d);
       continue;
     }
@@ -993,7 +1174,8 @@ function tickMine(room, now) {
         Status.apply(e, 'slow', 400, now, { level: Math.min(3, slow) });
         if (now >= (d.cool || 0)) mcActivate(room, d, now);
       }
-    } else if (d.kind === 'redstone' && fire) {
+    } else if (d.kind === 'redstone' && fire && d.pw) {
+      d.pw = false;
       let hit = 0;
       for (const e of asym) {
         if (e.down || e.gone || e.corpse) continue;
@@ -1020,22 +1202,7 @@ function tickMine(room, now) {
       if (fire && d.pw) {
         d.pw = false;
         d.ext = now + 450;
-        const cx = d.x + d.dx * (0.5 + MC.pistonLen / 2);
-        const cz = d.z + d.dz * (0.5 + MC.pistonLen / 2);
-        for (const [pid, e] of Object.entries(gs.entities)) {
-          if (e.down || e.gone || e.corpse) continue;
-          const along = (e.x - cx) * d.dx + (e.z - cz) * d.dz;
-          const side = Math.abs((e.x - cx) * d.dz) + Math.abs((e.z - cz) * d.dx);
-          if (Math.abs(along) > MC.pistonLen / 2 + 0.3 || side > 0.95 || (e.y || 0) < d.y0 - 0.6 || (e.y || 0) > d.y0 + 1.8) continue;
-          const asymE = Boolean(room.players.get(pid) && (room.players.get(pid).isAsymRole || room.players.get(pid).isBoss));
-          if (asymE) room.stun(pid, e, MC.pistonStun - stage * 80, now, 0);
-          Status.push(e, d.dx, d.dz, MC.pistonPush, 320, now);
-          if (e.onGround) {
-            e.velocityY = 3;
-            e.onGround = false;
-          }
-        }
-        room.broadcast('super_result', { playerId: d.owner, mode: 'piston_golpe', x: d.x + d.dx, y: d.y0 + 0.5, z: d.z + d.dz });
+        mcPistonFire(room, d, stage, now);
       } else if (fire) d.pw = false;
     } else if (d.kind === 'polvo') {
       for (const e of asym) {
@@ -1056,7 +1223,7 @@ function tickMine(room, now) {
         if (!e.onGround && e.velocityY < -MC.honeyFall) e.velocityY = -MC.honeyFall;
         if (now >= (d.cool || 0)) mcActivate(room, d, now);
       }
-    } else if (d.kind === 'andamio' && !d.pulse) {
+    } else if (d.kind === 'andamio' && now >= (d.cool || 0)) {
       for (const e of Object.values(gs.entities)) {
         if (e.onGround && Math.abs(e.x - d.x) <= d.hx && Math.abs(e.z - d.z) <= d.hz && Math.abs((e.y || 0) - (d.y0 + d.h)) < 0.2) {
           mcActivate(room, d, now);
@@ -1068,7 +1235,7 @@ function tickMine(room, now) {
 }
 
 function minceraftView(room, now) {
-  return (room.gameState.dyn || []).map((d) => ({ id: d.id, k: d.kind, x: d.x, z: d.z, y: Math.round(d.y0 * 100) / 100, hx: d.hx, hz: d.hz, h: d.h, r: d.ramp || undefined, o: d.owner, st: mcStage(d, now), lit: d.pulse && now - d.pulse < 400 ? 1 : undefined, ra: d.r || undefined, dx: d.dx, dz: d.dz, ex: d.ext && d.ext > now ? 1 : undefined, fz: d.fuse ? Math.max(0, d.fuse - now) : undefined, ow: d.oneway ? 1 : undefined }));
+  return (room.gameState.dyn || []).map((d) => ({ id: d.id, k: d.kind, x: d.x, z: d.z, y: Math.round(d.y0 * 100) / 100, hx: d.hx, hz: d.hz, h: d.h, r: d.ramp || undefined, o: d.owner, st: mcStage(d, now), lit: d.pulse && now - d.pulse < 400 ? 1 : undefined, ra: d.r || undefined, dx: d.dx, dz: d.dz, dy: d.dy, ex: d.ext && d.ext > now ? 1 : undefined, fz: d.fuse ? Math.max(0, d.fuse - now) : undefined, ow: d.oneway ? 1 : undefined }));
 }
 
 function glide(room, entity, now, dt) {
@@ -1129,4 +1296,5 @@ function glide(room, entity, now, dt) {
   return false;
 }
 
-module.exports = { minceraftView, climb, MC, onStunned, evade, speedBonus, tax, DEFS, wpnActive: (e, now) => Boolean(e.sup && e.sup.wpnUntil > now), grant, use, claim, tick, view, gainMana, onModule, miss, withSource, scaleStun, scalePush, absorbHeal, domeBlocks, glide, domeRadius: DOME_RADIUS };
+module.exports = {
+  resetMatch, minceraftView, climb, MC, onStunned, evade, speedBonus, tax, DEFS, wpnActive: (e, now) => Boolean(e.sup && e.sup.wpnUntil > now), grant, use, claim, tick, view, gainMana, onModule, miss, withSource, scaleStun, scalePush, absorbHeal, domeBlocks, glide, domeRadius: DOME_RADIUS };

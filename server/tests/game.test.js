@@ -1936,10 +1936,32 @@ test('Town Level: disparo gasta balas, sin balas solo estocada y carga recarga g
   assert.strictEqual(s.ammo, 0);
   now += 20000;
   assert.ok(SA.use(room, 'a', 'carga', now));
+  assert.ok(s.reload);
+  assert.strictEqual(s.ammo, 0);
+  assert.ok(!SA.use(room, 'a', 'bayoneta', now + 100) || s.ammo === 0);
+  SA.tick(room, now + 2000);
+  assert.strictEqual(s.reload, null);
   assert.strictEqual(s.ammo, 8);
   assert.strictEqual(s.freeReloads, 1);
+  now += 25000;
+  s.ammo = 3;
+  assert.ok(SA.use(room, 'a', 'carga', now));
+  assert.strictEqual(s.reload.tactical, true);
+  assert.strictEqual(s.reload.until - now, 1300);
+  SA.tick(room, now + 1400);
+  assert.strictEqual(s.ammo, 9);
   SA.onModule(e.a);
-  assert.strictEqual(s.ammo, 8);
+  assert.strictEqual(s.ammo, 9);
+});
+
+test('Emotes: se pueden repetir tras terminar el anterior', () => {
+  const { room, e } = setup();
+  const now = Date.now() + 1000;
+  assert.ok(room.startEmote('a', e.a, 'ya_pues', now));
+  assert.ok(!room.startEmote('a', e.a, 'ya_pues', now + 500));
+  assert.ok(room.startEmote('a', e.a, 'ni_idea', now + 2000 + 2500 + 100));
+  assert.ok(room.startEmote('a', e.a, 'yo_me_encargo', now + 20000));
+  assert.ok(room.startEmote('a', e.a, 'fue_el', now + 40000));
 });
 
 test('Town Level: disparo hacia abajo impulsa arriba y el encadenado en el aire gasta de más', () => {
@@ -2135,4 +2157,22 @@ test('Minceraft: andamio atravesable, pistón empuja, TNT explota, polvo exige b
   SA.tick(room, tnt.fuse + 3050);
   assert.ok(pis.ext > 0);
   assert.ok(c.kbX !== 0 || c.kbZ !== 0 || c.velocityY > 0, String(before));
+});
+
+test('Reinicio entre partidas: los recursos de las súper-habilidades no se arrastran', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('a', 'super:town_level');
+  assert.ok(e.a.sup && e.a.hitScale < 1);
+  e.a.sup.ammo = 1;
+  e.a.sup.mana = 50;
+  room.initGameState();
+  assert.strictEqual(e.a.sup, null);
+  assert.strictEqual(e.a.hitScale, 1);
+  room.selectRole('a', 'super:town_level');
+  const first = e.a.hitScale;
+  room.initGameState();
+  room.selectRole('a', 'super:town_level');
+  assert.strictEqual(e.a.hitScale, first);
+  assert.strictEqual(e.a.sup.ammo, e.a.sup.ammoMax);
 });

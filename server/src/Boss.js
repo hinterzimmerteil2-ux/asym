@@ -693,6 +693,14 @@ function hurt(room, owner, win, now) {
   if (boss.hp <= 0) defeat(room, bossId, boss);
 }
 
+function tntHit(room, amount) {
+  if (!room.bossActive) return;
+  const [bossId, boss] = bossEntry(room);
+  if (!boss || boss.down) return;
+  boss.hp = Math.max(0, boss.hp - amount);
+  if (boss.hp <= 0) defeat(room, bossId, boss);
+}
+
 function strike(room, bossId, now) {
   const entity = room.gameState.entities[bossId];
   if (!entity || entity.down || Status.blocksSkills(entity, now) || entity.tpAt) return;
@@ -848,6 +856,7 @@ function checkEnd(room) {
 }
 
 module.exports = {
+  tntHit,
   freeSpot,
   BOSS_DURATION_MS,
   BOSS_EVERY,

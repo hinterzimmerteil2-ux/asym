@@ -667,4 +667,6 @@ export const PIE = {
   665: 'BULLETS',
   666: 'RELOADS',
   680: 'léǵʰes kʷe kʷótis',
+  681: 'peh₂-leh₂-tós',
+  682: 'kʷetu̯ér-tis',
 };

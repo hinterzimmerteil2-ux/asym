@@ -144,7 +144,7 @@ const EMOTES = {
   fue_el: 1800, schadenfreude: 2200, costenas: 2600, su_majestad: 1800,
   ya_pues: 2000, ni_me_mires: 2000, ni_idea: 1400, yo_me_encargo: 1800, pulso: 1800,
 };
-const EMOTE_COOLDOWN_MS = 7000;
+const EMOTE_COOLDOWN_MS = 2500;
 const FIELD_KINDS = new Set(['herbs', 'drip', 'gas', 'rootshot', 'dart', 'gurney']);
 const LMS_GIMMICKS = ['adrenalina', 'reflejos', 'escudo', 'codicia'];
 
@@ -1360,6 +1360,12 @@ class Room {
       entity.fx = {};
       entity.corpse = false;
       entity.gone = false;
+      entity.sup = null;
+      entity.hitScale = 1;
+      entity.ntf = null;
+      entity.emote = null;
+      entity.emoteCdUntil = 0;
+      entity.kbSoft = false;
       this.gameState.ghosts = {};
       entity.hand = player.isAsymRole || player.isBoss ? [] : Cards.dealSlots(GameMap.getCustomCards(this.mapId));
       entity.role = null;
@@ -1378,6 +1384,7 @@ class Room {
     this.gameState.zones = [];
     this.gameState.dyn = [];
     this.gameState.dynVer += 1;
+    SuperAbilities.resetMatch(this);
     for (const sr of GameMap.resolveSerums(this.mapId, GameMap.areaFor(this.mapId))) {
       this.gameState.zones.push({ id: `sr_${sr.id}`, kind: 'serum', x: sr.x, z: sr.z, y: sr.y, radius: SERUM_RADIUS, ownerId: null, until: Infinity, activeUntil: Date.now() + SERUM_ACTIVE_MS, armedAt: undefined });
     }
@@ -2481,6 +2488,7 @@ class Room {
   startEmote(playerId, entity, emoteId, now) {
     const ms = EMOTES[emoteId];
     const player = this.players.get(playerId);
+    if (entity.emote && now >= entity.emote.until) entity.emote = null;
     if (!ms || !player || entity.emote) return false;
     if (emoteId === 'pulso' && !player.isAsymRole) return false;
     const patient = this.gameState.patients[playerId];
@@ -2499,6 +2507,7 @@ class Room {
     mind.pressAt = now;
     const near = dist < 6;
     mind.pressure = Math.max(0, Math.min(1.5, (mind.pressure || 0) + (near ? (1 - dist / 6) * 0.5 : -0.25) * dt));
+    if (entity.emote && now >= entity.emote.until) entity.emote = null;
     if (entity.emote || now < (entity.emoteCdUntil || 0) || now < (player.nextEmoteTry || 0)) return;
     player.nextEmoteTry = now + 700;
     const calm = dist > 12 && mind.confidence > 0.6 && Math.random() < 0.012;
@@ -4023,6 +4032,9 @@ class Room {
     this.gameState.frozen = false;
     this.gameState.patients = {};
     this.gameState.zones = [];
+    this.gameState.dyn = [];
+    this.gameState.dynVer += 1;
+    SuperAbilities.resetMatch(this);
     this.tutorial = false;
     this.clearSecondCurator();
     this.restoreMap();
