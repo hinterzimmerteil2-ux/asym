@@ -606,6 +606,7 @@ function tickTown(room, now) {
           e.kbSoft = true;
           room.broadcast('super_result', { playerId: id, mode: 'deslizar', x: e.x, y: e.y || 0, z: e.z, dx: sl.dx, dz: sl.dz });
         }
+        s.slideUntil = now + SLIDE_MS;
         s.slide = null;
       }
     }

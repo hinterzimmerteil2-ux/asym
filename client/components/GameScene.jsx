@@ -1586,7 +1586,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
   const rig = useRef({});
   const headRef = useRef();
   const emo = useRef({ id: null, start: 0 });
-  const walk = useRef({ phase: 0, amp: 0, px: entityState.x, pz: entityState.z, py: entityState.y, air: 0, t: 0 });
+  const walk = useRef({ slide: 0, rel: 0, phase: 0, amp: 0, px: entityState.x, pz: entityState.z, py: entityState.y, air: 0, t: 0 });
   const targetPos = useRef([entityState.x, entityState.y, entityState.z]);
 
   const lead = useRef({ t: 0, x: entityState.x, z: entityState.z, vx: 0, vz: 0 });
@@ -1788,9 +1788,28 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         laz = -0.5;
         raz = 0.5;
       }
+      const tl = walk.current;
+      tl.slide += ((entityState.tla === 2 ? 1 : 0) - tl.slide) * Math.min(1, delta * 14);
+      tl.rel += ((entityState.tla === 1 ? 1 : 0) - tl.rel) * Math.min(1, delta * 10);
+      if (tl.rel > 0.01) {
+        const rk = tl.rel;
+        const mag = Math.sin(w.t * 9) * 0.12;
+        const worn = (v, to) => v + (to - v) * rk;
+        lax = worn(lax, -1.0 + mag);
+        rax = worn(rax, -1.35);
+        laz = worn(laz, -0.25);
+        raz = worn(raz, 0.2);
+      }
+      if (tl.slide > 0.01) {
+        const sk = tl.slide;
+        lax = lax + (-1.7 - lax) * sk;
+        rax = rax + (-1.7 - rax) * sk;
+        laz = laz + (-0.5 - laz) * sk;
+        raz = raz + (0.5 - raz) * sk;
+      }
       if (r6.legL) {
-        const lLeg = swing * 1.1 + 0.5 * w.air;
-        const rLeg = stompLeg !== null ? stompLeg : -swing * 1.1 - 0.3 * w.air;
+        const lLeg = swing * 1.1 + 0.5 * w.air - tl.slide * 0.9;
+        const rLeg = stompLeg !== null ? stompLeg : -swing * 1.1 - 0.3 * w.air + tl.slide * 0.5;
         r6.legL.rotation.x = ep ? mix(lLeg, ep.legL) : lLeg;
         r6.legR.rotation.x = ep ? mix(rLeg, ep.legR) : rLeg;
         r6.legL.rotation.z = ep ? mix(0, ep.lz) : 0;
@@ -1799,6 +1818,14 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         r6.armR.rotation.x = ep ? mix(rax, ep.rax) : rax;
         r6.armL.rotation.z = ep ? mix(laz, ep.laz) : laz;
         r6.armR.rotation.z = ep ? mix(raz, ep.raz) : raz;
+      }
+      const sm = w.sm || (w.sm = {});
+      const kk = Math.min(1, delta * 22);
+      const sm1 = (k, o, prop) => { const v = o.rotation[prop]; const c = sm[k] === undefined ? v : sm[k] + (v - sm[k]) * kk; sm[k] = c; o.rotation[prop] = c; };
+      if (r6.legL) {
+        sm1('ll', r6.legL, 'x'); sm1('lr', r6.legR, 'x');
+        sm1('al', r6.armL, 'x'); sm1('ar', r6.armR, 'x');
+        sm1('alz', r6.armL, 'z'); sm1('arz', r6.armR, 'z');
       }
       if (headRef.current) headRef.current.rotation.set(ep ? mix(0, ep.hx) : 0, ep ? mix(0, ep.hy) : 0, ep ? mix(0, ep.hz) : 0);
       const showRag = Boolean(ragdoll && entityState.rag && entityState.rag.p);
@@ -1831,6 +1858,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         pitch = mix(pitch, ep.pitch === undefined ? pitch : pitch + ep.pitch);
         offY = mix(offY, ep.offY === undefined ? offY : offY + ep.offY);
       }
+      pitch += tl.slide * 0.35;
+      offY -= tl.slide * 0.18 + tl.rel * 0.06;
       body.rotation.order = 'YXZ';
       body.rotation.set(pitch, yaw.current + (ep && ep.yaw ? ep.yaw * ew : 0), ep && ep.roll ? ep.roll * ew : 0);
       body.position.set(Math.sin(yaw.current) * offF, offY, Math.cos(yaw.current) * offF);

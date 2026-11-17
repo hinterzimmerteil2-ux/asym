@@ -1751,6 +1751,7 @@ class Room {
         chg: entity.sup && entity.sup.charging ? 1 : undefined,
         dec: entity.sup && entity.sup.decoy ? { x: Math.round(entity.sup.decoy.x * 10) / 10, y: Math.round(entity.sup.decoy.y * 10) / 10, z: Math.round(entity.sup.decoy.z * 10) / 10 } : undefined,
         gld: entity.sup && entity.sup.glide ? 1 : undefined,
+        tla: entity.sup && entity.sup.id === 'town_level' ? (entity.sup.slideUntil > now ? 2 : entity.sup.reload ? 1 : undefined) : undefined,
         mcv: entity.sup && entity.sup.pv ? entity.sup.pv : undefined,
         psd: entity.sup && entity.sup.id === 'platinum_star' ? 1 : undefined,
         psa: entity.sup && entity.sup.id === 'platinum_star' ? (entity.sup.barrage ? 1 : entity.sup.poke ? 2 : entity.sup.grab ? 3 : entity.sup.poseUntil > now ? 4 : 0) || undefined : undefined,
