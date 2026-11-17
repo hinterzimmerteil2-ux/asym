@@ -153,7 +153,7 @@ function hexMix(a, b, t) {
 const SUPER_MODES = {
   sunat_paperwork: [['notificacion', 'Notificación'], ['vuelva', 'Vuelva mañana'], ['anulacion', 'Anulación']],
   platinum_star: [['rafaga', 'Ráfaga'], ['stellar', 'Stellar Finger'], ['atrapar', 'Lanzamiento'], ['pausa', 'Pose Fabulosa']],
-  minceraft: [['andamio', 'Andamio'], ['telarana', 'Telaraña'], ['slime', 'Slime'], ['redstone', 'Redstone'], ['piston', 'Pistón'], ['polvo', 'Polvo de redstone'], ['tnt', 'TNT'], ['miel', 'Miel'], ['minar', 'Pico']],
+  minceraft: [['andamio', 'Andamio'], ['telarana', 'Telaraña'], ['slime', 'Slime'], ['redstone', 'Redstone'], ['piston', 'Pistón'], ['polvo', 'Polvo de redstone'], ['tnt', 'TNT'], ['miel', 'Miel'], ['minar', 'Pico'], ['pegajoso', 'Pistón pegajoso']],
   town_level: [['bayoneta', 'Bayoneta'], ['barrera', 'Barrera'], ['senuelo', 'Señuelo'], ['carga', 'Carga']],
 };
 
@@ -1071,6 +1071,7 @@ export default function LobbyPage() {
       else if (supRef.current && keyMatches('sup7', e.code)) { if (!e.repeat) handleSuper(6); }
       else if (supRef.current && keyMatches('sup8', e.code)) { if (!e.repeat) handleSuper(7); }
       else if (supRef.current && keyMatches('sup9', e.code)) { if (!e.repeat) handleSuper(8); }
+      else if (supRef.current && keyMatches('sup10', e.code)) { if (!e.repeat) handleSuper(9); }
       else if (!supRef.current && keyMatches('card1', e.code)) { if (!e.repeat) handleUseCard(0); }
       else if (!supRef.current && keyMatches('card2', e.code)) { if (!e.repeat) handleUseCard(1); }
     }
@@ -1164,7 +1165,7 @@ export default function LobbyPage() {
   const dynPlatforms = useMemo(() => dyn.map((d) => {
     const base = ({ andamio: '#b98a4e', redstone: '#c0261f', slime: '#6fe05a', piston: '#8a8a8a', polvo: '#b01810', tnt: '#d4332a', miel: '#e8a020' })[d.k] || '#6fe05a';
     const c = hexMix(hexMix(base, '#2a2118', d.st * 0.28), '#ffffff', d.lit ? 0.45 : 0);
-    return { id: d.id, x: d.x, z: d.z, hx: d.hx, hz: d.hz, h: d.h, y0: d.y, ramp: d.r || null, kind: null, tint: c, mc: d.k, lit: d.lit, dx: d.dx, dz: d.dz, dy: d.dy, ex: d.ex, fz: d.fz };
+    return { id: d.id, x: d.x, z: d.z, hx: d.hx, hz: d.hz, h: d.h, y0: d.y, ramp: d.r || null, kind: null, tint: c, mc: d.k, lit: d.lit, dx: d.dx, dz: d.dz, dy: d.dy, sk: d.sk, ex: d.ex, fz: d.fz };
   }), [dyn]);
   const visiblePlatforms = useMemo(() => {
     const base = !hiddenPlatforms.length ? platforms : platforms.filter((p) => !new Set(hiddenPlatforms).has(p.id));
@@ -1740,7 +1741,7 @@ export default function LobbyPage() {
                   title={slot.chosen.description}
                 >
                   <SkillIcon id={flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : slot.chosen.id} size={34} />
-                  <span style={styles.skillKey}>{i + 1}</span>
+                  <span style={styles.skillKey}>{(i + 1) % 10}</span>
                   {onCooldown && (
                     <span style={styles.skillCooldownOverlay}>{Math.ceil((cooldownUntil - cardCooldownNow) / 1000)}</span>
                   )}
@@ -1758,13 +1759,13 @@ export default function LobbyPage() {
           <div style={sx(styles.handContainer, { top: 50, bottom: 'auto', right: 8, zIndex: 30 })}>
             {SUPER_MODES[flojera.sup.id].map(([m, label], i) => {
               const cd = (flojera.sup.cd || {})[m] || 0;
-              const need = flojera.sup.id === 'minceraft' ? ({ andamio: 1, telarana: 1, slime: 2, redstone: 2, piston: 3, polvo: 1, tnt: 4, miel: 2 })[m] : 0;
+              const need = flojera.sup.id === 'minceraft' ? ({ andamio: 1, telarana: 1, slime: 2, redstone: 2, piston: 3, pegajoso: 4, polvo: 1, tnt: 4, miel: 2 })[m] : 0;
               const full = need > 0 && flojera.sup.used + need > flojera.sup.max;
               const on = m === 'carga' && flojera.sup.charging;
               return (
                 <button key={m} type="button" disabled={cd > 0 || full} onClick={() => handleSuper(m)} style={{ ...styles.cardButton(cd > 0 || full), outline: on || mcSel === m ? '2px solid #ffd86b' : 'none' }} title={label}>
                   <SkillIcon id={`${flojera.sup.id === 'town_level' ? 'tl' : flojera.sup.id === 'minceraft' ? 'mc' : 'pst'}_${m}`} size={34} />
-                  <span style={styles.skillKey}>{i + 1}</span>
+                  <span style={styles.skillKey}>{(i + 1) % 10}</span>
                   {cd > 0 && <span style={styles.skillCooldownOverlay}>{Math.ceil(cd / 1000)}</span>}
                 </button>
               );

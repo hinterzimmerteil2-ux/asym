@@ -3552,7 +3552,7 @@ function PistonBlock({ p }) {
   return (
     <group position={[p.x, y0 + p.h / 2, p.z]} rotation={dy ? [-dy * Math.PI / 2, 0, 0] : [0, ang, 0]}>
       <mesh position={[0, 0, -0.1]}><boxGeometry args={[p.hx * 2, p.h, p.hz * 2 - 0.2]} /><meshStandardMaterial color="#8a8a8a" roughness={0.9} /></mesh>
-      <mesh position={[0, 0, p.hz - 0.1 + ext]}><boxGeometry args={[p.hx * 2, p.h, 0.2]} /><meshStandardMaterial color="#b98a4e" roughness={0.8} /></mesh>
+      <mesh position={[0, 0, p.hz - 0.1 + ext]}><boxGeometry args={[p.hx * 2, p.h, 0.2]} /><meshStandardMaterial color={p.sk ? '#6fe05a' : '#b98a4e'} roughness={p.sk ? 0.3 : 0.8} /></mesh>
       {p.ex ? <mesh position={[0, 0, p.hz + ext / 2]}><boxGeometry args={[0.18, 0.18, ext]} /><meshStandardMaterial color="#d9d9d9" roughness={0.5} /></mesh> : null}
       <mesh position={[0, 0, p.hz - 0.1 + ext + 0.12]}><boxGeometry args={[p.hx * 1.3, p.h * 0.5, 0.06]} /><meshStandardMaterial color="#6a6a6a" roughness={0.8} /></mesh>
     </group>

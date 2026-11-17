@@ -759,7 +759,7 @@ test('tutorial (sala con bot): vida normal y sin Desgracias', () => {
   room.award('a', 10, 'Antes');
   assert.strictEqual(room.gameState.desgracias.a.Antes, 10);
   room.phase = 'lobby';
-  room.addBot(room.hostId);
+  room.addBot(room.hostId, true);
   room.phase = 'action';
   room.award('a', 10, 'Con bot');
   assert.strictEqual(room.gameState.desgracias.a['Con bot'], undefined);
@@ -855,7 +855,7 @@ test('mapa vivo: una rampa se cae durante el evento y vuelve; permanente no vuel
   assert.deepStrictEqual(at(500), ['b1']);
 });
 
-test('mapas personalizados no dan Desgracias; el layout de un mapa se puede copiar', () => {
+test('mapas personalizados tambien dan Desgracias; el layout de un mapa se puede copiar', () => {
   const GameMap = require('../src/GameMap');
   GameMap.registerMap({ id: 'cust1', name: 'c', selfDamageObjects: [{ id: 's', xFrac: 0, zFrac: 0 }], collisionObjects: [] });
   const { room } = setup();
@@ -863,7 +863,7 @@ test('mapas personalizados no dan Desgracias; el layout de un mapa se puede copi
   assert.strictEqual(room.gameState.desgracias.a.Normal, 5);
   room.mapId = 'cust1';
   room.award('a', 5, 'Custom');
-  assert.strictEqual(room.gameState.desgracias.a.Custom, undefined);
+  assert.strictEqual(room.gameState.desgracias.a.Custom, 5);
   const copy = GameMap.getLayoutCopy('hospital');
   assert.ok(copy.platforms.length > 50 && copy.events.length >= 4 && copy.patientSpawns.length > 0);
   assert.strictEqual(GameMap.getLayoutCopy('nope'), null);
@@ -2175,4 +2175,50 @@ test('Reinicio entre partidas: los recursos de las súper-habilidades no se arra
   room.selectRole('a', 'super:town_level');
   assert.strictEqual(e.a.hitScale, first);
   assert.strictEqual(e.a.sup.ammo, e.a.sup.ammoMax);
+});
+
+test('Minceraft: pistón pegajoso cuesta 4, apunta arriba, se activa junto a redstone y trae el bloque de vuelta', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('a', 'super:minceraft');
+  const SA = require('../src/SuperAbilities');
+  const s = e.a.sup;
+  assert.strictEqual(SA.MC.w.pegajoso, 4);
+  e.a.x = 0;
+  e.a.y = 0;
+  e.a.z = 0;
+  e.a.faceX = 0;
+  e.a.faceZ = 1;
+  let now = Date.now() + 1000;
+  const put = (mode, x, z) => {
+    now += 1000;
+    e.a.x = 0;
+    e.a.z = 0;
+    e.a.faceX = x;
+    e.a.faceZ = z;
+    s.aim = { x: x * 3, z: z * 3, at: now };
+    return SA.use(room, 'a', mode, now);
+  };
+  assert.ok(put('pegajoso', 0, 1));
+  const st = room.gameState.dyn.find((d) => d.sticky);
+  assert.ok(st && st.kind === 'piston');
+  assert.strictEqual(s.used, 4);
+  now += 1000;
+  e.a.x = 0;
+  e.a.z = 0;
+  e.a.faceX = 0;
+  e.a.faceZ = 1;
+  s.aim = { x: st.x + 1, z: st.z, at: now };
+  assert.ok(SA.use(room, 'a', 'redstone', now));
+  assert.strictEqual(st.pw, true);
+  e.a.faceX = 0;
+  e.a.faceZ = 1;
+  s.ay = { v: 1, at: now + 1000 };
+  now += 1000;
+  e.a.x = 5;
+  e.a.z = 5;
+  s.aim = { x: 5, z: 8, at: now };
+  assert.ok(SA.use(room, 'a', 'piston', now));
+  const up = room.gameState.dyn.filter((d) => d.kind === 'piston' && !d.sticky).pop();
+  assert.strictEqual(up.dy, 1);
 });

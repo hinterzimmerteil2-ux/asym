@@ -106,7 +106,7 @@ const DEFS = {
   town_level: { id: 'town_level', name: 'Town Level Verse Lol', modes: ['bayoneta', 'barrera', 'senuelo', 'carga'], charges: 0, wig: true, scale: 0.6 },
   sunat_paperwork: { id: 'sunat_paperwork', name: 'Sunat Paperwork', modes: ['notificacion', 'vuelva', 'anulacion'] },
   platinum_star: { id: 'platinum_star', name: 'Platinum Star', modes: ['rafaga', 'stellar', 'atrapar', 'pausa'] },
-  minceraft: { id: 'minceraft', name: 'Minceraft', modes: ['andamio', 'telarana', 'slime', 'redstone', 'piston', 'polvo', 'tnt', 'miel', 'minar'] },
+  minceraft: { id: 'minceraft', name: 'Minceraft', modes: ['andamio', 'telarana', 'slime', 'redstone', 'piston', 'pegajoso', 'polvo', 'tnt', 'miel', 'minar'] },
 };
 
 const STAR = { rhythmMax: 100, barrageMs: 1100, barrageStepMs: 100, rafagaRange: 5, rafagaWidth: 1.8, rafagaStun: 900, rafagaPush: 3, rafagaEndStun: 1500, rafagaEndPush: 9, rafagaGain: 1.5, stellarRange: 24, stellarWidth: 0.9, stellarWind: 400, stellarStun: 1300, stellarPush: 10, stellarGain: 12, catchMs: 300, catchRange: 8, catchWidth: 1.5, catchStun: 1800, catchPush: 13, throwMin: 7, throwMax: 28, throwRagMin: 800, throwRagMax: 2400, catchGain: 20, catchFailLag: 500, pauseRange: 11, pauseStun: 1500, pauseCost: 50, rhythmStun: 0.006, reactCost: 30, reactStun: 1100, reactRange: 7, reactPush: 7, reactCd: 8000, cd: { rafaga: 6500, stellar: 9000, atrapar: 9000, pausa: 5000 } };
@@ -796,7 +796,7 @@ function tickStar(room, now) {
 
 const MC = {
   max: 64, life: 12000, cell: 1, gap: 300, endlag: 250, mineMs: 400, mineRange: 4.2, range: 7, size: 1, jumpV: 7.3, climbV: 4.2, fallSlow: 1.8,
-  w: { andamio: 1, telarana: 1, slime: 2, redstone: 2, piston: 3, polvo: 1, tnt: 4, miel: 2 },
+  w: { andamio: 1, telarana: 1, slime: 2, redstone: 2, piston: 3, pegajoso: 4, polvo: 1, tnt: 4, miel: 2 },
   pistonPush: 14, pistonLen: 1.8, pistonStun: 350, pistonLife: 6000, pistonPlaneV: 13, pistonMax: 5, tntDmg: 6, tntBossDmg: 150000, tntRagMs: 1300, tntFuse: 1400, tntR: 3.6, tntPush: 13, tntUp: 6.5, tntStun: 900, honeyLevel: 3, honeyFall: 1.4,
   webSlow: 2, slimeV: 11, chainStep: 200, chainReach: 1.1, redstoneReach: 2.1, redstoneR: 2.6, redstoneStun: 600, chainCool: 1500, pieceLimit: 160,
 };
@@ -911,13 +911,15 @@ function mcPlan(room, playerId, entity, mode, now) {
     if (below) piece.sup = below.id;
     else ok = false;
   }
-  if (mode === 'piston') {
+  if (mode === 'piston' || mode === 'pegajoso') {
     const ny = aimY(entity, now);
+    piece.kind = 'piston';
+    if (mode === 'pegajoso') piece.sticky = true;
     piece.life = MC.pistonLife;
     piece.dx = 0;
     piece.dz = 0;
     piece.dy = 0;
-    if (Math.abs(ny) > 0.75) piece.dy = ny > 0 ? 1 : -1;
+    if (Math.abs(ny) > 0.4) piece.dy = ny > 0 ? 1 : -1;
     else if (Math.abs(adx) >= Math.abs(adz)) piece.dx = adx >= 0 ? 1 : -1;
     else piece.dz = adz >= 0 ? 1 : -1;
   }
@@ -982,6 +984,15 @@ function useMine(room, playerId, entity, mode, now) {
   const boxes = piece.kind === 'telarana' || piece.kind === 'polvo' ? undefined : [{ x: piece.x, z: piece.z, y: piece.y0 + piece.h / 2, half: Math.max(piece.hx, piece.hz) }];
   gs.dyn.push(piece);
   gs.dynVer += 1;
+  if (piece.kind === 'redstone') mcChain(room, piece, now);
+  else if (piece.kind === 'piston' || piece.kind === 'tnt') {
+    const src = gs.dyn.find((o) => o !== piece && o.kind === 'redstone' && o.owner === playerId && mcAdjacent(o, piece));
+    if (src) {
+      piece.pw = true;
+      piece.pulse = now + MC.chainStep;
+      piece.cool = piece.pulse + MC.chainCool;
+    }
+  }
   s.used += w;
   s.nextAt = now + MC.gap;
   Status.apply(entity, 'slow', MC.endlag, now, { tag: 'endlag', level: 1 });
@@ -1078,9 +1089,33 @@ function mcPistonFire(room, d, stage, now) {
         p.y0 += dy;
       }
       gs.dynVer += 1;
+      if (d.sticky) d.pull = { ids: [...set].map((p) => p.id), at: now + 520, dx, dy, dz };
     }
   }
   room.broadcast('super_result', { playerId: d.owner, mode: 'piston_golpe', x: d.x + dx, y: d.y0 + 0.5 + dy, z: d.z + dz });
+}
+
+function mcPistonPull(room, d) {
+  const gs = room.gameState;
+  const pl = d.pull;
+  d.pull = null;
+  const set = pl.ids.map((id) => gs.dyn.find((o) => o.id === id)).filter(Boolean);
+  if (!set.length) return;
+  const mem = new Set(set);
+  for (const p of set) {
+    const nx = p.x - pl.dx;
+    const nz = p.z - pl.dz;
+    const ny = p.y0 - pl.dy;
+    if (gs.dyn.some((o) => !mem.has(o) && o !== d && o.solid && Math.abs(o.x - nx) < 0.1 && Math.abs(o.z - nz) < 0.1 && Math.abs(o.y0 - ny) < 0.6)) return;
+    if (Math.abs(nx - d.x) < 0.1 && Math.abs(nz - d.z) < 0.1 && Math.abs(ny - d.y0) < 0.6) return;
+  }
+  for (const p of set) {
+    p.x -= pl.dx;
+    p.z -= pl.dz;
+    p.y0 -= pl.dy;
+  }
+  gs.dynVer += 1;
+  room.broadcast('super_result', { playerId: d.owner, mode: 'piston_golpe', x: d.x + pl.dx, y: d.y0 + 0.5 + pl.dy, z: d.z + pl.dz });
 }
 
 function mcExplode(room, d, now) {
@@ -1136,7 +1171,7 @@ function tickMine(room, now) {
     if (!sp || sp.id !== 'minceraft') continue;
     if (sp.prev && sp.prev.until > now) {
       const pl = mcPlan(room, pid, e, sp.prev.mode, now);
-      sp.pv = pl ? { k: pl.piece.kind, x: pl.piece.x, z: pl.piece.z, y: Math.round(pl.piece.y0 * 100) / 100, hx: pl.piece.hx, hz: pl.piece.hz, h: pl.piece.h, r: pl.piece.ramp || undefined, ra: pl.piece.r || undefined, ok: pl.ok ? 1 : 0, dx: pl.piece.dx, dz: pl.piece.dz, dy: pl.piece.dy } : null;
+      sp.pv = pl ? { k: pl.piece.kind, x: pl.piece.x, z: pl.piece.z, y: Math.round(pl.piece.y0 * 100) / 100, hx: pl.piece.hx, hz: pl.piece.hz, h: pl.piece.h, r: pl.piece.ramp || undefined, ra: pl.piece.r || undefined, ok: pl.ok ? 1 : 0, dx: pl.piece.dx, dz: pl.piece.dz, dy: pl.piece.dy, sk: pl.piece.sticky ? 1 : undefined } : null;
     } else sp.pv = null;
   }
   if (!gs.dyn || !gs.dyn.length) {
@@ -1200,6 +1235,7 @@ function tickMine(room, now) {
         e.peakY = e.y;
       }
     } else if (d.kind === 'piston') {
+      if (d.pull && now >= d.pull.at) mcPistonPull(room, d);
       if (fire && d.pw) {
         d.pw = false;
         d.ext = now + 450;
@@ -1236,7 +1272,7 @@ function tickMine(room, now) {
 }
 
 function minceraftView(room, now) {
-  return (room.gameState.dyn || []).map((d) => ({ id: d.id, k: d.kind, x: d.x, z: d.z, y: Math.round(d.y0 * 100) / 100, hx: d.hx, hz: d.hz, h: d.h, r: d.ramp || undefined, o: d.owner, st: mcStage(d, now), lit: d.pulse && now - d.pulse < 400 ? 1 : undefined, ra: d.r || undefined, dx: d.dx, dz: d.dz, dy: d.dy, ex: d.ext && d.ext > now ? 1 : undefined, fz: d.fuse ? Math.max(0, d.fuse - now) : undefined, ow: d.oneway ? 1 : undefined }));
+  return (room.gameState.dyn || []).map((d) => ({ id: d.id, k: d.kind, x: d.x, z: d.z, y: Math.round(d.y0 * 100) / 100, hx: d.hx, hz: d.hz, h: d.h, r: d.ramp || undefined, o: d.owner, st: mcStage(d, now), lit: d.pulse && now - d.pulse < 400 ? 1 : undefined, ra: d.r || undefined, dx: d.dx, dz: d.dz, dy: d.dy, ex: d.ext && d.ext > now ? 1 : undefined, fz: d.fuse ? Math.max(0, d.fuse - now) : undefined, ow: d.oneway ? 1 : undefined, sk: d.sticky ? 1 : undefined }));
 }
 
 function glide(room, entity, now, dt) {

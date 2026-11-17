@@ -3516,7 +3516,7 @@ class Room {
 
   award(playerId, amount, reason) {
     const player = this.players.get(playerId);
-    if (!player || player.isBot || this.tutorial || !this.gameState.desgracias || this.isPractice()) return;
+    if (!player || player.isBot || this.tutorial || !this.gameState.desgracias) return;
     const lms = this.gameState.lms;
     if (lms && lms.gimmick === 'codicia' && (lms.survivorId === playerId || lms.curatorId === playerId)) amount *= 2;
     if (this.gameState.bossMatch) amount *= BOSS_DG_MUL;
@@ -4012,7 +4012,7 @@ class Room {
       const total = items.reduce((sum, i) => sum + i.amount, 0);
       if (total > 0) this.sendTo(playerId, MessageType.DESGRACIAS_AWARD, { total, items, boss: Boolean(this.gameState.bossMatch) });
     }
-    if (this.tutorial || this.isPractice()) {
+    if (this.tutorial) {
       for (const [playerId, player] of this.players) if (!player.isBot) this.sendTo(playerId, MessageType.DESGRACIAS_AWARD, { total: 0, items: [], practice: true });
     }
   }

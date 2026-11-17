@@ -161,7 +161,7 @@ const style = { line: { fontSize: 12, color: '#c9cbd8', margin: '4px 0', display
 export default function SkillsEditor({ skills, setSkills, healerSkills, setHealerSkills }) {
   return (
     <div>
-      <p style={{ ...style.line, fontWeight: 700 }}>Skills personalizadas (sin límite de poder: son partidas custom y no dan Desgracias)</p>
+      <p style={{ ...style.line, fontWeight: 700 }}>Skills personalizadas (sin límite de poder)</p>
       <SideEditor side="patient" list={skills} setList={setSkills} max={12} />
       <SideEditor side="healer" list={healerSkills} setList={setHealerSkills} max={4} />
     </div>
