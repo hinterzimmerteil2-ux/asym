@@ -122,6 +122,7 @@ export default function I18n() {
     langRef.current = next;
     setLang(next);
     try { localStorage.setItem('asym_lang', next); } catch {}
+    window.dispatchEvent(new Event('asym-lang'));
     retranslateAll();
   };
 

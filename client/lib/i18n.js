@@ -821,6 +821,7 @@ const PAIRS = [
 ["Gerente Quijote del Paradero","Quijote Manager of the Stop"],
 ["Te hiciste daño","You hurt yourself"],
 ["Fabuloso","Fabulous"],
+["Equipo de traducción","Translation team"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };

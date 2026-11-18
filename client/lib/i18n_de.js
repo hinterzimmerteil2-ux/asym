@@ -817,4 +817,5 @@ export const DE = [
 "Quijote-Manager der Haltestelle",
 "Du hast dich verletzt",
 "Fabelhaft",
+"Übersetzungsteam",
 ];

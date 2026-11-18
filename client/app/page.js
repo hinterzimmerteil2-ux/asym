@@ -1498,6 +1498,7 @@ export default function LobbyPage() {
               <p style={{ fontSize: 10, opacity: 0.6, margin: '6px 0 0' }}>Modelo de Jeffrey: SinisterClock, CC-BY-NC 4.0</p>
               <Link href="/editor" style={styles.editorLink}>Crear mapa nuevo →</Link>
               <Link href="/legal" style={{ ...styles.editorLink, display: 'block', marginTop: 4, opacity: 0.8 }}>Aviso legal y contacto</Link>
+              <Link href="/equipo" style={{ ...styles.editorLink, display: 'block', marginTop: 4, opacity: 0.8 }}>Equipo de traducción</Link>
             </div>
           )}
 
