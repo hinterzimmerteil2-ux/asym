@@ -1811,6 +1811,7 @@ export default function LobbyPage() {
             <div style={{ width: 120, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
               <div style={{ width: `${flojera.sup.rhythm}%`, height: '100%', background: flojera.sup.rhythm >= flojera.sup.pauseCost ? '#e6d8ff' : '#a98be8' }} />
             </div>
+            {flojera.sup.fab > 0 && <span style={{ color: '#ffd24a' }}>Fabuloso {(flojera.sup.fab / 1000).toFixed(1)} s</span>}
             {flojera.sup.ready && <span style={{ color: '#ffd24a' }}>◆ Contragolpe</span>}
             {flojera.sup.windUp && <span style={{ color: '#e6d8ff' }}>Apuntando</span>}
             {flojera.sup.catching && <span style={{ color: '#7fd8ff' }}>Atrapando</span>}
