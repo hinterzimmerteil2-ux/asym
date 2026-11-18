@@ -11,6 +11,7 @@ const { registerAuthRoutes } = require('./auth/routes');
 const { ensureReady } = require('./auth/db');
 const { registerCommunityRoutes } = require('./community');
 const { verifyToken } = require('./auth/jwt');
+const Security = require('./security');
 
 const PORT = process.env.PORT || 3001;
 const roomManager = new RoomManager();
@@ -27,7 +28,9 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
 function applyCors(req, res) {
   const origin = req.headers.origin;
-  res.setHeader('Access-Control-Allow-Origin', origin || CLIENT_URL);
+  Security.applySecurityHeaders(res);
+  if (origin && Security.allowedOrigin(origin, CLIENT_URL)) res.setHeader('Access-Control-Allow-Origin', origin);
+  else if (!origin) res.setHeader('Access-Control-Allow-Origin', CLIENT_URL);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -73,11 +76,18 @@ const httpServer = http.createServer((req, res) => {
   }
 
   if (url.pathname === '/maps' && req.method === 'POST') {
-    let body = '';
-    req.on('data', (chunk) => { body += chunk; });
-    req.on('end', () => {
+    const bearer = (req.headers.authorization || '').replace(/^Bearer /, '');
+    if (!verifyToken(bearer)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Inicia sesión para registrar un mapa.' }));
+      return;
+    }
+    if (!Security.rateLimit(`maps:${Security.clientIp(req)}`, 10, 60 * 1000)) {
+      Security.tooMany(res);
+      return;
+    }
+    Security.readJsonBody(req, res, 400 * 1024, (layout) => {
       try {
-        const layout = JSON.parse(body || '{}');
         const saved = GameMap.registerMap(layout);
         res.writeHead(201, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ map: { id: saved.id, name: saved.name, custom: true } }));
@@ -99,30 +109,65 @@ const httpServer = http.createServer((req, res) => {
   res.end('Asym game server running');
 });
 
-const wss = new WebSocketServer({ server: httpServer });
+const WS_MAX_PAYLOAD = 64 * 1024;
+const WS_MSG_PER_SEC = 240;
+const WS_MAX_PER_IP = 16;
+const ROOM_ID_RE = /^[\p{L}\p{N}_ -]{1,32}$/u;
+const ipConnections = new Map();
 
-wss.on('connection', (ws) => {
+const wss = new WebSocketServer({
+  server: httpServer,
+  maxPayload: WS_MAX_PAYLOAD,
+  verifyClient: ({ origin }) => !origin || Security.allowedOrigin(origin, CLIENT_URL),
+});
+
+wss.on('connection', (ws, req) => {
   let playerId = null;
   let currentRoomId = null;
+
+  const ip = Security.clientIp(req);
+  const open = (ipConnections.get(ip) || 0) + 1;
+  if (open > WS_MAX_PER_IP) {
+    ws.close(1013, 'Demasiadas conexiones');
+    return;
+  }
+  ipConnections.set(ip, open);
+  ws.on('close', () => {
+    const left = (ipConnections.get(ip) || 1) - 1;
+    if (left <= 0) ipConnections.delete(ip);
+    else ipConnections.set(ip, left);
+  });
+  let winStart = Date.now();
+  let winCount = 0;
 
   if (ws._socket && ws._socket.setNoDelay) ws._socket.setNoDelay(true);
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
 
   ws.on('message', (raw) => {
+    const t = Date.now();
+    if (t - winStart >= 1000) {
+      winStart = t;
+      winCount = 0;
+    }
+    winCount += 1;
+    if (winCount > WS_MSG_PER_SEC) {
+      ws.close(1008, 'Demasiados mensajes');
+      return;
+    }
     const msg = decode(raw.toString());
-    if (!msg) return;
+    if (!msg || typeof msg.type !== 'string') return;
 
     switch (msg.type) {
       case MessageType.JOIN_ROOM: {
-        const { token } = msg.payload;
+        const token = typeof msg.payload.token === 'string' ? msg.payload.token : '';
         // Dos jugadores que escriben "Sala1" y "sala1 " (con espacio o
         // mayúsculas distintas) deben terminar en la MISMA sala. Sin
         // normalizar acá, el Map de RoomManager los trata como salas
         // distintas y cada uno ve el lobby "vacío", la causa más común
         // de "no encuentro al otro jugador".
         const roomId = typeof msg.payload.roomId === 'string' ? msg.payload.roomId.trim().toLowerCase() : '';
-        if (!roomId || !token) {
+        if (!roomId || !token || !ROOM_ID_RE.test(roomId)) {
           ws.send(encode(MessageType.ERROR, { message: 'roomId y token son requeridos' }));
           return;
         }
@@ -136,7 +181,7 @@ wss.on('connection', (ws) => {
           return;
         }
         playerId = session.userId;
-        const playerName = session.displayName;
+        const playerName = Security.cleanText(session.displayName, 30) || 'Jugador';
 
         const room = roomManager.getOrCreateRoom(roomId);
         const resuming = room.canResume(playerId);

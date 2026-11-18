@@ -2,6 +2,7 @@ const { randomUUID } = require('crypto');
 const { getAuthorizationUrl, exchangeCodeForProfile } = require('./oauth');
 const { findOrCreateUser, updateDisplayName } = require('./db');
 const { signAccountToken, signGuestToken, verifyToken } = require('./jwt');
+const { cleanText, clientIp, rateLimit, readJsonBody, tooMany } = require('../security');
 
 const DISPLAY_NAME_MAX_LENGTH = 30;
 
@@ -12,6 +13,10 @@ const pendingStates = new Map();
 const STATE_TTL_MS = 5 * 60 * 1000;
 
 function createState() {
+  if (pendingStates.size >= 5000) {
+    const oldest = pendingStates.keys().next().value;
+    pendingStates.delete(oldest);
+  }
   const state = randomUUID();
   pendingStates.set(state, Date.now());
   return state;
@@ -32,15 +37,19 @@ setInterval(() => {
 }, 60 * 1000);
 
 function registerAuthRoutes(routes) {
-  routes.set('/auth/google', (req, res) => startOAuthLogin('google', res));
-  routes.set('/auth/discord', (req, res) => startOAuthLogin('discord', res));
+  routes.set('/auth/google', (req, res) => startOAuthLogin('google', req, res));
+  routes.set('/auth/discord', (req, res) => startOAuthLogin('discord', req, res));
   routes.set('/auth/callback/google', (req, res, url) => handleOAuthCallback('google', req, res, url));
   routes.set('/auth/callback/discord', (req, res, url) => handleOAuthCallback('discord', req, res, url));
   routes.set('/auth/guest', (req, res) => handleGuestLogin(req, res));
   routes.set('/auth/update-name', (req, res) => handleUpdateDisplayName(req, res));
 }
 
-function startOAuthLogin(provider, res) {
+function startOAuthLogin(provider, req, res) {
+  if (!rateLimit(`oauth:${clientIp(req)}`, 30, 10 * 60 * 1000)) {
+    tooMany(res);
+    return;
+  }
   try {
     const state = createState();
     const redirectUri = `${SERVER_URL}/auth/callback/${provider}`;
@@ -48,7 +57,8 @@ function startOAuthLogin(provider, res) {
     res.writeHead(302, { Location: authUrl });
     res.end();
   } catch (err) {
-    respondError(res, 500, err.message);
+    console.error('Error iniciando login:', err.message);
+    respondError(res, 500, 'No se pudo iniciar el login.');
   }
 }
 
@@ -68,24 +78,18 @@ async function handleOAuthCallback(provider, req, res, url) {
     res.end();
   } catch (err) {
     console.error(`Error en callback de ${provider}:`, err.code || '', err.message);
-    res.writeHead(302, { Location: `${CLIENT_URL}/auth/error?message=${encodeURIComponent(err.message)}` });
+    res.writeHead(302, { Location: `${CLIENT_URL}/auth/error?message=${encodeURIComponent('No se pudo iniciar sesión. Intenta de nuevo.')}` });
     res.end();
   }
 }
 
 function handleGuestLogin(req, res) {
-  let body = '';
-  req.on('data', (chunk) => { body += chunk; });
-  req.on('end', () => {
-    let displayName = 'Invitado';
-    try {
-      const parsed = JSON.parse(body || '{}');
-      if (parsed.displayName && typeof parsed.displayName === 'string') {
-        displayName = parsed.displayName.slice(0, 30);
-      }
-    } catch {
-      // body inválido, se usa el nombre por defecto
-    }
+  if (!rateLimit(`guest:${clientIp(req)}`, 30, 10 * 60 * 1000)) {
+    tooMany(res);
+    return;
+  }
+  readJsonBody(req, res, 2048, (parsed) => {
+    const displayName = cleanText(parsed.displayName, DISPLAY_NAME_MAX_LENGTH) || 'Invitado';
     const guestId = `guest_${randomUUID()}`;
     const token = signGuestToken(guestId, displayName);
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -102,17 +106,18 @@ function handleGuestLogin(req, res) {
  * re-firma el token con el nombre nuevo.
  */
 function handleUpdateDisplayName(req, res) {
-  let body = '';
-  req.on('data', (chunk) => { body += chunk; });
-  req.on('end', async () => {
+  if (!rateLimit(`name:${clientIp(req)}`, 30, 10 * 60 * 1000)) {
+    tooMany(res);
+    return;
+  }
+  readJsonBody(req, res, 4096, async (parsed) => {
     try {
-      const parsed = JSON.parse(body || '{}');
       const session = verifyToken(parsed.token);
       if (!session) {
         respondError(res, 401, 'Sesión inválida o expirada. Inicia sesión de nuevo.');
         return;
       }
-      const displayName = typeof parsed.displayName === 'string' ? parsed.displayName.trim() : '';
+      const displayName = cleanText(parsed.displayName, DISPLAY_NAME_MAX_LENGTH + 1);
       if (!displayName) {
         respondError(res, 400, 'El nombre no puede estar vacío.');
         return;

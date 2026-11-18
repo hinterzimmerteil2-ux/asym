@@ -1,5 +1,6 @@
 const { MessageType, encode } = require('./protocol');
 const Delta = require('./Delta');
+const Security = require('./security');
 const GameMap = require('./GameMap');
 const Cosmetics = require('./Cosmetics');
 const Characters = require('./Characters');
@@ -1230,7 +1231,8 @@ class Room {
     if (now - lastSent < CHAT_RATE_LIMIT_MS) return;
     this.lastChatAt.set(playerId, now);
 
-    const text = rawText.slice(0, CHAT_MAX_LENGTH);
+    const text = Security.cleanText(rawText, CHAT_MAX_LENGTH);
+    if (!text) return;
     const entry = { playerId, playerName: player.name, text, timestamp: now };
 
     if (this.isGhost(playerId)) {

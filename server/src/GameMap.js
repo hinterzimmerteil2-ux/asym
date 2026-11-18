@@ -270,6 +270,8 @@ const DEFAULT_MAP_ID = 'default';
  * requieren Postgres; se pierden si el servidor se reinicia, que es
  * una limitación aceptable para un modo constructor de este alcance.
  */
+const MAX_CUSTOM_MAPS = 300;
+const customOrder = [];
 function registerMap(layout, dryRun) {
   if (!layout || typeof layout.id !== 'string' || !layout.id.trim()) {
     throw new Error('El mapa necesita un id');
@@ -278,14 +280,14 @@ function registerMap(layout, dryRun) {
     throw new Error('El mapa necesita selfDamageObjects y collisionObjects');
   }
   const norm = {
-    id: layout.id,
-    name: typeof layout.name === 'string' && layout.name.trim() ? layout.name.trim() : layout.id,
+    id: layout.id.trim().slice(0, 64),
+    name: typeof layout.name === 'string' && layout.name.trim() ? layout.name.trim().slice(0, 60) : layout.id.trim().slice(0, 60),
     custom: true,
     halfSize: Math.max(20, Math.min(400, Number(layout.halfSize) || MATCH_AREA.halfSize)),
     allowModuleOverlap: layout.allowModuleOverlap === true,
     curatorSpawns: (Array.isArray(layout.curatorSpawns) ? layout.curatorSpawns : []).slice(0, 64).map((s) => ({ xFrac: clampFrac(s.xFrac), zFrac: clampFrac(s.zFrac) })),
     patientSpawns: (Array.isArray(layout.patientSpawns) ? layout.patientSpawns : []).slice(0, 128).map((s) => ({ xFrac: clampFrac(s.xFrac), zFrac: clampFrac(s.zFrac) })),
-    selfDamageObjects: layout.selfDamageObjects.map((o) => ({
+    selfDamageObjects: layout.selfDamageObjects.slice(0, 200).map((o) => ({
       id: String(o.id),
       xFrac: clampFrac(o.xFrac),
       zFrac: clampFrac(o.zFrac),
@@ -297,7 +299,7 @@ function registerMap(layout, dryRun) {
     cards: CustomCards.normalizeList(layout.cards),
     healerSkills: CustomCards.normalizeHealer(layout.healerSkills),
     supers: CustomSupers.sanitize(layout.supers),
-    collisionObjects: layout.collisionObjects.map((o) => ({
+    collisionObjects: layout.collisionObjects.slice(0, 600).map((o) => ({
       id: String(o.id),
       type: typeof o.type === 'string' ? o.type : 'gurney',
       xFrac: clampFrac(o.xFrac),
@@ -323,10 +325,17 @@ function registerMap(layout, dryRun) {
       stairs: p.stairs === true && Boolean(p.ramp),
     })),
   };
+  if (MAPS[norm.id] && !MAPS[norm.id].custom) {
+    throw new Error('Ese id esta reservado');
+  }
   if (!dryRun) {
-    norm._cardObjs = CustomCards.registerAll(layout.id, norm.cards);
-    CustomCards.registerHealer(layout.id, norm.healerSkills);
-    MAPS[layout.id] = norm;
+    norm._cardObjs = CustomCards.registerAll(norm.id, norm.cards);
+    CustomCards.registerHealer(norm.id, norm.healerSkills);
+    if (!MAPS[norm.id]) {
+      customOrder.push(norm.id);
+      while (customOrder.length > MAX_CUSTOM_MAPS) delete MAPS[customOrder.shift()];
+    }
+    MAPS[norm.id] = norm;
   }
   return norm;
 }
