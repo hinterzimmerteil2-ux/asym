@@ -2012,7 +2012,7 @@ class Room {
       speedMultiplier *= Status.speedFactor(entity, now) * Boss.speedFactor(this, this.players.get(entityPlayerId), entity);
       if (!this.players.get(entityPlayerId)?.isAsymRole) speedMultiplier *= MUTATIONS[this.mutation].speed;
       else speedMultiplier *= this.players.get(entityPlayerId)?.curatorSpeed || 1;
-      if (entity.sup && entity.sup.glide) speedMultiplier = Math.min(speedMultiplier, FAST_MULTIPLIER) * 0.8;
+      if (entity.sup && entity.sup.glide) speedMultiplier = Math.max(speedMultiplier, FAST_MULTIPLIER) * 1.15;
       if (entity.sup) speedMultiplier *= SuperAbilities.speedBonus(entity);
       if (entity.channel || entity.selfDmg) speedMultiplier *= CHANNEL_SLOW;
       if (entity.carry) speedMultiplier *= MODULE_CARRY_SLOW;

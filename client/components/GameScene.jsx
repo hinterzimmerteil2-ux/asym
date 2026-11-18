@@ -1100,12 +1100,34 @@ function ManaAura() {
 }
 
 function GlideFx() {
-  const r = useRef();
-  useFrame(() => { if (r.current) r.current.rotation.z += 0.18; });
+  const a = useRef();
+  const b = useRef();
+  const trail = useRef();
+  useFrame((st, dt) => {
+    if (a.current) a.current.rotation.z += dt * 9;
+    if (b.current) b.current.rotation.z -= dt * 6;
+    if (trail.current) {
+      trail.current.children.forEach((m, i) => {
+        const t = (st.clock.elapsedTime * 2.2 + i * 0.17) % 1;
+        m.position.y = 1.8 - t * 2.6;
+        m.scale.setScalar(1 - t * 0.6);
+        m.material.opacity = 0.7 * (1 - t);
+      });
+    }
+  });
   return (
     <group>
-      <mesh ref={r} position={[0, 0.15, 0]} rotation={[-Math.PI / 2, 0, 0]}><torusGeometry args={[0.7, 0.03, 6, 28]} /><meshBasicMaterial color="#9fe8ff" transparent opacity={0.8} /></mesh>
-      {[-1, 1].map((sd) => <mesh key={sd} position={[sd * 0.5, 1.5, -0.3]}><sphereGeometry args={[0.1, 8, 6]} /><meshBasicMaterial color="#ffe14a" /></mesh>)}
+      <mesh ref={a} position={[0, 0.2, 0]} rotation={[-Math.PI / 2, 0, 0]}><torusGeometry args={[0.78, 0.035, 6, 32]} /><meshBasicMaterial color="#9fe8ff" transparent opacity={0.8} depthWrite={false} /></mesh>
+      <mesh ref={b} position={[0, 0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}><torusGeometry args={[0.55, 0.03, 6, 28]} /><meshBasicMaterial color="#ffe14a" transparent opacity={0.7} depthWrite={false} /></mesh>
+      <mesh position={[0, 0.9, 0]}><sphereGeometry args={[1, 16, 12]} /><meshBasicMaterial color="#bff3ff" transparent opacity={0.14} depthWrite={false} /></mesh>
+      {[-1, 1].map((sd) => (
+        <mesh key={sd} position={[sd * 0.75, 1.25, -0.25]} rotation={[0.2, 0, sd * -0.7]}><planeGeometry args={[0.9, 0.34]} /><meshBasicMaterial color="#e8fbff" transparent opacity={0.55} depthWrite={false} side={DoubleSide} /></mesh>
+      ))}
+      <group ref={trail}>
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+          <mesh key={i} position={[(i % 3 - 1) * 0.4, 1, (i % 2 ? 0.3 : -0.3)]}><sphereGeometry args={[0.08, 6, 5]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.6} depthWrite={false} /></mesh>
+        ))}
+      </group>
     </group>
   );
 }
@@ -1586,7 +1608,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
   const rig = useRef({});
   const headRef = useRef();
   const emo = useRef({ id: null, start: 0 });
-  const walk = useRef({ slide: 0, rel: 0, phase: 0, amp: 0, px: entityState.x, pz: entityState.z, py: entityState.y, air: 0, t: 0 });
+  const walk = useRef({ fly: 0, slide: 0, rel: 0, phase: 0, amp: 0, px: entityState.x, pz: entityState.z, py: entityState.y, air: 0, t: 0 });
   const targetPos = useRef([entityState.x, entityState.y, entityState.z]);
 
   const lead = useRef({ t: 0, x: entityState.x, z: entityState.z, vx: 0, vz: 0 });
@@ -1789,6 +1811,14 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         raz = 0.5;
       }
       const tl = walk.current;
+      tl.fly += ((entityState.gld ? 1 : 0) - tl.fly) * Math.min(1, delta * 8);
+      if (tl.fly > 0.01) {
+        const fk = tl.fly;
+        lax = lax + (-2.7 - lax) * fk;
+        rax = rax + (-2.7 - rax) * fk;
+        laz = laz + (-0.18 - laz) * fk;
+        raz = raz + (0.18 - raz) * fk;
+      }
       tl.slide += ((entityState.tla === 2 ? 1 : 0) - tl.slide) * Math.min(1, delta * 14);
       tl.rel += ((entityState.tla === 1 ? 1 : 0) - tl.rel) * Math.min(1, delta * 10);
       if (tl.rel > 0.01) {
@@ -1858,7 +1888,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         pitch = mix(pitch, ep.pitch === undefined ? pitch : pitch + ep.pitch);
         offY = mix(offY, ep.offY === undefined ? offY : offY + ep.offY);
       }
-      pitch += tl.slide * 0.35;
+      pitch += tl.slide * 0.35 + tl.fly * 0.75;
       offY -= tl.slide * 0.18 + tl.rel * 0.06;
       body.rotation.order = 'YXZ';
       body.rotation.set(pitch, yaw.current + (ep && ep.yaw ? ep.yaw * ew : 0), ep && ep.roll ? ep.roll * ew : 0);

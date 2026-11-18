@@ -81,7 +81,7 @@ const FLY_CEIL = 14;
 const DOUBLE_JUMP_V = 15;
 const DOUBLE_JUMP_COST = 4;
 const DOUBLE_JUMP_MIN_AIR_MS = 120;
-const FLY_HOLD_MS = 300;
+const FLY_HOLD_MS = 160;
 const DOME_RADIUS = 2.5;
 const QUEUE_MS = 2000;
 const RESOLUTION_MS = 2000;
@@ -93,11 +93,11 @@ const DECOY_SLOW_MS = 1400;
 const DECOY_HIDE_MS = 1500;
 const CD = { bayoneta: 7000, bayonetaLunge: 11000, barrera: 22000, senuelo: 26000 };
 const GLIDE_START_COST = 4;
-const GLIDE_COST_PER_SEC = 3;
+const GLIDE_COST_PER_SEC = 2.2;
 const GLIDE_FALL = -2.4;
-const GLIDE_START_LAG_MS = 300;
-const GLIDE_LAND_LAG_MS = 700;
-const GLIDE_MIN_AIR_MS = 200;
+const GLIDE_START_LAG_MS = 100;
+const GLIDE_LAND_LAG_MS = 300;
+const GLIDE_MIN_AIR_MS = 120;
 
 let src = null;
 let domes = [];
@@ -463,10 +463,7 @@ function useTown(room, playerId, entity, mode, now) {
       room.broadcast('super_result', { playerId, mode: 'recarga_inicio', x: entity.x, y: entity.y || 0, z: entity.z, dur: ms, tactical });
       return true;
     }
-    if (s.mana < CHARGE_RATE) return false;
-    s.charging = true;
-    s.chAt = now;
-    return true;
+    return false;
   }
   if (Status.blocksSkills(entity, now)) return false;
   if (s.reload && mode !== 'bayoneta') {
@@ -560,7 +557,7 @@ function useTown(room, playerId, entity, mode, now) {
     ok = true;
   } else if (mode === 'senuelo') {
     if (now < s.cd.senuelo) return false;
-    s.decoy = { x: entity.x, y: entity.y || 0, z: entity.z, until: now + DECOY_MS, born: now, last: now, vx: nx * DECOY_SPEED, vz: nz * DECOY_SPEED };
+    s.decoy = { x: entity.x, y: entity.y || 0, z: entity.z, until: now + DECOY_MS, born: now, last: now, vx: -nx * DECOY_SPEED, vz: -nz * DECOY_SPEED };
     entity.paraFrom = now;
     entity.paraUntil = now + DECOY_HIDE_MS;
     entity.paraOn = false;
@@ -620,9 +617,9 @@ function tickTown(room, now) {
       } else if (!sl.started) {
         sl.started = true;
         if (!Status.blocksMove(e, now)) {
-          Status.push(e, sl.dx, sl.dz, T('town_level', 'slideSpeed', SLIDE_SPEED), T('town_level', 'slideMs', SLIDE_MS), now, { boss: true });
+          Status.push(e, -sl.dx, -sl.dz, T('town_level', 'slideSpeed', SLIDE_SPEED), T('town_level', 'slideMs', SLIDE_MS), now, { boss: true });
           e.kbSoft = true;
-          room.broadcast('super_result', { playerId: id, mode: 'deslizar', x: e.x, y: e.y || 0, z: e.z, dx: sl.dx, dz: sl.dz });
+          room.broadcast('super_result', { playerId: id, mode: 'deslizar', x: e.x, y: e.y || 0, z: e.z, dx: -sl.dx, dz: -sl.dz });
         }
         s.slideUntil = now + T('town_level', 'slideMs', SLIDE_MS);
         s.slide = null;
@@ -1371,7 +1368,8 @@ function glide(room, entity, now, dt) {
         s.mana = 0;
         s.flying = false;
       } else {
-        if ((entity.y || 0) < s.baseY + FLY_CEIL) entity.velocityY = Math.max(entity.velocityY, FLY_RISE);
+        if (entity.input.slow) entity.velocityY = -4.5;
+        else if ((entity.y || 0) < s.baseY + FLY_CEIL) entity.velocityY = Math.max(entity.velocityY, FLY_RISE * 0.8);
         else entity.velocityY = 0;
         return true;
       }
