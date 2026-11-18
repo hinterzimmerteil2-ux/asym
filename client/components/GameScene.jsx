@@ -1100,34 +1100,21 @@ function ManaAura() {
 }
 
 function GlideFx() {
-  const a = useRef();
-  const b = useRef();
   const trail = useRef();
-  useFrame((st, dt) => {
-    if (a.current) a.current.rotation.z += dt * 9;
-    if (b.current) b.current.rotation.z -= dt * 6;
-    if (trail.current) {
-      trail.current.children.forEach((m, i) => {
-        const t = (st.clock.elapsedTime * 2.2 + i * 0.17) % 1;
-        m.position.y = 1.8 - t * 2.6;
-        m.scale.setScalar(1 - t * 0.6);
-        m.material.opacity = 0.7 * (1 - t);
-      });
-    }
+  useFrame((st) => {
+    if (!trail.current) return;
+    trail.current.children.forEach((m, i) => {
+      const t = (st.clock.elapsedTime * 1.4 + i * 0.33) % 1;
+      m.position.y = 1.3 - t * 1.3;
+      m.scale.setScalar(1 - t * 0.5);
+      m.material.opacity = 0.35 * (1 - t);
+    });
   });
   return (
-    <group>
-      <mesh ref={a} position={[0, 0.2, 0]} rotation={[-Math.PI / 2, 0, 0]}><torusGeometry args={[0.78, 0.035, 6, 32]} /><meshBasicMaterial color="#9fe8ff" transparent opacity={0.8} depthWrite={false} /></mesh>
-      <mesh ref={b} position={[0, 0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}><torusGeometry args={[0.55, 0.03, 6, 28]} /><meshBasicMaterial color="#ffe14a" transparent opacity={0.7} depthWrite={false} /></mesh>
-      <mesh position={[0, 0.9, 0]}><sphereGeometry args={[1, 16, 12]} /><meshBasicMaterial color="#bff3ff" transparent opacity={0.14} depthWrite={false} /></mesh>
-      {[-1, 1].map((sd) => (
-        <mesh key={sd} position={[sd * 0.75, 1.25, -0.25]} rotation={[0.2, 0, sd * -0.7]}><planeGeometry args={[0.9, 0.34]} /><meshBasicMaterial color="#e8fbff" transparent opacity={0.55} depthWrite={false} side={DoubleSide} /></mesh>
+    <group ref={trail}>
+      {[0, 1, 2].map((i) => (
+        <mesh key={i} position={[(i - 1) * 0.35, 1, i === 1 ? 0.3 : -0.2]}><sphereGeometry args={[0.06, 6, 5]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.3} depthWrite={false} /></mesh>
       ))}
-      <group ref={trail}>
-        {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-          <mesh key={i} position={[(i % 3 - 1) * 0.4, 1, (i % 2 ? 0.3 : -0.3)]}><sphereGeometry args={[0.08, 6, 5]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.6} depthWrite={false} /></mesh>
-        ))}
-      </group>
     </group>
   );
 }
@@ -1814,8 +1801,9 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
       tl.fly += ((entityState.gld ? 1 : 0) - tl.fly) * Math.min(1, delta * 8);
       if (tl.fly > 0.01) {
         const fk = tl.fly;
-        lax = lax + (-2.7 - lax) * fk;
-        rax = rax + (-2.7 - rax) * fk;
+        const sw = Math.sin(w.t * 5.5);
+        lax = lax + (-2.3 + sw * 0.9 - lax) * fk;
+        rax = rax + (-2.3 - sw * 0.9 - rax) * fk;
         laz = laz + (-0.18 - laz) * fk;
         raz = raz + (0.18 - raz) * fk;
       }
@@ -1838,8 +1826,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         raz = raz + (0.5 - raz) * sk;
       }
       if (r6.legL) {
-        const lLeg = swing * 1.1 + 0.5 * w.air - tl.slide * 0.9;
-        const rLeg = stompLeg !== null ? stompLeg : -swing * 1.1 - 0.3 * w.air + tl.slide * 0.5;
+        const lLeg = (swing * 1.1 + 0.5 * w.air) * (1 - tl.fly) + Math.sin(w.t * 9) * 0.4 * tl.fly - tl.slide * 0.9;
+        const rLeg = stompLeg !== null ? stompLeg : (-swing * 1.1 - 0.3 * w.air) * (1 - tl.fly) - Math.sin(w.t * 9) * 0.4 * tl.fly + tl.slide * 0.5;
         r6.legL.rotation.x = ep ? mix(lLeg, ep.legL) : lLeg;
         r6.legR.rotation.x = ep ? mix(rLeg, ep.legR) : rLeg;
         r6.legL.rotation.z = ep ? mix(0, ep.lz) : 0;
@@ -1888,7 +1876,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         pitch = mix(pitch, ep.pitch === undefined ? pitch : pitch + ep.pitch);
         offY = mix(offY, ep.offY === undefined ? offY : offY + ep.offY);
       }
-      pitch += tl.slide * 0.35 + tl.fly * 0.75;
+      pitch += tl.slide * 0.35 + tl.fly * 1.05;
       offY -= tl.slide * 0.18 + tl.rel * 0.06;
       body.rotation.order = 'YXZ';
       body.rotation.set(pitch, yaw.current + (ep && ep.yaw ? ep.yaw * ew : 0), ep && ep.roll ? ep.roll * ew : 0);

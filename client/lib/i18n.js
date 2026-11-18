@@ -805,6 +805,20 @@ const PAIRS = [
 ["Variante: pegajoso (C)","Variant: sticky (C)"],
 ["Variante: normal (C)","Variant: normal (C)"],
 ["Pistón pegajoso (variante, Minceraft)","Sticky piston (variant, Minceraft)"],
+["Esto NO se aplica automáticamente al juego - es un layout generado, listo para copiar a mano.","This is NOT applied to the game automatically - it is a generated layout, ready to copy by hand."],
+["✎ Editar (altura / escala)","✎ Edit (height / scale)"],
+["Auto-daño:","Self-damage:"],
+["nadie","nobody"],
+["infectado","infected"],
+["Auto-daño perfecto","Perfect self-damage"],
+["inicio de partida","match start"],
+["vuelta al lobby","back to the lobby"],
+["No hay un compañero cerca (suelta el Módulo con la tecla de soltar)","There is no teammate nearby (drop the Module with the drop key)"],
+["se podía seguir jugando","the match could continue"],
+["hitbox de interacción","interaction hitbox"],
+["no encuentro al otro jugador","I can't find the other player"],
+["en cola","queued"],
+["Gerente Quijote del Paradero","Quijote Manager of the Stop"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };

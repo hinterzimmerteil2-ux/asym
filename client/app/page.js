@@ -515,7 +515,7 @@ export default function LobbyPage() {
             setLastActionFeedback(
               type === 'cure_result'
                 ? `Curaste a un Paciente (HP: ${payload.newHp})`
-                : payload.failed ? 'Fallaste el ritmo' : payload.damage ? `Te hiciste ${payload.damage} de daño${payload.perfect ? ' (¡perfecto!)' : ''} (HP: ${payload.newHp})` : `Te hiciste daño (HP: ${payload.newHp})`
+                : payload.failed ? 'Fallaste el ritmo' : payload.damage ? `Auto-daño: ${payload.damage}${payload.perfect ? ' (¡perfecto!)' : ''} (HP: ${payload.newHp})` : `Te hiciste daño (HP: ${payload.newHp})`
             );
             break;
           case 'curator_pulse_result': {
