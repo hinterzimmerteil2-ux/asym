@@ -131,6 +131,7 @@ const DEFAULT_MAP_LAYOUT = {
 })();
 
 const CustomCards = require('./CustomCards');
+const CustomSupers = require('./CustomSupers');
 const MINIGAMES = ['rhythm', 'needle', 'mash', 'meter'];
 const EVENT_KINDS = ['blackout', 'gates', 'alarm', 'shuffle', 'collapse', 'appear'];
 
@@ -295,6 +296,7 @@ function registerMap(layout, dryRun) {
     serums: (Array.isArray(layout.serums) ? layout.serums : []).slice(0, 24).map((o, i) => ({ id: typeof o.id === 'string' ? o.id.slice(0, 40) : `su_${i}`, xFrac: clampFrac(o.xFrac), zFrac: clampFrac(o.zFrac), y: Math.max(-10, Math.min(60, Number(o.y) || 0)) })),
     cards: CustomCards.normalizeList(layout.cards),
     healerSkills: CustomCards.normalizeHealer(layout.healerSkills),
+    supers: CustomSupers.sanitize(layout.supers),
     collisionObjects: layout.collisionObjects.map((o) => ({
       id: String(o.id),
       type: typeof o.type === 'string' ? o.type : 'gurney',
@@ -358,6 +360,11 @@ function getCustomCards(mapId) {
   return (layout && layout._cardObjs) || [];
 }
 
+function getSupers(mapId) {
+  const m = MAPS[mapId];
+  return (m && m.supers) || null;
+}
+
 function getEvents(mapId) {
   const layout = MAPS[mapId] || MAPS[DEFAULT_MAP_ID];
   return layout.events || [];
@@ -389,6 +396,8 @@ function getLayoutCopy(mapId) {
     platforms: m.platforms || [],
     events: m.events || [],
     cards: m.cards || [],
+    healerSkills: m.healerSkills || [],
+    supers: m.supers || CustomSupers.sanitize(null),
   }));
 }
 
@@ -514,6 +523,7 @@ function getCuratorSpawn(mapId, pick) {
 
 module.exports = {
   getCustomCards,
+  getSupers,
   getLayoutCopy,
   getEvents,
   sanitizeEvents,

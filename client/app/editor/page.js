@@ -233,6 +233,7 @@ export default function MapEditorPage() {
   const [selEvent, setSelEvent] = useState(null);
   const [skills, setSkills] = useState([]);
   const [healerSkills, setHealerSkills] = useState([]);
+  const [supers, setSupers] = useState({ enabled: {}, tune: {} });
   const [buildTex, setBuildTex] = useState('');
   const [buildY0, setBuildY0] = useState(0);
   const [buildTint, setBuildTint] = useState('#ffffff');
@@ -405,6 +406,7 @@ export default function MapEditorPage() {
       events: mapEvents.map((e) => ({ ...e })),
       cards: skills.map((s) => ({ ...s })),
       healerSkills: healerSkills.map((s) => ({ ...s })),
+      supers: { enabled: { ...supers.enabled }, tune: JSON.parse(JSON.stringify(supers.tune)) },
       serums: serums.map((o) => ({ id: o.id, xFrac: round3(o.xFrac), zFrac: round3(o.zFrac), y: round3(o.y || 0) })),
       collisionObjects: collisionObjects.map((o) => ({
         id: o.id,
@@ -475,6 +477,7 @@ export default function MapEditorPage() {
       setMapEvents((l.events || []).map((o) => ({ ...o })));
       setSkills((l.cards || []).map((o, i) => ({ ...o, id: o.id || `sk_l${i}` })));
       setHealerSkills((l.healerSkills || []).map((o, i) => ({ ...o, id: `hk_l${i}` })));
+      setSupers(l.supers ? { enabled: { ...(l.supers.enabled || {}) }, tune: JSON.parse(JSON.stringify(l.supers.tune || {})) } : { enabled: {}, tune: {} });
       setMapName(`${l.name} (copia)`);
       setMapId(`${l.id.replace(/^c_/, 'com_').slice(0, 24)}_copia`);
       setSelectedId(null);
@@ -767,7 +770,7 @@ export default function MapEditorPage() {
           )}
 
           <div style={styles.countsBox}>
-            <SkillsEditor skills={skills} setSkills={setSkills} healerSkills={healerSkills} setHealerSkills={setHealerSkills} />
+            <SkillsEditor skills={skills} setSkills={setSkills} healerSkills={healerSkills} setHealerSkills={setHealerSkills} supers={supers} setSupers={setSupers} />
           </div>
 
           <div style={styles.countsBox}>

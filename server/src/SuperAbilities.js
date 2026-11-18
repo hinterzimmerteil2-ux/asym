@@ -111,6 +111,24 @@ const DEFS = {
 
 const STAR = { rhythmMax: 100, barrageMs: 1100, barrageStepMs: 100, rafagaRange: 5, rafagaWidth: 1.8, rafagaStun: 900, rafagaPush: 3, rafagaEndStun: 1500, rafagaEndPush: 9, rafagaGain: 1.5, stellarRange: 24, stellarWidth: 0.9, stellarWind: 400, stellarStun: 1300, stellarPush: 10, stellarGain: 12, catchMs: 300, catchRange: 8, catchWidth: 1.5, catchStun: 1800, catchPush: 13, throwMin: 7, throwMax: 28, throwRagMin: 800, throwRagMax: 2400, catchGain: 20, catchFailLag: 500, pauseRange: 11, pauseStun: 1500, pauseCost: 50, rhythmStun: 0.006, reactCost: 30, reactStun: 1100, reactRange: 7, reactPush: 7, reactCd: 8000, cd: { rafaga: 6500, stellar: 9000, atrapar: 9000, pausa: 5000 } };
 
+let CUR = null;
+function T(id, key, base) {
+  const c = CUR && CUR.tune && CUR.tune[id];
+  return c && c[key] !== undefined ? c[key] : base;
+}
+function wrapCfg(fn) {
+  return function wrapped(a, ...rest) {
+    const prev = CUR;
+    if (a && a.gameState) CUR = a.superTune || null;
+    else if (a && a.sup) CUR = a.sup.cfg || null;
+    try {
+      return fn.call(this, a, ...rest);
+    } finally {
+      CUR = prev;
+    }
+  };
+}
+
 function resetMatch(room) {
   const mine = new Set(Object.values(room.gameState.entities));
   domes = domes.filter((d) => !mine.has(d.owner));
@@ -122,12 +140,12 @@ function resetMatch(room) {
   }
 }
 
-function grant(entity, id) {
+function grant(entity, id, cfg) {
   if (!DEFS[id]) {
     entity.sup = null;
     return;
   }
-  entity.sup = { id, sheets: DEFS[id].charges || SHEETS, copyLeft: false, claims: 0, nextAt: 0, pending: 0, still: 0, lx: null, lz: null, noticeUntil: 0, taxRe: 0, taxIm: 0, taxAt: 0, evAt: 0 };
+  entity.sup = { cfg: cfg || null, id, sheets: DEFS[id].charges || SHEETS, copyLeft: false, claims: 0, nextAt: 0, pending: 0, still: 0, lx: null, lz: null, noticeUntil: 0, taxRe: 0, taxIm: 0, taxAt: 0, evAt: 0 };
   if (id === 'platinum_star') {
     Object.assign(entity.sup, { rhythm: 0, cd: { rafaga: 0, stellar: 0, atrapar: 0, pausa: 0, react: 0 }, react: 0, poke: null, barrage: null, dome: 0, domeOn: false, parried: 0 });
   }
@@ -135,7 +153,7 @@ function grant(entity, id) {
     Object.assign(entity.sup, { used: 0, mining: null, prev: null, pv: null });
   }
   if (id === 'town_level') {
-    Object.assign(entity.sup, { mana: 0, shield: 0, shieldAt: 0, chain: 0, spent: 0, lastFlo: null, charging: false, chMana: 0, chAt: 0, chPush: 0, chStun: 0, ammo: SHOT_AMMO, ammoMax: SHOT_AMMO, freeReloads: FREE_RELOADS, modBullets: [], cd: { bayoneta: 0, barrera: 0, senuelo: 0 }, glide: false, glideAt: 0, airAt: 0, dome: 0, decoy: null });
+    Object.assign(entity.sup, { mana: 0, shield: 0, shieldAt: 0, chain: 0, spent: 0, lastFlo: null, charging: false, chMana: 0, chAt: 0, chPush: 0, chStun: 0, ammo: Math.round(T('town_level', 'shotAmmo', SHOT_AMMO)), ammoMax: Math.round(T('town_level', 'shotAmmo', SHOT_AMMO)), freeReloads: FREE_RELOADS, modBullets: [], cd: { bayoneta: 0, barrera: 0, senuelo: 0 }, glide: false, glideAt: 0, airAt: 0, dome: 0, decoy: null });
     entity.hitScale = (entity.hitScale || 1) * DEFS[id].scale;
   }
 }
@@ -150,12 +168,12 @@ function tax(entity, re, im, now) {
     s.taxIm = Math.min(TAX_IM_MAX, s.taxIm + im);
     s.taxAt = now || Date.now();
   }
-  while (s.taxRe >= TAX_NEED) {
+  while (s.taxRe >= T('sunat_paperwork', 'taxNeed', TAX_NEED)) {
     if (s.sheets >= SHEETS) {
-      s.taxRe = TAX_NEED - 1;
+      s.taxRe = T('sunat_paperwork', 'taxNeed', TAX_NEED) - 1;
       break;
     }
-    s.taxRe -= TAX_NEED;
+    s.taxRe -= T('sunat_paperwork', 'taxNeed', TAX_NEED);
     s.sheets += 1;
     s.taxIm = Math.min(TAX_IM_MAX, s.taxIm + 1);
     s.taxAt = now || Date.now();
@@ -311,11 +329,11 @@ function tick(room, now) {
       s.taxAt = now;
     }
     if (s && s.id === 'sunat_paperwork' && !e.down && !e.gone && !e.corpse) {
-      if (!s.padAt) s.padAt = now + PAD_EVERY_MS;
+      if (!s.padAt) s.padAt = now + T('sunat_paperwork', 'padEveryMs', PAD_EVERY_MS);
       if (now >= s.padAt && (s.padN || 0) < PAD_MAX && !Status.blocksSkills(e, now)) {
-        s.padAt = now + PAD_EVERY_MS;
+        s.padAt = now + T('sunat_paperwork', 'padEveryMs', PAD_EVERY_MS);
         s.padN = (s.padN || 0) + 1;
-        Status.apply(e, 'slow', PAD_LAG_MS, now, { tag: 'endlag', level: 3 });
+        Status.apply(e, 'slow', T('sunat_paperwork', 'padLagMs', PAD_LAG_MS), now, { tag: 'endlag', level: 3 });
         tax(e, PAD_RE, PAD_IM, now);
         room.broadcast('super_result', { playerId: Object.keys(room.gameState.entities).find((k) => room.gameState.entities[k] === e), mode: 'sunat_tramite', x: e.x, y: e.y || 0, z: e.z });
       }
@@ -330,7 +348,7 @@ function tick(room, now) {
     if (e.down) continue;
     Status.apply(e, 'stun', embargo, now);
     Status.apply(e, 'queue', embargo, now);
-    Status.apply(e, 'slow', FINE_MS, now, { level: 1 });
+    Status.apply(e, 'slow', T('sunat_paperwork', 'fineMs', FINE_MS), now, { level: 1 });
     tax(room.gameState.entities[by], TAX_FINE, 1, now);
   }
 }
@@ -341,11 +359,11 @@ function view(entity, now) {
   if (s.id === 'town_level') {
     return { id: s.id, mana: Math.floor(s.mana), manaMax: MANA_MAX, shield: Math.floor(s.shield), shieldMax: SHIELD_MAX, charging: s.charging, ammo: s.ammo, ammoMax: s.ammoMax, reload: s.reload ? Math.max(0, s.reload.until - now) : 0, reloadMax: s.reload ? s.reload.until - s.reload.at : 0, freeReloads: s.freeReloads, charge: Math.round(s.chMana), chargeMax: CHARGE_MAX_MANA, cd: { bayoneta: Math.max(0, s.cd.bayoneta - now), barrera: Math.max(0, s.cd.barrera - now), senuelo: Math.max(0, s.cd.senuelo - now) }, glide: s.glide };
   }
-  if (s.id === 'minceraft') return { id: s.id, used: s.used, max: MC.max, mining: s.mining ? Math.max(0, s.mining.until - now) : 0 };
+  if (s.id === 'minceraft') return { id: s.id, used: s.used, max: T('minceraft', 'max', MC.max), mining: s.mining ? Math.max(0, s.mining.until - now) : 0 };
   if (s.id === 'platinum_star') {
-    return { id: s.id, rhythm: Math.floor(s.rhythm), rhythmMax: STAR.rhythmMax, pauseCost: STAR.pauseCost, ready: s.rhythm >= STAR.reactCost && now >= s.cd.react, windUp: Boolean(s.poke), barrage: Boolean(s.barrage), catching: s.domeOn, cd: { rafaga: Math.max(0, s.cd.rafaga - now), stellar: Math.max(0, s.cd.stellar - now), atrapar: Math.max(0, s.cd.atrapar - now), pausa: Math.max(0, s.cd.pausa - now) } };
+    return { id: s.id, rhythm: Math.floor(s.rhythm), rhythmMax: T('platinum_star', 'rhythmMax', STAR.rhythmMax), pauseCost: STAR.pauseCost, ready: s.rhythm >= STAR.reactCost && now >= s.cd.react, windUp: Boolean(s.poke), barrage: Boolean(s.barrage), catching: s.domeOn, cd: { rafaga: Math.max(0, s.cd.rafaga - now), stellar: Math.max(0, s.cd.stellar - now), atrapar: Math.max(0, s.cd.atrapar - now), pausa: Math.max(0, s.cd.pausa - now) } };
   }
-  return { id: s.id, sheets: s.sheets, max: SHEETS, taxRe: Math.floor(s.taxRe), taxIm: s.taxIm, taxNeed: TAX_NEED, taxImMax: TAX_IM_MAX };
+  return { id: s.id, sheets: s.sheets, max: SHEETS, taxRe: Math.floor(s.taxRe), taxIm: s.taxIm, taxNeed: T('sunat_paperwork', 'taxNeed', TAX_NEED), taxImMax: TAX_IM_MAX };
 }
 
 function steps(s) {
@@ -438,7 +456,7 @@ function useTown(room, playerId, entity, mode, now) {
     if (s.charging) { s.charging = false; return true; }
     if (s.ammo < s.ammoMax + (s.ammo > 0 ? 1 : 0) && s.freeReloads > 0 && !Status.blocksSkills(entity, now)) {
       const tactical = s.ammo > 0;
-      const ms = tactical ? RELOAD_TACTICAL_MS : RELOAD_EMPTY_MS;
+      const ms = tactical ? T('town_level', 'reloadTacticalMs', RELOAD_TACTICAL_MS) : T('town_level', 'reloadEmptyMs', RELOAD_EMPTY_MS);
       s.reload = { until: now + ms, tactical, at: now };
       s.nextAt = now + USE_GAP_MS;
       Status.apply(entity, 'slow', ms, now, { level: 1 });
@@ -493,16 +511,16 @@ function useTown(room, playerId, entity, mode, now) {
         }
         const path = rayFoes(room, entity, nx, nz, ny, LUNGE_RANGE, 1.2);
         const first = path[0];
-        let len = SHOT_RANGE;
+        let len = T('town_level', 'shotRange', SHOT_RANGE);
         if (first) {
-          const near = Math.max(0, 1 - first.d / SHOT_RANGE);
+          const near = Math.max(0, 1 - first.d / T('town_level', 'shotRange', SHOT_RANGE));
           room.stun(first.id, first.e, Math.round(SHOT_STUN_MS * (1 + SHOT_STUN_BONUS * near)), now, 0);
           Status.push(first.e, nx, nz, SHOT_PUSH, 340, now);
-          len = Math.min(SHOT_RANGE, first.d);
-          recoil = SHOT_RECOIL_HIT + (SHOT_RECOIL_MISS - SHOT_RECOIL_HIT) * (1 - near);
+          len = Math.min(T('town_level', 'shotRange', SHOT_RANGE), first.d);
+          recoil = T('town_level', 'recoilHit', SHOT_RECOIL_HIT) + (T('town_level', 'recoilMiss', SHOT_RECOIL_MISS) - T('town_level', 'recoilHit', SHOT_RECOIL_HIT)) * (1 - near);
         } else {
           s.chain = 0;
-          recoil = SHOT_RECOIL_MISS;
+          recoil = T('town_level', 'recoilMiss', SHOT_RECOIL_MISS);
         }
         s.cd.bayoneta = now + CD.bayonetaLunge;
         fxp.shot = true;
@@ -602,11 +620,11 @@ function tickTown(room, now) {
       } else if (!sl.started) {
         sl.started = true;
         if (!Status.blocksMove(e, now)) {
-          Status.push(e, sl.dx, sl.dz, SLIDE_SPEED, SLIDE_MS, now, { boss: true });
+          Status.push(e, sl.dx, sl.dz, T('town_level', 'slideSpeed', SLIDE_SPEED), T('town_level', 'slideMs', SLIDE_MS), now, { boss: true });
           e.kbSoft = true;
           room.broadcast('super_result', { playerId: id, mode: 'deslizar', x: e.x, y: e.y || 0, z: e.z, dx: sl.dx, dz: sl.dz });
         }
-        s.slideUntil = now + SLIDE_MS;
+        s.slideUntil = now + T('town_level', 'slideMs', SLIDE_MS);
         s.slide = null;
       }
     }
@@ -662,7 +680,7 @@ function tickTown(room, now) {
 }
 
 function starGain(s, n) {
-  s.rhythm = Math.min(STAR.rhythmMax, s.rhythm + n);
+  s.rhythm = Math.min(T('platinum_star', 'rhythmMax', STAR.rhythmMax), s.rhythm + n);
 }
 
 function starStun(s, ms) {
@@ -753,16 +771,16 @@ function tickStar(room, now) {
     if (s.poke && now >= s.poke.at) {
       const { nx, nz, ny } = s.poke;
       s.poke = null;
-      const path = rayFoes(room, e, nx, nz, ny || 0, STAR.stellarRange, STAR.stellarWidth);
+      const path = rayFoes(room, e, nx, nz, ny || 0, T('platinum_star', 'stellarRange', STAR.stellarRange), STAR.stellarWidth);
       const first = path[0];
-      let len = STAR.stellarRange;
+      let len = T('platinum_star', 'stellarRange', STAR.stellarRange);
       if (first) {
         room.stun(first.id, first.e, starStun(s, STAR.stellarStun), now, 0);
         Status.push(first.e, nx, nz, STAR.stellarPush, 320, now);
         len = first.d;
         starGain(s, STAR.stellarGain);
       }
-      room.broadcast('super_result', { playerId: id, mode: 'stellar_hit', boxes: lineBoxes(e, nx, nz, STAR.stellarRange, STAR.stellarWidth, ny || 0), dy: ny || 0, x: e.x, y: e.y || 0, z: e.z, dx: nx, dz: nz, len, hit: Boolean(first) });
+      room.broadcast('super_result', { playerId: id, mode: 'stellar_hit', boxes: lineBoxes(e, nx, nz, T('platinum_star', 'stellarRange', STAR.stellarRange), STAR.stellarWidth, ny || 0), dy: ny || 0, x: e.x, y: e.y || 0, z: e.z, dx: nx, dz: nz, len, hit: Boolean(first) });
     }
     if (s.grab && now >= s.grab.at) {
       const { nx, nz, ny } = s.grab;
@@ -775,9 +793,9 @@ function tickStar(room, now) {
         if (boss && target.e.hpMax) frac = target.e.hp / target.e.hpMax;
         else if (room.gameState.curator && room.gameState.curator.max) frac = room.gameState.curator.hp / room.gameState.curator.max;
         frac = Math.max(0, Math.min(1, frac));
-        const force = (STAR.throwMin + (STAR.throwMax - STAR.throwMin) * (1 - frac)) * (boss ? 0.5 : 1);
+        const force = (T('platinum_star', 'throwMin', STAR.throwMin) + (T('platinum_star', 'throwMax', STAR.throwMax) - T('platinum_star', 'throwMin', STAR.throwMin)) * (1 - frac)) * (boss ? 0.5 : 1);
         room.stun(target.id, target.e, starStun(s, STAR.catchStun), now, 0);
-        if (!boss) room.ragdoll(target.id, target.e, Math.round(STAR.throwRagMin + (STAR.throwRagMax - STAR.throwRagMin) * (1 - frac)), now);
+        if (!boss) room.ragdoll(target.id, target.e, Math.round(T('platinum_star', 'throwRagMin', STAR.throwRagMin) + (T('platinum_star', 'throwRagMax', STAR.throwRagMax) - T('platinum_star', 'throwRagMin', STAR.throwRagMin)) * (1 - frac)), now);
         Status.push(target.e, nx, nz, force, 520, now);
         target.e.velocityY = Math.max(target.e.velocityY || 0, 3 + force * 0.14);
         target.e.onGround = false;
@@ -802,7 +820,7 @@ const MC = {
 };
 
 function mcLife(d) {
-  return d.life || MC.life;
+  return d.life || (T('minceraft', 'lifeSec', MC.life / 1000) * 1000);
 }
 
 function mcStage(d, now) {
@@ -870,7 +888,7 @@ function mcPlan(room, playerId, entity, mode, now) {
   const fl = Math.hypot(entity.faceX || 0, entity.faceZ || 1) || 1;
   const nx = (entity.faceX || 0) / fl;
   const nz = (entity.faceZ || 1) / fl;
-  let ok = s.used + w <= MC.max && gs.dyn.length < MC.pieceLimit;
+  let ok = s.used + w <= T('minceraft', 'max', MC.max) && gs.dyn.length < MC.pieceLimit;
   let tx = entity.x + nx * 1.6;
   let tz = entity.z + nz * 1.6;
   let adx = nx;
@@ -915,7 +933,7 @@ function mcPlan(room, playerId, entity, mode, now) {
     const ny = aimY(entity, now);
     piece.kind = 'piston';
     if (mode === 'pegajoso') piece.sticky = true;
-    piece.life = MC.pistonLife;
+    piece.life = (T('minceraft', 'pistonLifeSec', MC.pistonLife / 1000) * 1000);
     piece.dx = 0;
     piece.dz = 0;
     piece.dy = 0;
@@ -1038,7 +1056,7 @@ function mcPistonFire(room, d, stage, now) {
       e.onGround = false;
       e.peakY = e.y;
     } else {
-      Status.push(e, dx, dz, MC.pistonPush, 320, now);
+      Status.push(e, dx, dz, T('minceraft', 'pistonPush', MC.pistonPush), 320, now);
       if (e.onGround) {
         e.velocityY = 3;
         e.onGround = false;
@@ -1062,6 +1080,10 @@ function mcPistonFire(room, d, stage, now) {
     cx += dx;
     cz += dz;
     cy += dy;
+  }
+  if (d.sticky && freeAt === 0) {
+    const far = at(d.x + dx * 2, d.z + dz * 2, d.y0 + dy * 2 + (dy > 0 ? d.h - 1 : 0));
+    if (far) d.pull = { ids: [far.id], at: now + 520, dx, dy, dz };
   }
   if (freeAt !== null && moved.length) {
     const set = new Set(moved);
@@ -1089,6 +1111,23 @@ function mcPistonFire(room, d, stage, now) {
         p.y0 += dy;
       }
       gs.dynVer += 1;
+      for (const p of set) {
+        if (p.kind !== 'slime') continue;
+        for (const [pid2, e2] of Object.entries(gs.entities)) {
+          if (e2.down || e2.gone || e2.corpse) continue;
+          const ey2 = e2.y || 0;
+          if (Math.abs(e2.x - p.x) > 1 || Math.abs(e2.z - p.z) > 1 || ey2 < p.y0 - 0.5 || ey2 > p.y0 + p.h + 0.4) continue;
+          if (dy) {
+            e2.velocityY = dy * MC.pistonPlaneV * 2.1;
+            e2.onGround = false;
+            e2.peakY = e2.y;
+          } else {
+            Status.push(e2, dx, dz, T('minceraft', 'pistonPush', MC.pistonPush) * 2.8, 450, now);
+            e2.velocityY = Math.max(e2.velocityY || 0, 6);
+            e2.onGround = false;
+          }
+        }
+      }
       if (d.sticky) d.pull = { ids: [...set].map((p) => p.id), at: now + 520, dx, dy, dz };
     }
   }
@@ -1129,8 +1168,8 @@ function mcExplode(room, d, now) {
     const dx = e.x - d.x;
     const dz = e.z - d.z;
     const dist = Math.hypot(dx, dz);
-    if (dist > MC.tntR || Math.abs((e.y || 0) + 0.9 - cy) > 3) continue;
-    const k = 1 - Math.min(1, dist / MC.tntR) * 0.5;
+    if (dist > T('minceraft', 'tntR', MC.tntR) || Math.abs((e.y || 0) + 0.9 - cy) > 3) continue;
+    const k = 1 - Math.min(1, dist / T('minceraft', 'tntR', MC.tntR)) * 0.5;
     const pl = room.players.get(pid);
     const isBoss = Boolean(pl && pl.isBoss);
     const asymE = Boolean(pl && (pl.isAsymRole || isBoss));
@@ -1143,13 +1182,27 @@ function mcExplode(room, d, now) {
         Boss.tntHit(room, MC.tntBossDmg);
       } else if (!dmgDone) {
         dmgDone = true;
-        room.adjustCuratorHp(-MC.tntDmg);
+        room.adjustCuratorHp(-T('minceraft', 'tntDmg', MC.tntDmg));
         room.checkGameEndConditions();
       }
     }
+    const prevOn = (e.kbUntil || 0) > now;
+    const px = prevOn ? e.kbX || 0 : 0;
+    const pz = prevOn ? e.kbZ || 0 : 0;
     Status.push(e, dx / (dist || 1), dz / (dist || 1), MC.tntPush * k * near, 380, now);
-    if (!isBoss) room.ragdoll(pid, e, MC.tntRagMs, now);
-    e.velocityY = Math.max(e.velocityY || 0, MC.tntUp * k * near);
+    let sx = e.kbX + px;
+    let sz = e.kbZ + pz;
+    const sl = Math.hypot(sx, sz);
+    const cap = MC.tntPush * 2.4;
+    if (sl > cap) {
+      sx = (sx / sl) * cap;
+      sz = (sz / sl) * cap;
+    }
+    e.kbX = sx;
+    e.kbZ = sz;
+    e.kbUntil = now + 380;
+    if (asymE && !isBoss) room.ragdoll(pid, e, MC.tntRagMs, now);
+    e.velocityY = Math.min(MC.tntUp * 2.2, Math.max(0, e.velocityY || 0) + MC.tntUp * k * near);
     e.onGround = false;
     e.peakY = e.y;
   }
@@ -1161,7 +1214,7 @@ function mcExplode(room, d, now) {
       if (!o.fuse) o.fuse = now + 250;
     } else mcRemove(room, o);
   }
-  room.broadcast('super_result', { playerId: d.owner, mode: 'tnt_boom', x: d.x, y: cy, z: d.z, radius: MC.tntR, hit });
+  room.broadcast('super_result', { playerId: d.owner, mode: 'tnt_boom', x: d.x, y: cy, z: d.z, radius: T('minceraft', 'tntR', MC.tntR), hit });
 }
 
 function tickMine(room, now) {
@@ -1225,7 +1278,7 @@ function tickMine(room, now) {
       room.broadcast('super_result', { playerId: d.owner, mode: 'redstone_pulso', x: d.x, y: d.y0 + 0.5, z: d.z, radius: MC.redstoneR, hit });
     } else if (d.kind === 'slime' && (fire || now - (d.lastCheck || 0) > 100)) {
       d.lastCheck = now;
-      const v = MC.slimeV - stage * 1.5;
+      const v = T('minceraft', 'slimeV', MC.slimeV) - stage * 1.5;
       for (const e of Object.values(gs.entities)) {
         if (e.down || e.gone || e.corpse || !e.onGround) continue;
         if (Math.abs(e.x - d.x) > d.hx + 0.2 || Math.abs(e.z - d.z) > d.hz + 0.2 || Math.abs((e.y || 0) - (d.y0 + d.h)) > 0.3) continue;
@@ -1248,7 +1301,7 @@ function tickMine(room, now) {
         if (now >= (d.cool || 0)) mcActivate(room, d, now);
       }
     } else if (d.kind === 'tnt') {
-      if (fire && d.pw && !d.fuse) d.fuse = now + MC.tntFuse;
+      if (fire && d.pw && !d.fuse) d.fuse = now + (T('minceraft', 'tntFuseSec', MC.tntFuse / 1000) * 1000);
       if (fire) d.pw = false;
       if (d.fuse && now >= d.fuse) mcExplode(room, d, now);
     } else if (d.kind === 'miel') {
@@ -1333,5 +1386,17 @@ function glide(room, entity, now, dt) {
   return false;
 }
 
-module.exports = {
-  resetMatch, minceraftView, climb, MC, onStunned, evade, speedBonus, tax, DEFS, wpnActive: (e, now) => Boolean(e.sup && e.sup.wpnUntil > now), grant, use, claim, tick, view, gainMana, onModule, miss, withSource, scaleStun, scalePush, absorbHeal, domeBlocks, glide, domeRadius: DOME_RADIUS };
+const API = {
+  resetMatch, minceraftView, climb, MC, onStunned, evade, speedBonus, tax, DEFS, wpnActive: (e, now) => Boolean(e.sup && e.sup.wpnUntil > now), grant, use, claim, tick, view, gainMana, onModule, miss, withSource, scaleStun, scalePush, absorbHeal, domeBlocks, glide, domeRadius: DOME_RADIUS,
+};
+for (const k of Object.keys(API)) if (typeof API[k] === 'function' && !['grant', 'wpnActive'].includes(k)) API[k] = wrapCfg(API[k]);
+API.grant = function grantCfg(entity, id, cfg) {
+  const prev = CUR;
+  CUR = cfg || null;
+  try {
+    return grant(entity, id, cfg);
+  } finally {
+    CUR = prev;
+  }
+};
+module.exports = API;

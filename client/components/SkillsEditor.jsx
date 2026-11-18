@@ -158,12 +158,51 @@ function SideEditor({ side, list, setList, max, library }) {
 
 const style = { line: { fontSize: 12, color: '#c9cbd8', margin: '4px 0', display: 'block' } };
 
-export default function SkillsEditor({ skills, setSkills, healerSkills, setHealerSkills }) {
+const SUPER_EDIT = [
+  ['minceraft', 'Minceraft', [['max', 'Bloques máximos', 8, 256, 1, 64], ['lifeSec', 'Duración de bloques (s)', 3, 60, 1, 12], ['pistonPush', 'Empuje del pistón', 4, 40, 1, 14], ['pistonLifeSec', 'Duración del pistón (s)', 2, 30, 1, 6], ['tntDmg', 'Daño de TNT al Curador', 0, 100, 1, 6], ['tntFuseSec', 'Mecha de TNT (s)', 0.3, 5, 0.1, 1.4], ['tntR', 'Radio de TNT', 1, 12, 0.1, 3.6], ['slimeV', 'Rebote del slime', 4, 30, 1, 11]]],
+  ['town_level', 'Town Level Verse Lol', [['shotAmmo', 'Balas por cargador', 2, 30, 1, 8], ['shotRange', 'Alcance del disparo', 4, 40, 1, 14], ['recoilMiss', 'Retroceso al fallar', 0, 60, 0.5, 21], ['recoilHit', 'Retroceso al acertar', 0, 30, 0.5, 4.5], ['slideSpeed', 'Velocidad del deslizamiento', 8, 80, 1, 32], ['slideMs', 'Duración del deslizamiento (ms)', 150, 1200, 10, 450], ['reloadTacticalMs', 'Recarga táctica (ms)', 300, 5000, 50, 1300], ['reloadEmptyMs', 'Recarga con cargador vacío (ms)', 300, 6000, 50, 1900]]],
+  ['platinum_star', 'Platinum Star', [['rhythmMax', 'Ritmo máximo', 50, 300, 5, 100], ['stellarRange', 'Alcance de Stellar', 4, 60, 1, 24], ['throwMin', 'Lanzamiento mínimo', 0, 30, 1, 7], ['throwMax', 'Lanzamiento máximo', 0, 80, 1, 28], ['throwRagMin', 'Ragdoll mínimo (ms)', 0, 6000, 100, 800], ['throwRagMax', 'Ragdoll máximo (ms)', 0, 8000, 100, 2400]]],
+  ['sunat_paperwork', 'Sunat Paperwork', [['taxNeed', 'Impuestos para ganar', 30, 400, 1, 118], ['padEveryMs', 'Lag pasivo cada (ms)', 3000, 120000, 1000, 18000], ['padLagMs', 'Duración del lag pasivo (ms)', 200, 5000, 100, 900], ['fineMs', 'Duración de la multa (ms)', 3000, 60000, 500, 12000]]],
+];
+
+function SupersEditor({ supers, setSupers }) {
+  const enabled = (supers && supers.enabled) || {};
+  const tune = (supers && supers.tune) || {};
+  const setOn = (id, on) => setSupers({ enabled: { ...enabled, [id]: on }, tune });
+  const setVal = (id, key, v) => setSupers({ enabled, tune: { ...tune, [id]: { ...(tune[id] || {}), [key]: v } } });
+  const reset = (id) => setSupers({ enabled, tune: { ...tune, [id]: {} } });
+  return (
+    <div style={{ marginTop: 10 }}>
+      <p style={{ ...style.line, fontWeight: 700 }}>Súperhabilidades de este mapa</p>
+      {SUPER_EDIT.map(([id, label, params]) => (
+        <div key={id} style={{ marginTop: 6, padding: 6, border: '1px solid #3d4a42', borderRadius: 6 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <label style={{ ...style.line, flex: 1, margin: 0 }}>
+              <input type="checkbox" checked={enabled[id] !== false} onChange={(ev) => setOn(id, ev.target.checked)} /> {label}
+            </label>
+            <button style={{ fontSize: 11 }} onClick={() => reset(id)}>Restablecer</button>
+          </div>
+          {enabled[id] !== false && params.map(([key, text, min, max, step, def]) => {
+            const v = tune[id] && tune[id][key] !== undefined ? tune[id][key] : def;
+            return (
+              <label key={key} style={style.line}>{text}: {v}
+                <input type="range" min={min} max={max} step={step} value={v} onChange={(ev) => setVal(id, key, parseFloat(ev.target.value))} style={{ width: '100%' }} />
+              </label>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function SkillsEditor({ skills, setSkills, healerSkills, setHealerSkills, supers, setSupers }) {
   return (
     <div>
       <p style={{ ...style.line, fontWeight: 700 }}>Skills personalizadas (sin límite de poder)</p>
       <SideEditor side="patient" list={skills} setList={setSkills} max={12} />
       <SideEditor side="healer" list={healerSkills} setList={setHealerSkills} max={4} />
+      {setSupers && <SupersEditor supers={supers} setSupers={setSupers} />}
     </div>
   );
 }

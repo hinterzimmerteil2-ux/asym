@@ -792,7 +792,7 @@ class Room {
       platforms: GameMap.resolvePlatforms(this.mapId, GameMap.areaFor(this.mapId)),
       halfSize: GameMap.areaFor(this.mapId).halfSize,
       roles: Roles.list(Cards),
-      superRoles: this.superSet && this.superSet.size ? Roles.supers(Cards) : [],
+      superRoles: this.superSet && this.superSet.size ? Roles.supers(Cards).filter((r) => this.superEnabled(r.id.slice(6))) : [],
       superIds: this.superSet ? [...this.superSet] : [],
       hitbox: { half: PLAYER_HALF, height: PLAYER_HEIGHT, interact: INTERACTION_RADIUS },
     };
@@ -3245,9 +3245,9 @@ class Room {
     if (typeof roleId === 'string' && roleId.startsWith('super:')) {
       const supId = roleId.slice(6);
       const cardId = Roles.SUPER_CARD[supId];
-      if (!this.superSet.has(playerId) || !cardId) return;
+      if (!this.superSet.has(playerId) || !cardId || !this.superEnabled(supId)) return;
       entity.role = roleId;
-      SuperAbilities.grant(entity, supId);
+      SuperAbilities.grant(entity, supId, this.superTune);
       entity.hand[0] = { options: [cardId], chosen: null };
       this.finalizeChoice(playerId, 0, cardId);
       entity.hand[1] = { options: [], chosen: null };
@@ -3292,7 +3292,7 @@ class Room {
   takeCard(playerId, entity, index, cardId) {
     const picked = Cards.getCard(cardId);
     if (picked && picked.super && picked.superId) {
-      SuperAbilities.grant(entity, picked.superId);
+      SuperAbilities.grant(entity, picked.superId, this.superTune);
       if (this.tutorial) SuperAbilities.gainMana(entity, 80);
       this.finalizeChoice(playerId, 0, cardId);
       this.finalizeChoice(playerId, 1, 'super_slot');
@@ -3341,7 +3341,7 @@ class Room {
     SuperAbilities.use(this, playerId, mode, Date.now());
   }
 
-  superPreview(playerId, mode, face, aim) {
+  superPreview(playerId, mode, face, aim, ay) {
     if (this.phase !== 'action' || this.gameState.gameOver) return;
     const e = this.gameState.entities[playerId];
     if (!e || !e.sup || e.sup.id !== 'minceraft') return;
@@ -3352,8 +3352,9 @@ class Room {
         e.faceZ = face.z / fl;
       }
     }
+    if (Number.isFinite(ay)) e.sup.ay = { v: ay, at: Date.now() };
     e.sup.aim = aim && Number.isFinite(aim.x) && Number.isFinite(aim.z) ? { x: aim.x, z: aim.z, at: Date.now() } : null;
-    e.sup.prev = ['andamio', 'telarana', 'redstone', 'slime', 'piston', 'polvo', 'tnt', 'miel'].includes(mode) ? { mode, until: Date.now() + 600 } : null;
+    e.sup.prev = ['andamio', 'telarana', 'redstone', 'slime', 'piston', 'pegajoso', 'polvo', 'tnt', 'miel'].includes(mode) ? { mode, until: Date.now() + 600 } : null;
   }
 
   useCard(playerId, slotIndex) {
@@ -3486,6 +3487,15 @@ class Room {
       if (reach ? handHit(entity, otherEntity, reach, radius) : distanceBetween(entity, otherEntity) <= radius) return true;
     }
     return false;
+  }
+
+  get superTune() {
+    return GameMap.getSupers(this.mapId);
+  }
+
+  superEnabled(id) {
+    const c = this.superTune;
+    return !c || !c.enabled || c.enabled[id] !== false;
   }
 
   isPractice() {

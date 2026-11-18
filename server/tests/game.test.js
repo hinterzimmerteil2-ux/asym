@@ -2222,3 +2222,40 @@ test('Minceraft: pistón pegajoso cuesta 4, apunta arriba, se activa junto a red
   const up = room.gameState.dyn.filter((d) => d.kind === 'piston' && !d.sticky).pop();
   assert.strictEqual(up.dy, 1);
 });
+
+test('Minceraft: el pistón pegajoso retrae el bloque que tiene delante y el normal no', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('a', 'super:minceraft');
+  const SA = require('../src/SuperAbilities');
+  const s = e.a.sup;
+  e.a.x = 0;
+  e.a.y = 0;
+  e.a.z = 0;
+  let now = Date.now() + 1000;
+  const run = (mode) => {
+    room.gameState.dyn = [];
+    now += 2000;
+    e.a.x = 0;
+    e.a.z = 0;
+    e.a.faceX = 0;
+    e.a.faceZ = 1;
+    s.used = 0;
+    s.nextAt = 0;
+    s.aim = { x: 0, z: 3, at: now };
+    s.ay = { v: 0, at: now };
+    assert.ok(SA.use(room, 'a', mode, now));
+    const pis = room.gameState.dyn[0];
+    const blk = { id: 'bx', kind: 'andamio', owner: 'a', born: now, x: pis.x, z: pis.z + 2, y0: pis.y0, hx: 0.5, hz: 0.5, h: 1, solid: true, pulse: 0, cool: 0, fired: 0, w: 1 };
+    room.gameState.dyn.push(blk);
+    pis.pw = true;
+    pis.pulse = now + 100;
+    SA.tick(room, now + 200);
+    SA.tick(room, now + 900);
+    return { pis, blk };
+  };
+  const a = run('pegajoso');
+  assert.ok(Math.abs(a.blk.z - (a.pis.z + 1)) < 0.01);
+  const b = run('piston');
+  assert.ok(Math.abs(b.blk.z - (b.pis.z + 2)) < 0.01);
+});

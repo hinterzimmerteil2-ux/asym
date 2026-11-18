@@ -995,7 +995,7 @@ export default function LobbyPage() {
 
   useEffect(() => {
     const sid = flojera?.sup?.id;
-    setAimSlope((sid === 'town_level' || sid === 'platinum_star') && phase === 'action' && !isAsymRole);
+    setAimSlope((sid === 'town_level' || sid === 'platinum_star' || sid === 'minceraft') && phase === 'action' && !isAsymRole);
     return () => setAimSlope(false);
   }, [flojera?.sup?.id, phase, isAsymRole]);
 
@@ -1006,14 +1006,14 @@ export default function LobbyPage() {
 
   useEffect(() => {
     if (!mcSel || phase !== 'action' || isAsymRole) return undefined;
-    const t = setInterval(() => connRef.current?.send('super_preview', { mode: mcSelRef.current, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined }), 100);
+    const t = setInterval(() => connRef.current?.send('super_preview', { mode: mcSelRef.current, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined, ay: aimSlope() }), 100);
     return () => clearInterval(t);
   }, [mcSel, phase, isAsymRole]);
 
   const placeMc = useCallback(() => {
     const mode = mcSelRef.current;
     if (!mode || supRef.current !== 'minceraft') return;
-    connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined });
+    connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined, ay: aimSlope() });
   }, []);
 
   useEffect(() => {

@@ -311,7 +311,7 @@ wss.on('connection', (ws) => {
       case MessageType.SUPER_PREVIEW: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
-        room.superPreview(playerId, msg.payload && msg.payload.mode, msg.payload && msg.payload.face, msg.payload && msg.payload.aim);
+        room.superPreview(playerId, msg.payload && msg.payload.mode, msg.payload && msg.payload.face, msg.payload && msg.payload.aim, msg.payload && msg.payload.ay);
         break;
       }
 
