@@ -822,6 +822,13 @@ const PAIRS = [
 ["Te hiciste daño","You hurt yourself"],
 ["Fabuloso","Fabulous"],
 ["Equipo de traducción","Translation team"],
+["Pantalla táctil", "Touchscreen"],
+["Detectar pantalla táctil automáticamente", "Detect touchscreen automatically"],
+["Detectado ahora:", "Detected now:"],
+["Táctil (como celular)", "Touch (like a phone)"],
+["Mixto (táctil y teclado)", "Mixed (touch and keyboard)"],
+["Teclado y ratón", "Keyboard and mouse"],
+["Táctil muestra el joystick y los botones en pantalla. Mixto los muestra y además deja usar teclado y ratón. Si tu equipo no tiene teclado, como una pizarra táctil, desactiva la detección y elige Táctil.", "Touch shows the joystick and buttons on screen. Mixed shows them and also lets you use keyboard and mouse. If your device has no keyboard, like a touch board, turn off detection and choose Touch."],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };

@@ -15,7 +15,7 @@ import {
 import GameScene, { facingOf, setMcAim, mcAimPoint, setAimSlope, aimSlope } from '../components/GameScene';
 import { play as playSfx, trackSteps, unlockAudio } from '../lib/sfx';
 import SkillIcon from '../components/SkillIcon';
-import { watchMedia } from '../lib/settings';
+import { watchMedia, useInputMode } from '../lib/settings';
 import HelpPanel from '../components/HelpPanel';
 import StatusColumn from '../components/StatusColumn';
 import RhythmBar from '../components/RhythmBar';
@@ -173,7 +173,9 @@ export default function LobbyPage() {
   const [isAsymRole, setIsAsymRole] = useState(false);
   const [phase, setPhase] = useState('lobby');
   const [compact, setCompact] = useState(false);
-  const [touch, setTouch] = useState(false);
+  const input = useInputMode();
+  const touch = input.touch;
+  const keysUi = input.keys;
   const [portrait, setPortrait] = useState(false);
   const [specIndex, setSpecIndex] = useState(0);
   const [shiftLock, setShiftLock] = useState(false);
@@ -222,13 +224,12 @@ export default function LobbyPage() {
   }, []);
   useEffect(() => {
     const mc = window.matchMedia('(pointer: coarse), (max-width: 760px)');
-    const mt = window.matchMedia('(pointer: coarse)');
     const mp = window.matchMedia('(orientation: portrait)');
-    const upd = () => { setCompact(mc.matches); setTouch(mt.matches); setPortrait(mp.matches); };
+    const upd = () => { setCompact(mc.matches || input.mode === 'touch'); setPortrait(mp.matches); };
     upd();
-    const offs = [watchMedia(mc, upd), watchMedia(mt, upd), watchMedia(mp, upd)];
+    const offs = [watchMedia(mc, upd), watchMedia(mp, upd)];
     return () => offs.forEach((f) => f());
-  }, []);
+  }, [input.mode]);
   useEffect(() => { setPanelOpen(null); setChatOpen(false); setSpecIndex(0); }, [phase]);
   const [errorMsg, setErrorMsg] = useState(null);
   const [guestLoading, setGuestLoading] = useState(false);
@@ -1736,7 +1737,7 @@ export default function LobbyPage() {
                   </div>
                 );
               }
-              if (touch) return null;
+              if (touch && !keysUi) return null;
               const cooldownUntil = cardCooldowns[i] || 0;
               const onCooldown = cooldownUntil > cardCooldownNow;
               return (
@@ -1763,7 +1764,7 @@ export default function LobbyPage() {
           <button type="button" onClick={handleReturnToLobby} style={{ position: 'absolute', top: compact ? 96 : 62, left: 16, zIndex: 25, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(224,85,95,0.7)', background: 'rgba(40,16,20,0.85)', color: '#ffb3b8', fontSize: 11, cursor: 'pointer' }}>Reiniciar y volver al lobby</button>
         )}
 
-        {phase === 'action' && !isAsymRole && !touch && (flojera?.sup?.id === 'town_level' || flojera?.sup?.id === 'platinum_star' || flojera?.sup?.id === 'minceraft') && (
+        {phase === 'action' && !isAsymRole && keysUi && (flojera?.sup?.id === 'town_level' || flojera?.sup?.id === 'platinum_star' || flojera?.sup?.id === 'minceraft') && (
           <div style={sx(styles.handContainer, { top: 50, bottom: 'auto', right: 8, zIndex: 30 })}>
             {SUPER_MODES[flojera.sup.id].map(([m, label], i) => {
               const cd = (flojera.sup.cd || {})[m] || 0;
@@ -1851,7 +1852,7 @@ export default function LobbyPage() {
           </div>
         )}
 
-        {phase === 'action' && !touch && isAsymRole && mySkills.length > 0 && (
+        {phase === 'action' && keysUi && isAsymRole && mySkills.length > 0 && (
           <div style={styles.skillBar}>
             {[...mySkills.map((skill, i) => ({ id: skill.id, name: skill.name, description: skill.description, key: ['Q', 'E', 'R', 'F'][i], index: i, cooldownKey: i })),
               { id: 'golpe_aturdidor', name: 'Atún Medicinal', description: 'Aturde 1.2s al Paciente frente a ti (cubo corto desde la mano).', key: 'G', index: 'melee', cooldownKey: 'melee' }].map((skill) => {

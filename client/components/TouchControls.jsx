@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { getKey, keyLabel } from '../lib/keybinds';
 import SkillIcon from './SkillIcon';
-import { isBoard, watchMedia } from '../lib/settings';
+import { isBoard, watchMedia, useInputMode } from '../lib/settings';
 
-const BS = isBoard() ? 1.8 : 1;
+let BS = 1;
 
 const SAFE_R = 'calc(env(safe-area-inset-right, 0px) + 16px)';
 const SAFE_L = 'calc(env(safe-area-inset-left, 0px) + 16px)';
@@ -101,11 +101,11 @@ function Btn({ label, code, act, size: size0 = 56, style, until = 0, icon }) {
 }
 
 export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsymRole, cardCooldowns = {}, skillCooldowns = {}, onInteract, cardIds = [], skillIds = [], getCarry, supIcons = null }) {
-  const [show, setShow] = useState(false);
+  const { touch: show } = useInputMode();
+  BS = isBoard() ? 1.8 : 1;
   const [portrait, setPortrait] = useState(false);
   const [carrying, setCarrying] = useState(false);
   useEffect(() => {
-    setShow(window.matchMedia('(pointer: coarse)').matches);
     const mq = window.matchMedia('(orientation: portrait)');
     const on = () => setPortrait(mq.matches);
     on();

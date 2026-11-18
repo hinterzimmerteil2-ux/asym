@@ -1,8 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
 import KeybindsEditor from './KeybindsEditor';
-import { useSettings, setSettings, gfx } from '../lib/settings';
+import { useSettings, setSettings, gfx, detectMode } from '../lib/settings';
 import { resetKeys } from '../lib/keybinds';
+
+const MODES = [
+  ['touch', 'Táctil (como celular)'],
+  ['mixed', 'Mixto (táctil y teclado)'],
+  ['keyboard', 'Teclado y ratón'],
+];
 
 const PRESETS = [
   [0.025, 'Mínimo++'],
@@ -101,6 +107,24 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
         <div style={styles.card}>
           <button type="button" onClick={goFullscreen} style={styles.reset}>Pantalla completa (horizontal)</button>
           <p style={styles.hint}>Recomendado en móvil: oculta las barras del navegador y fija la pantalla en horizontal.</p>
+        </div>
+
+        <h3 style={styles.section}>Pantalla táctil</h3>
+        <div style={styles.card}>
+          <label style={{ ...styles.check, marginTop: 0 }}>
+            <input type="checkbox" checked={s.detectTouch} onChange={(e) => setSettings({ detectTouch: e.target.checked })} />
+            Detectar pantalla táctil automáticamente
+          </label>
+          {s.detectTouch ? (
+            <p style={styles.hint}>{`Detectado ahora: ${MODES.find((m) => m[0] === detectMode())[1]}`}</p>
+          ) : (
+            <div style={{ ...styles.presets, marginTop: 8 }}>
+              {MODES.map(([v, name]) => (
+                <button key={v} type="button" onClick={() => setSettings({ inputMode: v })} style={styles.preset(s.inputMode === v)}>{name}</button>
+              ))}
+            </div>
+          )}
+          <p style={styles.hint}>Táctil muestra el joystick y los botones en pantalla. Mixto los muestra y además deja usar teclado y ratón. Si tu equipo no tiene teclado, como una pizarra táctil, desactiva la detección y elige Táctil.</p>
         </div>
 
         <h3 style={styles.section}>Sonido</h3>

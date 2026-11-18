@@ -10,7 +10,7 @@ import { matches } from '../lib/keybinds';
 import { createModeKey } from '../lib/modeKey';
 import HospitalDecor from './HospitalDecor';
 import StaticMerge from './StaticMerge';
-import { useSettings, gfx, isBoard } from '../lib/settings';
+import { useSettings, gfx, isBoard, resolveMode } from '../lib/settings';
 import { setListener } from '../lib/sfx';
 import { setPolyScale, installLowPoly } from '../lib/lowpoly';
 
@@ -3101,7 +3101,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platfo
 
   useEffect(() => {
     const canvas = gl.domElement;
-    const canLock = shiftLock && !window.matchMedia('(pointer: coarse)').matches;
+    const canLock = shiftLock && resolveMode() !== 'touch';
     function onLockChange() { if (canLock && document.pointerLockElement !== canvas) lostRef.current?.(); }
     if (canLock && document.pointerLockElement !== canvas) {
       try { Promise.resolve(canvas.requestPointerLock()).catch(() => lostRef.current?.()); } catch { lostRef.current?.(); }
@@ -4051,7 +4051,7 @@ export default function GameScene({
   useKeyboardInput(sendInput, yawRef, onPulse, shiftRef);
 
   const playerById = new Map(players.map((p) => [p.id, p]));
-  const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+  const coarse = typeof window !== 'undefined' && (window.matchMedia('(pointer: coarse)').matches || resolveMode() !== 'keyboard');
   const areaHalfSize = phase === 'action' ? matchHalf || MATCH_HALF_SIZE : LOBBY_HALF_SIZE;
   JF.ents = entities;
   const myEntity = ghostMode && ghosts?.[myPlayerId] ? ghosts[myPlayerId] : entities[followId || myPlayerId];

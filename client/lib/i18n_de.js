@@ -818,4 +818,11 @@ export const DE = [
 "Du hast dich verletzt",
 "Fabelhaft",
 "Übersetzungsteam",
+"Touchscreen",
+"Touchscreen automatisch erkennen",
+"Jetzt erkannt:",
+"Touch (wie ein Handy)",
+"Gemischt (Touch und Tastatur)",
+"Tastatur und Maus",
+"Touch zeigt den Joystick und die Tasten auf dem Bildschirm. Gemischt zeigt sie und erlaubt zusätzlich Tastatur und Maus. Hat dein Gerät keine Tastatur, etwa ein Touch-Board, schalte die Erkennung aus und wähle Touch.",
 ];
