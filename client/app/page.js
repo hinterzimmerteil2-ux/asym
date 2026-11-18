@@ -153,7 +153,7 @@ function hexMix(a, b, t) {
 const SUPER_MODES = {
   sunat_paperwork: [['notificacion', 'Notificación'], ['vuelva', 'Vuelva mañana'], ['anulacion', 'Anulación']],
   platinum_star: [['rafaga', 'Ráfaga'], ['stellar', 'Stellar Finger'], ['atrapar', 'Lanzamiento'], ['pausa', 'Pose Fabulosa']],
-  minceraft: [['andamio', 'Andamio'], ['telarana', 'Telaraña'], ['slime', 'Slime'], ['redstone', 'Redstone'], ['piston', 'Pistón'], ['polvo', 'Polvo de redstone'], ['tnt', 'TNT'], ['miel', 'Miel'], ['minar', 'Pico'], ['pegajoso', 'Pistón pegajoso']],
+  minceraft: [['andamio', 'Andamio'], ['telarana', 'Telaraña'], ['slime', 'Slime'], ['redstone', 'Redstone'], ['piston', 'Pistón'], ['polvo', 'Polvo de redstone'], ['tnt', 'TNT'], ['miel', 'Miel'], ['minar', 'Pico']],
   town_level: [['bayoneta', 'Bayoneta'], ['barrera', 'Barrera'], ['senuelo', 'Señuelo'], ['carga', 'Carga']],
 };
 
@@ -260,6 +260,9 @@ export default function LobbyPage() {
   const [mcSel, setMcSel] = useState(null);
   const [mcDir, setMcDir] = useState(0);
   const mcDirRef = useRef(0);
+  const [mcSticky, setMcSticky] = useState(false);
+  const mcStickyRef = useRef(false);
+  mcStickyRef.current = mcSticky;
   mcDirRef.current = mcDir;
   const mcSelRef = useRef(null);
   mcSelRef.current = mcSel;
@@ -1009,12 +1012,12 @@ export default function LobbyPage() {
 
   useEffect(() => {
     if (!mcSel || phase !== 'action' || isAsymRole) return undefined;
-    const t = setInterval(() => connRef.current?.send('super_preview', { mode: mcSelRef.current, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined, ay: mcDirRef.current ? mcDirRef.current * 1.1 : aimSlope() }), 100);
+    const t = setInterval(() => connRef.current?.send('super_preview', { mode: mcSelRef.current === 'piston' && mcStickyRef.current ? 'pegajoso' : mcSelRef.current, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined, ay: mcDirRef.current ? mcDirRef.current * 1.1 : aimSlope() }), 100);
     return () => clearInterval(t);
   }, [mcSel, phase, isAsymRole]);
 
   const placeMc = useCallback(() => {
-    const mode = mcSelRef.current;
+    const mode = mcSelRef.current === 'piston' && mcStickyRef.current ? 'pegajoso' : mcSelRef.current;
     if (!mode || supRef.current !== 'minceraft') return;
     connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined, ay: mcDirRef.current ? mcDirRef.current * 1.1 : aimSlope() });
   }, []);
@@ -1040,6 +1043,7 @@ export default function LobbyPage() {
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (keyMatches('help', e.code)) setHelpOpen((open) => !open);
+      else if (keyMatches('mcsticky', e.code) && supRef.current === 'minceraft' && mcSelRef.current === 'piston') { if (!e.repeat) setMcSticky((v) => !v); }
       else if (keyMatches('mcrot', e.code) && supRef.current === 'minceraft' && mcSelRef.current) { if (!e.repeat) setMcDir((d) => (d === 0 ? 1 : d === 1 ? -1 : 0)); }
       else if (keyMatches('shiftlock', e.code)) { if (!e.repeat) shiftKeyRef.current.down(); }
       else if (keyMatches('hitboxes', e.code)) setHitboxes((prev) => ({ ...prev, on: !prev.on }));
@@ -1075,7 +1079,6 @@ export default function LobbyPage() {
       else if (supRef.current && keyMatches('sup7', e.code)) { if (!e.repeat) handleSuper(6); }
       else if (supRef.current && keyMatches('sup8', e.code)) { if (!e.repeat) handleSuper(7); }
       else if (supRef.current && keyMatches('sup9', e.code)) { if (!e.repeat) handleSuper(8); }
-      else if (supRef.current && keyMatches('sup10', e.code)) { if (!e.repeat) handleSuper(9); }
       else if (!supRef.current && keyMatches('card1', e.code)) { if (!e.repeat) handleUseCard(0); }
       else if (!supRef.current && keyMatches('card2', e.code)) { if (!e.repeat) handleUseCard(1); }
     }
@@ -1796,7 +1799,8 @@ export default function LobbyPage() {
             </div>
             {flojera.sup.mining > 0 && <span style={{ color: '#ffd86b' }}>Picando</span>}
             <span style={{ color: '#ffd86b' }}>{mcSel ? 'Clic para colocar' : 'Elige una pieza (1 a 8)'}</span>
-            {mcSel && (mcSel === 'piston' || mcSel === 'pegajoso') && <button type="button" onClick={() => setMcDir((d) => (d === 0 ? 1 : d === 1 ? -1 : 0))} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>{mcDir === 0 ? 'Apuntado: automático (R)' : mcDir === 1 ? 'Apuntado: arriba (R)' : 'Apuntado: abajo (R)'}</button>}
+            {mcSel === 'piston' && <button type="button" onClick={() => setMcSticky((v) => !v)} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>{mcSticky ? 'Variante: pegajoso (C)' : 'Variante: normal (C)'}</button>}
+            {mcSel === 'piston' && <button type="button" onClick={() => setMcDir((d) => (d === 0 ? 1 : d === 1 ? -1 : 0))} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>{mcDir === 0 ? 'Apuntado: automático (R)' : mcDir === 1 ? 'Apuntado: arriba (R)' : 'Apuntado: abajo (R)'}</button>}
             {mcSel && <button type="button" onClick={placeMc} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>Colocar</button>}
           </div>
         )}
