@@ -819,6 +819,7 @@ const PAIRS = [
 ["no encuentro al otro jugador","I can't find the other player"],
 ["en cola","queued"],
 ["Gerente Quijote del Paradero","Quijote Manager of the Stop"],
+["Te hiciste daño","You hurt yourself"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };

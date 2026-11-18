@@ -815,4 +815,5 @@ export const DE = [
 "Ich finde den anderen Spieler nicht",
 "in der Warteschlange",
 "Quijote-Manager der Haltestelle",
+"Du hast dich verletzt",
 ];
