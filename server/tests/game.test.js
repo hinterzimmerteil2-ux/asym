@@ -2259,3 +2259,28 @@ test('Minceraft: el pistón pegajoso retrae el bloque que tiene delante y el nor
   const b = run('piston');
   assert.ok(Math.abs(b.blk.z - (b.pis.z + 2)) < 0.01);
 });
+
+test('Minceraft: super_action con inclinación arriba o abajo coloca pistones y pegajosos verticales y el cliente recibe dy', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('a', 'super:minceraft');
+  e.a.x = 0;
+  e.a.z = 0;
+  e.a.y = 0;
+  const placed = [];
+  for (const [mode, ay] of [['piston', 1.1], ['pegajoso', 1.1], ['piston', -1.1], ['pegajoso', -1.1]]) {
+    e.a.sup.nextAt = 0;
+    e.a.sup.used = 0;
+    room.gameState.dyn = [];
+    const base = 1e12 + placed.length * 5000;
+    Date.now = () => base;
+    room.superAction('a', mode, { x: 0, z: 1 }, { x: 0, z: 3 }, ay);
+    const d = room.gameState.dyn[0];
+    assert.ok(d, mode + ' no se colocó');
+    placed.push(d.dy);
+    assert.strictEqual(d.dy, ay > 0 ? 1 : -1);
+    assert.strictEqual(d.dx, 0);
+    assert.strictEqual(d.dz, 0);
+  }
+  assert.deepStrictEqual(placed, [1, 1, -1, -1]);
+});
