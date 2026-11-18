@@ -25,6 +25,7 @@ export const ACTIONS = [
   { id: 'sup8', label: 'Súper 8', def: 'Digit8' },
   { id: 'sup9', label: 'Súper 9 (Pico)', def: 'Digit9' },
   { id: 'sup10', label: 'Súper 10', def: 'Digit0' },
+  { id: 'mcrot', label: 'Orientación del pistón (Minceraft)', def: 'KeyR' },
   { id: 'emote', label: 'Emotes', def: 'KeyV' },
   { id: 'help', label: 'Ayuda', def: 'KeyH' },
   { id: 'hitboxes', label: 'Hitboxes', def: 'KeyB' },

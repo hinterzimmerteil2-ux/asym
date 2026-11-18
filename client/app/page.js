@@ -258,6 +258,9 @@ export default function LobbyPage() {
   const [zones, setZones] = useState([]);
   const [dyn, setDyn] = useState([]);
   const [mcSel, setMcSel] = useState(null);
+  const [mcDir, setMcDir] = useState(0);
+  const mcDirRef = useRef(0);
+  mcDirRef.current = mcDir;
   const mcSelRef = useRef(null);
   mcSelRef.current = mcSel;
   const [curatorHp, setCuratorHp] = useState(null);
@@ -1006,14 +1009,14 @@ export default function LobbyPage() {
 
   useEffect(() => {
     if (!mcSel || phase !== 'action' || isAsymRole) return undefined;
-    const t = setInterval(() => connRef.current?.send('super_preview', { mode: mcSelRef.current, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined, ay: aimSlope() }), 100);
+    const t = setInterval(() => connRef.current?.send('super_preview', { mode: mcSelRef.current, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined, ay: mcDirRef.current ? mcDirRef.current * 1.1 : aimSlope() }), 100);
     return () => clearInterval(t);
   }, [mcSel, phase, isAsymRole]);
 
   const placeMc = useCallback(() => {
     const mode = mcSelRef.current;
     if (!mode || supRef.current !== 'minceraft') return;
-    connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined, ay: aimSlope() });
+    connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined, ay: mcDirRef.current ? mcDirRef.current * 1.1 : aimSlope() });
   }, []);
 
   useEffect(() => {
@@ -1037,6 +1040,7 @@ export default function LobbyPage() {
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (keyMatches('help', e.code)) setHelpOpen((open) => !open);
+      else if (keyMatches('mcrot', e.code) && supRef.current === 'minceraft' && mcSelRef.current) { if (!e.repeat) setMcDir((d) => (d === 0 ? 1 : d === 1 ? -1 : 0)); }
       else if (keyMatches('shiftlock', e.code)) { if (!e.repeat) shiftKeyRef.current.down(); }
       else if (keyMatches('hitboxes', e.code)) setHitboxes((prev) => ({ ...prev, on: !prev.on }));
       else if (e.code === 'Escape') { setHelpOpen(false); setEmoteOpen(false); }
@@ -1792,6 +1796,7 @@ export default function LobbyPage() {
             </div>
             {flojera.sup.mining > 0 && <span style={{ color: '#ffd86b' }}>Picando</span>}
             <span style={{ color: '#ffd86b' }}>{mcSel ? 'Clic para colocar' : 'Elige una pieza (1 a 8)'}</span>
+            {mcSel && (mcSel === 'piston' || mcSel === 'pegajoso') && <button type="button" onClick={() => setMcDir((d) => (d === 0 ? 1 : d === 1 ? -1 : 0))} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>{mcDir === 0 ? 'Apuntado: automático (R)' : mcDir === 1 ? 'Apuntado: arriba (R)' : 'Apuntado: abajo (R)'}</button>}
             {mcSel && <button type="button" onClick={placeMc} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>Colocar</button>}
           </div>
         )}

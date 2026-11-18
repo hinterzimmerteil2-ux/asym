@@ -798,6 +798,10 @@ const PAIRS = [
 ["Lag pasivo cada (ms)","Passive lag every (ms)"],
 ["Duración del lag pasivo (ms)","Passive lag duration (ms)"],
 ["Duración de la multa (ms)","Fine duration (ms)"],
+["Apuntado: automático (R)","Aim: automatic (R)"],
+["Apuntado: arriba (R)","Aim: up (R)"],
+["Apuntado: abajo (R)","Aim: down (R)"],
+["Orientación del pistón (Minceraft)","Piston orientation (Minceraft)"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };

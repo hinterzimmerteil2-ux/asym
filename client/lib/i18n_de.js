@@ -794,4 +794,8 @@ export const DE = [
 "Passiver Lag alle (ms)",
 "Dauer des passiven Lags (ms)",
 "Dauer der Strafe (ms)",
+"Zielen: automatisch (R)",
+"Zielen: nach oben (R)",
+"Zielen: nach unten (R)",
+"Kolbenausrichtung (Minceraft)",
 ];
