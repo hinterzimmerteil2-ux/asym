@@ -26,6 +26,8 @@ export default function FpsCounter() {
     return () => cancelAnimationFrame(raf);
   }, []);
   const skbMode = typeof document !== 'undefined' && document.documentElement.lang === 'x-skb';
-  const L = (w, plain) => (skbMode ? skbWord(w) : plain);
-  return <div translate="no" style={{ position: 'fixed', left: 8, bottom: 8, zIndex: 40, background: 'rgba(0,0,0,0.6)', color: fps < 30 ? '#e0555f' : '#5fd58c', fontSize: 12, padding: '2px 6px', borderRadius: 4, fontVariantNumeric: 'tabular-nums' }}>{`${fps} ${L('fps', 'FPS')}${info ? ` | ${info.calls} ${L('dibujos', 'dibujos')} | ${Math.round(info.tris / 1000)}k ${L('tri', 'tri')} | ${info.geos} ${L('geo', 'geo')} | ${info.tex} ${L('tex', 'tex')}` : ''}`}{errs ? ` | ${errs} ${L('errores', 'errores')} ${skbMode ? skbLeftovers(String(window.__glerr[errs - 1])) : `GL: ${window.__glerr[errs - 1]}`}` : ''}</div>;
+  const pieMode = typeof document !== 'undefined' && document.documentElement.lang === 'ine-pro';
+  const PW = { fps: 'wid-tis/sékʷ', dibujos: 'peik-tis-es', tri: 'trí-ǵn̥h₂-es', geo: 'dʰeh₁-tom-es', tex: 'sék-tis-es', errores: 'ne-kʷer-tis-es' };
+  const L = (w, plain) => (skbMode ? skbWord(w) : pieMode ? PW[w] : plain);
+  return <div translate="no" style={{ position: 'fixed', left: 8, bottom: 8, zIndex: 40, background: 'rgba(0,0,0,0.6)', color: fps < 30 ? '#e0555f' : '#5fd58c', fontSize: 12, padding: '2px 6px', borderRadius: 4, fontVariantNumeric: 'tabular-nums' }}>{`${fps} ${pieMode ? L('fps') : L('fps', 'FPS')}${info ? ` | ${info.calls} ${L('dibujos', 'dibujos')} | ${Math.round(info.tris / 1000)}k ${L('tri', 'tri')} | ${info.geos} ${L('geo', 'geo')} | ${info.tex} ${L('tex', 'tex')}` : ''}`}{errs ? ` | ${errs} ${L('errores', 'errores')} ${skbMode ? skbLeftovers(String(window.__glerr[errs - 1])) : `GL: ${window.__glerr[errs - 1]}`}` : ''}</div>;
 }
