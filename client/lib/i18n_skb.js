@@ -83,21 +83,45 @@ export function skb(text) {
     });
 }
 
-const GREEK = { a: 'Α', b: 'Β', c: 'Κ', d: 'Δ', e: 'Ε', f: 'Φ', g: 'Γ', h: 'Η', i: 'Ι', j: 'Ι', k: 'Κ', l: 'Λ', m: 'Μ', n: 'Ν', o: 'Ο', p: 'Π', q: 'Κ', r: 'Ρ', s: 'Σ', t: 'Τ', u: 'Υ', v: 'Β', w: 'Ω', x: 'Ξ', y: 'Υ', z: 'Ζ' };
-
-export function toGreek(text) {
-  return text.replace(/[A-Za-z\u00C0-\u00FF]/g, (ch) => {
-    const base = ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    return GREEK[base] || ch;
-  });
-}
-
 export function skbWord(w) {
   const lower = w.toLowerCase();
   const pool = lower.length <= 3 ? SHORT : POOL;
   return marked(pool[hash(lower) % pool.length], lower);
 }
 
-export function skbLeftovers(text, vocab) {
-  return text.replace(/[A-Za-z\u00C0-\u00FF]+/g, (w) => (vocab.has(w.toLowerCase()) && w.length > 1 ? skbWord(w) : toGreek(w)));
+const KEYS = new Set(['Ctrl', 'Shift', 'Alt', 'Tab', 'Esc', 'Enter', 'Space', 'WASD', 'Fn']);
+const UNITS = new Set(['s', 'ms', 'm', 'x', 'k', 'px', 'hz']);
+const PROTECT = /(\S+@\S+|https?:\/\/\S+|www\.\S+)/;
+const LATIN = /[A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF]+/g;
+let names = new Set();
+let namesKey = '';
+
+export function setSkbNames(list) {
+  const clean = (Array.isArray(list) ? list : []).map((n) => String(n || '')).filter(Boolean);
+  const key = clean.join('\u0001');
+  if (key === namesKey) return false;
+  namesKey = key;
+  names = new Set();
+  for (const n of clean) for (const w of n.toLowerCase().split(/[^\p{L}\p{N}_]+/u)) if (w) names.add(w);
+  return true;
+}
+
+function segment(seg) {
+  return seg.replace(LATIN, (w, at) => {
+    const next = seg[at + w.length] || '';
+    const prev = seg[at - 1] || '';
+    if (/[\d_]/.test(next) || prev === '_') return w;
+    if (KEYS.has(w)) return w;
+    if (w.length === 1 && /[A-Z]/.test(w)) {
+      const asWord = 'AYO'.includes(w) && /^\s[a-z\d¡¿]/.test(seg.slice(at + 1, at + 3)) && /(^|[.!?:]\s)$/.test(seg.slice(0, at));
+      return asWord ? skbWord(w) : w;
+    }
+    if (UNITS.has(w) && /\d\s?$/.test(seg.slice(0, at))) return w;
+    if (names.has(w.toLowerCase())) return w;
+    return skbWord(w);
+  });
+}
+
+export function skbLeftovers(text) {
+  return text.split(PROTECT).map((part, i) => (i % 2 ? part : segment(part))).join('');
 }

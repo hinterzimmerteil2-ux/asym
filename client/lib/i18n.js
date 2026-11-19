@@ -1,6 +1,6 @@
 import { DE } from './i18n_de';
 import { PIE } from './i18n_pie';
-import { skb, skbLeftovers } from './i18n_skb';
+import { skb, skbLeftovers, setSkbNames } from './i18n_skb';
 
 const PAIRS = [
 ["Ocurrió un error al iniciar sesión.","An error occurred while signing in."],
@@ -828,7 +828,7 @@ const PAIRS = [
 ["Táctil (como celular)", "Touch (like a phone)"],
 ["Mixto (táctil y teclado)", "Mixed (touch and keyboard)"],
 ["Teclado y ratón", "Keyboard and mouse"],
-["Táctil muestra el joystick y los botones en pantalla. Mixto los muestra y además deja usar teclado y ratón. Si tu equipo no tiene teclado, como una pizarra táctil, desactiva la detección y elige Táctil.", "Touch shows the joystick and buttons on screen. Mixed shows them and also lets you use keyboard and mouse. If your device has no keyboard, like a touch board, turn off detection and choose Touch."],
+["Táctil muestra el joystick y los botones en pantalla. Mixto los muestra y además deja usar teclado y ratón. Si la detección se equivoca, elige el tipo aquí y la detección se desactiva sola; vuelve a marcarla para detectar de nuevo. Si tu equipo no tiene teclado, como una pizarra táctil, elige Táctil.", "Touch shows the joystick and buttons on screen. Mixed shows them and also lets you use keyboard and mouse. If detection gets it wrong, choose the type here and detection turns itself off; tick it again to detect once more. If your device has no keyboard, like a touch board, choose Touch."],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };
@@ -837,10 +837,6 @@ PAIRS.forEach(([es, en], i) => {
   if (!MAPS.de.has(es)) MAPS.de.set(es, DE[i]);
   if (PIE[i] && !MAPS.pie.has(es)) MAPS.pie.set(es, PIE[i]);
   if (!MAPS.skb.has(es)) MAPS.skb.set(es, skb(es));
-});
-const VOCAB = new Set();
-PAIRS.forEach(([es, en]) => {
-  for (const w of `${es} ${en}`.toLowerCase().match(/[a-z\u00e0-\u00ff]{2,}/g) || []) VOCAB.add(w);
 });
 const KEYS = [...MAPS['en-GB'].keys()].sort((x, y) => y.length - x.length);
 const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -861,10 +857,14 @@ export function translate(text, lang) {
   const hit = cache.get(text);
   if (hit !== undefined) return hit;
   let out = text.replace(RX, (m) => map.get(m) ?? m);
-  if (lang === 'skb') out = skbLeftovers(out, VOCAB);
+  if (lang === 'skb') out = skbLeftovers(out);
   if (cache.size > 3000) cache.clear();
   cache.set(text, out);
   return out;
+}
+
+export function protectNames(list) {
+  if (setSkbNames(list)) caches.skb.clear();
 }
 
 export const LANGS = ['es', 'en-GB', 'de', 'pie', 'skb'];

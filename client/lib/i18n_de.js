@@ -824,5 +824,5 @@ export const DE = [
 "Touch (wie ein Handy)",
 "Gemischt (Touch und Tastatur)",
 "Tastatur und Maus",
-"Touch zeigt den Joystick und die Tasten auf dem Bildschirm. Gemischt zeigt sie und erlaubt zusätzlich Tastatur und Maus. Hat dein Gerät keine Tastatur, etwa ein Touch-Board, schalte die Erkennung aus und wähle Touch.",
+"Touch zeigt den Joystick und die Tasten auf dem Bildschirm. Gemischt zeigt sie und erlaubt zusätzlich Tastatur und Maus. Liegt die Erkennung falsch, wähle hier den Typ und die Erkennung schaltet sich aus; hake sie wieder an, um erneut zu erkennen. Hat dein Gerät keine Tastatur, etwa ein Touch-Board, wähle Touch.",
 ];

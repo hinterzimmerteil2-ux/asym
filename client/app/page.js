@@ -16,6 +16,7 @@ import GameScene, { facingOf, setMcAim, mcAimPoint, setAimSlope, aimSlope } from
 import { play as playSfx, trackSteps, unlockAudio } from '../lib/sfx';
 import SkillIcon from '../components/SkillIcon';
 import { watchMedia, useInputMode } from '../lib/settings';
+import { protectNames } from '../lib/i18n';
 import HelpPanel from '../components/HelpPanel';
 import StatusColumn from '../components/StatusColumn';
 import RhythmBar from '../components/RhythmBar';
@@ -169,6 +170,7 @@ export default function LobbyPage() {
   const [roomId, setRoomId] = useState('');
   const [roomList, setRoomList] = useState([]);
   const [players, setPlayers] = useState([]);
+  protectNames(players.map((pl) => pl.name));
   const [myPlayerId, setMyPlayerId] = useState(null);
   const [isAsymRole, setIsAsymRole] = useState(false);
   const [phase, setPhase] = useState('lobby');

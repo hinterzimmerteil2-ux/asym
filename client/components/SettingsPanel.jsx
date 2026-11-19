@@ -41,6 +41,8 @@ async function goFullscreen() {
 
 export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
   const s = useSettings();
+  const detected = detectMode();
+  const shownMode = s.detectTouch ? detected : s.inputMode;
   const [local, setLocal] = useState(s.quality);
   useEffect(() => setLocal(s.quality), [s.quality]);
   const q = Math.round(local * 20) / 20;
@@ -115,16 +117,13 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
             <input type="checkbox" checked={s.detectTouch} onChange={(e) => setSettings({ detectTouch: e.target.checked })} />
             Detectar pantalla táctil automáticamente
           </label>
-          {s.detectTouch ? (
-            <p style={styles.hint}>{`Detectado ahora: ${MODES.find((m) => m[0] === detectMode())[1]}`}</p>
-          ) : (
-            <div style={{ ...styles.presets, marginTop: 8 }}>
-              {MODES.map(([v, name]) => (
-                <button key={v} type="button" onClick={() => setSettings({ inputMode: v })} style={styles.preset(s.inputMode === v)}>{name}</button>
-              ))}
-            </div>
-          )}
-          <p style={styles.hint}>Táctil muestra el joystick y los botones en pantalla. Mixto los muestra y además deja usar teclado y ratón. Si tu equipo no tiene teclado, como una pizarra táctil, desactiva la detección y elige Táctil.</p>
+          <div style={{ ...styles.presets, marginTop: 8 }}>
+            {MODES.map(([v, name]) => (
+              <button key={v} type="button" onClick={() => setSettings({ detectTouch: false, inputMode: v })} style={styles.preset(shownMode === v)}>{name}</button>
+            ))}
+          </div>
+          <p style={styles.hint}>{`Detectado ahora: ${MODES.find((m) => m[0] === detected)[1]}`}</p>
+          <p style={styles.hint}>Táctil muestra el joystick y los botones en pantalla. Mixto los muestra y además deja usar teclado y ratón. Si la detección se equivoca, elige el tipo aquí y la detección se desactiva sola; vuelve a marcarla para detectar de nuevo. Si tu equipo no tiene teclado, como una pizarra táctil, elige Táctil.</p>
         </div>
 
         <h3 style={styles.section}>Sonido</h3>
