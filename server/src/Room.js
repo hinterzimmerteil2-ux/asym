@@ -2226,25 +2226,6 @@ class Room {
     Status.apply(entity, 'ragdoll', ms, now);
   }
 
-  channelBeat(playerId, entity, now) {
-    const ch = entity.channel;
-    const index = Math.round((now - ch.startedAt) / CHANNEL_BEAT_MS);
-    if (index < 1 || index > CHANNEL_BEATS || ch.scored[index]) return;
-    if (Math.abs(now - (ch.startedAt + index * CHANNEL_BEAT_MS)) > CHANNEL_TOLERANCE_MS) return;
-    ch.scored[index] = true;
-    ch.hits += 1;
-    const allies = this.alliesNear(playerId, entity, 8);
-    const targets = allies.length ? allies : [playerId];
-    for (const id of targets) {
-      const target = this.gameState.entities[id];
-      if (!target) continue;
-      if (target.perezaUntil <= now) target.perezaStacks = 0;
-      target.perezaStacks = (target.perezaStacks || 0) + 1;
-      target.perezaUntil = Math.min(now + 8000, Math.max(target.perezaUntil, now) + CHANNEL_HIT_PEREZA_MS);
-      target.perezaLevel = Math.min(3, 1 + Math.floor(target.perezaStacks / 3) + (allies.length ? 0 : 1));
-    }
-  }
-
   applyCuratorPulse(playerId, skillIndex) {
     if (this.gameState.gameOver || this.gameState.frozen) return;
 
@@ -3387,10 +3368,6 @@ class Room {
     const card = Cards.getCard(slot.chosen);
     if (card && card.super) return;
     const now = Date.now();
-    if (entity.channel && entity.channel.cardId === card.id && entity.channel.endsAt > now) {
-      this.channelBeat(playerId, entity, now);
-      return;
-    }
     if (card.astral && entity.astral && entity.astral.card.id === card.id) {
       if (entity.astral.state === 'charging') {
         if (now - entity.astral.startedAt < 600) return;

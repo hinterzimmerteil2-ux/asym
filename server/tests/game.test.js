@@ -124,17 +124,25 @@ test('Diligencia bloquea cartas y la M1 del Curador', () => {
   assert.strictEqual(room.gameState.patients.a.hp, hp);
 });
 
-test('Grito de Ánimo: los aciertos acumulan Pereza y los fallos no', () => {
+test('Grito de Ánimo: resetea la carta mas lenta de los aliados cerca y comparte con quien falta', () => {
   const { room, e, clock } = setup();
   e.a.x = 0; e.a.z = 0; e.b.x = 2; e.b.z = 0;
   give(e.a, 0, 'grito_animo');
+  give(e.a, 1, 'tropiezo');
+  give(e.b, 0, 'tropiezo');
+  const now = Date.now();
+  e.b.cardCooldowns[0] = now + 20000;
+  e.a.cardCooldowns[1] = now + 20000;
   room.useCard('a', 0);
-  const t0 = e.a.channel.startedAt;
-  clock.t = t0 + 1050; room.useCard('a', 0);
-  clock.t = t0 + 1500; room.useCard('a', 0);
-  clock.t = t0 + 2000; room.useCard('a', 0);
-  assert.strictEqual(e.a.channel.hits, 2);
-  assert.ok(e.b.perezaUntil > clock.t);
+  assert.ok(e.b.cardCooldowns[0] <= now);
+  assert.strictEqual(e.a.cardCooldowns[1], now + 20000);
+  assert.ok(e.a.cardCooldowns[0] - now >= 49000);
+  e.a.cardCooldowns[0] = 0;
+  e.b.x = 30;
+  e.b.cardCooldowns[0] = now + 20000;
+  room.useCard('a', 0);
+  assert.strictEqual(e.b.cardCooldowns[0], now + 20000);
+  assert.strictEqual(e.a.cardCooldowns[1], now + 10000);
 });
 
 test('Acetilcolina sin Flojera camina con buff y no genera endlag en uso', () => {

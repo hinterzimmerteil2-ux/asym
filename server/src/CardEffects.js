@@ -134,9 +134,16 @@ const handlers = {
     entity.fatigueUntil = entity.acetilUntil + C.ACETIL_FATIGUE_MS;
   },
 
-  grito_animo({ entity, card, now }) {
-    const slot = entity.hand.findIndex((s) => s && s.chosen === card.id);
-    entity.channel = { cardId: card.id, slot, startedAt: now, endsAt: now + C.CHANNEL_MS, hits: 0, scored: {} };
+  grito_animo({ room, playerId, entity, card, now }) {
+    const near = room.alliesNear(playerId, entity, card.radius);
+    let possible = 0;
+    for (const [id, pl] of room.players) if (id !== playerId && !pl.isAsymRole && !pl.isBoss && room.gameState.patients[id]) possible += 1;
+    const missing = Math.max(0, possible - near.length);
+    for (const id of near) {
+      const ally = room.gameState.entities[id];
+      if (ally) resetLongestCooldown(ally, 1, now, card.id);
+    }
+    if (missing > 0) resetLongestCooldown(entity, Math.min(1, missing * card.selfShare), now, card.id);
   },
 
   tajo_carmesi({ room, entity, card, now }) {
@@ -274,6 +281,18 @@ function apply(room, playerId, entity, card, now) {
   if (card.astral) { room.startAstral(playerId, entity, card, now); return; }
   const handler = handlers[card.id] || (card.custom ? customHandler : null);
   if (handler) require('./SuperAbilities').withSource(entity, () => handler({ room, playerId, entity, card, now }));
+}
+
+function resetLongestCooldown(entity, fraction, now, excludeId) {
+  let slot = -1;
+  let left = 0;
+  entity.hand.forEach((sl, i) => {
+    if (!sl || !sl.chosen || sl.chosen === excludeId) return;
+    const remain = (entity.cardCooldowns[i] || 0) - now;
+    if (remain > left) { left = remain; slot = i; }
+  });
+  if (slot < 0) return;
+  entity.cardCooldowns[slot] = now + left * (1 - fraction);
 }
 
 function comboPress(entity, card, now) {

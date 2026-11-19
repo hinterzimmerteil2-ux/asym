@@ -131,10 +131,12 @@ const CARDS = {
   grito_animo: {
     id: 'grito_animo',
     keywords: ['bonificadora'],
-    displayName: 'Grito de Ánimo',
-    description: 'Minijuego de 8s: te mueves a la mitad y cada acierto (pulsa E al ritmo) da Pereza a los aliados a menos de 8, o a ti si no hay. Los fallos no suman. Pereza se acumula.',
+    displayName: 'Pongan Torero',
+    description: 'Gritas y reseteas la recarga de la carta más lenta de cada aliado a menos de 8. Por cada aliado que falte (lejos o eliminado) recuperas el 50% de la recarga de tu otra carta, hasta resetearla. No afecta a otro Pongan Torero.',
     rarity: 'uncommon',
-    cooldownMs: 24000,
+    radius: 8,
+    selfShare: 0.5,
+    cooldownMs: 50000,
   },
 };
 
