@@ -2330,3 +2330,35 @@ test('Platinum Star: Pose Fabulosa activa el modo, reduce recargas, el Dedo este
   SA.tick(room, now + 3500);
   assert.ok(s.rhythm >= before);
 });
+
+test('red mist: combo de 3 tajos, el tercero largo cura mas y recarga larga', () => {
+  const { room, clock, e, p } = setup();
+  const Cards = require('../src/Cards');
+  const card = Cards.getCard('red_mist');
+  const ids = Object.keys(e);
+  const aId = ids.find((id) => !room.players.get(id).isAsymRole);
+  const cId = ids.find((id) => room.players.get(id).isAsymRole);
+  const a = e[aId];
+  const cur = e[cId];
+  a.hand = [{ chosen: 'red_mist' }, null];
+  a.cardCooldowns = {};
+  a.faceX = 1; a.faceZ = 0;
+  cur.x = a.x + 1.2; cur.z = a.z;
+  p[aId].hp = 40;
+  const hp0 = room.gameState.curator.hp;
+  room.useCard(aId, 0);
+  assert.strictEqual(room.gameState.curator.hp, hp0 - 25);
+  assert.ok(Math.abs(p[aId].hp - 46.25) < 1e-6);
+  assert.ok(a.cardCooldowns[0] - Date.now() <= 12000);
+  a.cardCooldowns[0] = 0;
+  room.useCard(aId, 0);
+  a.cardCooldowns[0] = 0;
+  cur.x = a.x + 4.5;
+  p[aId].hp = 40;
+  room.useCard(aId, 0);
+  assert.strictEqual(room.gameState.curator.hp, hp0 - 25 - 25 - 37.5);
+  assert.ok(Math.abs(p[aId].hp - 70) < 1e-6);
+  assert.ok(a.cardCooldowns[0] - Date.now() > 30000);
+  assert.strictEqual(a.redMist, null);
+  assert.strictEqual(card.combo.hits, 3);
+});

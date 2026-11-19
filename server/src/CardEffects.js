@@ -1,5 +1,5 @@
 const Status = require('./Status');
-const { distanceBetween, euclid, reachPoint } = require('./Hitbox');
+const { distanceBetween, euclid, reachPoint, HAND_Y } = require('./Hitbox');
 const C = require('./Constants');
 
 function forEachCurator(room, entity, radius, fn, reach = 0) {
@@ -146,13 +146,28 @@ const handlers = {
   },
 
   red_mist({ room, playerId, entity, card, now }) {
-    forEachCurator(room, entity, card.hitRadius, (id, target) => {
-      const heavy = Math.random() < 0.1;
-      const damage = heavy ? 90 : 25;
-      room.stun(id, target, heavy ? 3000 : card.durationMs, now, 0);
+    const cb = card.combo;
+    const heavy = Boolean(entity.redMistWide);
+    const damage = heavy ? cb.damage * cb.heavyDamageMult : cb.damage;
+    const stunMs = heavy ? Math.round(card.durationMs * cb.heavyStunMult) : card.durationMs;
+    const heal = damage * (heavy ? cb.heavyHealFrac : cb.healFrac);
+    const hit = (id, target) => {
+      room.stun(id, target, stunMs, now, 0);
       room.adjustCuratorHp(-damage);
-      room.healPatient(playerId, damage * 0.25);
-    }, card.reach);
+      room.healPatient(playerId, heal);
+    };
+    if (heavy) {
+      const done = new Set();
+      for (const o of redMistLine(entity, card)) {
+        forEachCurator(room, o, card.hitRadius, (id, target) => {
+          if (done.has(id)) return;
+          done.add(id);
+          hit(id, target);
+        });
+      }
+    } else {
+      forEachCurator(room, entity, card.hitRadius, hit, card.reach);
+    }
     room.checkGameEndConditions();
   },
 
@@ -261,7 +276,31 @@ function apply(room, playerId, entity, card, now) {
   if (handler) require('./SuperAbilities').withSource(entity, () => handler({ room, playerId, entity, card, now }));
 }
 
+function comboPress(entity, card, now) {
+  const cb = card.combo;
+  const st = entity.redMist && now - entity.redMist.last <= cb.resetMs ? entity.redMist : { n: 0, last: now };
+  st.n += 1;
+  st.last = now;
+  const heavy = st.n >= cb.hits;
+  entity.redMist = heavy ? null : st;
+  entity.redMistWide = heavy;
+  const slot = entity.hand.findIndex((sl) => sl && sl.chosen === card.id);
+  if (slot >= 0) entity.cardCooldowns[slot] = now + (heavy ? card.cooldownMs : cb.comboCooldownMs);
+}
+
+function redMistLine(entity, card) {
+  const len = card.reach * card.combo.heavyReachMult;
+  const n = Math.ceil(len / card.hitRadius);
+  const out = [];
+  for (let i = 0; i <= n; i++) {
+    const d = (len * i) / n;
+    out.push({ x: entity.x + (entity.faceX || 0) * d, y: entity.y || 0, z: entity.z + (entity.faceZ || 0) * d });
+  }
+  return out;
+}
+
 function areaOf(card, entity) {
+  if (card.id === 'red_mist' && entity.redMistWide) return redMistLine(entity, card).map((o) => ({ x: o.x, z: o.z, y: (entity.y || 0) + HAND_Y, half: card.hitRadius }));
   if (card.custom && card.customKind === 'burst') return [{ x: entity.x, z: entity.z, half: card.hitRadius }];
   if (card.id === 'rodar') {
     const len = Math.hypot(entity.dashVX || 0, entity.dashVZ || 0) || 1;
@@ -274,4 +313,4 @@ function areaOf(card, entity) {
   return [];
 }
 
-module.exports = { apply, handlers, areaOf, runFx };
+module.exports = { apply, handlers, areaOf, runFx, comboPress, redMistLine };

@@ -1338,6 +1338,8 @@ class Room {
       entity.sprintFactor = SPRINT_CARD_MULTIPLIER;
       entity.flojeraLockedUntil = 0;
       entity.cardCooldowns = {};
+      entity.redMist = null;
+      entity.redMistWide = false;
       entity.sprintUntil = 0;
       entity.exacerbacionLevel = 0;
       entity.exacerbacionUntil = 0;
@@ -2663,7 +2665,7 @@ class Room {
         }
       } else {
         const card = win.card;
-        if (this.curatorInRange(owner, card.hitRadius, card.reach || 0)) {
+        if (this.cardInRange(owner, card)) {
           CardEffects.apply(this, win.playerId, owner, card, now);
           this.gainExacerbacion(owner, now);
           if (card.fx) CardEffects.runFx(this, win.playerId, owner, card.fx, 'hit', null, now);
@@ -3433,8 +3435,8 @@ class Room {
       cardId: card.id,
       cooldownUntil: entity.cardCooldowns[slotIndex],
       hitRadius: card.hitRadius || null,
-      center: card.reach ? (({ x, z }) => ({ x, z }))(reachPoint(entity, card.reach)) : null,
-      boxes: card.reach ? [handBox(entity, card.reach, card.hitRadius)] : CardEffects.areaOf(card, entity),
+      center: card.reach ? (({ x, z }) => ({ x, z }))(reachPoint(entity, card.reach * (card.id === 'red_mist' && entity.redMistWide ? card.combo.heavyReachMult : 1))) : null,
+      boxes: card.reach && !(card.id === 'red_mist' && entity.redMistWide) ? [handBox(entity, card.reach, card.hitRadius)] : CardEffects.areaOf(card, entity),
     });
   }
 
@@ -3550,7 +3552,15 @@ class Room {
     Status.apply(entity, 'slow', ms, now, { chain: true, tag: 'endlag', level: forcedLevel || 1 + Math.min(2, Math.floor(missing * 3)) });
   }
 
+  cardInRange(entity, card) {
+    if (card.id === 'red_mist' && entity.redMistWide) {
+      return CardEffects.redMistLine(entity, card).some((o) => this.curatorInRange(o, card.hitRadius, 0));
+    }
+    return this.curatorInRange(entity, card.hitRadius, card.reach || 0);
+  }
+
   applyCardEffect(playerId, entity, card, now) {
+    if (card.combo) CardEffects.comboPress(entity, card, now);
     if (card.fx) CardEffects.runFx(this, playerId, entity, card.fx, 'use', null, now);
     if (card.window) {
       this.hitWindows.push({ kind: 'card', playerId, card, endsAt: now + card.window });
@@ -3558,7 +3568,7 @@ class Room {
       this.tickHitWindows(now);
       return;
     }
-    const hit = card.hitRadius ? this.curatorInRange(entity, card.hitRadius, card.reach || 0) : null;
+    const hit = card.hitRadius ? this.cardInRange(entity, card) : null;
     CardEffects.apply(this, playerId, entity, card, now);
     if (hit === true) {
       this.gainExacerbacion(entity, now);
