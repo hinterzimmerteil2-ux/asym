@@ -138,12 +138,19 @@ const handlers = {
     const near = room.alliesNear(playerId, entity, card.radius);
     let possible = 0;
     for (const [id, pl] of room.players) if (id !== playerId && !pl.isAsymRole && !pl.isBoss && room.gameState.patients[id]) possible += 1;
-    const missing = Math.max(0, possible - near.length);
     for (const id of near) {
       const ally = room.gameState.entities[id];
       if (ally) resetLongestCooldown(ally, 1, now, card.id);
     }
-    if (missing > 0) resetLongestCooldown(entity, Math.min(1, missing * card.selfShare), now, card.id);
+    const share = possible > 0 ? Math.max(0, Math.min(1, 1 - near.length / possible)) : 1;
+    if (share > 0) {
+      resetLongestCooldown(entity, share, now, card.id);
+      const slot = entity.hand.findIndex((sl) => sl && sl.chosen === card.id);
+      if (slot >= 0) {
+        const left = Math.max(0, (entity.cardCooldowns[slot] || 0) - now);
+        entity.cardCooldowns[slot] = now + left * (1 - card.selfRefund * share);
+      }
+    }
   },
 
   tajo_carmesi({ room, entity, card, now }) {

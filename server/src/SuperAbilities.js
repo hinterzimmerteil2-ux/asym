@@ -830,9 +830,9 @@ function tickStar(room, now) {
 
 
 const MC = {
-  max: 64, life: 12000, cell: 1, gap: 300, endlag: 250, mineMs: 400, mineRange: 4.2, range: 7, size: 1, jumpV: 7.3, climbV: 4.2, fallSlow: 1.8,
-  w: { andamio: 1, telarana: 1, slime: 2, redstone: 2, piston: 3, pegajoso: 4, polvo: 1, tnt: 4, miel: 2 },
-  pistonPush: 14, pistonLen: 1.8, pistonStun: 350, pistonLife: 6000, pistonPlaneV: 13, pistonMax: 5, tntDmg: 6, tntBossDmg: 150000, tntRagMs: 1300, tntFuse: 1400, tntR: 3.6, tntPush: 13, tntUp: 6.5, tntStun: 900, honeyLevel: 3, honeyFall: 1.4,
+  max: 64, life: 22000, cell: 1, gap: 300, endlag: 250, mineMs: 400, mineRange: 4.2, range: 7, size: 1, jumpV: 7.3, climbV: 4.2, fallSlow: 1.8,
+  w: { andamio: 2, telarana: 2, slime: 3, redstone: 3, piston: 5, pegajoso: 6, polvo: 2, tnt: 8, miel: 4 },
+  pistonPush: 14, pistonLen: 1.8, pistonStun: 350, pistonLife: 9000, pistonPlaneV: 13, pistonMax: 5, tntDmg: 6, tntBossDmg: 150000, tntRagMs: 1300, tntFuse: 1400, tntR: 3.6, tntPush: 13, tntUp: 6.5, tntStun: 900, honeyLevel: 3, honeyFall: 1.4,
   webSlow: 2, slimeV: 11, chainStep: 200, chainReach: 1.1, redstoneReach: 2.1, redstoneR: 2.6, redstoneStun: 600, chainCool: 1500, pieceLimit: 160,
 };
 
@@ -939,12 +939,17 @@ function mcPlan(room, playerId, entity, mode, now) {
   const piece = { id: `mc${(gs.dynSeq = (gs.dynSeq || 0) + 1)}`, kind: mode, owner: playerId, born: now, x: px, z: pz, y0: base, hx: 0.5, hz: 0.5, h: 1, ramp: null, solid: true, pulse: 0, cool: 0, fired: 0, w };
   if (mode === 'andamio') piece.oneway = true;
   if (mode === 'telarana') piece.solid = false;
+  if (mode === 'tnt') {
+    piece.solid = false;
+    piece.vx = 0;
+    piece.vz = 0;
+    piece.vy = 0;
+  }
   if (mode === 'polvo') {
     piece.solid = false;
     piece.h = 0.08;
     const below = stack.find((o) => Math.abs(o.y0 + o.h - base) < 0.1);
     if (below) piece.sup = below.id;
-    else ok = false;
   }
   if (mode === 'piston' || mode === 'pegajoso') {
     const ny = aimY(entity, now);
@@ -1218,10 +1223,21 @@ function mcExplode(room, d, now) {
     e.kbX = sx;
     e.kbZ = sz;
     e.kbUntil = now + 380;
-    if (asymE && !isBoss) room.ragdoll(pid, e, MC.tntRagMs, now);
+    if (asymE) room.ragdoll(pid, e, MC.tntRagMs, now);
     e.velocityY = Math.min(MC.tntUp * 2.2, Math.max(0, e.velocityY || 0) + MC.tntUp * k * near);
     e.onGround = false;
     e.peakY = e.y;
+  }
+  for (const o of gs.dyn) {
+    if (o === d || o.kind !== 'tnt') continue;
+    const ox = o.x - d.x;
+    const oz = o.z - d.z;
+    const od = Math.hypot(ox, oz);
+    if (od > T('minceraft', 'tntR', MC.tntR) || Math.abs(o.y0 - d.y0) > 3) continue;
+    const ok = 1 - Math.min(1, od / T('minceraft', 'tntR', MC.tntR)) * 0.5;
+    o.vx = (o.vx || 0) + (ox / (od || 1)) * MC.tntPush * 0.6 * ok;
+    o.vz = (o.vz || 0) + (oz / (od || 1)) * MC.tntPush * 0.6 * ok;
+    o.vy = Math.max(o.vy || 0, MC.tntUp * 0.7 * ok);
   }
   const wasHere = gs.dyn.filter((o) => o !== d && Math.hypot(o.x - d.x, o.z - d.z) <= 1.9 && Math.abs(o.y0 - d.y0) <= 1.5);
   mcRemove(room, d);
@@ -1232,6 +1248,44 @@ function mcExplode(room, d, now) {
     } else mcRemove(room, o);
   }
   room.broadcast('super_result', { playerId: d.owner, mode: 'tnt_boom', x: d.x, y: cy, z: d.z, radius: T('minceraft', 'tntR', MC.tntR), hit });
+}
+
+function mcTntMove(room, d, now) {
+  const dt = Math.min(0.1, Math.max(0, (now - (d.pt || now)) / 1000));
+  d.pt = now;
+  if (!dt) return;
+  const plats = room.allPlatforms();
+  if (d.vx || d.vz) {
+    const nx = d.x + d.vx * dt;
+    const nz = d.z + d.vz * dt;
+    if (Hitbox.blockedAt(plats, nx, nz, d.y0, 0.5, 1, 1)) {
+      d.vx = -d.vx * 0.3;
+      d.vz = -d.vz * 0.3;
+    } else {
+      d.x = nx;
+      d.z = nz;
+    }
+  }
+  const ground = Hitbox.groundAt(plats, d.x, d.z, d.y0, 0.05);
+  const floor = Number.isFinite(ground) ? ground : d.y0;
+  if (d.y0 > floor + 0.01 || d.vy > 0) {
+    d.vy = (d.vy || 0) - 22 * dt;
+    d.y0 += d.vy * dt;
+    if (d.y0 <= floor) {
+      d.y0 = floor;
+      d.vy = 0;
+    }
+  } else {
+    d.y0 = floor;
+    d.vy = 0;
+  }
+  if (d.y0 <= floor + 0.02) {
+    const f = Math.max(0, 1 - 6 * dt);
+    d.vx = (d.vx || 0) * f;
+    d.vz = (d.vz || 0) * f;
+    if (Math.abs(d.vx) < 0.05) d.vx = 0;
+    if (Math.abs(d.vz) < 0.05) d.vz = 0;
+  }
 }
 
 function tickMine(room, now) {
@@ -1318,11 +1372,14 @@ function tickMine(room, now) {
         if (now >= (d.cool || 0)) mcActivate(room, d, now);
       }
     } else if (d.kind === 'tnt') {
+      mcTntMove(room, d, now);
       if (fire && d.pw && !d.fuse) d.fuse = now + (T('minceraft', 'tntFuseSec', MC.tntFuse / 1000) * 1000);
       if (fire) d.pw = false;
       if (d.fuse && now >= d.fuse) mcExplode(room, d, now);
     } else if (d.kind === 'miel') {
-      for (const e of asym) {
+      const own = gs.entities[d.owner];
+      const hit = own && !asym.includes(own) ? asym.concat(own) : asym;
+      for (const e of hit) {
         if (e.down || e.gone || e.corpse) continue;
         const yy = e.y || 0;
         if (Math.abs(e.x - d.x) > d.hx + 0.55 || Math.abs(e.z - d.z) > d.hz + 0.55 || yy < d.y0 - 0.4 || yy > d.y0 + d.h + 0.15) continue;

@@ -1787,7 +1787,7 @@ export default function LobbyPage() {
           <div style={sx(styles.handContainer, { top: 50, bottom: 'auto', right: 8, zIndex: 30, ...(touch ? { flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 250 } : null) })}>
             {SUPER_MODES[flojera.sup.id].map(([m, label], i) => {
               const cd = (flojera.sup.cd || {})[m] || 0;
-              const need = flojera.sup.id === 'minceraft' ? ({ andamio: 1, telarana: 1, slime: 2, redstone: 2, piston: 3, pegajoso: 4, polvo: 1, tnt: 4, miel: 2 })[m] : 0;
+              const need = flojera.sup.id === 'minceraft' ? ({ andamio: 2, telarana: 2, slime: 3, redstone: 3, piston: 5, pegajoso: 6, polvo: 2, tnt: 8, miel: 4 })[m] : 0;
               const full = need > 0 && flojera.sup.used + need > flojera.sup.max;
               const on = m === 'carga' && flojera.sup.charging;
               return (

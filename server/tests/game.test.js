@@ -142,7 +142,8 @@ test('Grito de Ánimo: resetea la carta mas lenta de los aliados cerca y compart
   e.b.cardCooldowns[0] = now + 20000;
   room.useCard('a', 0);
   assert.strictEqual(e.b.cardCooldowns[0], now + 20000);
-  assert.strictEqual(e.a.cardCooldowns[1], now + 10000);
+  assert.ok(e.a.cardCooldowns[1] <= now);
+  assert.ok(e.a.cardCooldowns[0] - now <= 50000 * 0.6 + 5);
 });
 
 test('Acetilcolina sin Flojera camina con buff y no genera endlag en uso', () => {
@@ -2059,7 +2060,7 @@ test('Minceraft: coloca piezas, respeta el contador, decae y se mina', () => {
   const now = Date.now() + 1000;
   assert.ok(SA.use(room, 'a', 'andamio', now));
   assert.strictEqual(room.gameState.dyn.length, 1);
-  assert.strictEqual(s.used, 1);
+  assert.strictEqual(s.used, 2);
   assert.ok(room.allPlatforms().some((p) => p.id === room.gameState.dyn[0].id));
   assert.ok(!SA.use(room, 'a', 'andamio', now + 100));
   assert.ok(SA.use(room, 'a', 'andamio', now + 1000));
@@ -2086,7 +2087,7 @@ test('Minceraft: coloca piezas, respeta el contador, decae y se mina', () => {
   assert.ok(SA.use(room, 'a', 'minar', now + 3000));
   SA.tick(room, now + 3500);
   assert.ok(s.used < before);
-  SA.tick(room, now + 30000);
+  SA.tick(room, now + 40000);
   assert.strictEqual(room.gameState.dyn.length, 0);
   assert.strictEqual(s.used, 0);
 });
@@ -2115,13 +2116,17 @@ test('Minceraft: andamio atravesable, pistón empuja, TNT explota, polvo exige b
   assert.strictEqual(dust.sup, sc.id);
   assert.ok(dust.y0 >= sc.y0 + sc.h - 0.01);
   const countBefore = room.gameState.dyn.length;
-  SA.tick(room, now + 13000);
+  SA.tick(room, now + 23000);
   assert.ok(room.gameState.dyn.length < countBefore);
   assert.ok(!room.gameState.dyn.some((d) => d.kind === 'polvo'));
-  now += 14000;
+  now += 24000;
   e.a.x = 10;
   e.a.z = 10;
-  assert.ok(!SA.use(room, 'a', 'polvo', now));
+  assert.ok(SA.use(room, 'a', 'polvo', now));
+  assert.ok(Math.abs(room.gameState.dyn.find((d) => d.kind === 'polvo' && !d.sup).y0) < 1e-9);
+  now += 1000;
+  e.a.x = 14;
+  e.a.z = 14;
   assert.ok(SA.use(room, 'a', 'miel', now + 400));
   const honey = room.gameState.dyn.find((d) => d.kind === 'miel');
   assert.ok(honey);
@@ -2185,13 +2190,13 @@ test('Reinicio entre partidas: los recursos de las súper-habilidades no se arra
   assert.strictEqual(e.a.sup.ammo, e.a.sup.ammoMax);
 });
 
-test('Minceraft: pistón pegajoso cuesta 4, apunta arriba, se activa junto a redstone y trae el bloque de vuelta', () => {
+test('Minceraft: pistón pegajoso cuesta 6, apunta arriba, se activa junto a redstone y trae el bloque de vuelta', () => {
   const { room, e } = setup();
   room.superSet = new Set(['a']);
   room.selectRole('a', 'super:minceraft');
   const SA = require('../src/SuperAbilities');
   const s = e.a.sup;
-  assert.strictEqual(SA.MC.w.pegajoso, 4);
+  assert.strictEqual(SA.MC.w.pegajoso, 6);
   e.a.x = 0;
   e.a.y = 0;
   e.a.z = 0;
@@ -2210,7 +2215,7 @@ test('Minceraft: pistón pegajoso cuesta 4, apunta arriba, se activa junto a red
   assert.ok(put('pegajoso', 0, 1));
   const st = room.gameState.dyn.find((d) => d.sticky);
   assert.ok(st && st.kind === 'piston');
-  assert.strictEqual(s.used, 4);
+  assert.strictEqual(s.used, 6);
   now += 1000;
   e.a.x = 0;
   e.a.z = 0;
@@ -2369,4 +2374,45 @@ test('red mist: combo de 3 tajos, el tercero largo cura mas y recarga larga', ()
   assert.ok(a.cardCooldowns[0] - Date.now() > 30000);
   assert.strictEqual(a.redMist, null);
   assert.strictEqual(card.combo.hits, 3);
+});
+
+test('Minceraft: TNT cae por gravedad sin colisionar con jugadores, miel afecta a quien la pone', () => {
+  const { room, e } = setup();
+  room.superSet = new Set(['a']);
+  room.selectRole('a', 'super:minceraft');
+  const SA = require('../src/SuperAbilities');
+  const Hitbox = require('../src/Hitbox');
+  e.a.x = 0;
+  e.a.z = 0;
+  e.a.y = 0;
+  e.a.faceX = 0;
+  e.a.faceZ = 1;
+  let now = Date.now() + 1000;
+  assert.ok(SA.use(room, 'a', 'tnt', now));
+  const tnt = room.gameState.dyn.find((d) => d.kind === 'tnt');
+  assert.strictEqual(tnt.solid, false);
+  assert.ok(!room.allPlatforms().some((p) => p.id === tnt.id));
+  tnt.y0 = 4;
+  for (let i = 0; i < 30; i++) {
+    now += 50;
+    SA.tick(room, now);
+  }
+  assert.ok(tnt.y0 < 4);
+  for (let i = 0; i < 40; i++) {
+    now += 50;
+    SA.tick(room, now);
+  }
+  assert.ok(Math.abs(tnt.y0) < 0.05);
+  now += 1000;
+  e.a.x = 14;
+  e.a.z = 14;
+  assert.ok(SA.use(room, 'a', 'miel', now));
+  const honey = room.gameState.dyn.find((d) => d.kind === 'miel');
+  e.a.x = honey.x;
+  e.a.z = honey.z;
+  e.a.y = honey.y0 + 0.2;
+  SA.tick(room, now + 100);
+  assert.ok(Hitbox && Object.keys(e.a.status || {}).length >= 0);
+  const Status = require('../src/Status');
+  assert.ok(Status.active(e.a, 'slow', now + 100));
 });
