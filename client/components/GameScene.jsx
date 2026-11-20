@@ -39,6 +39,20 @@ export function setMcAim(on) {
   MC_AIM.on = on;
   if (!on) MC_AIM.has = false;
 }
+export function mcAimAt(clientX, clientY) {
+  const { cam, el, me } = MC_AIM;
+  if (!cam || !el || !me) return null;
+  const r = el.getBoundingClientRect();
+  if (!r.width || !r.height) return null;
+  const ray = new Raycaster();
+  ray.setFromCamera({ x: ((clientX - r.left) / r.width) * 2 - 1, y: -(((clientY - r.top) / r.height) * 2 - 1) }, cam);
+  const dir = ray.ray.direction;
+  if (dir.y > -0.02) return null;
+  const t = ((me.y || 0) - ray.ray.origin.y) / dir.y;
+  const x = ray.ray.origin.x + dir.x * t;
+  const z = ray.ray.origin.z + dir.z * t;
+  return Number.isFinite(x) && Number.isFinite(z) ? { x: Math.round(x * 100) / 100, z: Math.round(z * 100) / 100 } : null;
+}
 export function mcAimPoint() {
   return MC_AIM.on && MC_AIM.has ? { x: Math.round(MC_AIM.x * 100) / 100, z: Math.round(MC_AIM.z * 100) / 100 } : null;
 }
@@ -3188,6 +3202,9 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platfo
 
   const aimRay = useMemo(() => new Raycaster(), []);
   useFrame(({ camera, pointer, gl: renderer }) => {
+    MC_AIM.cam = camera;
+    MC_AIM.el = renderer.domElement;
+    MC_AIM.me = myEntity;
     if ((!MC_AIM.on && !MC_AIM.slopeOn) || !myEntity) {
       MC_AIM.has = false;
       return;

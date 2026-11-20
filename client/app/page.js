@@ -12,7 +12,7 @@ import {
   clearSession,
   updateDisplayName,
 } from '../lib/session';
-import GameScene, { facingOf, setMcAim, mcAimPoint, setAimSlope, aimSlope } from '../components/GameScene';
+import GameScene, { facingOf, setMcAim, mcAimPoint, mcAimAt, setAimSlope, aimSlope } from '../components/GameScene';
 import { play as playSfx, trackSteps, unlockAudio } from '../lib/sfx';
 import SkillIcon from '../components/SkillIcon';
 import { watchMedia, useInputMode } from '../lib/settings';
@@ -1019,21 +1019,38 @@ export default function LobbyPage() {
     return () => clearInterval(t);
   }, [mcSel, phase, isAsymRole]);
 
-  const placeMc = useCallback(() => {
+  const placeMc = useCallback((at) => {
     const mode = mcSelRef.current === 'piston' && mcStickyRef.current ? 'pegajoso' : mcSelRef.current;
     if (!mode || supRef.current !== 'minceraft') return;
-    connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: mcAimPoint() || undefined, ay: mcDirRef.current ? mcDirRef.current * 1.1 : aimSlope() });
+    connRef.current?.send('super_action', { mode, face: facingOf(myPlayerIdRef.current) || undefined, aim: (at && at.x !== undefined ? at : mcAimPoint()) || undefined, ay: mcDirRef.current ? mcDirRef.current * 1.1 : aimSlope() });
   }, []);
 
   useEffect(() => {
-    function onClickPlace(e) {
+    let tap = null;
+    function onDown(e) {
       if (e.button !== 0 || !mcSelRef.current || supRef.current !== 'minceraft') return;
       const t = e.target;
       if (!t || t.tagName !== 'CANVAS') return;
+      if (e.pointerType === 'touch') {
+        tap = { id: e.pointerId, x: e.clientX, y: e.clientY, at: performance.now() };
+        return;
+      }
       placeMc();
     }
-    window.addEventListener('pointerdown', onClickPlace);
-    return () => window.removeEventListener('pointerdown', onClickPlace);
+    function onUp(e) {
+      if (!tap || tap.id !== e.pointerId) return;
+      const t = tap;
+      tap = null;
+      if (!mcSelRef.current || supRef.current !== 'minceraft') return;
+      if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > 14 || performance.now() - t.at > 450) return;
+      placeMc(mcAimAt(e.clientX, e.clientY));
+    }
+    window.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointerup', onUp);
+    };
   }, [placeMc]);
 
   const handleUseCard = useCallback((slot) => {
@@ -1680,7 +1697,7 @@ export default function LobbyPage() {
             ))}
           </div>
         )}
-        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} getCarry={getCarryRef.current}  supIcons={flojera?.sup ? (flojera.sup.id === 'town_level' ? ['tl_bayoneta', 'tl_barrera', 'tl_senuelo', 'tl_carga'] : flojera.sup.id === 'platinum_star' ? ['pst_rafaga', 'pst_stellar', 'pst_atrapar', 'pst_pausa'] : flojera.sup.id === 'minceraft' ? ['mc_andamio', 'mc_telarana', 'mc_redstone', 'mc_slime', 'mc_minar'] : ['sun_notificacion', 'sun_vuelva', 'sun_anulacion']) : null} />}
+        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} getCarry={getCarryRef.current}  supIcons={flojera?.sup ? (flojera.sup.id === 'town_level' ? ['tl_bayoneta', 'tl_barrera', 'tl_senuelo', 'tl_carga'] : flojera.sup.id === 'platinum_star' ? ['pst_rafaga', 'pst_stellar', 'pst_atrapar', 'pst_pausa'] : flojera.sup.id === 'minceraft' ? null : ['sun_notificacion', 'sun_vuelva', 'sun_anulacion']) : null} />}
 
         {phase === 'action' && flojera && !bossHud?.isBoss && (
           <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: compact ? (isAsymRole ? 40 : 64) : (isAsymRole ? 80 : 110) })}>
@@ -1766,8 +1783,8 @@ export default function LobbyPage() {
           <button type="button" onClick={handleReturnToLobby} style={{ position: 'absolute', top: compact ? 96 : 62, left: 16, zIndex: 25, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(224,85,95,0.7)', background: 'rgba(40,16,20,0.85)', color: '#ffb3b8', fontSize: 11, cursor: 'pointer' }}>Reiniciar y volver al lobby</button>
         )}
 
-        {phase === 'action' && !isAsymRole && keysUi && (flojera?.sup?.id === 'town_level' || flojera?.sup?.id === 'platinum_star' || flojera?.sup?.id === 'minceraft') && (
-          <div style={sx(styles.handContainer, { top: 50, bottom: 'auto', right: 8, zIndex: 30 })}>
+        {phase === 'action' && !isAsymRole && (keysUi || (touch && flojera?.sup?.id === 'minceraft')) && (flojera?.sup?.id === 'town_level' || flojera?.sup?.id === 'platinum_star' || flojera?.sup?.id === 'minceraft') && (
+          <div style={sx(styles.handContainer, { top: 50, bottom: 'auto', right: 8, zIndex: 30, ...(touch ? { flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 250 } : null) })}>
             {SUPER_MODES[flojera.sup.id].map(([m, label], i) => {
               const cd = (flojera.sup.cd || {})[m] || 0;
               const need = flojera.sup.id === 'minceraft' ? ({ andamio: 1, telarana: 1, slime: 2, redstone: 2, piston: 3, pegajoso: 4, polvo: 1, tnt: 4, miel: 2 })[m] : 0;
@@ -1802,10 +1819,10 @@ export default function LobbyPage() {
               {Array.from({ length: flojera.sup.max }).map((_, i) => <div key={i} style={{ width: 9, height: 9, background: i < flojera.sup.used ? '#b98a4e' : 'rgba(255,255,255,0.2)', border: '1px solid rgba(0,0,0,0.5)' }} />)}
             </div>
             {flojera.sup.mining > 0 && <span style={{ color: '#ffd86b' }}>Picando</span>}
-            <span style={{ color: '#ffd86b' }}>{mcSel ? 'Clic para colocar' : 'Elige una pieza (1 a 8)'}</span>
+            <span style={{ color: '#ffd86b' }}>{mcSel ? (touch ? 'Toca el suelo para colocar' : 'Clic para colocar') : (touch ? 'Elige una pieza' : 'Elige una pieza (1 a 8)')}</span>
             {mcSel === 'piston' && <button type="button" onClick={() => setMcSticky((v) => !v)} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>{mcSticky ? 'Variante: pegajoso (C)' : 'Variante: normal (C)'}</button>}
             {mcSel === 'piston' && <button type="button" onClick={() => setMcDir((d) => (d === 0 ? 1 : d === 1 ? -1 : 0))} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>{mcDir === 0 ? 'Apuntado: automático (R)' : mcDir === 1 ? 'Apuntado: arriba (R)' : 'Apuntado: abajo (R)'}</button>}
-            {mcSel && <button type="button" onClick={placeMc} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>Colocar</button>}
+            {mcSel && <button type="button" onClick={() => placeMc()} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>Colocar</button>}
           </div>
         )}
 
