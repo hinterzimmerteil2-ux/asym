@@ -9,6 +9,8 @@ import { useSettings } from '../lib/settings';
 
 const ATTRS = ['title', 'placeholder', 'aria-label', 'alt'];
 
+const makeRef = (node) => (typeof WeakRef === 'function' ? new WeakRef(node) : { deref: () => (node.isConnected === false ? undefined : node) });
+
 function skipped(node) {
   const el = node.nodeType === 3 ? node.parentElement : node;
   if (!el) return true;
@@ -33,7 +35,7 @@ export default function I18n() {
     const src = value;
     const out = translate(src, langRef.current);
     texts.current.set(node, { src, out });
-    tracked.current.add(new WeakRef(node));
+    tracked.current.add(makeRef(node));
     if (out !== src) node.nodeValue = out;
   };
 
@@ -48,7 +50,7 @@ export default function I18n() {
       if (rec && value === rec.out) continue;
       const out = translate(value, langRef.current);
       map[name] = { src: value, out };
-      tracked.current.add(new WeakRef(el));
+      tracked.current.add(makeRef(el));
       if (out !== value) el.setAttribute(name, out);
     }
   };
@@ -66,6 +68,10 @@ export default function I18n() {
   };
 
   const retranslateAll = () => {
+    try { retranslateRaw(); } catch {}
+  };
+
+  const retranslateRaw = () => {
     for (const ref of tracked.current) {
       const node = ref.deref();
       if (!node) { tracked.current.delete(ref); continue; }
@@ -94,11 +100,13 @@ export default function I18n() {
     setLang(l);
     const observer = new MutationObserver((records) => {
       if (langRef.current === 'es') return;
-      for (const r of records) {
-        if (r.type === 'characterData') applyText(r.target);
-        else if (r.type === 'attributes') applyAttrs(r.target);
-        else for (const added of r.addedNodes) walk(added);
-      }
+      try {
+        for (const r of records) {
+          if (r.type === 'characterData') applyText(r.target);
+          else if (r.type === 'attributes') applyAttrs(r.target);
+          else for (const added of r.addedNodes) walk(added);
+        }
+      } catch {}
     });
     observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });
     retranslateAll();
