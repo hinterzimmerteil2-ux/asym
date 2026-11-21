@@ -2723,3 +2723,19 @@ test('Panel de host: aturdir con duración libre y sin Desgracias', () => {
   room.adminStatus('c', 'stun', 0, ['a'], true);
   assert.strictEqual(Status.until(e.a, 'stun'), 0);
 });
+
+test('Panel de host: cambia el tiempo de la partida y lo puede congelar', () => {
+  const { room, step } = setup();
+  room.adminTime('a', 20);
+  assert.ok(room.gameState.timeRemainingMs > 20000);
+  room.adminTime('c', 20);
+  assert.strictEqual(room.gameState.timeRemainingMs, 20000);
+  room.adminTime('c', 0, true);
+  const t = room.gameState.timeRemainingMs;
+  room.tick ? room.tick() : null;
+  assert.strictEqual(room.gameState.timeFrozen, true);
+  assert.strictEqual(t, 20000);
+  room.adminTime('c', 5);
+  assert.strictEqual(room.gameState.timeFrozen, false);
+  assert.strictEqual(room.gameState.timeRemainingMs, 5000);
+});

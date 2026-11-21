@@ -368,6 +368,14 @@ wss.on('connection', (ws, req) => {
         break;
       }
 
+      case MessageType.ADMIN_TIME: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        const pl = msg.payload || {};
+        room.adminTime(playerId, pl.seconds, Boolean(pl.infinite));
+        break;
+      }
+
       case MessageType.ADMIN_GRANT: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;

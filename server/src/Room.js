@@ -893,6 +893,18 @@ class Room {
     }
   }
 
+  adminTime(requesterId, seconds, infinite) {
+    if (!this.isOp(requesterId) || this.isDefault || this.phase !== 'action' || this.gameState.gameOver) return;
+    this.markAdmin();
+    if (infinite) {
+      this.gameState.timeFrozen = true;
+      return;
+    }
+    const sec = Math.max(1, Math.min(86400, Number(seconds) || 0));
+    this.gameState.timeFrozen = false;
+    this.gameState.timeRemainingMs = Math.round(sec * 1000);
+  }
+
   adminGrant(requesterId, kind, id, slot, targets) {
     if (!this.isOp(requesterId) || this.isDefault || this.phase !== 'action' || this.gameState.gameOver) return;
     this.markAdmin();
@@ -1489,6 +1501,7 @@ class Room {
     this.gameState.gameOver = false;
     this.gameState.desgracias = {};
     this.gameState.adminUsed = false;
+    this.gameState.timeFrozen = false;
     this.gameState.lastStanding = false;
     this.gameState.lms = null;
 
@@ -1807,7 +1820,7 @@ class Room {
     this.lastTickAt = now;
 
     if (this.phase === 'action' && !this.gameState.gameOver) {
-      this.gameState.timeRemainingMs = Math.max(0, this.gameState.timeRemainingMs - elapsedMs);
+      if (!this.gameState.timeFrozen) this.gameState.timeRemainingMs = Math.max(0, this.gameState.timeRemainingMs - elapsedMs);
       if (this.gameState.timeRemainingMs === 0) this.endGame('timeout');
     }
 
@@ -1935,6 +1948,7 @@ class Room {
         entities: ownHidden(playerId, player, publicEntities, this, now),
         ghosts: ghostsFor(playerId),
         timeRemainingMs: this.gameState.timeRemainingMs,
+        timeFrozen: Boolean(this.gameState.timeFrozen),
         patients: this.visiblePatients(playerId),
         selfDamageObjects: this.gameState.selfDamageObjectPositions,
         selfDamageTypes: this.gameState.selfDamageTypes,

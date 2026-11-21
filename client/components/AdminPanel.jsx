@@ -7,7 +7,9 @@ const MAX_S = 600;
 const secFromPos = (v) => MIN_S * Math.pow(MAX_S / MIN_S, v / 100);
 const fmtSec = (sec) => (sec < 1 ? `${sec.toFixed(2)} s` : sec < 10 ? `${sec.toFixed(1)} s` : `${Math.round(sec)} s`);
 
-export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, characters, onOp, onGrant, onStatus, onClose }) {
+export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, characters, onOp, onGrant, onStatus, onTime, onClose }) {
+  const [timeSec, setTimeSec] = useState(300);
+  const [timeInf, setTimeInf] = useState(false);
   const [fxPos, setFxPos] = useState(40);
   const [fxInf, setFxInf] = useState(false);
   const [tab, setTab] = useState(isHost && phase === 'lobby' ? 'op' : 'cards');
@@ -50,6 +52,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
           <button type="button" onClick={() => { setTab('cards'); setSlot(0); }} style={styles.tab(tab === 'cards')}>Cartas</button>
           <button type="button" onClick={() => { setTab('skills'); setSlot(0); }} style={styles.tab(tab === 'skills')}>Habilidades del Curador</button>
           <button type="button" onClick={() => setTab('fx')} style={styles.tab(tab === 'fx')}>Estados</button>
+          <button type="button" onClick={() => setTab('time')} style={styles.tab(tab === 'time')}>Tiempo</button>
         </div>
 
         {tab === 'op' && (
@@ -66,7 +69,32 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
           </div>
         )}
 
-        {tab !== 'op' && (
+        {tab === 'time' && (
+          <div style={styles.body}>
+            {phase !== 'action' && <div style={styles.hint}>El tiempo se cambia durante la partida.</div>}
+            <div style={styles.subTitle}>Tiempo restante hasta que acabe la partida</div>
+            <div style={styles.chips}>
+              {[30, 60, 180, 300, 600, 1200].map((v) => (
+                <button key={v} type="button" onClick={() => { setTimeSec(v); setTimeInf(false); }} style={styles.chip(!timeInf && timeSec === v)}>{v >= 60 ? `${v / 60} min` : `${v} s`}</button>
+              ))}
+            </div>
+            <label style={styles.row}>
+              <input type="number" min={1} max={86400} value={timeSec} disabled={timeInf} onChange={(e) => setTimeSec(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
+              <span>segundos</span>
+            </label>
+            <label style={styles.row}>
+              <input type="checkbox" checked={timeInf} onChange={(e) => setTimeInf(e.target.checked)} />
+              <span>Sin límite de tiempo</span>
+            </label>
+            <div style={styles.chips}>
+              <button type="button" disabled={phase !== 'action'} onClick={() => { onTime({ seconds: timeSec, infinite: timeInf }); setSent('Tiempo'); setTimeout(() => setSent(''), 1600); }} style={styles.chip(true)}>Aplicar</button>
+            </div>
+            {phase === 'action' && <div style={styles.hint}>Usar este panel desactiva las Desgracias de la partida.</div>}
+            {sent && <div style={styles.toast}>Enviado: {sent}</div>}
+          </div>
+        )}
+
+        {tab !== 'op' && tab !== 'time' && (
           <div style={styles.body}>
             {phase !== 'action' && <div style={styles.hint}>Las habilidades se dan durante la partida.</div>}
             <div style={styles.subTitle}>Dar a</div>

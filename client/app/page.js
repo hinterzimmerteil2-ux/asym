@@ -297,6 +297,7 @@ export default function LobbyPage() {
   const [platforms, setPlatforms] = useState([]);
   const [patients, setPatients] = useState({});
   const [timeRemainingMs, setTimeRemainingMs] = useState(null);
+  const [timeFrozen, setTimeFrozen] = useState(false);
   const [lastActionFeedback, setLastActionFeedback] = useState(null);
   const [gameOverInfo, setGameOverInfo] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -510,6 +511,7 @@ export default function LobbyPage() {
             sdRef.current = payload.flojera?.[myPlayerIdRef.current]?.sdGame ? { ...payload.flojera[myPlayerIdRef.current].sdGame, at: performance.now() } : null;
             setPatients(payload.patients || {});
             setTimeRemainingMs(payload.timeRemainingMs ?? null);
+            setTimeFrozen(Boolean(payload.timeFrozen));
             if (payload.flojera && myPlayerIdRef.current) {
               setFlojera(payload.flojera[myPlayerIdRef.current] || null);
               const mine = payload.flojera[myPlayerIdRef.current];
@@ -1346,7 +1348,7 @@ export default function LobbyPage() {
               : 'Esperando partida'}
           </span>
           {phase === 'action' && timeRemainingMs !== null && (
-            <span style={styles.timerTag(timeRemainingMs)}>{formatTime(timeRemainingMs)}</span>
+            <span style={styles.timerTag(timeRemainingMs)}>{timeFrozen ? '∞' : formatTime(timeRemainingMs)}</span>
           )}
           {editingName ? (
             <form onSubmit={handleSaveDisplayName} style={styles.nameEditRow}>
@@ -2039,7 +2041,7 @@ export default function LobbyPage() {
         {touch && portrait && phase === 'action' && (
           <p style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', margin: 0, padding: '10px 16px', borderRadius: 8, background: 'rgba(18,19,26,0.9)', border: '1px solid #3d2c33', fontSize: 14, zIndex: 25, textAlign: 'center', pointerEvents: 'none' }}>Gira el teléfono para jugar mejor</p>
         )}
-        {adminOpen && isOp && <AdminPanel players={players} myPlayerId={myPlayerId} isHost={isHost} phase={phase} cards={cardCatalog} characters={characters} onOp={(id, on) => connRef.current?.send('set_op', { targetPlayerId: id, on })} onGrant={(g) => connRef.current?.send('admin_grant', g)} onStatus={(g) => connRef.current?.send('admin_status', g)} onClose={() => setAdminOpen(false)} />}
+        {adminOpen && isOp && <AdminPanel players={players} myPlayerId={myPlayerId} isHost={isHost} phase={phase} cards={cardCatalog} characters={characters} onOp={(id, on) => connRef.current?.send('set_op', { targetPlayerId: id, on })} onGrant={(g) => connRef.current?.send('admin_grant', g)} onStatus={(g) => connRef.current?.send('admin_status', g)} onTime={(g) => connRef.current?.send('admin_time', g)} onClose={() => setAdminOpen(false)} />}
         {helpOpen && <HelpPanel characters={characters} cards={cardCatalog} onClose={() => setHelpOpen(false)} />}
 
         {warn && (
