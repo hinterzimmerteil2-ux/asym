@@ -661,7 +661,7 @@ class Room {
       if (now > (player.nextBotCard || 0)) {
         player.nextBotCard = now + (2200 + 2500 * (1 - mind.confidence)) + Math.random() * 3500;
         const slotIndex = Math.floor(Math.random() * entity.hand.length);
-        if (entity.hand[slotIndex]?.chosen && !String(entity.hand[slotIndex].chosen).startsWith('tower_')) this.useCard(botId, slotIndex);
+        if (entity.hand[slotIndex]?.chosen && entity.hand[slotIndex].chosen !== 'niche_tower') this.useCard(botId, slotIndex);
       }
     }
   }
@@ -2106,7 +2106,7 @@ class Room {
       if (entity.sup && entity.sup.glide) speedMultiplier = Math.max(speedMultiplier, FAST_MULTIPLIER) * 1.15;
       if (entity.sup) speedMultiplier *= SuperAbilities.speedBonus(entity);
       if (entity.channel || entity.selfDmg) speedMultiplier *= CHANNEL_SLOW;
-      if (entity.carry) speedMultiplier *= MODULE_CARRY_SLOW;
+      if (entity.carry || entity.carryTower) speedMultiplier *= MODULE_CARRY_SLOW;
       if (entity.acetilUntil <= now && entity.fatigueUntil > now) speedMultiplier *= ACETIL_FATIGUE_FACTOR;
       if (allyCounts[entityPlayerId]) {
         entity.allyBoostUntil = now + 2000;
@@ -3170,6 +3170,10 @@ class Room {
     const patient = this.gameState.patients[playerId];
     if (!entity || !patient || patient.status !== 'alive' || this.gameState.gameOver) return;
     if (Status.blocksSkills(entity, now) || entity.selfDmg || entity.eating) return;
+    if (entity.carryTower) {
+      Towers.drop(this, playerId, entity);
+      return;
+    }
     const mine = this.carryOf(playerId);
     if (mine) {
       let best = null;
@@ -3196,6 +3200,7 @@ class Room {
       const d = distanceBetween(entity, pos);
       if (d < bestD) { bestD = d; target = id; }
     }
+    if (Towers.pick(this, playerId, entity, target ? bestD : Infinity)) return;
     if (!target) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'No hay un Módulo cerca' });
       return;
@@ -3209,6 +3214,10 @@ class Room {
 
   dropModule(playerId) {
     const entity = this.gameState.entities[playerId];
+    if (entity && entity.carryTower) {
+      Towers.drop(this, playerId, entity);
+      return;
+    }
     const id = this.carryOf(playerId);
     if (!entity || !id) return;
     const spot = { x: entity.x + (entity.faceX || 0) * 0.9, y: entity.y, z: entity.z + (entity.faceZ || 1) * 0.9 };
@@ -3444,7 +3453,7 @@ class Room {
     e.sup.prev = ['andamio', 'telarana', 'redstone', 'slime', 'piston', 'pegajoso', 'polvo', 'tnt', 'miel'].includes(mode) ? { mode, until: Date.now() + 600 } : null;
   }
 
-  useCard(playerId, slotIndex) {
+  useCard(playerId, slotIndex, variant) {
     if (this.gameState.gameOver || this.gameState.frozen) return;
 
     const player = this.players.get(playerId);
@@ -3505,7 +3514,9 @@ class Room {
       return;
     }
     if (card.tower) {
-      const why = Towers.blocked(this, card);
+      const pick = card.tower.variants.includes(variant) ? variant : null;
+      const why = pick ? Towers.blocked(this, pick) : 'Elige láser o rifle';
+      entity.towerVariant = pick;
       if (why) {
         this.sendTo(playerId, MessageType.ERROR, { message: why });
         return;
@@ -3792,7 +3803,7 @@ class Room {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Módulo desinfectado, espera un momento' });
       return;
     }
-    if (playerEntity.carry) {
+    if (playerEntity.carry || playerEntity.carryTower) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Suelta el Módulo que llevas para usarlo' });
       return;
     }

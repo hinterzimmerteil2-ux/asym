@@ -2569,15 +2569,17 @@ test('Platinum Star: en pose el aturdimiento, empuje, Dedo y lanzamiento son may
 test('Torre láser: cajas por módulo, construcción, asiento con prioridad y explosión de 11 s', () => {
   const Towers = require('../src/Towers');
   const { room, e } = setup();
-  give(e.a, 0, 'tower_laser');
+  give(e.a, 0, 'niche_tower');
   e.a.x = 0; e.a.z = 0; e.a.faceX = 0; e.a.faceZ = 1;
   const now = Date.now();
   room.useCard('a', 0);
+  assert.strictEqual(Towers.list(room).length, 0);
+  room.useCard('a', 0, 'laser');
   const t = Towers.list(room)[0];
   assert.ok(t && t.type === 'laser' && t.hp === 40 && t.hpMax === 40);
-  give(e.b, 0, 'tower_laser');
+  give(e.b, 0, 'niche_tower');
   e.a.cardCooldowns = {};
-  room.useCard('a', 0);
+  room.useCard('a', 0, 'laser');
   assert.strictEqual(Towers.list(room).length, 1);
   for (let i = 0; i < 4; i++) Towers.onModule(room, 'a', e.a);
   assert.strictEqual(e.a.towerBoxes, 4);
@@ -2618,9 +2620,9 @@ test('Torre láser: cajas por módulo, construcción, asiento con prioridad y ex
 test('Torre rifle: aturde y quita Flojera, recarga y el Curador la daña', () => {
   const Towers = require('../src/Towers');
   const { room, e } = setup();
-  give(e.a, 0, 'tower_rifle');
+  give(e.a, 0, 'niche_tower');
   e.a.x = 0; e.a.z = 0; e.a.faceX = 0; e.a.faceZ = 1;
-  room.useCard('a', 0);
+  room.useCard('a', 0, 'rifle');
   const t = Towers.list(room)[0];
   assert.strictEqual(t.need, 2);
   t.mods = 2;
@@ -2677,4 +2679,28 @@ test('Panel de host: OP dan cartas y habilidades a quien eligen', () => {
   assert.strictEqual(room.getPlayersSummary().find((p) => p.id === 'c').character.skills[2].id, 'anestesia');
   room.setOp('c', 'a', false);
   assert.strictEqual(room.isOp('a'), false);
+});
+
+test('Torre: quien la colocó la carga y la suelta como un módulo', () => {
+  const Towers = require('../src/Towers');
+  const { room, e } = setup();
+  give(e.a, 0, 'niche_tower');
+  e.a.x = 0; e.a.z = 0; e.a.faceX = 0; e.a.faceZ = 1;
+  room.useCard('a', 0, 'rifle');
+  const t = Towers.list(room)[0];
+  e.b.x = t.x; e.b.z = t.z;
+  room.carryModule('b');
+  assert.ok(!t.carrier);
+  e.a.x = t.x - 1; e.a.z = t.z;
+  room.carryModule('a');
+  assert.strictEqual(t.carrier, 'a');
+  e.a.x = 20; e.a.z = 20; e.a.faceX = 1; e.a.faceZ = 0;
+  Towers.tick(room, Date.now() + 100);
+  assert.ok(Math.hypot(t.x - 20, t.z - 20) < 2);
+  room.dropModule('a');
+  assert.ok(!t.carrier && !e.a.carryTower);
+  const x = t.x;
+  e.a.x = 40;
+  Towers.tick(room, Date.now() + 200);
+  assert.strictEqual(t.x, x);
 });

@@ -1065,10 +1065,13 @@ export default function LobbyPage() {
     };
   }, [placeMc]);
 
-  const handleUseCard = useCallback((slot) => {
+  const [towerPick, setTowerPick] = useState(null);
+  const handleUseCard = useCallback((slot, variant) => {
     if (isAsymRole || phase !== 'action') return;
-    connRef.current?.send('use_card_action', { slot });
-  }, [isAsymRole, phase]);
+    if (hand[slot]?.chosen?.id === 'niche_tower' && !variant) { setTowerPick(slot); return; }
+    setTowerPick(null);
+    connRef.current?.send('use_card_action', { slot, variant });
+  }, [isAsymRole, phase, hand]);
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -1851,6 +1854,15 @@ export default function LobbyPage() {
 
         {!isDefaultRoom && isOp && !tutorial.active && (phase === 'lobby' || phase === 'action') && (
           <button type="button" onClick={() => setAdminOpen(true)} style={{ position: 'absolute', top: phase === 'action' ? (compact ? 126 : 92) : 8, left: 16, zIndex: 25, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(255,210,74,0.7)', background: 'rgba(40,34,12,0.85)', color: '#ffd24a', fontSize: 11, cursor: 'pointer' }}>Panel de host</button>
+        )}
+
+        {towerPick !== null && phase === 'action' && (
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 210, zIndex: 40, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: 'rgba(10,8,14,0.9)', border: '1px solid #ffd24a' }}>
+            <span style={{ color: '#ffd24a', fontSize: 12, fontWeight: 700 }}>Elige la torre</span>
+            <button type="button" onClick={() => handleUseCard(towerPick, 'laser')} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #ff8a3a', background: 'rgba(255,138,58,0.15)', color: '#ffb27a', cursor: 'pointer', fontSize: 12 }}>Láser</button>
+            <button type="button" onClick={() => handleUseCard(towerPick, 'rifle')} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #7dff5a', background: 'rgba(125,255,90,0.15)', color: '#a8ff90', cursor: 'pointer', fontSize: 12 }}>Rifle</button>
+            <button type="button" onClick={() => setTowerPick(null)} style={{ padding: '4px 8px', borderRadius: 8, border: 'none', background: 'transparent', color: '#8a8da3', cursor: 'pointer', fontSize: 14 }}>×</button>
+          </div>
         )}
 
         {phase === 'action' && isHost && !isDefaultRoom && !tutorial.active && (

@@ -2,8 +2,8 @@ const Status = require('./Status');
 const Hitbox = require('./Hitbox');
 
 const TW = {
-  laser: { need: 4, buildMs: 87000, aimSpeed: 6, range: 40, chargeMs: 1300, cdMs: 22000, radius: 4.5, stunMs: 11000, bossStunMs: 3000, dmg: 70, bossDmg: 1400000 },
-  rifle: { need: 2, buildMs: 18000, aimSpeed: 45, range: 32, width: 0.9, ammo: 6, reloadMs: 2000, gapMs: 1600, stunMs: 900, flojera: 18 },
+  laser: { need: 4, buildMs: 65000, aimSpeed: 6, range: 40, chargeMs: 1300, cdMs: 22000, radius: 4.5, stunMs: 11000, bossStunMs: 3000, dmg: 70, bossDmg: 1400000 },
+  rifle: { need: 2, buildMs: 14000, aimSpeed: 45, range: 32, width: 0.9, ammo: 6, reloadMs: 2000, gapMs: 1600, stunMs: 900, flojera: 18 },
   hp0: 40,
   hpMax: 280,
   regenDelay: 5000,
@@ -27,13 +27,13 @@ function isTowerCard(card) {
   return Boolean(card && card.tower);
 }
 
-function blocked(room, card) {
-  if (list(room).some((t) => t.type === card.tower.type)) return 'Ya hay una torre de este tipo';
+function blocked(room, type) {
+  if (list(room).some((t) => t.type === type)) return 'Ya hay una torre de este tipo';
   return null;
 }
 
-function place(room, playerId, entity, card, now) {
-  const type = card.tower.type;
+function place(room, playerId, entity, card, now, variant) {
+  const type = variant === 'rifle' ? 'rifle' : 'laser';
   const fx = entity.faceX || 0;
   const fz = entity.faceZ || 1;
   const len = Math.hypot(fx, fz) || 1;
@@ -43,7 +43,7 @@ function place(room, playerId, entity, card, now) {
   const t = {
     id: `tw${seq++}`, type, owner: playerId, x, y: Number.isFinite(y) ? y : entity.y || 0, z,
     hp: TW.hp0, hpMax: TW.hp0, mods: 0, need: TW[type].need, prog: 0, started: false,
-    seat: null, tx: x, tz: z + 6, ax: x, az: z + 6, charging: 0, nextShot: 0,
+    seat: null, carrier: null, tx: x, tz: z + 6, ax: x, az: z + 6, charging: 0, nextShot: 0,
     ammo: type === 'rifle' ? TW.rifle.ammo : 0, reloadUntil: 0, lastHit: now, last: now,
   };
   list(room).push(t);
@@ -57,7 +57,7 @@ function complete(t) {
 
 function onModule(room, playerId, entity) {
   const hand = entity.hand || [];
-  const has = hand.some((sl) => sl && sl.chosen && String(sl.chosen).startsWith('tower_'));
+  const has = hand.some((sl) => sl && sl.chosen === 'niche_tower');
   if (!has) return;
   const max = Math.max(...Object.values({ a: TW.laser.need, b: TW.rifle.need }));
   entity.towerBoxes = Math.min(max, (entity.towerBoxes || 0) + 1);
@@ -101,6 +101,7 @@ function sit(room, playerId, entity, now) {
   }
   const t = list(room).find((tw) => Math.hypot(tw.x - entity.x, tw.z - entity.z) <= TW.sitRadius);
   if (!t) return false;
+  if (t.carrier) return true;
   if (!complete(t)) {
     room.sendTo(playerId, 'error', { message: 'La torre aún se está construyendo' });
     return true;
@@ -121,6 +122,26 @@ function sit(room, playerId, entity, now) {
   return true;
 }
 
+function pick(room, playerId, entity, moduleDist) {
+  const t = list(room).find((tw) => tw.owner === playerId && !tw.carrier && Math.hypot(tw.x - entity.x, tw.z - entity.z) <= 3.4);
+  if (!t) return false;
+  if (Math.hypot(t.x - entity.x, t.z - entity.z) >= moduleDist) return false;
+  stand(room, t, Date.now());
+  t.carrier = playerId;
+  entity.carryTower = t.id;
+  return true;
+}
+
+function drop(room, playerId, entity) {
+  const t = list(room).find((tw) => tw.id === entity.carryTower);
+  entity.carryTower = null;
+  if (!t) return;
+  t.carrier = null;
+  const y = Hitbox.groundAt(room.allPlatforms(), t.x, t.z, entity.y || 0, 3);
+  t.y = Number.isFinite(y) ? y : entity.y || 0;
+  t.last = Date.now();
+}
+
 function aim(room, playerId, x, z) {
   const t = list(room).find((tw) => tw.seat === playerId);
   if (!t || !Number.isFinite(x) || !Number.isFinite(z)) return;
@@ -133,6 +154,8 @@ function damage(room, t, amount, now) {
   t.lastHit = now;
   if (t.hp <= 0) {
     stand(room, t, now);
+    const ce = t.carrier && room.gameState.entities[t.carrier];
+    if (ce) ce.carryTower = null;
     const arr = list(room);
     const i = arr.indexOf(t);
     if (i >= 0) arr.splice(i, 1);
@@ -215,6 +238,25 @@ function tick(room, now) {
     t.last = now;
     const cfg = TW[t.type];
     const owner = room.gameState.entities[t.owner];
+    if (t.carrier) {
+      const ce = room.gameState.entities[t.carrier];
+      const cp = room.gameState.patients[t.carrier];
+      if (!ce || !cp || cp.status !== 'alive' || ce.down) {
+        if (ce) ce.carryTower = null;
+        t.carrier = null;
+      } else {
+        const len = Math.hypot(ce.faceX || 0, ce.faceZ || 1) || 1;
+        t.x = ce.x + ((ce.faceX || 0) / len) * 1.6;
+        t.z = ce.z + ((ce.faceZ || 1) / len) * 1.6;
+        t.y = ce.y || 0;
+        t.tx = t.x;
+        t.tz = t.z + 6;
+        t.ax = t.tx;
+        t.az = t.tz;
+        t.lastHit = now;
+        continue;
+      }
+    }
     if (!complete(t) && owner && !owner.down && Math.hypot(owner.x - t.x, owner.z - t.z) <= TW.buildRadius) {
       if (!t.started && (owner.towerBoxes || 0) > 0) {
         owner.towerBoxes -= 1;
@@ -274,7 +316,7 @@ function view(room, now) {
   if (!arr.length) return undefined;
   return arr.map((t) => ({
     id: t.id, type: t.type, owner: t.owner, x: t.x, y: t.y, z: t.z, hp: Math.ceil(t.hp), hpMax: Math.round(t.hpMax),
-    mods: t.mods, need: t.need, prog: t.started ? Math.min(1, t.prog / (TW[t.type].buildMs / t.need)) : 0, seat: t.seat,
+    mods: t.mods, need: t.need, prog: t.started ? Math.min(1, t.prog / (TW[t.type].buildMs / t.need)) : 0, seat: t.seat, carrier: t.carrier,
     ax: t.ax, az: t.az, charge: t.charging ? Math.max(0, Math.min(1, 1 - (t.charging - now) / TW.laser.chargeMs)) : 0,
     cd: Math.max(0, t.nextShot - now), ammo: t.ammo, reload: t.reloadUntil > now ? Math.max(0, t.reloadUntil - now) : 0,
   }));
@@ -287,6 +329,7 @@ function reset(room) {
 function entityReset(entity) {
   entity.towerBoxes = 0;
   entity.towerSeat = null;
+  entity.carryTower = null;
 }
 
-module.exports = { TW, isTowerCard, blocked, place, onModule, sit, aim, fire, tick, view, reset, entityReset, onCuratorSkill, list, complete };
+module.exports = { TW, isTowerCard, blocked, pick, drop, place, onModule, sit, aim, fire, tick, view, reset, entityReset, onCuratorSkill, list, complete };

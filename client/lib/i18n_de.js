@@ -879,4 +879,9 @@ export const DE = [
 "Turm",
 "nicht aufgestellt",
 "(interagieren zum Verlassen)",
+"Struktur. Beim Einsatz wählst du einen Turm: Laser oder Gewehr (nur einer pro Typ und Server). Jedes Selbstschaden-Modul, das du abschließt, gibt dir eine Kiste; der Laser braucht 4 und wird in 65 s gebaut, das Gewehr braucht 2 und wird in 14 s gebaut, solange du näher als 5 bist. Er startet mit 40 Leben und der Bau erhöht sein maximales Leben bis 280, ohne Verfall; nach 5 s ohne Treffer heilt er sich selbst. Wer ihn aufgestellt hat, kann ihn tragen und wie ein Modul ablegen. Jemand muss darin sitzen (in der Nähe interagieren): Wer ihn aufgestellt hat, hat Vorrang und wirft die anderen hinaus. Der Laser zielt langsam, lädt 1,3 s auf und verursacht eine riesige Explosion (Radius 4,5), die 70 Schaden macht und den Heiler 11 s lähmt (3 s den Boss); Abklingzeit 22 s. Das Gewehr zielt schnell und feuert alle 1,6 s mit 6 Schuss einen dünnen grünen Laser, der 0,9 s betäubt und 18 Faulheit entfernt. Der Heiler beschädigt ihn mit seinen Fähigkeiten.",
+"Wähle Laser oder Gewehr",
+"Wähle den Turm",
+"Laser",
+"Gewehr",
 ];

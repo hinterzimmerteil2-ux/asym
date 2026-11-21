@@ -342,7 +342,7 @@ wss.on('connection', (ws, req) => {
       case MessageType.USE_CARD_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
-        room.useCard(playerId, msg.payload.slot);
+        room.useCard(playerId, msg.payload.slot, msg.payload.variant);
         break;
       }
 

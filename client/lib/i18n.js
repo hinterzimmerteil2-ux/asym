@@ -883,6 +883,11 @@ const PAIRS = [
 ["Torre","Tower"],
 ["sin colocar","not placed"],
 ["(interactuar para salir)","(interact to leave)"],
+["Estructura. Al usarla eliges una torre: láser o rifle (solo una de cada tipo por servidor). Cada módulo de auto-daño que completes te da una caja; el láser necesita 4 y tarda 65 s en construirse, el rifle necesita 2 y tarda 14 s, con tu presencia a menos de 5. Nace con 40 de vida y construir sube su vida máxima hasta 280, sin decaer; sin recibir golpes durante 5 s se cura sola. Quien la colocó puede cargarla y soltarla como un Módulo. Hace falta alguien sentado (interactuar cerca): quien la colocó tiene prioridad y expulsa a los demás. El láser apunta lento, carga 1,3 s y causa una explosión enorme (4,5 de radio) que hace 70 de daño y paraliza 11 s al Curador (3 s al Jefe); recarga 22 s. El rifle apunta con rapidez y dispara un láser verde delgado cada 1,6 s con 6 balas (recarga 2 s) que aturde 0,9 s y quita 18 de Flojera. El Curador la daña con sus habilidades.","Structure. When used you choose a tower: laser or rifle (only one of each type per server). Every self-damage module you complete gives you a crate; the laser needs 4 and takes 65 s to build, the rifle needs 2 and takes 14 s, with you within 5. It starts with 40 health and building raises its maximum health up to 280, without decay; after 5 s without being hit it heals itself. Whoever placed it can carry it and drop it like a Module. Someone has to sit in it (interact nearby): whoever placed it has priority and kicks out the others. The laser aims slowly, charges for 1.3 s and causes a huge explosion (4.5 radius) that deals 70 damage and paralyses the Curator for 11 s (3 s for the Boss); recharge 22 s. The rifle aims quickly and fires a thin green laser every 1.6 s with 6 shots (2 s reload) that stuns for 0.9 s and removes 18 Laziness. The Curator damages it with their skills."],
+["Elige láser o rifle","Choose laser or rifle"],
+["Elige la torre","Choose the tower"],
+["Láser","Laser"],
+["Rifle","Rifle"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };

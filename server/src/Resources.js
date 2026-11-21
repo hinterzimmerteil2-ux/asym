@@ -11,12 +11,11 @@ function bar(id, name, cur, max, color, rest) {
 function fromCards(entity, now, room, pid) {
   const out = [];
   const hand = entity.hand || [];
-  const tc = hand.find((sl) => sl && String(sl.chosen || '').startsWith('tower_'));
+  const tc = hand.find((sl) => sl && sl.chosen === 'niche_tower');
   if (tc) {
     const Towers = require('./Towers');
-    const type = tc.chosen === 'tower_rifle' ? 'rifle' : 'laser';
-    const mine = room ? Towers.list(room).find((t) => t.type === type && t.owner === pid) : null;
-    const need = Towers.TW[type].need;
+    const mine = room ? Towers.list(room).find((t) => t.owner === pid) : null;
+    const need = mine ? mine.need : Towers.TW.laser.need;
     out.push(pips('cajas', 'Cajas', entity.towerBoxes || 0, need, '#f0c040', { extra: { label: 'Torre', value: mine ? `${mine.mods}/${mine.need}` : 'sin colocar' } }));
   }
   if (hand.some((sl) => sl && sl.chosen === 'tigermark')) {
