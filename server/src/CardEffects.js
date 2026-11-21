@@ -27,6 +27,78 @@ function eatFood(room, playerId, entity, loss, floor) {
   return { free };
 }
 
+function tigerState(entity, card) {
+  if (!entity.tiger) entity.tiger = { mag: card.tiger.mag, reserve: card.tiger.start, dmg: 0, lastGain: 0, reloadUntil: 0 };
+  return entity.tiger;
+}
+
+function tigerBlocked(entity, card, now) {
+  const st = tigerState(entity, card);
+  if (st.reloadUntil > now) return 'Recargando';
+  if (st.mag <= 0) return 'Sin balas';
+  return null;
+}
+
+function tigerReload(room, playerId, entity, card, now) {
+  const st = tigerState(entity, card);
+  if (st.mag > 0 || st.reserve <= 0) return false;
+  st.reserve -= 1;
+  st.mag = card.tiger.mag;
+  st.reloadUntil = now + card.tiger.reloadMs;
+  room.endlag(playerId, entity, now, card.tiger.reloadMs, 3);
+  return true;
+}
+
+function tigerCredit(room, playerId, amount, now) {
+  const entity = room.gameState.entities[playerId];
+  if (!entity || !entity.hand) return;
+  const slot = entity.hand.find((sl) => sl && sl.chosen === 'tigermark');
+  if (!slot) return;
+  const card = require('./Cards').getCard('tigermark');
+  const st = tigerState(entity, card);
+  st.dmg = Math.min(card.tiger.perReload * 2, st.dmg + amount);
+  if (st.dmg >= card.tiger.perReload && now - st.lastGain >= card.tiger.gainEveryMs) {
+    st.dmg -= card.tiger.perReload;
+    st.lastGain = now;
+    st.reserve += 1;
+    if (st.mag <= 0 && !entity.tigerLeap) tigerReload(room, playerId, entity, card, now);
+  } else if (st.dmg >= card.tiger.perReload) {
+    st.dmg = card.tiger.perReload;
+  }
+}
+
+function tigerLand(room, playerId, entity, now) {
+  const card = require('./Cards').getCard('tigermark');
+  const t = card.tiger;
+  entity.tigerLeap = null;
+  entity.dashUntil = now - 1;
+  entity.dashVX = 0;
+  entity.dashVZ = 0;
+  const box = { x: entity.x, z: entity.z, y: (entity.y || 0) + HAND_Y, half: t.radius };
+  room.broadcast('hit_fx', { playerId, boxes: [box] });
+  let dealt = 0;
+  for (const [otherId, other] of room.players) {
+    if (!(other.isAsymRole || other.isBoss)) continue;
+    const target = room.gameState.entities[otherId];
+    if (!target || target.down || target.gone || target.corpse) continue;
+    if (Math.hypot(target.x - entity.x, target.z - entity.z) > t.radius + (target.bossHitHalf || 0) || Math.abs((target.y || 0) - (entity.y || 0)) > 2.2) continue;
+    room.ragdoll(otherId, target, card.durationMs, now);
+    const away = Math.hypot(target.x - entity.x, target.z - entity.z) || 1;
+    Status.push(target, (target.x - entity.x) / away, (target.z - entity.z) / away, 6, 400, now);
+    if (other.isBoss) require('./Boss').tntHit(room, t.bossDmg);
+    else {
+      room.dmgBy = playerId;
+      room.adjustCuratorHp(-card.curatorHpLoss);
+      room.dmgBy = null;
+      room.checkGameEndConditions();
+    }
+    dealt += 1;
+  }
+  const st = tigerState(entity, card);
+  if (st.mag <= 0) tigerReload(room, playerId, entity, card, now);
+  return dealt;
+}
+
 const handlers = {
   paraguayizador({ room, entity, now }) {
     entity.paraFrom = now + C.PARAGUAY_START_MS;
@@ -132,6 +204,30 @@ const handlers = {
     entity.acetilUntil = now + card.durationMs;
     entity.regenBlockedUntil = entity.acetilUntil + C.ACETIL_REGEN_DELAY_MS;
     entity.fatigueUntil = entity.acetilUntil + C.ACETIL_FATIGUE_MS;
+  },
+
+  tigermark({ room, playerId, entity, card, now }) {
+    const t = card.tiger;
+    const st = tigerState(entity, card);
+    st.mag -= 1;
+    let dx = entity.faceX || 0;
+    let dz = entity.faceZ || 0;
+    const len = Math.hypot(dx, dz);
+    if (len < 0.01) {
+      dx = 0;
+      dz = 1;
+    } else {
+      dx /= len;
+      dz /= len;
+    }
+    entity.onGround = false;
+    entity.velocityY = t.vy;
+    entity.peakY = entity.y;
+    entity.dashUntil = now + 3000;
+    entity.dashVX = dx * t.speed;
+    entity.dashVZ = dz * t.speed;
+    entity.dashExhausted = false;
+    entity.tigerLeap = { at: now };
   },
 
   grito_animo({ room, playerId, entity, card, now }) {
@@ -339,4 +435,4 @@ function areaOf(card, entity) {
   return [];
 }
 
-module.exports = { apply, handlers, areaOf, runFx, comboPress, redMistLine };
+module.exports = { apply, handlers, areaOf, runFx, comboPress, redMistLine, tigerBlocked, tigerLand, tigerCredit, tigerState };

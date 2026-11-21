@@ -62,9 +62,9 @@ export function facingOf(id) {
   return y === undefined ? null : { x: Math.round(Math.sin(y) * 100) / 100, z: Math.round(Math.cos(y) * 100) / 100 };
 }
 const HAND_ANIMS = new Map();
-const ANIM_DURATION = { swing: 650, swingL: 650, consume: 1700, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600, plant: 900, vanish: 1000, pulse: 900, point: 750, pull: 900 };
-const IMPACT_MS = { swing: 260, swingL: 260, consume: 1500, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150, plant: 520, vanish: 400, pulse: 350, point: 300, pull: 450 };
-const HOLD_MS = { card_tropiezo: 1200, card_paraguayizador: 1000, card_acetilcolina: 1300, card_tajo_carmesi: 800, card_red_mist: 800, skill_melee_stun: 800, skill_golpe_aturdidor: 650, card_rodar: 650 };
+const ANIM_DURATION = { swing: 650, swingL: 650, consume: 1700, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600, plant: 900, vanish: 1000, pulse: 900, point: 750, pull: 900, lunge: 1100 };
+const IMPACT_MS = { swing: 260, swingL: 260, consume: 1500, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150, plant: 520, vanish: 400, pulse: 350, point: 300, pull: 450, lunge: 400 };
+const HOLD_MS = { card_tropiezo: 1200, card_paraguayizador: 1000, card_acetilcolina: 1300, card_tajo_carmesi: 800, card_red_mist: 800, skill_melee_stun: 800, skill_golpe_aturdidor: 650, card_rodar: 650, card_tigermark: 1100 };
 const durOf = (h) => (h && (h.ms || ANIM_DURATION[h.anim])) || 1;
 const STATE_HELD = new Set(['card_chicharron', 'card_goyslop', 'card_astral_claw', 'card_grito_animo']);
 const ANIM_BY_KIND = {
@@ -74,6 +74,7 @@ const ANIM_BY_KIND = {
   card_red_mist: 'swing',
   card_tropiezo: 'stumble',
   card_rodar: 'roll',
+  card_tigermark: 'lunge',
   card_racion_compartida: 'consume',
   card_acetilcolina: 'consume',
   skill_tonico_reforzado: 'consume',
@@ -153,6 +154,12 @@ function HeldItem({ held }) {
       group.rotation.set(0, t * 6, 0);
       group.children[0].position.set(0, 0, 0);
       group.scale.setScalar(Math.max(0.01, 1.2 * (1 - back * 0.6)));
+    } else if (held.anim === 'lunge') {
+      group.visible = t < 1;
+      group.position.set(0.42, 0.95, 0.05);
+      group.rotation.set(0, 0, 0);
+      group.children[0].position.set(0, 0, 0);
+      group.scale.setScalar(1.45);
     } else if (held.anim === 'stumble' || held.anim === 'roll') {
       group.position.set(0, 2.5 + 0.12 * Math.sin(t * 14), 0);
       group.rotation.set(0, 0, 0);
@@ -1821,6 +1828,14 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         laz = laz + (-0.18 - laz) * fk;
         raz = raz + (0.18 - raz) * fk;
       }
+      tl.tig = (tl.tig || 0) + ((entityState.tgl ? 1 : 0) - (tl.tig || 0)) * Math.min(1, delta * 16);
+      if (tl.tig > 0.01) {
+        const tk = tl.tig;
+        lax = lax + (-1.7 - lax) * tk;
+        rax = rax + (1.25 - rax) * tk;
+        laz = laz + (-0.25 - laz) * tk;
+        raz = raz + (0.3 - raz) * tk;
+      }
       tl.slide += ((entityState.tla === 2 ? 1 : 0) - tl.slide) * Math.min(1, delta * 14);
       tl.rel += ((entityState.tla === 1 ? 1 : 0) - tl.rel) * Math.min(1, delta * 10);
       if (tl.rel > 0.01) {
@@ -1840,8 +1855,8 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         raz = raz + (0.5 - raz) * sk;
       }
       if (r6.legL) {
-        const lLeg = (swing * 1.1 + 0.5 * w.air) * (1 - tl.fly) + Math.sin(w.t * 9) * 0.4 * tl.fly - tl.slide * 0.9;
-        const rLeg = stompLeg !== null ? stompLeg : (-swing * 1.1 - 0.3 * w.air) * (1 - tl.fly) - Math.sin(w.t * 9) * 0.4 * tl.fly + tl.slide * 0.5;
+        const lLeg = (swing * 1.1 + 0.5 * w.air) * (1 - tl.fly) + Math.sin(w.t * 9) * 0.4 * tl.fly - tl.slide * 0.9 + ((tl.tig || 0) * (-1.0 - (swing * 1.1 + 0.5 * w.air)));
+        const rLeg = (stompLeg !== null ? stompLeg : (-swing * 1.1 - 0.3 * w.air) * (1 - tl.fly) - Math.sin(w.t * 9) * 0.4 * tl.fly + tl.slide * 0.5) + (tl.tig || 0) * (0.9 - (stompLeg !== null ? stompLeg : (-swing * 1.1 - 0.3 * w.air) * (1 - tl.fly) - Math.sin(w.t * 9) * 0.4 * tl.fly + tl.slide * 0.5));
         r6.legL.rotation.x = ep ? mix(lLeg, ep.legL) : lLeg;
         r6.legR.rotation.x = ep ? mix(rLeg, ep.legR) : rLeg;
         r6.legL.rotation.z = ep ? mix(0, ep.lz) : 0;
@@ -1890,7 +1905,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         pitch = mix(pitch, ep.pitch === undefined ? pitch : pitch + ep.pitch);
         offY = mix(offY, ep.offY === undefined ? offY : offY + ep.offY);
       }
-      pitch += tl.slide * 0.35 + tl.fly * 1.05;
+      pitch += tl.slide * 0.35 + tl.fly * 1.05 + (tl.tig || 0) * 0.75;
       offY -= tl.slide * 0.18 + tl.rel * 0.06;
       body.rotation.order = 'YXZ';
       body.rotation.set(pitch, yaw.current + (ep && ep.yaw ? ep.yaw * ew : 0), ep && ep.roll ? ep.roll * ew : 0);
@@ -2696,6 +2711,7 @@ const EFFECT_STYLES = {
   card_agua_rimac: { color: '#6b8f3a', mode: 'ring', duration: 800, radius: 4 },
   card_rimac_sin_filtrar: { color: '#6b8f3a', mode: 'ring', duration: 900, radius: 6 },
   card_red_mist: { color: '#e0555f', mode: 'burst', duration: 550, radius: 1.3 },
+  card_tigermark: { color: '#ff2a2a', mode: 'burst', duration: 600, radius: 2.4 },
   card_tajo_carmesi: { color: '#b57cff', mode: 'burst', duration: 550, radius: 1.2 },
   card_regalo_envenenado: { color: '#b07cf2', mode: 'ring', duration: 900, radius: 8 },
   card_aji_picante: { color: '#e0555f', mode: 'rise', duration: 800, radius: 0.9 },
@@ -2772,6 +2788,7 @@ const FX = {
   card_platano_podrido: { shape: 'leaf', color: '#7a6a2a', count: 8, speed: 2, up: 3, gravity: 8, prop: 'rotten' },
   card_agua_rimac: { shape: 'shard', color: '#9fe6d0', liquid: '#6b8f3a', count: 16, speed: 4, up: 4, gravity: 12, prop: 'img_agua_rimac' },
   card_rimac_sin_filtrar: { shape: 'shard', color: '#9fe6d0', liquid: '#5f7f20', count: 22, speed: 5, up: 5, gravity: 12, prop: 'bottle' },
+  card_tigermark: { shape: 'spark', color: '#ff2a2a', count: 14, speed: 4, up: 3, gravity: 6, prop: 'tigersword' },
   card_red_mist: { shape: 'drop', color: '#e0555f', count: 20, speed: 5, up: 3, gravity: 9, prop: 'img_red_mist' },
   card_tajo_carmesi: { shape: 'drop', color: '#b57cff', count: 10, speed: 4, up: 2, gravity: 9, prop: 'img_tajo_carmesi' },
   card_regalo_envenenado: { shape: 'leaf', color: '#b07cf2', count: 14, speed: 3, up: 3, gravity: 3, prop: 'gift' },
@@ -2846,7 +2863,35 @@ function ImageProp({ kind }) {
   );
 }
 
+function TigerSword() {
+  const tex = loadTex('/props/tigermark.png');
+  const glow = useRef();
+  const trail = useRef();
+  useFrame(() => {
+    const k = 0.75 + 0.25 * Math.sin(Date.now() / 25);
+    if (glow.current) glow.current.scale.setScalar(1.1 * k);
+    if (trail.current) trail.current.scale.set(1, 1, 0.8 + 0.4 * k);
+  });
+  return (
+    <group>
+      <mesh rotation={[0, -Math.PI / 2, 0]} position={[0, 0.1, 0]}>
+        <planeGeometry args={[1.5, 1.005]} />
+        <meshBasicMaterial map={tex} transparent alphaTest={0.05} side={DoubleSide} color="#ff8a8a" />
+      </mesh>
+      <mesh ref={glow} position={[0, 0.1, 0.15]}>
+        <sphereGeometry args={[0.55, 12, 10]} />
+        <meshBasicMaterial color="#ff1f2f" transparent opacity={0.38} depthWrite={false} />
+      </mesh>
+      <mesh ref={trail} position={[0, 0.2, -0.9]} rotation={[-Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.35, 1.6, 10]} />
+        <meshBasicMaterial color="#ff3a3a" transparent opacity={0.45} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
 function PropMesh({ kind, color }) {
+  if (kind === 'tigersword') return <TigerSword />;
   if (PROP_IMG[kind]) return <ImageProp kind={kind} />;
   if (SIMPLE_PROPS[kind]) return <SimpleProp parts={SIMPLE_PROPS[kind]} />;
   if (kind === 'bottle') {

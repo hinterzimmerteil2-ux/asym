@@ -2416,3 +2416,51 @@ test('Minceraft: TNT cae por gravedad sin colisionar con jugadores, miel afecta 
   const Status = require('../src/Status');
   assert.ok(Status.active(e.a, 'slow', now + 100));
 });
+
+test('Tigermark: salto parabólico, impacto de 65 con ragdoll 3s y balas', () => {
+  const { room, e, step, clock } = setup();
+  e.a.x = 0; e.a.z = 0; e.a.y = 0; e.a.faceX = 1; e.a.faceZ = 0; e.c.x = 14; e.c.z = 0; e.c.y = 0;
+  give(e.a, 0, 'tigermark');
+  const hp = room.gameState.curator.hp;
+  room.useCard('a', 0);
+  assert.strictEqual(e.a.tiger.mag, 5);
+  assert.strictEqual(e.a.tiger.reserve, 1);
+  assert.ok(e.a.tigerLeap);
+  step(8);
+  assert.ok(e.a.y > 1 && e.a.x > 3);
+  step(40);
+  assert.strictEqual(e.a.tigerLeap, null);
+  assert.ok(e.a.x > 12 && e.a.x < 17);
+  assert.strictEqual(hp - room.gameState.curator.hp, 65);
+  assert.ok(Status.until(e.c, 'ragdoll') > Date.now());
+});
+
+test('Tigermark: sin balas no se usa; recarga con 3s de endlag y ganancia por daño', () => {
+  const { room, e, step, clock } = setup();
+  e.a.x = 0; e.a.z = 0; e.a.faceX = 1; e.a.faceZ = 0; e.c.x = 40; e.c.z = 40;
+  give(e.a, 0, 'tigermark');
+  room.useCard('a', 0);
+  e.a.tiger.mag = 1;
+  step(60);
+  e.a.cardCooldowns = {};
+  room.useCard('a', 0);
+  assert.strictEqual(e.a.tiger.mag, 0);
+  step(60);
+  assert.strictEqual(e.a.tiger.mag, 6);
+  assert.strictEqual(e.a.tiger.reserve, 0);
+  assert.ok(e.a.tiger.reloadUntil > Date.now());
+  e.a.tiger.mag = 0;
+  e.a.tiger.reloadUntil = 0;
+  e.a.cardCooldowns = {};
+  room.useCard('a', 0);
+  assert.ok(e.a.tiger.mag === 0 && !e.a.tigerLeap);
+  const { tigerCredit } = require('../src/CardEffects');
+  tigerCredit(room, 'a', 60, Date.now());
+  assert.strictEqual(e.a.tiger.reserve, 0);
+  assert.strictEqual(e.a.tiger.mag, 6);
+  tigerCredit(room, 'a', 60, Date.now() + 1000);
+  assert.strictEqual(e.a.tiger.reserve, 0);
+  clock.t += 61000;
+  tigerCredit(room, 'a', 5, Date.now());
+  assert.strictEqual(e.a.tiger.reserve, 1);
+});

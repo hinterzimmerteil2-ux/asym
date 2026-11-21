@@ -1779,6 +1779,11 @@ export default function LobbyPage() {
           </div>
         )}
 
+        {phase === 'action' && !isAsymRole && hand.some((sl) => sl.chosen && sl.chosen.id === 'tigermark') && (() => {
+          const tg = (sceneStore.entities[myPlayerId] || {}).tg || [6, 1, 0];
+          return <div style={{ position: 'absolute', top: touch ? 96 : 100, right: 10, zIndex: 31, padding: '4px 9px', borderRadius: 8, background: 'rgba(20,6,10,0.78)', border: '1px solid #ff2a2a', color: tg[2] ? '#ffb347' : tg[0] ? '#ff6b6b' : '#888', fontSize: 12, fontWeight: 700, pointerEvents: 'none' }}><span translate="no">Savage Tigermark Round</span> {tg[0]}/6 +{tg[1]}{tg[2] ? ' Recargando' : ''}</div>;
+        })()}
+
         {phase === 'action' && isHost && !isDefaultRoom && !tutorial.active && (
           <button type="button" onClick={handleReturnToLobby} style={{ position: 'absolute', top: compact ? 96 : 62, left: 16, zIndex: 25, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(224,85,95,0.7)', background: 'rgba(40,16,20,0.85)', color: '#ffb3b8', fontSize: 11, cursor: 'pointer' }}>Reiniciar y volver al lobby</button>
         )}

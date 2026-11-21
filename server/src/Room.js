@@ -1340,6 +1340,8 @@ class Room {
       entity.cardCooldowns = {};
       entity.redMist = null;
       entity.redMistWide = false;
+      entity.tiger = null;
+      entity.tigerLeap = null;
       entity.sprintUntil = 0;
       entity.exacerbacionLevel = 0;
       entity.exacerbacionUntil = 0;
@@ -1757,6 +1759,8 @@ class Room {
         gld: entity.sup && entity.sup.glide ? 1 : undefined,
         tla: entity.sup && entity.sup.id === 'town_level' ? (entity.sup.slideUntil > now ? 2 : entity.sup.reload ? 1 : undefined) : undefined,
         mcv: entity.sup && entity.sup.pv ? entity.sup.pv : undefined,
+        tgl: entity.tigerLeap ? 1 : undefined,
+        tg: entity.tiger ? [entity.tiger.mag, entity.tiger.reserve, entity.tiger.reloadUntil > now ? 1 : 0] : undefined,
         psd: entity.sup && entity.sup.id === 'platinum_star' ? 1 : undefined,
         psa: entity.sup && entity.sup.id === 'platinum_star' ? (entity.sup.barrage ? 1 : entity.sup.poke ? 2 : entity.sup.grab ? 3 : entity.sup.poseUntil > now ? 4 : 0) || undefined : undefined,
         psr: entity.sup && entity.sup.id === 'platinum_star' && entity.sup.rhythm >= 30 && now >= entity.sup.cd.react ? 1 : undefined,
@@ -2086,7 +2090,7 @@ class Room {
         entity.kbX *= decay;
         entity.kbZ *= decay;
       }
-      if (dashing) {
+      if (dashing && !entity.tigerLeap) {
         const speed = Math.hypot(entity.dashVX, entity.dashVZ) || 1;
         const dx = entity.dashVX / speed;
         const dz = entity.dashVZ / speed;
@@ -2178,6 +2182,7 @@ class Room {
           entity.y = ground;
           entity.velocityY = 0;
           entity.onGround = true;
+          if (entity.tigerLeap) CardEffects.tigerLand(this, entityPlayerId, entity, now);
           const fallingPlayer = this.players.get(entityPlayerId);
           if (fallingPlayer && fall > FALL_ENDLAG_MIN && inAction && !(entity.sup && entity.sup.id === 'minceraft')) {
             this.endlagSlow(entity, now, FALL_ENDLAG_MS);
@@ -2527,6 +2532,7 @@ class Room {
     if (!this.hitWindows.length) return;
     const keep = [];
     for (const win of this.hitWindows) {
+      this.dmgBy = win.playerId;
       const owner = this.gameState.entities[win.playerId];
       if (!owner || this.phase !== 'action' || this.gameState.gameOver || Status.blocksSkills(owner, now)) continue;
       if (!win.planked) {
@@ -2663,6 +2669,7 @@ class Room {
       keep.push(win);
     }
     this.hitWindows = keep;
+    this.dmgBy = null;
   }
 
   stun(playerId, entity, ms, now, hpLoss = 0) {
@@ -2675,7 +2682,9 @@ class Room {
     const curator = this.gameState.curator;
     if (!curator || this.gameState.gameOver) return;
     if (this.gameState.lms && this.gameState.lms.gimmick === 'escudo') delta *= 0.5;
+    const hpBefore = curator.hp;
     curator.hp = Math.max(0, Math.min(curator.max, curator.hp + delta));
+    if (this.dmgBy && curator.hp < hpBefore) CardEffects.tigerCredit(this, this.dmgBy, hpBefore - curator.hp, Date.now());
     if (this.bossActive) {
       if (curator.hp <= 0 || curator.hp >= curator.max) {
         this.gameState.curatorDown = true;
@@ -2813,7 +2822,7 @@ class Room {
           const l = Math.hypot(ddx, ddz) || 1;
           Status.push(target, ddx / l, ddz / l, card.knockback * k, 400, now);
         }
-        if (card.curatorHpLoss) { this.adjustCuratorHp(-card.curatorHpLoss * k); this.checkGameEndConditions(); }
+        if (card.curatorHpLoss) { this.dmgBy = claw.ownerId; this.adjustCuratorHp(-card.curatorHpLoss * k); this.dmgBy = null; this.checkGameEndConditions(); }
         const owner = this.gameState.entities[claw.ownerId];
         if (owner) this.gainExacerbacion(owner, now);
         claw.until = now;
@@ -3402,8 +3411,17 @@ class Room {
       this.startEating(playerId, entity, slotIndex, card, now);
       return;
     }
+    if (card.tiger) {
+      const why = entity.tigerLeap ? 'En el aire' : CardEffects.tigerBlocked(entity, card, now);
+      if (why) {
+        this.sendTo(playerId, MessageType.ERROR, { message: why });
+        return;
+      }
+    }
     entity.cardCooldowns[slotIndex] = now + card.cooldownMs;
+    this.dmgBy = playerId;
     this.applyCardEffect(playerId, entity, card, now);
+    this.dmgBy = null;
     if (card.astral) entity.cardCooldowns[slotIndex] = now + 1500;
 
     this.broadcast(MessageType.CARD_RESULT, {

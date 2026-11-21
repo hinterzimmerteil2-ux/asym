@@ -128,6 +128,17 @@ const CARDS = {
     stunMs: ASTRAL.MAX_STUN_MS,
     astral: { chargeMs: ASTRAL.CHARGE_MS, holdMs: ASTRAL.ENDLAG_MS, fireDelayMs: ASTRAL.FIRE_DELAY_MS, throwEndlagMs: ASTRAL.THROW_ENDLAG_MS, speed: ASTRAL.SPEED, radius: 0.8, hit: ASTRAL.HIT, flyMs: ASTRAL.FLY_MS },
   },
+  tigermark: {
+    id: 'tigermark',
+    keywords: ['escapista'],
+    displayName: "Ya darn sure oughta've unsheathed that sword if ya really wanted to win!",
+    description: 'Recurso Savage Tigermark Round (máx 6, empiezas con 2 recargas, 12 balas). Gasta 1 bala: tomas la pose, la espada destella en rojo y sales lanzado en parábola. Al caer, un área pequeña hace 65 de daño al Curador o al Jefe y 3s de ragdoll. Si te quedas sin balas tras el salto, recargas con 3s de endlag. Sin balas no se puede usar. Ganas una recarga por cada 60 de daño que hagas (máx 1 por minuto).',
+    rarity: 'rare',
+    curatorHpLoss: 65,
+    durationMs: 3000,
+    cooldownMs: 18000,
+    tiger: { mag: 6, start: 1, reloadMs: 3000, radius: 2.4, perReload: 60, gainEveryMs: 60000, speed: 13.5, vy: 9.5, bossDmg: 1300000 },
+  },
   grito_animo: {
     id: 'grito_animo',
     keywords: ['bonificadora'],

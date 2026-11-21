@@ -859,4 +859,7 @@ export const DE = [
 "Emote",
 "Modifikator",
 "Beweglichkeit",
+"Ressource Savage Tigermark Round (max. 6, du startest mit 2 Nachladungen, 12 Patronen). Verbraucht 1 Patrone: Du nimmst die Pose ein, das Schwert blitzt rot auf und du wirst im Bogen geschleudert. Beim Aufprall verursacht ein kleiner Bereich 65 Schaden am Heiler oder am Boss und 3s Ragdoll. Wenn dir nach dem Sprung die Patronen ausgehen, lädst du mit 3s Endlag nach. Ohne Patronen nicht benutzbar. Pro 60 verursachtem Schaden gewinnst du eine Nachladung (max. 1 pro Minute).",
+"Keine Patronen",
+"In der Luft",
 ];

@@ -859,4 +859,7 @@ export const PIE = {
   857: 'wid-tis-mén-tis',
   858: 'wér-tis-tḗr',
   859: 'gʷem-tis',
+  860: 'h₁ōs-gʷem-tis: Savage Tigermark Round (méǵh₂-ti 6, tu h₁es-tis 2 re-pl̥h₁-tis, 12 gʷelh₁-tis). 1 gʷelh₁-tis néudeti: tu stéh₂-tom lēu̯eti, ḱlādyos rudʰ-ros bʰleg-eti kʷe tu pelh₁-tis kréh₂-ti-eti. kʷékʷlom stéh₂-ti-eti, wéikes-tos mikʷ-ros 65 h₂óyu solh₂weh₁yetōr-e pótis-e kʷe 3 sékʷ tūl-ḱád-tis dʰeh₁ti. gʷelh₁-tis ne h₁es-ti apo-bʰéreti, tu apo-stéh₂-tis 3 sékʷ re-pl̥h₁-ti. gʷelh₁-tis ne h₁es-ti: ne-bʰeh₂-tis. 60 h₂óyu-s tu dʰeh₁ti, tod 1 re-pl̥h₁-tis leu̯eti (méǵh₂-ti 1 mḗns-es).',
+  861: 'ne gʷelh₁-tis',
+  862: 'h₁en h₂wéh₁-ti',
 };

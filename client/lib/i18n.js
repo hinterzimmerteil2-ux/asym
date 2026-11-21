@@ -863,6 +863,9 @@ const PAIRS = [
 ["Emote","Emote"],
 ["Modificador","Modifier"],
 ["Movilidad","Mobility"],
+["Recurso Savage Tigermark Round (máx 6, empiezas con 2 recargas, 12 balas). Gasta 1 bala: tomas la pose, la espada destella en rojo y sales lanzado en parábola. Al caer, un área pequeña hace 65 de daño al Curador o al Jefe y 3s de ragdoll. Si te quedas sin balas tras el salto, recargas con 3s de endlag. Sin balas no se puede usar. Ganas una recarga por cada 60 de daño que hagas (máx 1 por minuto).","Resource Savage Tigermark Round (max 6, you start with 2 reloads, 12 rounds). Spends 1 round: you take the pose, the sword flashes red and you are launched in an arc. On landing, a small area deals 65 damage to the Healer or the Boss and 3s of ragdoll. If you run out of rounds after the jump, you reload with 3s of endlag. It can't be used with no rounds. You gain a reload for every 60 damage you deal (max 1 per minute)."],
+["Sin balas","No rounds"],
+["En el aire","In the air"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };
