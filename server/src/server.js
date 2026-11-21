@@ -376,6 +376,21 @@ wss.on('connection', (ws, req) => {
         break;
       }
 
+      case MessageType.ADMIN_SCALE: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.adminScale(playerId, msg.payload && msg.payload.scale);
+        break;
+      }
+
+      case MessageType.ADMIN_ATTR: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        const pl = msg.payload || {};
+        room.adminAttr(playerId, pl.kind, pl.value, pl.targets);
+        break;
+      }
+
       case MessageType.ADMIN_GRANT: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;

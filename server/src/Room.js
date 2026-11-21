@@ -910,7 +910,35 @@ class Room {
     }
     const sec = Math.max(1, Math.min(86400, Number(seconds) || 0));
     this.gameState.timeFrozen = false;
+    this.gameState.timeScale = 1;
     this.gameState.timeRemainingMs = Math.round(sec * 1000);
+  }
+
+  adminScale(requesterId, scale) {
+    if (!this.isOp(requesterId) || this.isDefault || this.phase !== 'action' || this.gameState.gameOver) return;
+    this.markAdmin();
+    this.gameState.timeScale = Math.max(0.1, Math.min(10, Number(scale) || 1));
+  }
+
+  adminAttr(requesterId, kind, value, targets) {
+    if (!this.isOp(requesterId) || this.isDefault || this.phase !== 'action' || this.gameState.gameOver) return;
+    if (!['speed', 'jump', 'heal', 'flojera'].includes(kind)) return;
+    this.markAdmin();
+    const v = Math.max(0.1, Math.min(5, Number(value) || 1));
+    for (const id of this.adminTargets(targets, requesterId)) {
+      const entity = this.gameState.entities[id];
+      const patient = this.gameState.patients[id];
+      if (!entity) continue;
+      if (kind === 'speed') entity.adminSpeed = v === 1 ? null : v;
+      else if (kind === 'jump') entity.adminJump = v === 1 ? null : v;
+      else if (kind === 'flojera') entity.flojera = entity.flojeraMax;
+      else if (kind === 'heal') {
+        if (this.players.get(id)?.isAsymRole) {
+          const cur = this.gameState.curator;
+          if (cur) cur.hp = cur.max;
+        } else if (patient && patient.status === 'alive') patient.hp = patient.maxHp;
+      }
+    }
   }
 
   adminGrant(requesterId, kind, id, slot, targets) {
@@ -1828,7 +1856,7 @@ class Room {
     this.lastTickAt = now;
 
     if (this.phase === 'action' && !this.gameState.gameOver) {
-      if (!this.gameState.timeFrozen) this.gameState.timeRemainingMs = Math.max(0, this.gameState.timeRemainingMs - elapsedMs);
+      if (!this.gameState.timeFrozen) this.gameState.timeRemainingMs = Math.max(0, this.gameState.timeRemainingMs - elapsedMs * (this.gameState.timeScale || 1));
       if (this.gameState.timeRemainingMs === 0) this.endGame('timeout');
     }
 
@@ -1957,6 +1985,7 @@ class Room {
         ghosts: ghostsFor(playerId),
         timeRemainingMs: this.gameState.timeRemainingMs,
         timeFrozen: Boolean(this.gameState.timeFrozen),
+        timeScale: this.gameState.timeScale || 1,
         patients: this.visiblePatients(playerId),
         selfDamageObjects: this.gameState.selfDamageObjectPositions,
         selfDamageTypes: this.gameState.selfDamageTypes,
@@ -2164,6 +2193,7 @@ class Room {
       }
       if (entity.allyBoostUntil > now) speedMultiplier *= 1 + ACETIL_ALLY_STEP * (entity.allyBoostLevel || 1);
       if (this.players.get(entityPlayerId)?.isAsymRole) speedMultiplier *= CURATOR_SPEED_BONUS;
+      if (entity.adminSpeed) speedMultiplier *= entity.adminSpeed;
       if (stunned) speedMultiplier = 0;
       if (!isMoving && !rolling) entity.curMult = Math.min(entity.curMult || 1, FLOJERA_SLOW_MULTIPLIER);
       const prevMult = entity.curMult ?? speedMultiplier;
@@ -2288,7 +2318,7 @@ class Room {
 
       if (entity.sup) SuperAbilities.glide(this, entity, Date.now(), dt);
       if (input.jump && entity.onGround && !stunned) {
-        entity.velocityY = entity.sup && entity.sup.id === 'minceraft' ? SuperAbilities.MC.jumpV : JUMP_VELOCITY;
+        entity.velocityY = (entity.sup && entity.sup.id === 'minceraft' ? SuperAbilities.MC.jumpV : JUMP_VELOCITY) * (entity.adminJump || 1);
         entity.onGround = false;
         entity.peakY = entity.y;
       }

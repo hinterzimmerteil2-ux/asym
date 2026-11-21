@@ -26,6 +26,8 @@ const MessageType = {
   SET_OP: 'set_op',                         // client(host) -> server: { targetPlayerId, on }
   ADMIN_STATUS: 'admin_status',             // client(OP) -> server: { kind, ms, targets, remove }
   ADMIN_TIME: 'admin_time',                 // client(OP) -> server: { seconds, infinite }
+  ADMIN_SCALE: 'admin_scale',               // client(OP) -> server: { scale }
+  ADMIN_ATTR: 'admin_attr',                 // client(OP) -> server: { kind, value, targets }
   ADMIN_GRANT: 'admin_grant',               // client(OP) -> server: { kind: 'card'|'skill', id, slot, targets }
   SET_SUPERS: 'set_supers',
   SET_SUPER_PREF: 'set_super_pref',

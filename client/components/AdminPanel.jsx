@@ -8,7 +8,10 @@ const MAX_S = 600;
 const secFromPos = (v) => MIN_S * Math.pow(MAX_S / MIN_S, v / 100);
 const fmtSec = (sec) => (sec < 1 ? `${sec.toFixed(2)} s` : sec < 10 ? `${sec.toFixed(1)} s` : `${Math.round(sec)} s`);
 
-export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, characters, onOp, onGrant, onStatus, onTime, onClose }) {
+export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, characters, onOp, onGrant, onStatus, onTime, onScale, onAttr, onClose }) {
+  const [scale, setScale] = useState(1);
+  const [speed, setSpeed] = useState(1);
+  const [jump, setJump] = useState(1);
   const [timeSec, setTimeSec] = useState(300);
   const [timeInf, setTimeInf] = useState(false);
   const [fxPos, setFxPos] = useState(40);
@@ -55,6 +58,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
           <button type="button" onClick={() => { setTab('cards'); setSlot(0); }} style={styles.tab(tab === 'cards')}>Cartas</button>
           <button type="button" onClick={() => { setTab('skills'); setSlot(0); }} style={styles.tab(tab === 'skills')}>Habilidades del Curador</button>
           <button type="button" onClick={() => setTab('fx')} style={styles.tab(tab === 'fx')}>Estados</button>
+          <button type="button" onClick={() => setTab('attr')} style={styles.tab(tab === 'attr')}>Cuerpo</button>
           <button type="button" onClick={() => setTab('time')} style={styles.tab(tab === 'time')}>Tiempo</button>
         </div>
 
@@ -89,6 +93,17 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
               <input type="checkbox" checked={timeInf} onChange={(e) => setTimeInf(e.target.checked)} />
               <span>Sin límite de tiempo</span>
             </label>
+            <div style={styles.subTitle}>Velocidad del reloj: x{scale}</div>
+            <div style={styles.chips}>
+              {[0.25, 0.5, 1, 2, 4, 10].map((v) => (
+                <button key={v} type="button" disabled={phase !== 'action'} onClick={() => { setScale(v); onScale({ scale: v }); }} style={styles.chip(scale === v)}>x{v}</button>
+              ))}
+            </div>
+            <label style={styles.row}>
+              <input type="number" min={0.1} max={10} step={0.1} value={scale} onChange={(e) => setScale(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
+              <button type="button" disabled={phase !== 'action'} onClick={() => onScale({ scale })} style={styles.chip(true)}>Aplicar velocidad</button>
+            </label>
+            <div style={styles.hint}>Solo cambia lo rápido que corre el reloj de la partida.</div>
             <div style={styles.chips}>
               <button type="button" disabled={phase !== 'action'} onClick={() => { onTime({ seconds: timeSec, infinite: timeInf }); setSent('Tiempo'); setTimeout(() => setSent(''), 1600); }} style={styles.chip(true)}>Aplicar</button>
             </div>
@@ -113,7 +128,26 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
                 </label>
               ))}
             </div>
-            {tab === 'fx' ? (
+            {tab === 'attr' ? (
+              <>
+                <div style={styles.subTitle}>Velocidad de movimiento: x{speed}</div>
+                <input type="range" min={0.1} max={5} step={0.1} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} />
+                <div style={styles.chips}>
+                  <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'speed', value: speed, targets: chosen })} style={styles.chip(true)}>Aplicar velocidad</button>
+                  <button type="button" disabled={phase !== 'action'} onClick={() => { setSpeed(1); onAttr({ kind: 'speed', value: 1, targets: chosen }); }} style={styles.chip(false)}>Normal</button>
+                </div>
+                <div style={styles.subTitle}>Salto: x{jump}</div>
+                <input type="range" min={0.1} max={5} step={0.1} value={jump} onChange={(e) => setJump(Number(e.target.value))} />
+                <div style={styles.chips}>
+                  <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'jump', value: jump, targets: chosen })} style={styles.chip(true)}>Aplicar salto</button>
+                  <button type="button" disabled={phase !== 'action'} onClick={() => { setJump(1); onAttr({ kind: 'jump', value: 1, targets: chosen }); }} style={styles.chip(false)}>Normal</button>
+                </div>
+                <div style={styles.chips}>
+                  <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'heal', targets: chosen })} style={styles.chip(false)}>Curar al máximo</button>
+                  <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'flojera', targets: chosen })} style={styles.chip(false)}>Recargar Flojera</button>
+                </div>
+              </>
+            ) : tab === 'fx' ? (
               <>
                 <div style={styles.subTitle}>Estado</div>
                 <div style={styles.chips}>

@@ -2758,3 +2758,25 @@ test('Panel de host: ragdoll, ralentizado, revelado y en cola', () => {
   room.adminStatus('c', 'invisible', 5000, ['b']);
   assert.ok(!e.b.fx.invisible);
 });
+
+test('Panel de host: velocidad, salto, curar, Flojera y velocidad del tiempo', () => {
+  const { room, e, p } = setup();
+  room.adminAttr('a', 'speed', 3, ['b']);
+  assert.ok(!e.b.adminSpeed);
+  room.adminAttr('c', 'speed', 3, ['b']);
+  assert.strictEqual(e.b.adminSpeed, 3);
+  room.adminAttr('c', 'speed', 1, ['b']);
+  assert.ok(!e.b.adminSpeed);
+  room.adminAttr('c', 'jump', 2, 'all');
+  assert.strictEqual(e.a.adminJump, 2);
+  p.a.hp = 10;
+  e.a.flojera = 0;
+  room.adminAttr('c', 'heal', 1, ['a']);
+  room.adminAttr('c', 'flojera', 1, ['a']);
+  assert.strictEqual(p.a.hp, p.a.maxHp);
+  assert.strictEqual(e.a.flojera, e.a.flojeraMax);
+  room.adminScale('c', 4);
+  assert.strictEqual(room.gameState.timeScale, 4);
+  room.adminScale('c', 50);
+  assert.strictEqual(room.gameState.timeScale, 10);
+});
