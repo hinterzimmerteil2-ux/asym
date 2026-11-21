@@ -18,6 +18,7 @@ import SkillIcon from '../components/SkillIcon';
 import { watchMedia, useInputMode } from '../lib/settings';
 import { protectNames } from '../lib/i18n';
 import HelpPanel from '../components/HelpPanel';
+import AdminPanel from '../components/AdminPanel';
 import StatusColumn from '../components/StatusColumn';
 import ResourcePanel from '../components/ResourcePanel';
 import RhythmBar from '../components/RhythmBar';
@@ -303,6 +304,7 @@ export default function LobbyPage() {
   const [characters, setCharacters] = useState([]);
   const [cardCatalog, setCardCatalog] = useState([]);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
   const [spawnMs, setSpawnMs] = useState(0);
   const [mapEvents, setMapEvents] = useState([]);
   const [communityOpen, setCommunityOpen] = useState(false);
@@ -1191,6 +1193,7 @@ export default function LobbyPage() {
   }
 
   const isHost = hostId !== null && hostId === myPlayerId;
+  const isOp = isHost || Boolean(players.find((p) => p.id === myPlayerId)?.op);
   const myPatient = patients[myPlayerId];
   const spectating = phase === 'action' && !isAsymRole && Boolean(myPatient) && myPatient.status !== 'alive';
   const specTargets = [...(myGhost ? [myPlayerId] : []), ...Object.keys(entityMeta).filter((id) => id !== myPlayerId && !entityMeta[id].gone && !entityMeta[id].corpse)];
@@ -1846,6 +1849,10 @@ export default function LobbyPage() {
           return null;
         })()}
 
+        {!isDefaultRoom && isOp && !tutorial.active && (phase === 'lobby' || phase === 'action') && (
+          <button type="button" onClick={() => setAdminOpen(true)} style={{ position: 'absolute', top: phase === 'action' ? (compact ? 126 : 92) : 8, left: 16, zIndex: 25, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(255,210,74,0.7)', background: 'rgba(40,34,12,0.85)', color: '#ffd24a', fontSize: 11, cursor: 'pointer' }}>Panel de host</button>
+        )}
+
         {phase === 'action' && isHost && !isDefaultRoom && !tutorial.active && (
           <button type="button" onClick={handleReturnToLobby} style={{ position: 'absolute', top: compact ? 96 : 62, left: 16, zIndex: 25, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(224,85,95,0.7)', background: 'rgba(40,16,20,0.85)', color: '#ffb3b8', fontSize: 11, cursor: 'pointer' }}>Reiniciar y volver al lobby</button>
         )}
@@ -2020,6 +2027,7 @@ export default function LobbyPage() {
         {touch && portrait && phase === 'action' && (
           <p style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', margin: 0, padding: '10px 16px', borderRadius: 8, background: 'rgba(18,19,26,0.9)', border: '1px solid #3d2c33', fontSize: 14, zIndex: 25, textAlign: 'center', pointerEvents: 'none' }}>Gira el teléfono para jugar mejor</p>
         )}
+        {adminOpen && isOp && <AdminPanel players={players} myPlayerId={myPlayerId} isHost={isHost} phase={phase} cards={cardCatalog} characters={characters} onOp={(id, on) => connRef.current?.send('set_op', { targetPlayerId: id, on })} onGrant={(g) => connRef.current?.send('admin_grant', g)} onClose={() => setAdminOpen(false)} />}
         {helpOpen && <HelpPanel characters={characters} cards={cardCatalog} onClose={() => setHelpOpen(false)} />}
 
         {warn && (

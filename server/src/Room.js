@@ -223,6 +223,7 @@ class Room {
     this.roomId = roomId;
     this.players = new Map();
     this.hostId = null;
+    this.ops = new Set();
     this.isDefault = false;
     this.startAt = null;
     this.votes = { bots: {}, map: {}, mutation: {}, curator: {}, mode: {}, supers: {} };
@@ -812,6 +813,7 @@ class Room {
     const wasAsymRole = this.players.get(playerId)?.isAsymRole;
     this.players.delete(playerId);
     this.superIds.delete(playerId);
+    this.ops.delete(playerId);
     for (const kind of Object.keys(this.votes)) {
       delete this.votes[kind][playerId];
       for (const [voter, v] of Object.entries(this.votes[kind])) if (v === playerId) delete this.votes[kind][voter];
@@ -843,6 +845,78 @@ class Room {
     if (this.isEmpty()) this.stopTickLoop();
   }
 
+  isOp(playerId) {
+    return Boolean(playerId) && (playerId === this.hostId || this.ops.has(playerId));
+  }
+
+  curatorSkillList(player) {
+    const base = Characters.withOverride(Characters.getCharacter(player.characterId), CustomCards.healerSkills(this.mapId));
+    const over = player.skillOverride;
+    return over ? base.map((s, i) => over[i] || s) : base;
+  }
+
+  curatorSkillsPublic(player, characterData) {
+    return this.curatorSkillList(player).map((s) => ({ id: s.id, name: s.name, description: s.description, keywords: s.keywords, cooldownMs: s.cooldownMs }));
+  }
+
+  setOp(requesterId, targetId, on) {
+    if (requesterId !== this.hostId || this.isDefault) return;
+    const target = this.players.get(targetId);
+    if (!target || target.isBot || targetId === this.hostId) return;
+    if (on) this.ops.add(targetId); else this.ops.delete(targetId);
+    this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
+  }
+
+  adminGrant(requesterId, kind, id, slot, targets) {
+    if (!this.isOp(requesterId) || this.isDefault || this.phase !== 'action' || this.gameState.gameOver) return;
+    const ids = targets === 'all' ? [...this.players.keys()] : (Array.isArray(targets) ? targets : [requesterId]);
+    const idx = Number(slot);
+    let done = 0;
+    if (kind === 'card') {
+      const card = Cards.getCard(id);
+      if (!card || !(idx === 0 || idx === 1)) return;
+      for (const t of ids) {
+        const player = this.players.get(t);
+        const entity = this.gameState.entities[t];
+        if (!player || !entity || player.isAsymRole || player.isBoss) continue;
+        if (this.gameState.patients[t]?.status !== 'alive') continue;
+        if (!entity.role) entity.role = 'none';
+        while (entity.hand.length < 2) entity.hand.push({ options: [], chosen: null });
+        if (card.super && card.superId) {
+          SuperAbilities.grant(entity, card.superId, this.superTune);
+          entity.hand[0] = { options: [id], chosen: null };
+          this.finalizeChoice(t, 0, id);
+          entity.hand[1] = { options: [], chosen: null };
+          this.finalizeChoice(t, 1, 'super_slot');
+          entity.cardCooldowns = {};
+        } else {
+          if (entity.hand.some((sl) => sl && sl.chosen === 'super_slot')) SuperAbilities.grant(entity, null);
+          entity.hand[idx] = { options: [id], chosen: null };
+          this.finalizeChoice(t, idx, id);
+          delete entity.cardCooldowns[idx];
+        }
+        entity.draftEndsAt = 0;
+        this.sendCardOffer(t, entity);
+        done++;
+      }
+    } else if (kind === 'skill') {
+      let skill = null;
+      for (const c of Object.values(Characters.CHARACTERS)) for (const s of c.skills) if (s.id === id) skill = s;
+      if (!skill || !(idx >= 0 && idx <= 3)) return;
+      for (const t of ids) {
+        const player = this.players.get(t);
+        const entity = this.gameState.entities[t];
+        if (!player || !entity || !player.isAsymRole) continue;
+        if (!player.skillOverride) player.skillOverride = [];
+        player.skillOverride[idx] = skill;
+        entity.skillCooldowns[idx] = 0;
+        done++;
+      }
+      if (done) this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
+    }
+    if (!done) this.sendTo(requesterId, MessageType.ERROR, { message: kind === 'skill' ? 'Las habilidades del Curador solo se dan al Curador' : 'Nadie recibió la carta (elige jugadores vivos que no sean el Curador)' });
+  }
+
   getPlayersSummary() {
     return Array.from(this.players.entries()).map(([id, p]) => {
       const characterData = p.isAsymRole ? Characters.getCharacter(p.characterId) : null;
@@ -852,10 +926,11 @@ class Room {
         isAsymRole: p.isAsymRole,
         isBot: Boolean(p.isBot),
         offline: Boolean(p.detachedAt),
+        op: this.isOp(id),
         cosmetics: p.cosmetics || {},
         characterId: p.isAsymRole ? (p.characterId || Characters.DEFAULT_CHARACTER_ID) : null,
         character: characterData
-          ? { displayName: characterData.displayName, weaponName: characterData.weaponName, skills: Characters.publicSkills(characterData, CustomCards.healerSkills(this.mapId)) }
+          ? { displayName: characterData.displayName, weaponName: characterData.weaponName, skills: this.curatorSkillsPublic(p, characterData) }
           : null,
       };
     });
@@ -1393,6 +1468,7 @@ class Room {
     this.gameState.zones = [];
     this.gameState.dyn = [];
     Towers.reset(this);
+    for (const pl of this.players.values()) pl.skillOverride = null;
     this.gameState.dynVer += 1;
     SuperAbilities.resetMatch(this);
     for (const sr of GameMap.resolveSerums(this.mapId, GameMap.areaFor(this.mapId))) {
@@ -2261,7 +2337,7 @@ class Room {
       return;
     }
 
-    const skills = Characters.withOverride(Characters.getCharacter(curador.characterId), CustomCards.healerSkills(this.mapId));
+    const skills = this.curatorSkillList(curador);
     const index = skillIndex === 'melee' ? 'melee' : Number.isInteger(skillIndex) ? skillIndex : 0;
     const skill = index === 'melee' ? Characters.GENERIC_MELEE : skills[index];
     if (!skill) {
@@ -4077,6 +4153,7 @@ class Room {
     this.gameState.zones = [];
     this.gameState.dyn = [];
     Towers.reset(this);
+    for (const pl of this.players.values()) pl.skillOverride = null;
     this.gameState.dynVer += 1;
     SuperAbilities.resetMatch(this);
     this.tutorial = false;

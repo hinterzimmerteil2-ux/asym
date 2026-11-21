@@ -353,6 +353,21 @@ wss.on('connection', (ws, req) => {
         break;
       }
 
+      case MessageType.SET_OP: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        room.setOp(playerId, msg.payload && msg.payload.targetPlayerId, Boolean(msg.payload && msg.payload.on));
+        break;
+      }
+
+      case MessageType.ADMIN_GRANT: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        const pl = msg.payload || {};
+        room.adminGrant(playerId, pl.kind, pl.id, pl.slot, pl.targets);
+        break;
+      }
+
       case MessageType.TOWER_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room || room.phase !== 'action') return;

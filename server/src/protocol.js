@@ -23,6 +23,8 @@ const MessageType = {
   REMOVE_BOT: 'remove_bot',
   SET_MUTATION: 'set_mutation',
   SET_MODE: 'set_mode',
+  SET_OP: 'set_op',                         // client(host) -> server: { targetPlayerId, on }
+  ADMIN_GRANT: 'admin_grant',               // client(OP) -> server: { kind: 'card'|'skill', id, slot, targets }
   SET_SUPERS: 'set_supers',
   SET_SUPER_PREF: 'set_super_pref',
   SET_BOSS: 'set_boss',

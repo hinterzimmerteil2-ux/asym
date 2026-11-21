@@ -2660,3 +2660,21 @@ test('Torre rifle: aturde y quita Flojera, recarga y el Curador la daña', () =>
   assert.strictEqual(e.a.towerSeat, null);
   assert.ok(before >= 0);
 });
+
+test('Panel de host: OP dan cartas y habilidades a quien eligen', () => {
+  const { room, e } = setup();
+  assert.strictEqual(room.hostId, 'c');
+  room.setOp('a', 'b', true);
+  assert.strictEqual(room.isOp('b'), false);
+  room.setOp('c', 'a', true);
+  assert.strictEqual(room.isOp('a'), true);
+  room.adminGrant('b', 'card', 'tigermark', 0, ['b']);
+  assert.notStrictEqual(e.b.hand[0] && e.b.hand[0].chosen, 'tigermark');
+  room.adminGrant('a', 'card', 'tigermark', 1, 'all');
+  assert.strictEqual(e.a.hand[1].chosen, 'tigermark');
+  assert.strictEqual(e.b.hand[1].chosen, 'tigermark');
+  room.adminGrant('a', 'skill', 'anestesia', 2, ['c']);
+  assert.strictEqual(room.getPlayersSummary().find((p) => p.id === 'c').character.skills[2].id, 'anestesia');
+  room.setOp('c', 'a', false);
+  assert.strictEqual(room.isOp('a'), false);
+});
