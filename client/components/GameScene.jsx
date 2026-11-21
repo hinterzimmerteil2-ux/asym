@@ -1403,10 +1403,16 @@ function Tower({ t, me }) {
   );
 }
 
-function TowersLayer({ towers, me }) {
+function TowersLayer({ towers, me, hitboxes }) {
   return (towers || []).map((t) => (
     <group key={t.id}>
       <Tower t={t} me={me} />
+      {hitboxes?.on && (
+        <group position={[t.x, t.y, t.z]}>
+          <mesh position={[0, 1.4, 0]}><boxGeometry args={[2.2, 2.8, 2.2]} /><meshBasicMaterial color="#ff3030" transparent opacity={hitboxes.opacity ?? 0.25} depthWrite={false} /></mesh>
+          <mesh position={[0, 1.4, 0]}><boxGeometry args={[2.2, 2.8, 2.2]} /><meshBasicMaterial color="#ff3030" wireframe /></mesh>
+        </group>
+      )}
       {t.seat && t.mods >= t.need && <TowerBeam t={t} me={me} />}
     </group>
   ));
@@ -4277,7 +4283,7 @@ export default function GameScene({
 
       {phase === 'action' && entities?.[myPlayerId]?.mcv && <McGhost pv={entities[myPlayerId].mcv} />}
 
-      {phase === 'action' && <TowersLayer towers={towers} me={myPlayerId} />}
+      {phase === 'action' && <TowersLayer towers={towers} me={myPlayerId} hitboxes={hitboxes} />}
 
       {phase === 'action' && (dyn || []).filter((d) => d.k === 'telarana').map((d) => <McWeb key={d.id} d={d} />)}
 
