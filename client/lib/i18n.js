@@ -869,6 +869,20 @@ const PAIRS = [
 ["Recargas","Reloads"],
 ["Cargadores","Magazines"],
 ["Contragolpe","Counterstrike"],
+["Estructura. Colocas una torre láser (solo una por servidor). Cada módulo de auto-daño que completes te da una caja; hacen falta 4 para terminarla y construirla tarda 87 s con tu presencia a menos de 5. Nace con 40 de vida y construir sube su vida máxima hasta 280, sin decaer; sin recibir golpes durante 5 s se cura sola. Hace falta alguien sentado (interactuar cerca): quien la colocó tiene prioridad y expulsa a los demás. El láser apunta lento, carga 1,3 s y causa una explosión enorme (4,5 de radio) que hace 70 de daño y paraliza 11 s al Curador (3 s al Jefe); recarga 22 s. El Curador la daña con sus habilidades.","Structure. You place a laser tower (only one per server). Every self-damage module you complete gives you a crate; 4 are needed to finish it, and building takes 87 s with you standing within 5. It starts with 40 health and building raises its maximum health up to 280, with no decay; after 5 s without being hit it heals by itself. Someone has to sit in it (interact nearby): whoever placed it has priority and kicks out the others. The laser aims slowly, charges for 1.3 s and causes a huge explosion (4.5 radius) that deals 70 damage and paralyzes the Healer for 11 s (3 s for the Boss); 22 s cooldown. The Healer damages it with their abilities."],
+["Estructura, versión alternativa. Colocas una torre de rifle (solo una por servidor). Hacen falta 2 cajas de módulos de auto-daño y se construye en 18 s con tu presencia a menos de 5. Nace con 40 de vida y construir sube su vida máxima hasta 280, sin decaer; sin recibir golpes durante 5 s se cura sola. Hace falta alguien sentado: quien la colocó tiene prioridad. El rifle apunta con rapidez, dispara un láser verde delgado cada 1,6 s con 6 balas (recarga 2 s) que aturde 0,9 s y quita 18 de Flojera. El Curador la daña con sus habilidades.","Structure, alternative version. You place a rifle tower (only one per server). It needs 2 crates from self-damage modules and is built in 18 s with you standing within 5. It starts with 40 health and building raises its maximum health up to 280, with no decay; after 5 s without being hit it heals by itself. Someone has to sit in it: whoever placed it has priority. The rifle aims quickly and fires a thin green laser every 1.6 s with 6 rounds (2 s reload) that stuns for 0.9 s and removes 18 Laziness. The Healer damages it with their abilities."],
+["Ya hay una torre de este tipo","There is already a tower of this type"],
+["La torre aún se está construyendo","The tower is still being built"],
+["La torre está ocupada","The tower is occupied"],
+["Interactuar para sentarte en la torre","Interact to sit in the tower"],
+["Cargando","Charging"],
+["Láser listo","Laser ready"],
+["Recarga","Cooldown"],
+["Disparar","Fire"],
+["Cajas","Crates"],
+["Torre","Tower"],
+["sin colocar","not placed"],
+["(interactuar para salir)","(interact to leave)"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };

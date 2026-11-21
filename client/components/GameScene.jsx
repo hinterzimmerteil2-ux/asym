@@ -1333,9 +1333,88 @@ function McWeb({ d }) {
   );
 }
 
+const TOWER_IMG = { laser: { w: 2.5, h: 1.55 }, rifle: { w: 1.9, h: 2.1 } };
+
+function TowerBeam({ t, me }) {
+  const a = useRef();
+  const b = useRef();
+  useFrame(() => {
+    const dx = t.ax - t.x;
+    const dz = t.az - t.z;
+    const len = Math.hypot(dx, dz) || 0.01;
+    const k = 0.6 + 0.4 * Math.sin(Date.now() / 90);
+    if (a.current) {
+      a.current.position.set(t.x + dx / 2, t.y + 1.2, t.z + dz / 2);
+      a.current.rotation.set(0, Math.atan2(dx, dz), 0);
+      a.current.scale.set(1, 1, len);
+    }
+    if (b.current) b.current.scale.setScalar(t.type === 'laser' ? 1 + t.charge * 0.2 : 1);
+    if (a.current) a.current.children[0].material.opacity = (t.type === 'laser' ? 0.35 + 0.3 * k : 0.55);
+  });
+  const col = t.type === 'laser' ? '#ff2a2a' : '#7dff5a';
+  const R = t.type === 'laser' ? 4.5 : 0.7;
+  return (
+    <>
+      <group ref={a}>
+        <mesh><boxGeometry args={[t.type === 'laser' ? 0.07 : 0.05, 0.07, 1]} /><meshBasicMaterial color={col} transparent opacity={0.5} depthWrite={false} /></mesh>
+      </group>
+      <group ref={b} position={[t.ax, t.y + 0.12, t.az]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[R * 0.96, R, 40]} /><meshBasicMaterial color={col} transparent opacity={0.55} depthWrite={false} side={DoubleSide} /></mesh>
+        {t.type === 'laser' && t.charge > 0 && <mesh rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[R * t.charge, 40]} /><meshBasicMaterial color="#ff4a2a" transparent opacity={0.35} depthWrite={false} side={DoubleSide} /></mesh>}
+      </group>
+    </>
+  );
+}
+
+function Tower({ t, me }) {
+  const sprite = useRef();
+  const bar = useRef();
+  const tex = loadTex(`/props/tower_${t.type}.png`);
+  const done = t.mods >= t.need;
+  const frac = Math.min(1, (t.mods + t.prog) / t.need);
+  const dim = TOWER_IMG[t.type];
+  const sc = done ? 1 : 0.35 + 0.65 * frac;
+  const col = t.type === 'laser' ? '#ff8a3a' : '#7dff5a';
+  useFrame(({ camera }) => {
+    if (sprite.current) sprite.current.quaternion.copy(camera.quaternion);
+    if (bar.current) bar.current.quaternion.copy(camera.quaternion);
+  });
+  const hpF = Math.max(0, Math.min(1, t.hp / Math.max(1, t.hpMax)));
+  const maxF = Math.max(0, Math.min(1, t.hpMax / 280));
+  return (
+    <group position={[t.x, t.y, t.z]}>
+      <mesh position={[0, 0.15, 0]}><cylinderGeometry args={[1.0, 1.15, 0.3, 20]} /><meshStandardMaterial color="#20232b" emissive={col} emissiveIntensity={done ? 0.5 : 0.12} /></mesh>
+      <mesh position={[0, 0.34, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[0.75, 0.9, 32]} /><meshBasicMaterial color={col} transparent opacity={done ? 0.9 : 0.35} side={DoubleSide} /></mesh>
+      <group ref={sprite} position={[0, 0.3 + (dim.h * sc) / 2, 0]}>
+        <mesh scale={[dim.w * sc, dim.h * sc, 1]}><planeGeometry args={[1, 1]} /><meshBasicMaterial map={tex} transparent alphaTest={0.05} side={DoubleSide} color={done ? '#ffffff' : '#9a9aa2'} /></mesh>
+      </group>
+      <group ref={bar} position={[0, 0.3 + dim.h * sc + 0.45, 0]}>
+        <mesh><planeGeometry args={[1.8, 0.16]} /><meshBasicMaterial color="#0a0a0f" transparent opacity={0.8} depthTest={false} /></mesh>
+        <mesh position={[-0.9 + 0.9 * maxF, 0, 0.001]}><planeGeometry args={[1.8 * maxF, 0.1]} /><meshBasicMaterial color="#403038" depthTest={false} /></mesh>
+        <mesh position={[-0.9 + 0.9 * hpF * maxF, 0, 0.002]}><planeGeometry args={[Math.max(0.001, 1.8 * hpF * maxF), 0.1]} /><meshBasicMaterial color={hpF > 0.35 ? '#5be37a' : '#ff5a4a'} depthTest={false} /></mesh>
+        {!done && (
+          <>
+            <mesh position={[0, -0.18, 0]}><planeGeometry args={[1.8, 0.09]} /><meshBasicMaterial color="#0a0a0f" transparent opacity={0.8} depthTest={false} /></mesh>
+            <mesh position={[-0.9 + 0.9 * frac, -0.18, 0.001]}><planeGeometry args={[Math.max(0.001, 1.8 * frac), 0.06]} /><meshBasicMaterial color="#ffd24a" depthTest={false} /></mesh>
+          </>
+        )}
+      </group>
+    </group>
+  );
+}
+
+function TowersLayer({ towers, me }) {
+  return (towers || []).map((t) => (
+    <group key={t.id}>
+      <Tower t={t} me={me} />
+      {t.seat && t.mods >= t.need && <TowerBeam t={t} me={me} />}
+    </group>
+  ));
+}
+
 function SuperFx({ effect }) {
   const kind = effect.kind;
-  const dur = kind === 'sup_recarga_inicio' ? Math.max(600, effect.dur || 1300) : kind === 'sup_deslizar' ? 600 : kind === 'sup_recarga' ? 420 : kind === 'sup_bayoneta' || kind === 'sup_parry' || kind === 'sup_stellar_hit' || kind === 'sup_atrapar_hit' || kind === 'sup_atrapar' || kind === 'sup_rafaga' ? 520 : kind === 'sup_stellar' ? 400 : kind === 'sup_pausa' ? 1100 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
+  const dur = kind === 'sup_tower_shot' ? 260 : kind === 'sup_tower_blast' ? 1300 : kind === 'sup_tower_destroy' ? 1000 : kind === 'sup_recarga_inicio' ? Math.max(600, effect.dur || 1300) : kind === 'sup_deslizar' ? 600 : kind === 'sup_recarga' ? 420 : kind === 'sup_bayoneta' || kind === 'sup_parry' || kind === 'sup_stellar_hit' || kind === 'sup_atrapar_hit' || kind === 'sup_atrapar' || kind === 'sup_rafaga' ? 520 : kind === 'sup_stellar' ? 400 : kind === 'sup_pausa' ? 1100 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
   const life = useLife(effect, dur);
   const yaw = Math.atan2(effect.dx || 0, effect.dz || 1);
   const stamp = useRef();
@@ -1346,6 +1425,35 @@ function SuperFx({ effect }) {
       stamp.current.rotation.y = t * 7;
     }
   });
+  if (kind === 'sup_tower_shot') {
+    const len = effect.len || 10;
+    const yawT = Math.atan2(effect.nx || 0, effect.nz || 1);
+    return (
+      <group position={[(effect.x || 0) + (effect.nx || 0) * len / 2, (effect.y || 1.4), (effect.z || 0) + (effect.nz || 0) * len / 2]} rotation={[0, yawT, 0]}>
+        <mesh><boxGeometry args={[0.12, 0.12, len]} /><Mat reg={life.reg} color="#7dff5a" /></mesh>
+        <mesh><boxGeometry args={[0.3, 0.3, len]} /><Mat reg={life.reg} color="#c8ff9a" /></mesh>
+      </group>
+    );
+  }
+  if (kind === 'sup_tower_blast') {
+    const r = effect.r || 4.5;
+    return (
+      <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
+        <Ring life={life} color="#ff3030" y={0.15} r0={0.5} r1={r} />
+        <Ring life={life} color="#ffd0a0" y={0.3} r0={0.3} r1={r * 0.65} />
+        <mesh position={[0, r * 0.45, 0]}><sphereGeometry args={[r * 0.55, 18, 14]} /><Mat reg={life.reg} color="#ff5a3a" /></mesh>
+        <Sparks life={life} color="#ffb070" n={26} speed={4} up={3.4} size={0.14} />
+      </group>
+    );
+  }
+  if (kind === 'sup_tower_destroy') {
+    return (
+      <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
+        <Ring life={life} color="#ffb347" y={0.2} r0={0.3} r1={3} />
+        <Sparks life={life} color="#ffcf8a" n={20} speed={3.2} up={3} size={0.12} />
+      </group>
+    );
+  }
   if (kind === 'sup_bayoneta') {
     const len = effect.len || 3;
     const mx = (effect.x || 0) + (effect.dx || 0) * 1.7;
@@ -4101,6 +4209,7 @@ export default function GameScene({
   selfDamageObjects,
   zones,
   dyn,
+  towers,
   effects,
   stunnedIds,
   ragdollIds,
@@ -4167,6 +4276,8 @@ export default function GameScene({
       {phase === 'action' && (effects || []).map((effect) => (effect.sup ? <SuperFx key={effect.id} effect={effect} /> : <SkillEffect key={effect.id} effect={effect} />))}
 
       {phase === 'action' && entities?.[myPlayerId]?.mcv && <McGhost pv={entities[myPlayerId].mcv} />}
+
+      {phase === 'action' && <TowersLayer towers={towers} me={myPlayerId} />}
 
       {phase === 'action' && (dyn || []).filter((d) => d.k === 'telarana').map((d) => <McWeb key={d.id} d={d} />)}
 

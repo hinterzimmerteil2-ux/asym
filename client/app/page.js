@@ -261,6 +261,8 @@ export default function LobbyPage() {
   const [sdTypes, setSdTypes] = useState({});
   const [zones, setZones] = useState([]);
   const [dyn, setDyn] = useState([]);
+  const [towers, setTowers] = useState([]);
+  const towersRef = useRef([]);
   const [mcSel, setMcSel] = useState(null);
   const [mcDir, setMcDir] = useState(0);
   const mcDirRef = useRef(0);
@@ -478,6 +480,8 @@ export default function LobbyPage() {
             setSdTypes((prev) => (sameValue(prev, payload.selfDamageTypes || {}) ? prev : payload.selfDamageTypes || {}));
             setZones((prev) => (sameValue(prev, payload.zones || []) ? prev : payload.zones || []));
             setDyn((prev) => (sameValue(prev, payload.dyn || []) ? prev : payload.dyn || []));
+            towersRef.current = payload.towers || [];
+            setTowers((prev) => (sameValue(prev, payload.towers || []) ? prev : payload.towers || []));
             setCuratorHp((prev) => (sameValue(prev, payload.curator || null) ? prev : payload.curator || null));
             setSpawnMs(payload.spawnMs || 0);
             setPlankHp((prev) => (sameValue(prev, payload.plankHp || {}) ? prev : payload.plankHp || {}));
@@ -571,6 +575,11 @@ export default function LobbyPage() {
             const own = entitiesRef.current[payload.playerId];
             if (fxe.x === undefined && own) { fxe.x = own.x; fxe.y = own.y || 0; fxe.z = own.z; }
             setEffects((prev) => [...prev.filter((e) => Date.now() - e.startedAt < 1500), fxe]);
+            break;
+          }
+          case 'tower_fx': {
+            const fxt = { ...payload, id: `fx${++effectCounterRef.current}`, sup: true, kind: `sup_tower_${payload.kind}`, startedAt: Date.now() };
+            setEffects((prev) => [...prev.filter((e) => Date.now() - e.startedAt < 1500), fxt]);
             break;
           }
           case 'hit_fx': {
@@ -1203,12 +1212,48 @@ export default function LobbyPage() {
   const sx = (base, extra) => (compact ? { ...base, ...extra } : base);
   const playersOpen = panelOpen ?? phase === 'lobby';
   isAsymRoleRef.current = isAsymRole;
+  const mySeatTower = towers.find((t) => t.seat === myPlayerId) || null;
+  useEffect(() => {
+    if (!mySeatTower) return undefined;
+    let last = 0;
+    const send = (e) => {
+      if (e.target && e.target.tagName !== 'CANVAS') return;
+      const p = mcAimAt(e.clientX, e.clientY);
+      if (p) handleSendAction('tower_action', { op: 'aim', x: p.x, z: p.z });
+    };
+    const move = (e) => {
+      const n = performance.now();
+      if (n - last < 70) return;
+      last = n;
+      send(e);
+    };
+    const down = (e) => {
+      send(e);
+      if (e.pointerType === 'mouse' && e.button === 0 && e.target && e.target.tagName === 'CANVAS') handleSendAction('tower_action', { op: 'fire' });
+    };
+    const key = (e) => {
+      if (e.code === 'Space') { e.preventDefault(); handleSendAction('tower_action', { op: 'fire' }); }
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerdown', down);
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerdown', down);
+      window.removeEventListener('keydown', key);
+    };
+  }, [mySeatTower ? mySeatTower.id : null]);
+
   const handleInteract = () => {
     if (bossHudRef.current?.isBoss) { handleSendAction('cure_action', {}); return; }
     if (sdRef.current) { pressMinigameRef.current(); return; }
     const entities = entitiesRef.current;
     const me = entities[myPlayerId];
     if (!me) return;
+    if (!isAsymRole) {
+      const tw = towersRef.current.find((t) => t.seat === myPlayerId || Math.hypot(t.x - me.x, t.z - me.z) <= 3.4);
+      if (tw) { handleSendAction('tower_action', { op: 'sit' }); return; }
+    }
     let best = null;
     let bestDist = Infinity;
     const consider = (id, pos) => {
@@ -1250,6 +1295,7 @@ export default function LobbyPage() {
           <LiveScene
             gameMode={mode}
             dyn={dyn}
+            towers={towers}
             lmsActive={lmsUntil > 0}
             store={sceneStore}
             replay={replay}
@@ -1781,6 +1827,24 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && !isAsymRole && <ResourcePanel res={flojera?.res} compact={compact} />}
+        {phase === 'action' && !isAsymRole && (() => {
+          const myTw = towers.find((t) => t.seat === myPlayerId);
+          const me = entitiesRef.current[myPlayerId];
+          const near = !myTw && me ? towers.find((t) => Math.hypot(t.x - me.x, t.z - me.z) <= 3.4) : null;
+          if (myTw) {
+            const laser = myTw.type === 'laser';
+            return (
+              <>
+                <div style={{ position: 'absolute', top: 88, left: '50%', transform: 'translateX(-50%)', zIndex: 31, padding: '5px 12px', borderRadius: 8, background: 'rgba(10,8,14,0.82)', border: `1px solid ${laser ? '#ff4a3a' : '#7dff5a'}`, color: '#fff', fontSize: 12, fontWeight: 700, pointerEvents: 'none' }}>
+                  {laser ? (myTw.charge > 0 ? 'Cargando' : myTw.cd > 0 ? `Recarga ${Math.ceil(myTw.cd / 1000)} s` : 'Láser listo') : (myTw.reload > 0 ? 'Recargando' : `Balas ${myTw.ammo}/6`)} (interactuar para salir)
+                </div>
+                <button type="button" onClick={() => handleSendAction('tower_action', { op: 'fire' })} style={{ position: 'absolute', right: 24, bottom: 120, zIndex: 31, width: 96, height: 96, borderRadius: '50%', border: `3px solid ${laser ? '#ff4a3a' : '#7dff5a'}`, background: 'rgba(20,10,14,0.85)', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Disparar</button>
+              </>
+            );
+          }
+          if (near) return <div style={{ position: 'absolute', bottom: 210, left: '50%', transform: 'translateX(-50%)', zIndex: 31, padding: '5px 12px', borderRadius: 8, background: 'rgba(10,8,14,0.82)', color: '#ffd24a', fontSize: 12, fontWeight: 700, pointerEvents: 'none' }}>{near.mods >= near.need ? 'Interactuar para sentarte en la torre' : 'La torre se está construyendo'}</div>;
+          return null;
+        })()}
 
         {phase === 'action' && isHost && !isDefaultRoom && !tutorial.active && (
           <button type="button" onClick={handleReturnToLobby} style={{ position: 'absolute', top: compact ? 96 : 62, left: 16, zIndex: 25, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(224,85,95,0.7)', background: 'rgba(40,16,20,0.85)', color: '#ffb3b8', fontSize: 11, cursor: 'pointer' }}>Reiniciar y volver al lobby</button>
@@ -2752,7 +2816,7 @@ const styles = {
     width: 118,
     height: 168,
     borderRadius: 12,
-    border: `2px solid ${corrupt ? '#d94fd0' : rarity === 'super' ? '#ffe14a' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#d94a52' : '#3d2c33'}`,
+    border: `2px solid ${corrupt ? '#d94fd0' : rarity === 'super' ? '#ffe14a' : rarity === 'legendary' ? '#ffd24a' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#d94a52' : '#3d2c33'}`,
     background: 'linear-gradient(160deg, #241a20, #14151d)',
     boxShadow: '0 8px 22px rgba(0,0,0,0.55)',
     animationDelay: `${n * 90}ms`,
@@ -2766,7 +2830,7 @@ const styles = {
     gap: 2,
     padding: '6px 8px',
     borderRadius: 6,
-    border: `1px solid ${corrupt ? '#d94fd0' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#d94a52' : '#3d2c33'}`,
+    border: `1px solid ${corrupt ? '#d94fd0' : rarity === 'legendary' ? '#ffd24a' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#d94a52' : '#3d2c33'}`,
     background: 'rgba(18, 19, 26, 0.9)',
     color: '#e8e9f0',
     cursor: 'pointer',
