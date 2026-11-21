@@ -2,7 +2,14 @@ import { useState } from 'react';
 import SkillIcon from './SkillIcon';
 import { KEYWORDS } from '../lib/keywords';
 
-export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, characters, onOp, onGrant, onClose }) {
+const MIN_S = 0.05;
+const MAX_S = 600;
+const secFromPos = (v) => MIN_S * Math.pow(MAX_S / MIN_S, v / 100);
+const fmtSec = (sec) => (sec < 1 ? `${sec.toFixed(2)} s` : sec < 10 ? `${sec.toFixed(1)} s` : `${Math.round(sec)} s`);
+
+export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, characters, onOp, onGrant, onStatus, onClose }) {
+  const [fxPos, setFxPos] = useState(40);
+  const [fxInf, setFxInf] = useState(false);
   const [tab, setTab] = useState(isHost && phase === 'lobby' ? 'op' : 'cards');
   const [targets, setTargets] = useState({});
   const [all, setAll] = useState(false);
@@ -28,6 +35,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
   const cardList = cards.filter(filterFn);
   const skillList = skills.filter(filterFn);
   const maxSlot = tab === 'skills' ? 4 : 2;
+  const fxMs = fxInf ? 1e10 : Math.round(secFromPos(fxPos) * 1000);
   const slotLabel = (i) => (tab === 'skills' ? ['Q', 'E', 'R', 'F'][i] : String(i + 1));
 
   return (
@@ -41,6 +49,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
           {isHost && <button type="button" onClick={() => setTab('op')} style={styles.tab(tab === 'op')}>OP</button>}
           <button type="button" onClick={() => { setTab('cards'); setSlot(0); }} style={styles.tab(tab === 'cards')}>Cartas</button>
           <button type="button" onClick={() => { setTab('skills'); setSlot(0); }} style={styles.tab(tab === 'skills')}>Habilidades del Curador</button>
+          <button type="button" onClick={() => setTab('fx')} style={styles.tab(tab === 'fx')}>Estados</button>
         </div>
 
         {tab === 'op' && (
@@ -73,6 +82,23 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
                 </label>
               ))}
             </div>
+            {tab === 'fx' ? (
+              <>
+                <div style={styles.subTitle}>Estado</div>
+                <div style={styles.chips}><span style={styles.chip(true)}>Aturdimiento</span></div>
+                <div style={styles.subTitle}>Duración: {fxInf ? 'infinita' : fmtSec(secFromPos(fxPos))}</div>
+                <input type="range" min={0} max={100} step={1} value={fxPos} disabled={fxInf} onChange={(e) => setFxPos(Number(e.target.value))} />
+                <label style={styles.row}>
+                  <input type="checkbox" checked={fxInf} onChange={(e) => setFxInf(e.target.checked)} />
+                  <span>Infinita</span>
+                </label>
+                <div style={styles.chips}>
+                  <button type="button" onClick={() => { onStatus({ kind: 'stun', ms: fxMs, targets: chosen }); setSent('Aturdimiento'); setTimeout(() => setSent(''), 1600); }} style={styles.chip(true)} disabled={phase !== 'action'}>Aplicar</button>
+                  <button type="button" onClick={() => { onStatus({ kind: 'stun', remove: true, targets: chosen }); setSent('Quitado'); setTimeout(() => setSent(''), 1600); }} style={styles.chip(false)} disabled={phase !== 'action'}>Quitar</button>
+                </div>
+              </>
+            ) : (
+              <>
             <div style={styles.subTitle}>{tab === 'skills' ? 'Tecla' : 'Casilla'}</div>
             <div style={styles.chips}>
               {Array.from({ length: maxSlot }).map((_, i) => (
@@ -96,6 +122,9 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
                 </button>
               ))}
             </div>
+              </>
+            )}
+            {phase === 'action' && <div style={styles.hint}>Usar este panel desactiva las Desgracias de la partida.</div>}
             {sent && <div style={styles.toast}>Enviado: {sent}</div>}
           </div>
         )}

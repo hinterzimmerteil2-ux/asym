@@ -2039,7 +2039,7 @@ export default function LobbyPage() {
         {touch && portrait && phase === 'action' && (
           <p style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', margin: 0, padding: '10px 16px', borderRadius: 8, background: 'rgba(18,19,26,0.9)', border: '1px solid #3d2c33', fontSize: 14, zIndex: 25, textAlign: 'center', pointerEvents: 'none' }}>Gira el teléfono para jugar mejor</p>
         )}
-        {adminOpen && isOp && <AdminPanel players={players} myPlayerId={myPlayerId} isHost={isHost} phase={phase} cards={cardCatalog} characters={characters} onOp={(id, on) => connRef.current?.send('set_op', { targetPlayerId: id, on })} onGrant={(g) => connRef.current?.send('admin_grant', g)} onClose={() => setAdminOpen(false)} />}
+        {adminOpen && isOp && <AdminPanel players={players} myPlayerId={myPlayerId} isHost={isHost} phase={phase} cards={cardCatalog} characters={characters} onOp={(id, on) => connRef.current?.send('set_op', { targetPlayerId: id, on })} onGrant={(g) => connRef.current?.send('admin_grant', g)} onStatus={(g) => connRef.current?.send('admin_status', g)} onClose={() => setAdminOpen(false)} />}
         {helpOpen && <HelpPanel characters={characters} cards={cardCatalog} onClose={() => setHelpOpen(false)} />}
 
         {warn && (

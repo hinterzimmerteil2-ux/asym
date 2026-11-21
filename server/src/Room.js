@@ -867,9 +867,36 @@ class Room {
     this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
   }
 
+  markAdmin() {
+    this.gameState.adminUsed = true;
+    this.gameState.desgracias = {};
+  }
+
+  adminTargets(targets, requesterId) {
+    return targets === 'all' ? [...this.players.keys()] : (Array.isArray(targets) ? targets.filter((id) => this.players.has(id)) : [requesterId]);
+  }
+
+  adminStatus(requesterId, kind, ms, targets, remove) {
+    if (!this.isOp(requesterId) || this.isDefault || this.phase !== 'action' || this.gameState.gameOver) return;
+    if (kind !== 'stun') return;
+    const now = Date.now();
+    const dur = Math.max(0, Math.min(1e10, Number(ms) || 0));
+    this.markAdmin();
+    for (const id of this.adminTargets(targets, requesterId)) {
+      const entity = this.gameState.entities[id];
+      if (!entity || this.gameState.patients[id]?.status === 'dead') continue;
+      if (remove) { Status.clear(entity, kind); continue; }
+      if (!entity.fx) entity.fx = {};
+      entity.fx[kind] = { until: now + dur, level: 1, tag: 'admin' };
+      delete entity.fx.emote;
+      entity.emote = null;
+    }
+  }
+
   adminGrant(requesterId, kind, id, slot, targets) {
     if (!this.isOp(requesterId) || this.isDefault || this.phase !== 'action' || this.gameState.gameOver) return;
-    const ids = targets === 'all' ? [...this.players.keys()] : (Array.isArray(targets) ? targets : [requesterId]);
+    this.markAdmin();
+    const ids = this.adminTargets(targets, requesterId);
     const idx = Number(slot);
     let done = 0;
     if (kind === 'card') {
@@ -1461,6 +1488,7 @@ class Room {
     this.gameState.timeRemainingMs = GAME_DURATION_MS;
     this.gameState.gameOver = false;
     this.gameState.desgracias = {};
+    this.gameState.adminUsed = false;
     this.gameState.lastStanding = false;
     this.gameState.lms = null;
 
@@ -3636,7 +3664,7 @@ class Room {
 
   award(playerId, amount, reason) {
     const player = this.players.get(playerId);
-    if (!player || player.isBot || this.tutorial || !this.gameState.desgracias) return;
+    if (!player || player.isBot || this.tutorial || !this.gameState.desgracias || this.gameState.adminUsed) return;
     const lms = this.gameState.lms;
     if (lms && lms.gimmick === 'codicia' && (lms.survivorId === playerId || lms.curatorId === playerId)) amount *= 2;
     if (this.gameState.bossMatch) amount *= BOSS_DG_MUL;
@@ -4141,7 +4169,7 @@ class Room {
       const total = items.reduce((sum, i) => sum + i.amount, 0);
       if (total > 0) this.sendTo(playerId, MessageType.DESGRACIAS_AWARD, { total, items, boss: Boolean(this.gameState.bossMatch) });
     }
-    if (this.tutorial) {
+    if (this.tutorial || this.gameState.adminUsed) {
       for (const [playerId, player] of this.players) if (!player.isBot) this.sendTo(playerId, MessageType.DESGRACIAS_AWARD, { total: 0, items: [], practice: true });
     }
   }

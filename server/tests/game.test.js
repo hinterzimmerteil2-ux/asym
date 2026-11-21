@@ -2704,3 +2704,22 @@ test('Torre: quien la colocó la carga y la suelta como un módulo', () => {
   Towers.tick(room, Date.now() + 200);
   assert.strictEqual(t.x, x);
 });
+
+test('Panel de host: aturdir con duración libre y sin Desgracias', () => {
+  const { room, e } = setup();
+  const Status = require('../src/Status');
+  const now = Date.now();
+  room.award('a', 5, 'Prueba');
+  assert.strictEqual(room.gameState.desgracias.a.Prueba, 5);
+  room.adminStatus('a', 'stun', 3000, ['b']);
+  assert.strictEqual(Status.until(e.b, 'stun'), 0);
+  room.adminStatus('c', 'stun', 3000, ['b']);
+  assert.strictEqual(Status.until(e.b, 'stun') - now, 3000);
+  assert.strictEqual(room.gameState.adminUsed, true);
+  room.award('a', 5, 'Prueba');
+  assert.deepStrictEqual(room.gameState.desgracias, {});
+  room.adminStatus('c', 'stun', 1e10, 'all');
+  assert.ok(Status.until(e.a, 'stun') - now > 1e9);
+  room.adminStatus('c', 'stun', 0, ['a'], true);
+  assert.strictEqual(Status.until(e.a, 'stun'), 0);
+});

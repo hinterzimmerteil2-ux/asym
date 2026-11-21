@@ -360,6 +360,14 @@ wss.on('connection', (ws, req) => {
         break;
       }
 
+      case MessageType.ADMIN_STATUS: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room) return;
+        const pl = msg.payload || {};
+        room.adminStatus(playerId, pl.kind, pl.ms, pl.targets, Boolean(pl.remove));
+        break;
+      }
+
       case MessageType.ADMIN_GRANT: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
