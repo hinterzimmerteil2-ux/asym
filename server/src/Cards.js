@@ -133,7 +133,7 @@ const CARDS = {
     keywords: ['escapista'],
     displayName: "Ya darn sure oughta've unsheathed that sword if ya really wanted to win!",
     description: 'Recurso Savage Tigermark Round (máx 6, empiezas con 2 recargas, 12 balas). Gasta 1 bala: tomas la pose, la espada destella en rojo y sales lanzado en parábola. Al caer, un área pequeña hace 65 de daño al Curador o al Jefe y 3s de ragdoll. Si te quedas sin balas tras el salto, recargas con 3s de endlag. Sin balas no se puede usar. Ganas una recarga por cada 60 de daño que hagas (máx 1 por minuto).',
-    rarity: 'rare',
+    rarity: 'uncommon',
     curatorHpLoss: 65,
     durationMs: 3000,
     cooldownMs: 18000,
