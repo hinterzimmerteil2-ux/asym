@@ -7,6 +7,7 @@ const Characters = require('./Characters');
 const CustomCards = require('./CustomCards');
 const Cards = require('./Cards');
 const Roles = require('./Roles');
+const Resources = require('./Resources');
 const SuperAbilities = require('./SuperAbilities');
 const CardEffects = require('./CardEffects');
 const Hitbox = require('./Hitbox');
@@ -1760,7 +1761,6 @@ class Room {
         tla: entity.sup && entity.sup.id === 'town_level' ? (entity.sup.slideUntil > now ? 2 : entity.sup.reload ? 1 : undefined) : undefined,
         mcv: entity.sup && entity.sup.pv ? entity.sup.pv : undefined,
         tgl: entity.tigerLeap ? 1 : undefined,
-        tg: entity.tiger ? [entity.tiger.mag, entity.tiger.reserve, entity.tiger.reloadUntil > now ? 1 : 0] : undefined,
         psd: entity.sup && entity.sup.id === 'platinum_star' ? 1 : undefined,
         psa: entity.sup && entity.sup.id === 'platinum_star' ? (entity.sup.barrage ? 1 : entity.sup.poke ? 2 : entity.sup.grab ? 3 : entity.sup.poseUntil > now ? 4 : 0) || undefined : undefined,
         psr: entity.sup && entity.sup.id === 'platinum_star' && entity.sup.rhythm >= 30 && now >= entity.sup.cd.react ? 1 : undefined,
@@ -1815,6 +1815,7 @@ class Room {
           astral: own.astral ? { state: own.astral.state, charge: own.astral.state === 'charging' ? Math.min(1, (now - own.astral.startedAt) / own.astral.cfg.chargeMs) : own.astral.charge, readyMs: Math.max(0, own.astral.readyAt - now), slot: own.astral.slot } : null,
           cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
           sup: SuperAbilities.view(own, now),
+          res: Resources.build(own, SuperAbilities.view(own, now), now),
         };
       }
       const snapFull = {

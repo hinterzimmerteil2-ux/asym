@@ -2464,3 +2464,18 @@ test('Tigermark: sin balas no se usa; recarga con 3s de endlag y ganancia por da
   tigerCredit(room, 'a', 5, Date.now());
   assert.strictEqual(e.a.tiger.reserve, 1);
 });
+
+test('Resources: recursos unificados en el snapshot propio', () => {
+  const Resources = require('../src/Resources');
+  const { room, e } = setup();
+  give(e.a, 0, 'tigermark');
+  const r = Resources.build(e.a, null, Date.now());
+  assert.strictEqual(r.length, 1);
+  assert.strictEqual(r[0].id, 'tigermark');
+  assert.strictEqual(r[0].cur, 6);
+  assert.strictEqual(r[0].extra.value, 1);
+  const town = Resources.build(e.a, { id: 'town_level', mana: 30, manaMax: 100, shield: 5, shieldMax: 40, ammo: 3, ammoMax: 6, reload: 0, reloadMax: 0, freeReloads: 2, charge: 0, chargeMax: 50 }, Date.now());
+  assert.deepStrictEqual(town.map((x) => x.id), ['mana', 'balas', 'escudo', 'tigermark']);
+  const star = Resources.build(e.a, { id: 'platinum_star', rhythm: 40, rhythmMax: 100, pauseCost: 30, fab: 2000, ready: true }, Date.now());
+  assert.strictEqual(star[0].tags.length, 2);
+});

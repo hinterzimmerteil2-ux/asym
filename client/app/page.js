@@ -19,6 +19,7 @@ import { watchMedia, useInputMode } from '../lib/settings';
 import { protectNames } from '../lib/i18n';
 import HelpPanel from '../components/HelpPanel';
 import StatusColumn from '../components/StatusColumn';
+import ResourcePanel from '../components/ResourcePanel';
 import RhythmBar from '../components/RhythmBar';
 import SelfDamageBar from '../components/SelfDamageBar';
 import EventLayer from '../components/EventLayer';
@@ -1779,10 +1780,7 @@ export default function LobbyPage() {
           </div>
         )}
 
-        {phase === 'action' && !isAsymRole && hand.some((sl) => sl.chosen && sl.chosen.id === 'tigermark') && (() => {
-          const tg = (sceneStore.entities[myPlayerId] || {}).tg || [6, 1, 0];
-          return <div style={{ position: 'absolute', top: touch ? 96 : 100, right: 10, zIndex: 31, padding: '4px 9px', borderRadius: 8, background: 'rgba(20,6,10,0.78)', border: '1px solid #ff2a2a', color: tg[2] ? '#ffb347' : tg[0] ? '#ff6b6b' : '#888', fontSize: 12, fontWeight: 700, pointerEvents: 'none' }}><span translate="no">Savage Tigermark Round</span> {tg[0]}/6 +{tg[1]}{tg[2] ? ' Recargando' : ''}</div>;
-        })()}
+        {phase === 'action' && !isAsymRole && <ResourcePanel res={flojera?.res} compact={compact} />}
 
         {phase === 'action' && isHost && !isDefaultRoom && !tutorial.active && (
           <button type="button" onClick={handleReturnToLobby} style={{ position: 'absolute', top: compact ? 96 : 62, left: 16, zIndex: 25, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(224,85,95,0.7)', background: 'rgba(40,16,20,0.85)', color: '#ffb3b8', fontSize: 11, cursor: 'pointer' }}>Reiniciar y volver al lobby</button>
@@ -1806,41 +1804,12 @@ export default function LobbyPage() {
           </div>
         )}
 
-        {phase === 'action' && !isAsymRole && flojera?.sup?.id === 'town_level' && (
-          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: touch ? 150 : 150, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, fontSize: 11, color: '#fff' }}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <span>Maná {flojera.sup.mana}/{flojera.sup.manaMax}</span>
-              <span style={{ color: flojera.sup.ammo > 0 ? '#ffffff' : '#ff8a8a' }}>{flojera.sup.reload > 0 ? `Recargando ${Math.round((1 - flojera.sup.reload / Math.max(1, flojera.sup.reloadMax)) * 100)}%` : `Balas ${flojera.sup.ammo}/${flojera.sup.ammoMax}`} (cargadores {flojera.sup.freeReloads})</span>
-              <span style={{ color: '#7fd8ff' }}>Escudo {flojera.sup.shield}/{flojera.sup.shieldMax}</span>
-              {flojera.sup.charge > 0 && <span style={{ color: '#ffd86b' }}>Carga {flojera.sup.charge}/{flojera.sup.chargeMax}</span>}
-            </div>
-          </div>
-        )}
-
         {phase === 'action' && !isAsymRole && flojera?.sup?.id === 'minceraft' && (
-          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 150, zIndex: 20, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#fff' }}>
-            <span>Bloques {flojera.sup.used}/{flojera.sup.max}</span>
-            <div style={{ display: 'flex', gap: 2 }}>
-              {Array.from({ length: flojera.sup.max }).map((_, i) => <div key={i} style={{ width: 9, height: 9, background: i < flojera.sup.used ? '#b98a4e' : 'rgba(255,255,255,0.2)', border: '1px solid rgba(0,0,0,0.5)' }} />)}
-            </div>
-            {flojera.sup.mining > 0 && <span style={{ color: '#ffd86b' }}>Picando</span>}
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 176, zIndex: 20, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#fff' }}>
             <span style={{ color: '#ffd86b' }}>{mcSel ? (touch ? 'Toca el suelo para colocar' : 'Clic para colocar') : (touch ? 'Elige una pieza' : 'Elige una pieza (1 a 8)')}</span>
             {mcSel === 'piston' && <button type="button" onClick={() => setMcSticky((v) => !v)} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>{mcSticky ? 'Variante: pegajoso (C)' : 'Variante: normal (C)'}</button>}
             {mcSel === 'piston' && <button type="button" onClick={() => setMcDir((d) => (d === 0 ? 1 : d === 1 ? -1 : 0))} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>{mcDir === 0 ? 'Apuntado: automático (R)' : mcDir === 1 ? 'Apuntado: arriba (R)' : 'Apuntado: abajo (R)'}</button>}
             {mcSel && <button type="button" onClick={() => placeMc()} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>Colocar</button>}
-          </div>
-        )}
-
-        {phase === 'action' && !isAsymRole && flojera?.sup?.id === 'platinum_star' && (
-          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 150, zIndex: 20, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#fff' }}>
-            <span>Gay {flojera.sup.rhythm}/{flojera.sup.rhythmMax}</span>
-            <div style={{ width: 120, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
-              <div style={{ width: `${flojera.sup.rhythm}%`, height: '100%', background: flojera.sup.rhythm >= flojera.sup.pauseCost ? '#e6d8ff' : '#a98be8' }} />
-            </div>
-            {flojera.sup.fab > 0 && <span style={{ color: '#ffd24a' }}>Fabuloso {(flojera.sup.fab / 1000).toFixed(1)} s</span>}
-            {flojera.sup.ready && <span style={{ color: '#ffd24a' }}>◆ Contragolpe</span>}
-            {flojera.sup.windUp && <span style={{ color: '#e6d8ff' }}>Apuntando</span>}
-            {flojera.sup.catching && <span style={{ color: '#7fd8ff' }}>Atrapando</span>}
           </div>
         )}
 
