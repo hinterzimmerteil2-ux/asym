@@ -1763,6 +1763,7 @@ class Room {
         tgl: entity.tigerLeap ? 1 : undefined,
         psd: entity.sup && entity.sup.id === 'platinum_star' ? 1 : undefined,
         psa: entity.sup && entity.sup.id === 'platinum_star' ? (entity.sup.barrage ? 1 : entity.sup.poke ? 2 : entity.sup.grab ? 3 : entity.sup.poseUntil > now ? 4 : 0) || undefined : undefined,
+        psf: entity.sup && entity.sup.id === 'platinum_star' && entity.sup.form ? 1 : undefined,
         psr: entity.sup && entity.sup.id === 'platinum_star' && entity.sup.rhythm >= 30 && now >= entity.sup.cd.react ? 1 : undefined,
         wig: entity.sup && SuperAbilities.DEFS[entity.sup.id] && SuperAbilities.DEFS[entity.sup.id].wig ? 1 : undefined,
         ntf: entity.ntf && entity.ntf.until > now ? entity.ntf.until - now : undefined,

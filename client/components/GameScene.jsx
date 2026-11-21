@@ -1210,7 +1210,28 @@ function StarMat({ reg, color, rough = 0.75, metal = 0 }) {
   return <meshStandardMaterial ref={reg} color={color} roughness={rough} metalness={metal} transparent />;
 }
 
-function StarSpirit({ life, mode, act = 0, ready = false }) {
+function FormAura() {
+  const g = useRef();
+  useFrame(() => {
+    const t = performance.now() / 1000;
+    if (g.current) {
+      g.current.rotation.y = t * 1.6;
+      g.current.scale.setScalar(1 + Math.sin(t * 5) * 0.06);
+    }
+  });
+  return (
+    <group ref={g} position={[0, 0.9, 0]}>
+      {RAINBOW.map((c, i) => (
+        <mesh key={i} rotation={[Math.PI / 2 + Math.sin(i) * 0.25, 0, i * 1.05]} position={[0, i * 0.12 - 0.3, 0]}>
+          <torusGeometry args={[0.9 - i * 0.04, 0.025, 6, 28]} />
+          <meshBasicMaterial color={c} transparent opacity={0.8} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function StarSpirit({ life, mode, act = 0, ready = false, form = false }) {
   const reg = life ? life.reg : undefined;
   const root = useRef();
   const la = useRef();
@@ -1262,6 +1283,7 @@ function StarSpirit({ life, mode, act = 0, ready = false }) {
   );
   return (
     <group ref={root} scale={1.5}>
+      {form && <FormAura />}
       <mesh position={[0, 1.96, 0]}><boxGeometry args={[0.44, 0.46, 0.42]} /><StarMat reg={reg} color={SKIN} /></mesh>
       <mesh position={[0, 1.98, 0.22]}><boxGeometry args={[0.4, 0.09, 0.05]} /><StarMat reg={reg} color="#2b2d33" /></mesh>
       <mesh position={[0, 1.8, 0.21]}><boxGeometry args={[0.18, 0.06, 0.05]} /><StarMat reg={reg} color={DARK} /></mesh>
@@ -1555,10 +1577,10 @@ function SuperFx({ effect }) {
   return null;
 }
 
-const PlayerBody = memo(function PlayerBody({ bodyRef, headRef, rig, lod, color, cosmetics, isCurator, wig, wpn, bar, held, holdRef, psd, psa, psr }) {
+const PlayerBody = memo(function PlayerBody({ bodyRef, headRef, rig, lod, color, cosmetics, isCurator, wig, wpn, bar, held, holdRef, psd, psa, psr, psf }) {
   return (
     <group ref={bodyRef}>
-        {psd && <group position={[0.9, 0.1, -1.1]}><StarSpirit act={psa || 0} ready={Boolean(psr)} /></group>}
+        {psd && <group position={[0.9, 0.1, -1.1]}><StarSpirit act={psa || 0} ready={Boolean(psr)} form={Boolean(psf)} /></group>}
         {wpn && <RifleBayonet live />}
         {bar && <ShieldDisc />}
         <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
@@ -1933,7 +1955,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
     <group ref={groupRef} position={targetPos.current} scale={entityState.scl || 1}>
       {entityState.chg && <ManaAura />}
       {entityState.gld && <GlideFx />}
-      <PlayerBody bodyRef={bodyRef} headRef={headRef} rig={rig} lod={lod} color={color} cosmetics={cosmetics} isCurator={isCurator} wig={Boolean(entityState.wig)} wpn={Boolean(entityState.wpn)} bar={Boolean(entityState.bar)} held={held} holdRef={holdRef} psd={Boolean(entityState.psd)} psa={entityState.psa || 0} psr={Boolean(entityState.psr)} />
+      <PlayerBody bodyRef={bodyRef} headRef={headRef} rig={rig} lod={lod} color={color} cosmetics={cosmetics} isCurator={isCurator} wig={Boolean(entityState.wig)} wpn={Boolean(entityState.wpn)} bar={Boolean(entityState.bar)} held={held} holdRef={holdRef} psd={Boolean(entityState.psd)} psa={entityState.psa || 0} psr={Boolean(entityState.psr)} psf={Boolean(entityState.psf)} />
       {ragdoll && entityState.rag && entityState.rag.p && <RagdollR6 entityState={entityState} color={color} />}
       {stunned && <StunHalo />}
       {isMe && (

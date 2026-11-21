@@ -109,7 +109,7 @@ const DEFS = {
   minceraft: { id: 'minceraft', name: 'Minceraft', modes: ['andamio', 'telarana', 'slime', 'redstone', 'piston', 'pegajoso', 'polvo', 'tnt', 'miel', 'minar'] },
 };
 
-const STAR = { rhythmMax: 100, barrageMs: 1100, barrageStepMs: 100, rafagaRange: 5, rafagaWidth: 1.8, rafagaStun: 900, rafagaPush: 3, rafagaEndStun: 1500, rafagaEndPush: 9, rafagaGain: 1.5, stellarRange: 24, stellarWidth: 0.9, stellarWind: 400, stellarStun: 1300, stellarPush: 10, stellarGain: 12, catchMs: 300, catchRange: 8, catchWidth: 1.5, catchStun: 1800, catchPush: 13, throwMin: 7, throwMax: 28, throwRagMin: 800, throwRagMax: 2400, catchGain: 20, catchFailLag: 500, pauseRange: 11, pauseStun: 1500, pauseCost: 50, fabMs: 6000, fabPulseStun: 800, fabCdMul: 0.5, fabGainMul: 1.5, rhythmStun: 0.006, reactCost: 30, reactStun: 1100, reactRange: 7, reactPush: 7, reactCd: 8000, cd: { rafaga: 6500, stellar: 9000, atrapar: 9000, pausa: 12000 } };
+const STAR = { rhythmMax: 100, barrageMs: 1100, barrageStepMs: 100, rafagaRange: 5, rafagaWidth: 1.8, rafagaStun: 900, rafagaPush: 3, rafagaEndStun: 1500, rafagaEndPush: 9, rafagaGain: 1.5, stellarRange: 24, stellarWidth: 0.9, stellarWind: 400, stellarStun: 1300, stellarPush: 10, stellarGain: 12, catchMs: 300, catchRange: 8, catchWidth: 1.5, catchStun: 1800, catchPush: 13, throwMin: 7, throwMax: 28, throwRagMin: 800, throwRagMax: 2400, catchGain: 20, catchFailLag: 500, formMin: 40, formDrain: 6, formMiss: 8, formGain: 0.7, formEndlag: 700, formStun: 1.6, formPush: 1.5, formStellar: 1.5, formThrow: 1.8, formCd: 0.5, formLeadMs: 1000, rhythmStun: 0.006, reactCost: 30, reactStun: 1100, reactRange: 7, reactPush: 7, reactCd: 8000, cd: { rafaga: 6500, stellar: 9000, atrapar: 9000, pausa: 12000 } };
 
 let CUR = null;
 function T(id, key, base) {
@@ -147,7 +147,7 @@ function grant(entity, id, cfg) {
   }
   entity.sup = { cfg: cfg || null, id, sheets: DEFS[id].charges || SHEETS, copyLeft: false, claims: 0, nextAt: 0, pending: 0, still: 0, lx: null, lz: null, noticeUntil: 0, taxRe: 0, taxIm: 0, taxAt: 0, evAt: 0 };
   if (id === 'platinum_star') {
-    Object.assign(entity.sup, { rhythm: 0, cd: { rafaga: 0, stellar: 0, atrapar: 0, pausa: 0, react: 0 }, fabUntil: 0, react: 0, poke: null, barrage: null, dome: 0, domeOn: false, parried: 0 });
+    Object.assign(entity.sup, { rhythm: 0, cd: { rafaga: 0, stellar: 0, atrapar: 0, pausa: 0, react: 0 }, form: false, lastT: 0, react: 0, poke: null, barrage: null, dome: 0, domeOn: false, parried: 0 });
   }
   if (id === 'minceraft') {
     Object.assign(entity.sup, { used: 0, mining: null, prev: null, pv: null });
@@ -361,7 +361,7 @@ function view(entity, now) {
   }
   if (s.id === 'minceraft') return { id: s.id, used: s.used, max: T('minceraft', 'max', MC.max), mining: s.mining ? Math.max(0, s.mining.until - now) : 0 };
   if (s.id === 'platinum_star') {
-    return { id: s.id, rhythm: Math.floor(s.rhythm), rhythmMax: T('platinum_star', 'rhythmMax', STAR.rhythmMax), pauseCost: STAR.pauseCost, fab: Math.max(0, (s.fabUntil || 0) - now), fabMax: STAR.fabMs, ready: s.rhythm >= STAR.reactCost && now >= s.cd.react, windUp: Boolean(s.poke), barrage: Boolean(s.barrage), catching: s.domeOn, cd: { rafaga: Math.max(0, s.cd.rafaga - now), stellar: Math.max(0, s.cd.stellar - now), atrapar: Math.max(0, s.cd.atrapar - now), pausa: Math.max(0, s.cd.pausa - now) } };
+    return { id: s.id, rhythm: Math.floor(s.rhythm), rhythmMax: T('platinum_star', 'rhythmMax', STAR.rhythmMax), pauseCost: STAR.formMin, form: Boolean(s.form), formMin: STAR.formMin, ready: s.rhythm >= STAR.reactCost && now >= s.cd.react, windUp: Boolean(s.poke), barrage: Boolean(s.barrage), catching: s.domeOn, cd: { rafaga: Math.max(0, s.cd.rafaga - now), stellar: Math.max(0, s.cd.stellar - now), atrapar: Math.max(0, s.cd.atrapar - now), pausa: Math.max(0, s.cd.pausa - now) } };
   }
   return { id: s.id, sheets: s.sheets, max: SHEETS, taxRe: Math.floor(s.taxRe), taxIm: s.taxIm, taxNeed: T('sunat_paperwork', 'taxNeed', TAX_NEED), taxImMax: TAX_IM_MAX };
 }
@@ -677,7 +677,7 @@ function tickTown(room, now) {
 }
 
 function starGain(s, n) {
-  const mul = s.fabUntil > Date.now() ? STAR.fabGainMul : 1;
+  const mul = s.form ? STAR.formGain : 1;
   s.rhythm = Math.min(T('platinum_star', 'rhythmMax', STAR.rhythmMax), s.rhythm + n * mul);
 }
 
@@ -686,7 +686,21 @@ function starK(s) {
 }
 
 function starStun(s, ms) {
-  return Math.round(ms * (1 + s.rhythm * STAR.rhythmStun));
+  return Math.round(ms * (1 + s.rhythm * STAR.rhythmStun) * (s.form ? STAR.formStun : 1));
+}
+
+function starPush(s, v) {
+  return v * (s.form ? STAR.formPush : 1);
+}
+
+function starMiss(s) {
+  if (s.form) s.rhythm = Math.max(0, s.rhythm - T('platinum_star', 'formMiss', STAR.formMiss));
+}
+
+function endForm(room, id, e, s, now) {
+  s.form = false;
+  s.cd.pausa = now + STAR.cd.pausa;
+  room.broadcast('super_result', { playerId: id, mode: 'pausa', exit: true, range: 3, x: e.x, y: e.y || 0, z: e.z });
 }
 
 function onStunned(entity, now) {
@@ -704,7 +718,7 @@ function useStar(room, playerId, entity, mode, now) {
   const nx = fx / flen;
   const nz = fz / flen;
   const k = starK(s);
-  const fb = s.fabUntil > now;
+  const fb = Boolean(s.form);
   const out = { x: entity.x, y: entity.y || 0, z: entity.z, dx: nx, dz: nz };
   if (mode === 'rafaga') {
     const ny = aimY(entity, now);
@@ -720,31 +734,34 @@ function useStar(room, playerId, entity, mode, now) {
   } else if (mode === 'stellar') {
     const ny = aimY(entity, now);
     out.dy = ny;
-    s.poke = { at: now + STAR.stellarWind, nx, nz, ny, range: T('platinum_star', 'stellarRange', STAR.stellarRange) * (1 + 0.25 * k), pierce: fb, pushMul: 1 + 0.5 * k };
+    s.poke = { at: now + STAR.stellarWind, nx, nz, ny, range: T('platinum_star', 'stellarRange', STAR.stellarRange) * (1 + 0.25 * k) * (fb ? STAR.formStellar : 1), pierce: fb, pushMul: 1 + 0.5 * k };
     out.wind = STAR.stellarWind;
   } else if (mode === 'atrapar') {
     const ny = aimY(entity, now);
     out.dy = ny;
     const range = STAR.catchRange * (1 + 0.3 * k) * (fb ? 1.3 : 1);
     const width = STAR.catchWidth * (fb ? 1.3 : 1);
-    s.grab = { at: now + STAR.catchMs, nx, nz, ny, range, width, forceMul: (1 + 0.3 * k) * (fb ? 1.3 : 1), safe: fb };
+    s.grab = { at: now + STAR.catchMs, nx, nz, ny, range, width, forceMul: (1 + 0.3 * k) * (fb ? STAR.formThrow : 1), safe: fb };
     out.wind = STAR.catchMs;
     out.len = range;
     out.boxes = lineBoxes(entity, nx, nz, range, width, ny);
   } else if (mode === 'pausa') {
-    if (s.rhythm < STAR.pauseCost || fb) return false;
-    s.poseUntil = now + 900;
-    s.rhythm -= STAR.pauseCost;
-    s.fabUntil = now + STAR.fabMs;
-    for (const m of ['rafaga', 'stellar', 'atrapar']) if (s.cd[m] > now) s.cd[m] = now + (s.cd[m] - now) * STAR.fabCdMul;
-    out.fab = STAR.fabMs;
-    const all = foes(room, entity, STAR.pauseRange);
-    for (const f of all) room.stun(f.id, f.e, STAR.fabPulseStun, now, 0);
-    out.count = all.length;
-    out.range = STAR.pauseRange;
-    out.radius = STAR.pauseRange;
+    if (fb) {
+      s.form = false;
+      s.cd.pausa = now + STAR.cd.pausa;
+      out.exit = true;
+      out.range = 3;
+    } else {
+      if (s.rhythm < STAR.formMin) return false;
+      s.form = true;
+      s.poseUntil = now + 900;
+      for (const m of ['rafaga', 'stellar', 'atrapar']) if (s.cd[m] > now) s.cd[m] = now + (s.cd[m] - now) * STAR.formCd;
+      Status.apply(entity, 'slow', STAR.formEndlag, now, { tag: 'endlag', level: 2 });
+      out.range = 5;
+      s.cd.pausa = now + STAR.formLeadMs;
+    }
   } else return false;
-  s.cd[mode] = now + STAR.cd[mode] * (fb && mode !== 'pausa' ? STAR.fabCdMul : 1);
+  if (mode !== 'pausa') s.cd[mode] = now + STAR.cd[mode] * (fb ? STAR.formCd : 1);
   s.nextAt = now + USE_GAP_MS;
   room.broadcast('super_result', { playerId, mode, ...out });
   return true;
@@ -755,6 +772,12 @@ function tickStar(room, now) {
   for (const [id, e] of Object.entries(room.gameState.entities)) {
     const s = e.sup;
     if (!s || s.id !== 'platinum_star' || e.down || e.gone) continue;
+    const dtS = s.lastT ? Math.min(0.25, (now - s.lastT) / 1000) : 0;
+    s.lastT = now;
+    if (s.form) {
+      s.rhythm = Math.max(0, s.rhythm - T('platinum_star', 'formDrain', STAR.formDrain) * dtS);
+      if (s.rhythm <= 0) endForm(room, id, e, s, now);
+    }
     if (s.react) {
       s.react = 0;
       if (s.rhythm >= STAR.reactCost && now >= s.cd.react) {
@@ -763,7 +786,7 @@ function tickStar(room, now) {
           s.rhythm -= STAR.reactCost;
           s.cd.react = now + STAR.reactCd;
           room.stun(tgt.id, tgt.e, starStun(s, STAR.reactStun), now, 0);
-          Status.push(tgt.e, (tgt.e.x - e.x) / (tgt.d || 1), (tgt.e.z - e.z) / (tgt.d || 1), STAR.reactPush, 280, now);
+          Status.push(tgt.e, (tgt.e.x - e.x) / (tgt.d || 1), (tgt.e.z - e.z) / (tgt.d || 1), starPush(s, STAR.reactPush), 280, now);
           room.broadcast('super_result', { playerId: id, mode: 'react', radius: STAR.reactRange, x: e.x, y: e.y || 0, z: e.z, tx: tgt.e.x, tz: tgt.e.z });
         }
       }
@@ -774,9 +797,11 @@ function tickStar(room, now) {
       const targets = rayFoes(room, e, b.nx, b.nz, b.ny || 0, b.range || STAR.rafagaRange, b.width || STAR.rafagaWidth);
       for (const f of targets) {
         room.stun(f.id, f.e, starStun(s, last ? STAR.rafagaEndStun : STAR.rafagaStun), now, 0);
-        Status.push(f.e, b.nx, b.nz, last ? STAR.rafagaEndPush : STAR.rafagaPush, last ? 320 : 120, now);
+        Status.push(f.e, b.nx, b.nz, starPush(s, last ? STAR.rafagaEndPush : STAR.rafagaPush), last ? 320 : 120, now);
         starGain(s, STAR.rafagaGain);
+        b.hit = true;
       }
+      if (last && !b.hit) starMiss(s);
       if (last) s.barrage = null;
       else b.next = now + STAR.barrageStepMs;
     }
@@ -789,10 +814,11 @@ function tickStar(room, now) {
       let len = srange;
       for (const f of pierce ? path : path.slice(0, 1)) {
         room.stun(f.id, f.e, starStun(s, STAR.stellarStun), now, 0);
-        Status.push(f.e, nx, nz, STAR.stellarPush * (pushMul || 1), 320, now);
+        Status.push(f.e, nx, nz, starPush(s, STAR.stellarPush * (pushMul || 1)), 320, now);
         starGain(s, STAR.stellarGain);
         len = pierce ? Math.max(f.d, pierce && len === srange ? 0 : len) : f.d;
       }
+      if (!first) starMiss(s);
       room.broadcast('super_result', { playerId: id, mode: 'stellar_hit', boxes: lineBoxes(e, nx, nz, srange, STAR.stellarWidth, ny || 0), dy: ny || 0, x: e.x, y: e.y || 0, z: e.z, dx: nx, dz: nz, len, hit: Boolean(first) });
     }
     if (s.grab && now >= s.grab.at) {
@@ -818,8 +844,9 @@ function tickStar(room, now) {
         target.e.onGround = false;
         target.e.peakY = target.e.y;
         starGain(s, STAR.catchGain);
-      } else if (!safe) {
-        Status.apply(e, 'slow', STAR.catchFailLag, now, { tag: 'endlag', level: 2 });
+      } else {
+        starMiss(s);
+        if (!safe) Status.apply(e, 'slow', STAR.catchFailLag, now, { tag: 'endlag', level: 2 });
       }
       room.broadcast('super_result', { playerId: id, mode: 'atrapar_hit', boxes: lineBoxes(e, nx, nz, grabRange, grabWidth, ny || 0), dy: ny || 0, x: e.x, y: e.y || 0, z: e.z, dx: nx, dz: nz, len: target ? target.d : grabRange, hit: Boolean(target) });
     }

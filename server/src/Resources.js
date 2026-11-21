@@ -44,7 +44,7 @@ function fromSuper(s) {
   }
   if (s.id === 'platinum_star') {
     const tags = [];
-    if (s.fab > 0) tags.push({ text: 'Fabuloso', value: `${(s.fab / 1000).toFixed(1)} s`, color: '#ffd24a' });
+    if (s.form) tags.push({ text: 'Fabuloso', color: '#ffd24a' });
     if (s.ready) tags.push({ text: 'Contragolpe', color: '#ffd24a' });
     if (s.windUp) tags.push({ text: 'Apuntando', color: '#e6d8ff' });
     if (s.catching) tags.push({ text: 'Atrapando', color: '#7fd8ff' });

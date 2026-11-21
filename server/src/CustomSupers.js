@@ -21,6 +21,8 @@ const SPEC = {
   },
   platinum_star: {
     rhythmMax: [50, 300, 100],
+    formDrain: [0, 30, 6],
+    formMiss: [0, 40, 8],
     stellarRange: [4, 60, 24],
     throwMin: [0, 30, 7],
     throwMax: [0, 80, 28],
