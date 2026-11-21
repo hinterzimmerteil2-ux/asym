@@ -1101,6 +1101,11 @@ export default function LobbyPage() {
         if (sdRef.current) { if (!e.repeat) pressMinigameRef.current(); return; }
         const ch = channelRef.current;
         if (ch) handleUseCard(ch.slot ?? 0);
+        else if (!e.repeat && !isAsymRoleRef.current) {
+          const meE = entitiesRef.current[myPlayerIdRef.current];
+          const tw = meE && towersRef.current.find((t) => t.seat === myPlayerIdRef.current || Math.hypot(t.x - meE.x, t.z - meE.z) <= 3.2);
+          if (tw) connRef.current?.send('tower_action', { op: 'sit' });
+        }
       }
       else if (specRef.current.on && (e.code === 'ArrowRight' || e.code === 'BracketRight')) setSpecIndex((i) => i + 1);
       else if (specRef.current.on && (e.code === 'ArrowLeft' || e.code === 'BracketLeft')) setSpecIndex((i) => i - 1);
@@ -1259,7 +1264,7 @@ export default function LobbyPage() {
     const me = entities[myPlayerId];
     if (!me) return;
     if (!isAsymRole) {
-      const tw = towersRef.current.find((t) => t.seat === myPlayerId || Math.hypot(t.x - me.x, t.z - me.z) <= 3.4);
+      const tw = towersRef.current.find((t) => t.seat === myPlayerId || Math.hypot(t.x - me.x, t.z - me.z) <= 3.2);
       if (tw) { handleSendAction('tower_action', { op: 'sit' }); return; }
     }
     let best = null;
@@ -1838,7 +1843,7 @@ export default function LobbyPage() {
         {phase === 'action' && !isAsymRole && (() => {
           const myTw = towers.find((t) => t.seat === myPlayerId);
           const me = entitiesRef.current[myPlayerId];
-          const near = !myTw && me ? towers.find((t) => Math.hypot(t.x - me.x, t.z - me.z) <= 3.4) : null;
+          const near = !myTw && me ? towers.find((t) => Math.hypot(t.x - me.x, t.z - me.z) <= 3.2) : null;
           if (myTw) {
             const laser = myTw.type === 'laser';
             return (
