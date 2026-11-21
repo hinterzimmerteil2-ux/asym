@@ -876,20 +876,28 @@ class Room {
     return targets === 'all' ? [...this.players.keys()] : (Array.isArray(targets) ? targets.filter((id) => this.players.has(id)) : [requesterId]);
   }
 
-  adminStatus(requesterId, kind, ms, targets, remove) {
+  adminStatus(requesterId, kind, ms, targets, remove, level) {
     if (!this.isOp(requesterId) || this.isDefault || this.phase !== 'action' || this.gameState.gameOver) return;
-    if (kind !== 'stun') return;
+    if (!['stun', 'ragdoll', 'slow', 'reveal', 'queue'].includes(kind)) return;
     const now = Date.now();
     const dur = Math.max(0, Math.min(1e10, Number(ms) || 0));
+    const lv = Math.max(1, Math.min(3, Math.round(Number(level) || 1)));
     this.markAdmin();
     for (const id of this.adminTargets(targets, requesterId)) {
       const entity = this.gameState.entities[id];
       if (!entity || this.gameState.patients[id]?.status === 'dead') continue;
       if (remove) { Status.clear(entity, kind); continue; }
+      if (kind === 'ragdoll' && entity.onGround) {
+        entity.onGround = false;
+        entity.velocityY = RAGDOLL_POP;
+        entity.peakY = entity.y;
+      }
       if (!entity.fx) entity.fx = {};
-      entity.fx[kind] = { until: now + dur, level: 1, tag: 'admin' };
-      delete entity.fx.emote;
-      entity.emote = null;
+      entity.fx[kind] = { until: now + dur, level: kind === 'slow' ? lv : 1, tag: 'admin' };
+      if (kind === 'stun' || kind === 'ragdoll') {
+        delete entity.fx.emote;
+        entity.emote = null;
+      }
     }
   }
 

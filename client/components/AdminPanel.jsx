@@ -2,6 +2,7 @@ import { useState } from 'react';
 import SkillIcon from './SkillIcon';
 import { KEYWORDS } from '../lib/keywords';
 
+const FX_KINDS = [['stun', 'Aturdimiento'], ['ragdoll', 'Ragdoll'], ['slow', 'Ralentizado'], ['reveal', 'Revelado'], ['queue', 'En cola']];
 const MIN_S = 0.05;
 const MAX_S = 600;
 const secFromPos = (v) => MIN_S * Math.pow(MAX_S / MIN_S, v / 100);
@@ -12,6 +13,8 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
   const [timeInf, setTimeInf] = useState(false);
   const [fxPos, setFxPos] = useState(40);
   const [fxInf, setFxInf] = useState(false);
+  const [fxKind, setFxKind] = useState('stun');
+  const [fxLevel, setFxLevel] = useState(1);
   const [tab, setTab] = useState(isHost && phase === 'lobby' ? 'op' : 'cards');
   const [targets, setTargets] = useState({});
   const [all, setAll] = useState(false);
@@ -113,7 +116,17 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
             {tab === 'fx' ? (
               <>
                 <div style={styles.subTitle}>Estado</div>
-                <div style={styles.chips}><span style={styles.chip(true)}>Aturdimiento</span></div>
+                <div style={styles.chips}>
+                  {FX_KINDS.map(([k, label]) => <button key={k} type="button" onClick={() => setFxKind(k)} style={styles.chip(fxKind === k)}>{label}</button>)}
+                </div>
+                {fxKind === 'slow' && (
+                  <>
+                    <div style={styles.subTitle}>Nivel</div>
+                    <div style={styles.chips}>
+                      {[1, 2, 3].map((lv) => <button key={lv} type="button" onClick={() => setFxLevel(lv)} style={styles.chip(fxLevel === lv)}>{lv}</button>)}
+                    </div>
+                  </>
+                )}
                 <div style={styles.subTitle}>Duración: {fxInf ? 'infinita' : fmtSec(secFromPos(fxPos))}</div>
                 <input type="range" min={0} max={100} step={1} value={fxPos} disabled={fxInf} onChange={(e) => setFxPos(Number(e.target.value))} />
                 <label style={styles.row}>
@@ -121,8 +134,8 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
                   <span>Infinita</span>
                 </label>
                 <div style={styles.chips}>
-                  <button type="button" onClick={() => { onStatus({ kind: 'stun', ms: fxMs, targets: chosen }); setSent('Aturdimiento'); setTimeout(() => setSent(''), 1600); }} style={styles.chip(true)} disabled={phase !== 'action'}>Aplicar</button>
-                  <button type="button" onClick={() => { onStatus({ kind: 'stun', remove: true, targets: chosen }); setSent('Quitado'); setTimeout(() => setSent(''), 1600); }} style={styles.chip(false)} disabled={phase !== 'action'}>Quitar</button>
+                  <button type="button" onClick={() => { onStatus({ kind: fxKind, ms: fxMs, level: fxLevel, targets: chosen }); setSent(FX_KINDS.find((f) => f[0] === fxKind)[1]); setTimeout(() => setSent(''), 1600); }} style={styles.chip(true)} disabled={phase !== 'action'}>Aplicar</button>
+                  <button type="button" onClick={() => { onStatus({ kind: fxKind, remove: true, targets: chosen }); setSent('Quitado'); setTimeout(() => setSent(''), 1600); }} style={styles.chip(false)} disabled={phase !== 'action'}>Quitar</button>
                 </div>
               </>
             ) : (

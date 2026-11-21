@@ -2739,3 +2739,22 @@ test('Panel de host: cambia el tiempo de la partida y lo puede congelar', () => 
   assert.strictEqual(room.gameState.timeFrozen, false);
   assert.strictEqual(room.gameState.timeRemainingMs, 5000);
 });
+
+test('Panel de host: ragdoll, ralentizado, revelado y en cola', () => {
+  const { room, e } = setup();
+  const Status = require('../src/Status');
+  const now = Date.now();
+  room.adminStatus('c', 'ragdoll', 4000, ['a']);
+  assert.strictEqual(Status.until(e.a, 'ragdoll') - now, 4000);
+  assert.strictEqual(e.a.onGround, false);
+  room.adminStatus('c', 'slow', 5000, ['b'], false, 3);
+  assert.strictEqual(Status.level(e.b, 'slow', now), 3);
+  room.adminStatus('c', 'reveal', 5000, ['b']);
+  assert.ok(Status.active(e.b, 'reveal', now));
+  room.adminStatus('c', 'queue', 5000, ['b']);
+  assert.ok(Status.blocksSkills(e.b, now));
+  room.adminStatus('c', 'queue', 0, ['b'], true);
+  assert.ok(!Status.active(e.b, 'queue', now));
+  room.adminStatus('c', 'invisible', 5000, ['b']);
+  assert.ok(!e.b.fx.invisible);
+});

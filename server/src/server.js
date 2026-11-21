@@ -364,7 +364,7 @@ wss.on('connection', (ws, req) => {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
         const pl = msg.payload || {};
-        room.adminStatus(playerId, pl.kind, pl.ms, pl.targets, Boolean(pl.remove));
+        room.adminStatus(playerId, pl.kind, pl.ms, pl.targets, Boolean(pl.remove), pl.level);
         break;
       }
 
