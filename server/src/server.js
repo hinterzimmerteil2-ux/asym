@@ -353,6 +353,13 @@ wss.on('connection', (ws, req) => {
         break;
       }
 
+      case MessageType.TOWER_ACTION: {
+        const room = roomManager.getRoom(currentRoomId);
+        if (!room || room.phase !== 'action') return;
+        room.towerAction(playerId, msg.payload && msg.payload.op, msg.payload && msg.payload.x, msg.payload && msg.payload.z);
+        break;
+      }
+
       case MessageType.SUPER_PREVIEW: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;

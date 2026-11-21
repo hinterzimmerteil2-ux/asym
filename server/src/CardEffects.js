@@ -206,6 +206,14 @@ const handlers = {
     entity.fatigueUntil = entity.acetilUntil + C.ACETIL_FATIGUE_MS;
   },
 
+  tower_laser({ room, playerId, entity, card, now }) {
+    require('./Towers').place(room, playerId, entity, card, now);
+  },
+
+  tower_rifle({ room, playerId, entity, card, now }) {
+    require('./Towers').place(room, playerId, entity, card, now);
+  },
+
   tigermark({ room, playerId, entity, card, now }) {
     const t = card.tiger;
     const st = tigerState(entity, card);

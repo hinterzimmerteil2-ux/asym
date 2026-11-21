@@ -6,6 +6,7 @@ const KINDS = {
   slow: { blocksMove: false, blocksSkills: false, id: 'ralentizado' },
   reveal: { blocksMove: false, blocksSkills: false, id: 'revelado' },
   queue: { blocksMove: false, blocksSkills: true, id: 'en cola' },
+  seated: { blocksMove: true, blocksSkills: false, id: 'sentado', hidden: true },
   emote: { blocksMove: false, blocksSkills: true, id: 'emote', hidden: true },
 };
 

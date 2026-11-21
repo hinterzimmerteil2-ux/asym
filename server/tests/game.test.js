@@ -2565,3 +2565,98 @@ test('Platinum Star: en pose el aturdimiento, empuje, Dedo y lanzamiento son may
   assert.ok(SA.use(room, 'a', 'atrapar', now + 3500));
   assert.ok(s.grab.forceMul >= 1.7);
 });
+
+test('Torre láser: cajas por módulo, construcción, asiento con prioridad y explosión de 11 s', () => {
+  const Towers = require('../src/Towers');
+  const { room, e } = setup();
+  give(e.a, 0, 'tower_laser');
+  e.a.x = 0; e.a.z = 0; e.a.faceX = 0; e.a.faceZ = 1;
+  const now = Date.now();
+  room.useCard('a', 0);
+  const t = Towers.list(room)[0];
+  assert.ok(t && t.type === 'laser' && t.hp === 40 && t.hpMax === 40);
+  give(e.b, 0, 'tower_laser');
+  e.a.cardCooldowns = {};
+  room.useCard('a', 0);
+  assert.strictEqual(Towers.list(room).length, 1);
+  for (let i = 0; i < 4; i++) Towers.onModule(room, 'a', e.a);
+  assert.strictEqual(e.a.towerBoxes, 4);
+  let clock = now;
+  for (let i = 0; i < 90 * 5; i++) {
+    clock += 200;
+    t.lastHit = clock;
+    Towers.tick(room, clock);
+  }
+  assert.strictEqual(t.mods, 4);
+  assert.strictEqual(t.hpMax, 280);
+  assert.strictEqual(t.hp, 40);
+  assert.strictEqual(e.a.towerBoxes, 0);
+  e.b.x = t.x; e.b.z = t.z - 1;
+  assert.ok(Towers.sit(room, 'b', e.b, clock));
+  assert.strictEqual(t.seat, 'b');
+  e.a.x = t.x; e.a.z = t.z - 2;
+  assert.ok(Towers.sit(room, 'a', e.a, clock));
+  assert.strictEqual(t.seat, 'a');
+  assert.strictEqual(e.b.towerSeat, null);
+  e.c.x = t.x + 4; e.c.z = t.z + 12; e.c.y = t.y;
+  Towers.aim(room, 'a', e.c.x, e.c.z);
+  for (let i = 0; i < 12; i++) {
+    clock += 500;
+    Towers.tick(room, clock);
+  }
+  const hp = room.gameState.curator.hp;
+  Towers.fire(room, 'a', clock);
+  assert.ok(t.charging > clock);
+  clock += 1400;
+  Towers.tick(room, clock);
+  assert.strictEqual(hp - room.gameState.curator.hp, 70);
+  assert.ok(require('../src/Status').until(e.c, 'stun') - clock > 10000);
+  Towers.fire(room, 'a', clock + 100);
+  assert.ok(!t.charging);
+});
+
+test('Torre rifle: aturde y quita Flojera, recarga y el Curador la daña', () => {
+  const Towers = require('../src/Towers');
+  const { room, e } = setup();
+  give(e.a, 0, 'tower_rifle');
+  e.a.x = 0; e.a.z = 0; e.a.faceX = 0; e.a.faceZ = 1;
+  room.useCard('a', 0);
+  const t = Towers.list(room)[0];
+  assert.strictEqual(t.need, 2);
+  t.mods = 2;
+  t.hpMax = 280;
+  e.a.x = t.x; e.a.z = t.z - 1;
+  assert.ok(Towers.sit(room, 'a', e.a, Date.now()));
+  e.c.x = t.x; e.c.z = t.z + 10; e.c.y = t.y;
+  e.c.flojera = 50;
+  Towers.aim(room, 'a', e.c.x, e.c.z);
+  let clock = Date.now();
+  for (let i = 0; i < 20; i++) {
+    clock += 100;
+    Towers.tick(room, clock);
+  }
+  Towers.fire(room, 'a', clock);
+  assert.strictEqual(t.ammo, 5);
+  assert.strictEqual(e.c.flojera, 32);
+  assert.ok(require('../src/Status').until(e.c, 'stun') > clock);
+  Towers.fire(room, 'a', clock + 100);
+  assert.strictEqual(t.ammo, 5);
+  t.ammo = 1;
+  t.nextShot = 0;
+  Towers.fire(room, 'a', clock + 2000);
+  assert.strictEqual(t.ammo, 0);
+  Towers.tick(room, clock + 2000);
+  Towers.tick(room, clock + 4100);
+  assert.strictEqual(t.ammo, 6);
+  const before = t.hp;
+  t.hp = 60;
+  e.c.x = t.x;
+  e.c.z = t.z + 1;
+  Towers.onCuratorSkill(room, e.c, { radius: 4 }, clock);
+  assert.strictEqual(Towers.list(room).length, 1);
+  assert.strictEqual(Math.round(60 - t.hp), 35);
+  Towers.onCuratorSkill(room, e.c, { radius: 4 }, clock);
+  assert.strictEqual(Towers.list(room).length, 0);
+  assert.strictEqual(e.a.towerSeat, null);
+  assert.ok(before >= 0);
+});

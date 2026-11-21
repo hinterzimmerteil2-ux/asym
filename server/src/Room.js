@@ -8,6 +8,7 @@ const CustomCards = require('./CustomCards');
 const Cards = require('./Cards');
 const Roles = require('./Roles');
 const Resources = require('./Resources');
+const Towers = require('./Towers');
 const SuperAbilities = require('./SuperAbilities');
 const CardEffects = require('./CardEffects');
 const Hitbox = require('./Hitbox');
@@ -659,7 +660,7 @@ class Room {
       if (now > (player.nextBotCard || 0)) {
         player.nextBotCard = now + (2200 + 2500 * (1 - mind.confidence)) + Math.random() * 3500;
         const slotIndex = Math.floor(Math.random() * entity.hand.length);
-        if (entity.hand[slotIndex]?.chosen) this.useCard(botId, slotIndex);
+        if (entity.hand[slotIndex]?.chosen && !String(entity.hand[slotIndex].chosen).startsWith('tower_')) this.useCard(botId, slotIndex);
       }
     }
   }
@@ -1343,6 +1344,7 @@ class Room {
       entity.redMistWide = false;
       entity.tiger = null;
       entity.tigerLeap = null;
+      Towers.entityReset(entity);
       entity.sprintUntil = 0;
       entity.exacerbacionLevel = 0;
       entity.exacerbacionUntil = 0;
@@ -1390,6 +1392,7 @@ class Room {
     this.lastRelocateAt = Date.now();
     this.gameState.zones = [];
     this.gameState.dyn = [];
+    Towers.reset(this);
     this.gameState.dynVer += 1;
     SuperAbilities.resetMatch(this);
     for (const sr of GameMap.resolveSerums(this.mapId, GameMap.areaFor(this.mapId))) {
@@ -1718,6 +1721,7 @@ class Room {
       Boss.tick(this, now, dt);
       this.tickDesgracias(now);
       SuperAbilities.tick(this, now);
+      Towers.tick(this, now);
       this.tickAstral(now, dt);
       this.tickEating(now);
       this.tickCarry();
@@ -1816,12 +1820,13 @@ class Room {
           astral: own.astral ? { state: own.astral.state, charge: own.astral.state === 'charging' ? Math.min(1, (now - own.astral.startedAt) / own.astral.cfg.chargeMs) : own.astral.charge, readyMs: Math.max(0, own.astral.readyAt - now), slot: own.astral.slot } : null,
           cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
           sup: SuperAbilities.view(own, now),
-          res: Resources.build(own, SuperAbilities.view(own, now), now),
+          res: Resources.build(own, SuperAbilities.view(own, now), now, this, playerId),
         };
       }
       const snapFull = {
         flojera,
         dyn: this.gameState.dyn.length ? SuperAbilities.minceraftView(this, now) : undefined,
+        towers: Towers.view(this, now),
         tick: this.tickCount,
         entities: ownHidden(playerId, player, publicEntities, this, now),
         ghosts: ghostsFor(playerId),
@@ -2274,6 +2279,7 @@ class Room {
     curadorEntity.skillCooldowns[index] = now + skill.cooldownMs * (curadorEntity.ntf && curadorEntity.ntf.until > now ? 1.25 : 1);
     if (curadorEntity.ntf && curadorEntity.ntf.until > now) curadorEntity.ntf.debt = (curadorEntity.ntf.debt || 0) + 1;
     if (skill.fx) CardEffects.runFx(this, playerId, curadorEntity, skill.fx, 'use', null, now);
+    Towers.onCuratorSkill(this, curadorEntity, skill, now);
 
     const affectedPlayerIds = [];
     let healedAny = false;
@@ -3322,6 +3328,15 @@ class Room {
     this.sendCardOffer(playerId, entity);
   }
 
+  towerAction(playerId, op, x, z) {
+    const entity = this.gameState.entities[playerId];
+    if (!entity) return;
+    const now = Date.now();
+    if (op === 'sit') Towers.sit(this, playerId, entity, now);
+    else if (op === 'aim') Towers.aim(this, playerId, Number(x), Number(z));
+    else if (op === 'fire') Towers.fire(this, playerId, now);
+  }
+
   superAction(playerId, mode, face, aim, ay) {
     if (this.phase !== 'action' || this.gameState.gameOver || this.gameState.frozen) return;
     const e = this.gameState.entities[playerId];
@@ -3412,6 +3427,13 @@ class Room {
     if (card.eat) {
       this.startEating(playerId, entity, slotIndex, card, now);
       return;
+    }
+    if (card.tower) {
+      const why = Towers.blocked(this, card);
+      if (why) {
+        this.sendTo(playerId, MessageType.ERROR, { message: why });
+        return;
+      }
     }
     if (card.tiger) {
       const why = entity.tigerLeap ? 'En el aire' : CardEffects.tigerBlocked(entity, card, now);
@@ -3911,6 +3933,7 @@ class Room {
       delete this.gameState.moduleHandler[game.objectId];
     }
     if (damage > 0) SuperAbilities.onModule(entity);
+    if (damage > 0) Towers.onModule(this, playerId, entity);
     if (damage > 0) {
       if (game.type !== 'keys') {
         patient.hp = Math.max(PATIENT_HP_MIN, patient.hp - damage);
@@ -4053,6 +4076,7 @@ class Room {
     this.gameState.patients = {};
     this.gameState.zones = [];
     this.gameState.dyn = [];
+    Towers.reset(this);
     this.gameState.dynVer += 1;
     SuperAbilities.resetMatch(this);
     this.tutorial = false;

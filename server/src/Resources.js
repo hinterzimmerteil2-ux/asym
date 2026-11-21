@@ -8,9 +8,17 @@ function bar(id, name, cur, max, color, rest) {
   return { id, name, kind: 'bar', cur, max, color, ...rest };
 }
 
-function fromCards(entity, now) {
+function fromCards(entity, now, room, pid) {
   const out = [];
   const hand = entity.hand || [];
+  const tc = hand.find((sl) => sl && String(sl.chosen || '').startsWith('tower_'));
+  if (tc) {
+    const Towers = require('./Towers');
+    const type = tc.chosen === 'tower_rifle' ? 'rifle' : 'laser';
+    const mine = room ? Towers.list(room).find((t) => t.type === type && t.owner === pid) : null;
+    const need = Towers.TW[type].need;
+    out.push(pips('cajas', 'Cajas', entity.towerBoxes || 0, need, '#f0c040', { extra: { label: 'Torre', value: mine ? `${mine.mods}/${mine.need}` : 'sin colocar' } }));
+  }
   if (hand.some((sl) => sl && sl.chosen === 'tigermark')) {
     const card = Cards.getCard('tigermark');
     const st = entity.tiger || { mag: card.tiger.mag, reserve: card.tiger.start, reloadUntil: 0 };
@@ -53,8 +61,8 @@ function fromSuper(s) {
   return [];
 }
 
-function build(entity, supView, now) {
-  return [...fromSuper(supView), ...fromCards(entity, now)];
+function build(entity, supView, now, room, pid) {
+  return [...fromSuper(supView), ...fromCards(entity, now, room, pid)];
 }
 
 module.exports = { build };

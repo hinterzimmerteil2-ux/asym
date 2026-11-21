@@ -1,7 +1,7 @@
 const Synergy = require('./synergy');
 const { ASTRAL } = require('./Constants');
 
-const RARITY_WEIGHTS = { common: 50, uncommon: 25, rare: 10 };
+const RARITY_WEIGHTS = { common: 50, uncommon: 25, rare: 10, legendary: 4 };
 
 const CARDS = {
   acetilcolina: {
@@ -127,6 +127,24 @@ const CARDS = {
     cooldownMs: 52000,
     stunMs: ASTRAL.MAX_STUN_MS,
     astral: { chargeMs: ASTRAL.CHARGE_MS, holdMs: ASTRAL.ENDLAG_MS, fireDelayMs: ASTRAL.FIRE_DELAY_MS, throwEndlagMs: ASTRAL.THROW_ENDLAG_MS, speed: ASTRAL.SPEED, radius: 0.8, hit: ASTRAL.HIT, flyMs: ASTRAL.FLY_MS },
+  },
+  tower_laser: {
+    id: 'tower_laser',
+    keywords: ['ofensiva'],
+    displayName: 'niche tower defence game',
+    description: 'Estructura. Colocas una torre láser (solo una por servidor). Cada módulo de auto-daño que completes te da una caja; hacen falta 4 para terminarla y construirla tarda 87 s con tu presencia a menos de 5. Nace con 40 de vida y construir sube su vida máxima hasta 280, sin decaer; sin recibir golpes durante 5 s se cura sola. Hace falta alguien sentado (interactuar cerca): quien la colocó tiene prioridad y expulsa a los demás. El láser apunta lento, carga 1,3 s y causa una explosión enorme (4,5 de radio) que hace 70 de daño y paraliza 11 s al Curador (3 s al Jefe); recarga 22 s. El Curador la daña con sus habilidades.',
+    rarity: 'legendary',
+    cooldownMs: 6000,
+    tower: { type: 'laser' },
+  },
+  tower_rifle: {
+    id: 'tower_rifle',
+    keywords: ['ofensiva'],
+    displayName: 'niche tower defence game (alt.)',
+    description: 'Estructura, versión alternativa. Colocas una torre de rifle (solo una por servidor). Hacen falta 2 cajas de módulos de auto-daño y se construye en 18 s con tu presencia a menos de 5. Nace con 40 de vida y construir sube su vida máxima hasta 280, sin decaer; sin recibir golpes durante 5 s se cura sola. Hace falta alguien sentado: quien la colocó tiene prioridad. El rifle apunta con rapidez, dispara un láser verde delgado cada 1,6 s con 6 balas (recarga 2 s) que aturde 0,9 s y quita 18 de Flojera. El Curador la daña con sus habilidades.',
+    rarity: 'legendary',
+    cooldownMs: 6000,
+    tower: { type: 'rifle' },
   },
   tigermark: {
     id: 'tigermark',
