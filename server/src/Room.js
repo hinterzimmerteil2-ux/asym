@@ -2421,11 +2421,11 @@ class Room {
         const dz = b.z - a.z;
         const ox = reach - Math.abs(dx);
         const oz = reach - Math.abs(dz);
-        if (ox <= 0.02 || oz <= 0.02) continue;
+        if (ox <= 0.001 || oz <= 0.001) continue;
         let mx = 0;
         let mz = 0;
-        if (ox < oz) mx = Math.min(0.12, ox / 2) * (dx === 0 ? (i % 2 ? 1 : -1) : Math.sign(dx));
-        else mz = Math.min(0.12, oz / 2) * (dz === 0 ? (i % 2 ? 1 : -1) : Math.sign(dz));
+        if (ox < oz) mx = Math.min(0.5, ox / 2) * (dx === 0 ? (i % 2 ? 1 : -1) : Math.sign(dx));
+        else mz = Math.min(0.5, oz / 2) * (dz === 0 ? (i % 2 ? 1 : -1) : Math.sign(dz));
         const half = this.gameState.area ? this.gameState.area.halfSize : Infinity;
         for (const [id, e, k] of [[ida, a, -1], [idb, b, 1]]) {
           const plats = this.players.get(id)?.isAsymRole ? curPlatforms : patPlatforms;

@@ -610,6 +610,7 @@ test('Desgracias se acumulan por hazañas y se envían al terminar la partida', 
 test('puerta solo Curador, sótano con rampa y paso bajo rampas altas', () => {
   const { room, e, clock } = setup();
   room.mapId = 'hospital';
+  e.b.x = 40; e.b.z = 40;
   const go = (id, x, z, mx, mz, n) => {
     const en = e[id];
     en.x = x; en.z = z; en.y = 0; en.velocityY = 0; en.onGround = true;
