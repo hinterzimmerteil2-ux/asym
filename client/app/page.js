@@ -722,9 +722,16 @@ export default function LobbyPage() {
   // activo, pulseCooldownUntil es un timestamp fijo, necesitamos un
   // "ahora" que avance para poder mostrar la cuenta regresiva.
   useEffect(() => {
-    const interval = setInterval(() => setSkillCooldownNow(Date.now()), 200);
+    const busy = (t) => Object.values(skillCooldowns).some((u) => u > t);
+    if (!busy(Date.now())) return undefined;
+    setSkillCooldownNow(Date.now());
+    const interval = setInterval(() => {
+      const t = Date.now();
+      setSkillCooldownNow(t);
+      if (!busy(t)) clearInterval(interval);
+    }, 200);
     return () => clearInterval(interval);
-  }, []);
+  }, [skillCooldowns]);
 
   useEffect(() => {
     if (draftEndsAt <= Date.now()) return;
@@ -733,9 +740,16 @@ export default function LobbyPage() {
   }, [draftEndsAt]);
 
   useEffect(() => {
-    const interval = setInterval(() => setCardCooldownNow(Date.now()), 200);
+    const busy = (t) => Object.values(cardCooldowns).some((u) => u > t);
+    if (!busy(Date.now())) return undefined;
+    setCardCooldownNow(Date.now());
+    const interval = setInterval(() => {
+      const t = Date.now();
+      setCardCooldownNow(t);
+      if (!busy(t)) clearInterval(interval);
+    }, 200);
     return () => clearInterval(interval);
-  }, []);
+  }, [cardCooldowns]);
 
   // Antes un error se quedaba pegado en pantalla para siempre hasta la
   // próxima acción, ahora se auto-oculta (salvo que el usuario ya lo haya
