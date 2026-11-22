@@ -145,7 +145,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
                 </div>
                 <div style={styles.subTitle}>Vida</div>
                 <label style={styles.row}>
-                  <input type="number" min={1} max={9999} step={1} value={hpVal} onChange={(e) => setHpVal(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
+                  <input type="number" min={1} max={1000000} step={1} value={hpVal} onChange={(e) => setHpVal(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
                 </label>
                 <div style={styles.chips}>
                   <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'hp', value: hpVal, targets: chosen })} style={styles.chip(true)}>Poner vida actual</button>

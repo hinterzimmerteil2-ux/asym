@@ -928,7 +928,7 @@ class Room {
     if (!['speed', 'jump', 'heal', 'flojera', 'hp', 'maxhp'].includes(kind)) return;
     this.markAdmin();
     if (kind === 'hp' || kind === 'maxhp') {
-      const amount = Math.max(1, Math.min(9999, Math.round(Number(value) || 0)));
+      const amount = Math.max(1, Math.min(1000000, Math.round(Number(value) || 0)));
       for (const id of this.adminTargets(targets, requesterId)) {
         if (this.players.get(id)?.isAsymRole) {
           const cur = this.gameState.curator;
