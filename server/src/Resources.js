@@ -18,6 +18,14 @@ function fromCards(entity, now, room, pid) {
     const need = mine ? mine.need : Towers.TW.laser.need;
     out.push(pips('cajas', 'Cajas', entity.towerBoxes || 0, need, '#f0c040', { extra: { label: 'Torre', value: mine ? `${mine.mods}/${mine.need}` : 'sin colocar' } }));
   }
+  if (hand.some((sl) => sl && sl.chosen === 'oi_ojo')) {
+    const ov = require('./Oi').view(entity, now);
+    out.push(bar('oi', 'Ojos de Precognición', ov.eyes, 30, '#8fe3d0', {
+      tags: ov.eyes <= 0 ? ['Sin ojos'] : (ov.on ? ['Abierto'] : ['Cerrado']),
+      timer: ov.timer !== null ? { pct: ov.timer, label: 'Reabriendo' } : null,
+      empty: ov.eyes <= 0,
+    }));
+  }
   if (hand.some((sl) => sl && sl.chosen === 'tigermark')) {
     const card = Cards.getCard('tigermark');
     const st = entity.tiger || { mag: card.tiger.mag, reserve: card.tiger.start, reloadUntil: 0 };

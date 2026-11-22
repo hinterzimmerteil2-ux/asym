@@ -885,4 +885,11 @@ export const DE = [
 "Laser",
 "Gewehr",
 "niche tower defence game",
+"Ein Metallauge, das den Schlag sieht, bevor er trifft. Beim Einsatz öffnet oder schließt es sich (halbpassiv). Geöffnet weichst du, wenn ein Angriff des Heilers dich treffen würde, knapp dorthin aus, wo er dich nicht erfasst, so oft es nötig ist, und jedes Ausweichen kostet 4 Faulheit (ohne sie weichst du nicht aus). Jeder Schlag, der dich trotzdem trifft, lässt dich 5 Augen der Vorahnung verlieren (du startest mit 30; alle 3 s ohne Treffer oder Ausweichen erholst du 1). Ohne Augen kannst du sie nicht nutzen, dein Faulheitsverbrauch ist doppelt und du wartest 28 s, bis du wieder bei 30 bist.",
+"Augen der Vorahnung",
+"Keine Augen",
+"Offen",
+"Geschlossen",
+"Öffnet erneut",
+"Keine Augen der Vorahnung",
 ];

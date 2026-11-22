@@ -885,4 +885,11 @@ export const PIE = {
   883: 'léu̯kom',
   884: 'sélg-tero',
   885: 'mikʷ-ros h₂ént-wéh₂-tis dʰeh₁-trom pl̥h₁-tis',
+  886: 'h₂ép-ōkʷ-yom h₂ayu-ōkʷ-ō. kʷod dʰeh₁ti, h₂ep-ōkʷ-eti h₁u̯é kloh₂u-eti (h₁sm̥h₂-péh₂-tis). h₂ep-ōkʷ-ós, kʷod solh₂weh₁yetōr bʰlig̑-tis te bʰlig̑-ti, h₁n̥-ǵʰ-yetōr tod h₁eh₁-trom h₂ed kʷod ne bʰlig̑-ti, kʷod-kʷe sēu̯-ti; kʷod-yom h₁n̥-ǵʰ-tis 4 swépnos dʰeh₁ti (swépnos ne h₁ésti-ti, ne h₁n̥-ǵʰ-ti). kʷod bʰlig̑-tis te dʰeh₁ti, 5 h₂ōkʷ-yom prē-wid-tis h₂ap-eti (30 h₂érh₂-eti; 1 kʷod 3 sékʷ ne bʰlig̑-tis ne h₁n̥-ǵʰ-tis re-pl̥h₁-eti). h₂ōkʷ-yom ne h₁ésti-ti: ne dʰeh₁-ti, swépnos-trom dwi-plós h₁ésti, 28 sékʷ 30 h₂ed re-h₁ei-ti.',
+  887: 'h₂ōkʷ-yom prē-wid-tis',
+  888: 'ne h₂ōkʷ-yom',
+  889: 'h₂ep-ōkʷ-ós',
+  890: 'kloh₂u-tós',
+  891: 're-h₂ep-ōkʷ-eti',
+  892: 'ne h₂ōkʷ-yom prē-wid-tis',
 };

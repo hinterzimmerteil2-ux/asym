@@ -583,6 +583,11 @@ export default function LobbyPage() {
             setEffects((prev) => [...prev.filter((e) => Date.now() - e.startedAt < 1500), fxe]);
             break;
           }
+          case 'oi_fx': {
+            const fxo = { ...payload, id: `fx${++effectCounterRef.current}`, sup: true, kind: `sup_oi_${payload.kind}`, startedAt: Date.now() };
+            setEffects((prev) => [...prev.filter((e) => Date.now() - e.startedAt < 1500), fxo]);
+            break;
+          }
           case 'tower_fx': {
             const fxt = { ...payload, id: `fx${++effectCounterRef.current}`, sup: true, kind: `sup_tower_${payload.kind}`, startedAt: Date.now() };
             setEffects((prev) => [...prev.filter((e) => Date.now() - e.startedAt < 1500), fxt]);

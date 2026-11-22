@@ -115,7 +115,7 @@ const handlers = {
     entity.dashVX = (dirX * C.ROLL_DISTANCE) / (C.ROLL_DASH_MS / 1000);
     entity.dashVZ = (dirZ * C.ROLL_DISTANCE) / (C.ROLL_DASH_MS / 1000);
     entity.dashExhausted = entity.flojera < C.ROLL_FLOJERA_COST;
-    entity.flojera = Math.max(0, entity.flojera - C.ROLL_FLOJERA_COST);
+    entity.flojera = Math.max(0, entity.flojera - C.ROLL_FLOJERA_COST * require('./Oi').drainMult(entity));
     if (entity.dashExhausted) entity.flojeraLockedUntil = now + C.FLOJERA_EXHAUST_LOCKOUT_MS;
   },
 
@@ -209,6 +209,8 @@ const handlers = {
   niche_tower({ room, playerId, entity, card, now }) {
     require('./Towers').place(room, playerId, entity, card, now, entity.towerVariant);
   },
+
+  oi_ojo() {},
 
   tigermark({ room, playerId, entity, card, now }) {
     const t = card.tiger;

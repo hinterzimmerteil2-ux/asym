@@ -137,6 +137,16 @@ const CARDS = {
     cooldownMs: 6000,
     tower: { variants: ['laser', 'rifle'] },
   },
+  oi_ojo: {
+    id: 'oi_ojo',
+    corrupt: true,
+    keywords: ['escapista'],
+    displayName: 'Oi, [][][][][]!',
+    description: 'Un ojo metálico que ve el golpe antes de que llegue. Al usarla se abre o se cierra (semi-pasiva). Abierta, cuando un ataque del Curador va a darte, esquivas por poco hacia donde no te afecte, cada vez que haga falta, y cada esquiva te cuesta 4 de Flojera (si no tienes, no esquivas). Cada golpe que te da aun así, hace que pierdas 5 Ojos de Precognición (empiezas con 30; recuperas 1 cada 3 s sin golpes ni esquivas). Sin Ojos no puedes usarla, tu gasto de Flojera es el doble y esperas 28 s para volver a 30.',
+    rarity: 'rare',
+    cooldownMs: 1000,
+    oi: { eyes: 30 },
+  },
   tigermark: {
     id: 'tigermark',
     keywords: ['escapista'],

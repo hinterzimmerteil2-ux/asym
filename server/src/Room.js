@@ -9,6 +9,7 @@ const Cards = require('./Cards');
 const Roles = require('./Roles');
 const Resources = require('./Resources');
 const Towers = require('./Towers');
+const Oi = require('./Oi');
 const SuperAbilities = require('./SuperAbilities');
 const CardEffects = require('./CardEffects');
 const Hitbox = require('./Hitbox');
@@ -661,7 +662,7 @@ class Room {
       if (now > (player.nextBotCard || 0)) {
         player.nextBotCard = now + (2200 + 2500 * (1 - mind.confidence)) + Math.random() * 3500;
         const slotIndex = Math.floor(Math.random() * entity.hand.length);
-        if (entity.hand[slotIndex]?.chosen && entity.hand[slotIndex].chosen !== 'niche_tower') this.useCard(botId, slotIndex);
+        if (entity.hand[slotIndex]?.chosen && !['niche_tower', 'oi_ojo'].includes(entity.hand[slotIndex].chosen)) this.useCard(botId, slotIndex);
       }
     }
   }
@@ -1875,6 +1876,7 @@ class Room {
       this.tickDesgracias(now);
       SuperAbilities.tick(this, now);
       Towers.tick(this, now);
+      Oi.tick(this, now);
       this.tickAstral(now, dt);
       this.tickEating(now);
       this.tickCarry();
@@ -2211,7 +2213,7 @@ class Room {
 
       if (inAction && entity.acetilUntil > now) {
         if (isMoving && entity.flojera > 0 && !input.slow) {
-          entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * ACETIL_DRAIN_FACTOR * dt);
+          entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * ACETIL_DRAIN_FACTOR * Oi.drainMult(entity) * dt);
           if (entity.flojera <= 0) entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
         }
       } else if (inAction && !rolling) {
@@ -2224,7 +2226,7 @@ class Room {
           const before = entity.flojera;
           entity.runStreak = (entity.runStreak || 0) + dt;
           const drainFactor = (1 + Math.min(RUN_STREAK_MAX, entity.runStreak * RUN_STREAK_RAMP)) * (this.players.get(entityPlayerId)?.isAsymRole ? CURATOR_DRAIN_FACTOR : 1) * (invisible ? PARAGUAY_DRAIN_FACTOR : 1);
-          entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * drainFactor * dt);
+          entity.flojera = Math.max(0, entity.flojera - FLOJERA_DRAIN_PER_SEC * drainFactor * Oi.drainMult(entity) * dt);
           if (entity.flojera <= 0) {
             entity.flojeraLockedUntil = now + FLOJERA_EXHAUST_LOCKOUT_MS;
             entity.regenBlockedUntil = Math.max(entity.regenBlockedUntil || 0, now + EXHAUST_REGEN_BLOCK_MS);
@@ -2253,7 +2255,7 @@ class Room {
         entity.kbX *= decay;
         entity.kbZ *= decay;
       }
-      if (dashing && !entity.tigerLeap) {
+      if (dashing && !entity.tigerLeap && !(entity.oiStep > now)) {
         const speed = Math.hypot(entity.dashVX, entity.dashVZ) || 1;
         const dx = entity.dashVX / speed;
         const dz = entity.dashVZ / speed;
@@ -2706,6 +2708,7 @@ class Room {
           else if (win.kind === 'melee') { this.healSpears(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now); this.healBlocks(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now); }
           else if (win.kind === 'area') { this.healSpears(owner, 0, win.skill.radius || 1, true, now); this.healBlocks(owner, 0, win.skill.radius || 1, true, now); }
         }
+        if (this.players.get(win.playerId)?.isAsymRole && (win.kind === 'm1' || win.kind === 'melee' || win.kind === 'area')) Oi.predict(this, win, owner, now);
         if (this.bossActive && !this.players.get(win.playerId)?.isBoss) Boss.hurt(this, owner, win, now);
         if (win.kind === 'm1') this.hitPlanks(owner, M1_REACH, M1_RADIUS, false, now);
         else if (win.kind === 'melee') this.hitPlanks(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now);
@@ -2716,13 +2719,14 @@ class Room {
         let hitId = null;
         let hitDist = Infinity;
         for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
-          if (patient.status !== 'alive') continue;
+          if (patient.status !== 'alive' || (win.dodge && win.dodge.has(targetPlayerId))) continue;
           const targetEntity = this.gameState.entities[targetPlayerId];
           if (!targetEntity || !handHit(owner, targetEntity, M1_REACH, M1_RADIUS)) continue;
           const dist = euclid(owner, targetEntity);
           if (dist < hitDist) { hitDist = dist; hitId = targetPlayerId; }
         }
         if (hitId) {
+          Oi.onHit(this, hitId, now);
           this.resolveCure(win.playerId, owner, hitId, now);
           continue;
         }
@@ -2731,9 +2735,10 @@ class Room {
         const skill = win.skill;
         const ids = [];
         for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
-          if (patient.status !== 'alive') continue;
+          if (patient.status !== 'alive' || (win.dodge && win.dodge.has(targetPlayerId))) continue;
           const targetEntity = this.gameState.entities[targetPlayerId];
           if (!targetEntity || distanceBetween(owner, targetEntity) > skill.radius) continue;
+          Oi.onHit(this, targetPlayerId, now);
           this.breakParaguay(targetPlayerId, now);
           this.award(win.playerId, skill.type === 'stun' ? 3 : 2, 'Habilidad certera');
           if (skill.type === 'stun') {
@@ -2775,7 +2780,7 @@ class Room {
         let nearestId = null;
         let nearestDist = Infinity;
         for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
-          if (patient.status !== 'alive') continue;
+          if (patient.status !== 'alive' || (win.dodge && win.dodge.has(targetPlayerId))) continue;
           const targetEntity = this.gameState.entities[targetPlayerId];
           if (!targetEntity || !handHit(owner, targetEntity, skill.reach || 0, skill.radius)) continue;
           const dist = euclid(owner, targetEntity);
@@ -2785,6 +2790,7 @@ class Room {
           }
         }
         if (nearestId) {
+          Oi.onHit(this, nearestId, now);
           const hitEntity = this.gameState.entities[nearestId];
           const moving = hitEntity && hitEntity.input && Math.hypot(hitEntity.input.moveX, hitEntity.input.moveZ) > 0.3 && !hitEntity.input.slow;
           this.resolveCure(win.playerId, owner, nearestId, now);
@@ -3601,6 +3607,10 @@ class Room {
         this.sendTo(playerId, MessageType.ERROR, { message: why });
         return;
       }
+    }
+    if (card.oi) {
+      Oi.toggle(this, playerId, entity, now);
+      return;
     }
     if (card.tiger) {
       const why = entity.tigerLeap ? 'En el aire' : CardEffects.tigerBlocked(entity, card, now);

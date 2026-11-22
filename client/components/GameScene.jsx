@@ -1440,7 +1440,7 @@ function TowersLayer({ towers, me, hitboxes }) {
 
 function SuperFx({ effect }) {
   const kind = effect.kind;
-  const dur = kind === 'sup_tower_shot' ? 260 : kind === 'sup_tower_blast' ? 1300 : kind === 'sup_tower_destroy' ? 1000 : kind === 'sup_recarga_inicio' ? Math.max(600, effect.dur || 1300) : kind === 'sup_deslizar' ? 600 : kind === 'sup_recarga' ? 420 : kind === 'sup_bayoneta' || kind === 'sup_parry' || kind === 'sup_stellar_hit' || kind === 'sup_atrapar_hit' || kind === 'sup_atrapar' || kind === 'sup_rafaga' ? 520 : kind === 'sup_stellar' ? 400 : kind === 'sup_pausa' ? 1100 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
+  const dur = kind === 'sup_oi_step' ? 700 : kind === 'sup_oi_hurt' ? 600 : kind === 'sup_oi_open' || kind === 'sup_oi_close' ? 800 : kind === 'sup_tower_shot' ? 260 : kind === 'sup_tower_blast' ? 1300 : kind === 'sup_tower_destroy' ? 1000 : kind === 'sup_recarga_inicio' ? Math.max(600, effect.dur || 1300) : kind === 'sup_deslizar' ? 600 : kind === 'sup_recarga' ? 420 : kind === 'sup_bayoneta' || kind === 'sup_parry' || kind === 'sup_stellar_hit' || kind === 'sup_atrapar_hit' || kind === 'sup_atrapar' || kind === 'sup_rafaga' ? 520 : kind === 'sup_stellar' ? 400 : kind === 'sup_pausa' ? 1100 : kind === 'sup_vuelva' || kind === 'sup_anulacion' ? 1300 : 1100;
   const life = useLife(effect, dur);
   const yaw = Math.atan2(effect.dx || 0, effect.dz || 1);
   const stamp = useRef();
@@ -1451,6 +1451,34 @@ function SuperFx({ effect }) {
       stamp.current.rotation.y = t * 7;
     }
   });
+  if (kind === 'sup_oi_step') {
+    return (
+      <group>
+        <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
+          <Ring life={life} color="#8fe3d0" y={0.1} r0={0.3} r1={1.6} />
+          <Sparks life={life} color="#c8fff2" n={12} speed={2.4} up={1.6} size={0.1} />
+        </group>
+        <group position={[effect.tx || 0, effect.y || 0, effect.tz || 0]}>
+          <Ring life={life} color="#5fc7b4" y={0.1} r0={1.2} r1={0.3} />
+        </group>
+      </group>
+    );
+  }
+  if (kind === 'sup_oi_hurt') {
+    return (
+      <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
+        <Ring life={life} color="#ff4a4a" y={0.1} r0={0.3} r1={1.4} />
+        <Sparks life={life} color="#ff9a8a" n={10} speed={2.6} up={2} size={0.1} />
+      </group>
+    );
+  }
+  if (kind === 'sup_oi_open' || kind === 'sup_oi_close') {
+    return (
+      <group position={[effect.x || 0, (effect.y || 0) + 2.1, effect.z || 0]}>
+        <Ring life={life} color={kind === 'sup_oi_open' ? '#8fe3d0' : '#667a76'} y={0} r0={0.2} r1={0.9} />
+      </group>
+    );
+  }
   if (kind === 'sup_tower_shot') {
     const len = effect.len || 10;
     const dx = effect.dx || 0;
