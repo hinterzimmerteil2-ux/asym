@@ -2,7 +2,7 @@ const Hitbox = require('./Hitbox');
 const Status = require('./Status');
 const C = require('./Constants');
 
-const OI = { eyes: 30, refillMs: 28000, costMax: 9, costMin: 3, loss: 5, regenEvery: 9000, bias: 3, slack: 2.5, quietMs: 5000, stepMs: 200, maxStep: 10, toggleGapMs: 700 };
+const OI = { eyes: 30, refillMs: 28000, costMax: 9, costMin: 3, loss: 5, regenEvery: 9000, bias: 3, slack: 2.5, quietMs: 5000, stepMs: 200, maxStep: 10, useFlojera: 5, useEyes: 2, cdMs: 1800, perMinute: 12, backDist: 4.5 };
 
 const ANGLES = [90, -90, 45, -45, 135, -135, 0, 180].map((a) => (a * Math.PI) / 180);
 
@@ -16,7 +16,7 @@ function has(entity) {
 }
 
 function state(entity) {
-  if (!entity.oi) entity.oi = { eyes: OI.eyes, on: false, outAt: 0, lastHit: 0, lastUse: 0, lastRegen: 0 };
+  if (!entity.oi) entity.oi = { eyes: OI.eyes, outAt: 0, lastHit: 0, lastUse: 0, lastRegen: 0, uses: [] };
   return entity.oi;
 }
 
@@ -27,23 +27,77 @@ function depleted(entity) {
 function active(entity) {
   if (!has(entity)) return false;
   const s = state(entity);
-  return s.on && s.eyes > 0;
+  return s.eyes > 0;
 }
 
 function drainMult(entity) {
   return depleted(entity) ? 2 : 1;
 }
 
-function toggle(room, playerId, entity, now) {
+function blocked(entity, now) {
   const s = state(entity);
+  if (s.eyes <= 0) return 'Sin Ojos de Precognición';
+  s.uses = s.uses.filter((t) => now - t < 60000);
+  if (s.uses.length >= OI.perMinute) return 'Máximo 12 por minuto';
+  return null;
+}
+
+function lose(room, id, e, n, now) {
+  const s = state(e);
+  s.eyes = Math.max(0, s.eyes - n);
   if (s.eyes <= 0) {
-    room.sendTo(playerId, 'error', { message: 'Sin Ojos de Precognición' });
-    return;
+    s.outAt = now + OI.refillMs;
+    room.broadcast('oi_fx', { kind: 'close', playerId: id, x: e.x, y: e.y || 0, z: e.z });
   }
-  if (now - s.lastUse < OI.toggleGapMs) return;
+}
+
+function use(room, playerId, entity, now) {
+  const s = state(entity);
+  s.uses.push(now);
   s.lastUse = now;
-  s.on = !s.on;
-  room.broadcast('oi_fx', { kind: s.on ? 'open' : 'close', playerId, x: entity.x, y: entity.y || 0, z: entity.z });
+  entity.flojera = Math.max(0, entity.flojera - OI.useFlojera);
+  const platforms = room.allPlatforms();
+  const cur = [...room.players].find(([, pl]) => pl.isAsymRole);
+  const ce = cur && room.gameState.entities[cur[0]];
+  let bx = -(entity.faceX || 0);
+  let bz = -(entity.faceZ || 1);
+  if (ce) {
+    const dx = entity.x - ce.x;
+    const dz = entity.z - ce.z;
+    const l = Math.hypot(dx, dz);
+    if (l > 0.01) {
+      bx = dx / l;
+      bz = dz / l;
+    }
+  }
+  const bl = Math.hypot(bx, bz) || 1;
+  bx /= bl;
+  bz /= bl;
+  let pick = null;
+  for (const a of [0, 40, -40, 80, -80].map((g) => (g * Math.PI) / 180)) {
+    const c = Math.cos(a);
+    const sn = Math.sin(a);
+    const dx = bx * c - bz * sn;
+    const dz = bx * sn + bz * c;
+    for (let d = OI.backDist; d >= 1.5; d -= 1) {
+      const x = entity.x + dx * d;
+      const z = entity.z + dz * d;
+      if (pathOk(platforms, entity, x, z)) {
+        pick = { dx, dz, d, x, z };
+        break;
+      }
+    }
+    if (pick) break;
+  }
+  if (pick) {
+    entity.dashUntil = now + OI.stepMs;
+    entity.dashVX = (pick.dx * pick.d * 1000) / OI.stepMs;
+    entity.dashVZ = (pick.dz * pick.d * 1000) / OI.stepMs;
+    entity.dashExhausted = false;
+    entity.oiStep = now + OI.stepMs;
+    room.broadcast('oi_fx', { kind: 'step', playerId, x: entity.x, y: entity.y || 0, z: entity.z, tx: pick.x, tz: pick.z });
+  }
+  lose(room, playerId, entity, OI.useEyes, now);
 }
 
 function strike(room, win, owner, target) {
@@ -164,13 +218,8 @@ function onHit(room, id, now) {
   if (!e || !active(e)) return;
   const s = state(e);
   s.lastHit = now;
-  s.eyes = Math.max(0, s.eyes - OI.loss);
   room.broadcast('oi_fx', { kind: 'hurt', playerId: id, x: e.x, y: e.y || 0, z: e.z });
-  if (s.eyes <= 0) {
-    s.on = false;
-    s.outAt = now + OI.refillMs;
-    room.broadcast('oi_fx', { kind: 'close', playerId: id, x: e.x, y: e.y || 0, z: e.z });
-  }
+  lose(room, id, e, OI.loss, now);
 }
 
 function tick(room, now) {
@@ -193,10 +242,10 @@ function view(entity, now) {
   const s = state(entity);
   return {
     eyes: s.eyes,
-    on: s.on,
+    on: s.eyes > 0,
     cost: costFor(s.eyes),
     timer: s.eyes <= 0 && s.outAt ? Math.max(0, Math.min(1, 1 - (s.outAt - now) / OI.refillMs)) : null,
   };
 }
 
-module.exports = { OI, costFor, evadePulse, has, state, depleted, active, drainMult, toggle, predict, onHit, tick, view };
+module.exports = { OI, costFor, evadePulse, has, state, depleted, active, drainMult, blocked, use, predict, onHit, tick, view };

@@ -3613,8 +3613,11 @@ class Room {
       }
     }
     if (card.oi) {
-      Oi.toggle(this, playerId, entity, now);
-      return;
+      const why = Oi.blocked(entity, now);
+      if (why) {
+        this.sendTo(playerId, MessageType.ERROR, { message: why });
+        return;
+      }
     }
     if (card.tiger) {
       const why = entity.tigerLeap ? 'En el aire' : CardEffects.tigerBlocked(entity, card, now);

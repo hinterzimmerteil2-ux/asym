@@ -2832,8 +2832,6 @@ test('Oi, [][][][][]!: esquiva sola los golpes, pierde ojos si te pegan y se ago
   give(e.a, 0, 'oi_ojo');
   e.c.x = 0; e.c.z = 0; e.c.faceX = 0; e.c.faceZ = 1;
   e.a.x = 0; e.a.z = 0.8; e.a.flojera = 50;
-  room.useCard('a', 0);
-  assert.strictEqual(e.a.oi.on, true);
   let now = Date.now();
   room.hitWindows.push({ kind: 'm1', playerId: 'c', endsAt: now + 300 });
   const hp = p.a.hp;
@@ -2852,11 +2850,10 @@ test('Oi, [][][][][]!: esquiva sola los golpes, pierde ojos si te pegan y se ago
   room.hitWindows.push({ kind: 'm1', playerId: 'c', endsAt: now + 300 });
   room.tickHitWindows(now);
   assert.strictEqual(e.a.oi.eyes, 0);
-  assert.strictEqual(e.a.oi.on, false);
   assert.strictEqual(Oi.drainMult(e.a), 2);
   e.a.oi.lastUse = 0;
   room.useCard('a', 0);
-  assert.strictEqual(e.a.oi.on, false);
+  assert.strictEqual(e.a.oi.eyes, 0);
   Oi.tick(room, now + 28500);
   assert.strictEqual(e.a.oi.eyes, 30);
   assert.strictEqual(Oi.drainMult(e.a), 1);
@@ -2868,7 +2865,6 @@ test('Oi: esquiva aunque el golpe llegue después de abrirse la ventana', () => 
   give(e.a, 0, 'oi_ojo');
   e.c.x = 0; e.c.z = 0; e.c.faceX = 0; e.c.faceZ = 1;
   e.a.x = 6; e.a.z = 0.8; e.a.flojera = 40;
-  room.useCard('a', 0);
   const now = Date.now();
   room.hitWindows.push({ kind: 'm1', playerId: 'c', endsAt: now + 260 });
   room.tickHitWindows(now);
@@ -2879,4 +2875,25 @@ test('Oi: esquiva aunque el golpe llegue después de abrirse la ventana', () => 
   assert.strictEqual(p.a.hp, hp);
   assert.strictEqual(e.a.oi.eyes, 30);
   assert.ok(e.a.flojera < 40);
+});
+
+
+test('Oi: uso activo retrocede, gasta 5 Flojera y 2 ojos, cd 1.8 s y tope de 12 por minuto', () => {
+  const { room, e } = setup();
+  give(e.a, 0, 'oi_ojo');
+  e.c.x = 0; e.c.z = 0;
+  e.a.x = 0; e.a.z = 3; e.a.flojera = 80;
+  room.useCard('a', 0);
+  assert.strictEqual(e.a.flojera, 75);
+  assert.strictEqual(e.a.oi.eyes, 28);
+  assert.ok(e.a.dashUntil > Date.now() - 50);
+  assert.ok(e.a.dashVZ > 0);
+  assert.ok(e.a.cardCooldowns[0] - Date.now() > 1500);
+  room.useCard('a', 0);
+  assert.strictEqual(e.a.oi.eyes, 28);
+  const Oi = require('../src/Oi');
+  const t0 = Date.now();
+  e.a.oi.uses = Array.from({ length: 12 }, () => t0);
+  assert.strictEqual(Oi.blocked(e.a, t0), 'Máximo 12 por minuto');
+  assert.strictEqual(Oi.blocked(e.a, t0 + 61000), null);
 });

@@ -210,7 +210,9 @@ const handlers = {
     require('./Towers').place(room, playerId, entity, card, now, entity.towerVariant);
   },
 
-  oi_ojo() {},
+  oi_ojo({ room, playerId, entity, now }) {
+    require('./Oi').use(room, playerId, entity, now);
+  },
 
   tigermark({ room, playerId, entity, card, now }) {
     const t = card.tiger;
