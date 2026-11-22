@@ -1156,20 +1156,34 @@ function Mat({ reg, color, side }) {
   return <meshBasicMaterial ref={reg} color={color} transparent depthWrite={false} side={side} />;
 }
 
-function Ring({ life, color, y = 0.1, r0 = 0.2, r1 = 3, flat = true, spin = 0, dur }) {
-  const ref = useRef();
+const SHARD_N = 14;
+
+function Ring({ life, color, y = 0.1, r0 = 0.2, r1 = 3, flat = true, spin = 0 }) {
+  const shards = useRef([]);
   useFrame(() => {
-    if (!ref.current) return;
     const t = life.t();
-    const sc = r0 + (r1 - r0) * t;
-    ref.current.scale.set(sc, sc, sc);
-    ref.current.rotation.z = spin * t;
+    const rad = r0 + (r1 - r0) * t;
+    const rot = spin * t * 0.35;
+    for (let i = 0; i < SHARD_N; i++) {
+      const m = shards.current[i];
+      if (!m) continue;
+      const a = (i / SHARD_N) * Math.PI * 2 + rot;
+      const reach = rad * (i % 2 ? 1 : 0.82);
+      const len = Math.max(0.1, 0.16 + 0.12 * Math.sqrt(Math.max(r0, r1))) * (i % 2 ? 1.25 : 0.8) * (1 - 0.55 * t);
+      m.position.set(Math.cos(a) * reach, Math.sin(a) * reach, 0);
+      m.rotation.z = a - Math.PI / 2;
+      m.scale.set(1, len, 1);
+    }
   });
   return (
-    <mesh ref={ref} position={[0, y, 0]} rotation={flat ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}>
-      <ringGeometry args={[0.9, 1, 40]} />
-      <Mat reg={life.reg} color={color} side={DoubleSide} />
-    </mesh>
+    <group position={[0, y, 0]} rotation={flat ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}>
+      {Array.from({ length: SHARD_N }, (_, i) => (
+        <mesh key={i} ref={(el) => { shards.current[i] = el; }}>
+          <planeGeometry args={[0.07, 1]} />
+          <Mat reg={life.reg} color={color} side={DoubleSide} />
+        </mesh>
+      ))}
+    </group>
   );
 }
 
