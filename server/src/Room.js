@@ -2397,6 +2397,44 @@ class Room {
         }
       }
     }
+    this.separateBodies(now, patPlatforms, curPlatforms);
+  }
+
+  separateBodies(now, patPlatforms, curPlatforms) {
+    const list = [];
+    for (const [id, e] of Object.entries(this.gameState.entities)) {
+      if (!e.input || e.corpse || e.gone || e.down) continue;
+      const patient = this.gameState.patients[id];
+      if (patient && patient.status !== 'alive') continue;
+      if (e.dashUntil > now || e.tigerLeap || e.oiStep > now || Status.active(e, 'ragdoll', now)) continue;
+      list.push([id, e]);
+    }
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const [ida, a] = list[i];
+        const [idb, b] = list[j];
+        const ea = Hitbox.extentOf(a);
+        const eb = Hitbox.extentOf(b);
+        if (Math.abs((a.y || 0) - (b.y || 0)) >= Math.min(ea.height, eb.height)) continue;
+        const reach = ea.half + eb.half;
+        const dx = b.x - a.x;
+        const dz = b.z - a.z;
+        const ox = reach - Math.abs(dx);
+        const oz = reach - Math.abs(dz);
+        if (ox <= 0.02 || oz <= 0.02) continue;
+        let mx = 0;
+        let mz = 0;
+        if (ox < oz) mx = Math.min(0.12, ox / 2) * (dx === 0 ? (i % 2 ? 1 : -1) : Math.sign(dx));
+        else mz = Math.min(0.12, oz / 2) * (dz === 0 ? (i % 2 ? 1 : -1) : Math.sign(dz));
+        const half = this.gameState.area ? this.gameState.area.halfSize : Infinity;
+        for (const [id, e, k] of [[ida, a, -1], [idb, b, 1]]) {
+          const plats = this.players.get(id)?.isAsymRole ? curPlatforms : patPlatforms;
+          const nx = Math.max(-half, Math.min(half, e.x + mx * k));
+          const nz = Math.max(-half, Math.min(half, e.z + mz * k));
+          if (!blockedAt(plats, nx, nz, e.y || 0, STEP_UP)) { e.x = nx; e.z = nz; }
+        }
+      }
+    }
   }
 
   applyPlayerInput(playerId, input) {

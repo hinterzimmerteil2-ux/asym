@@ -2796,6 +2796,13 @@ test('Panel de host: velocidad, salto, curar, Flojera y velocidad del tiempo', (
   assert.strictEqual(room.gameState.timeScale, 10);
 });
 
+test('Los cuerpos no se quedan en la misma posición', () => {
+  const { room, e, step } = setup();
+  e.a.x = 5; e.a.z = 5; e.b.x = 5; e.b.z = 5; e.a.y = 0; e.b.y = 0;
+  step(20);
+  assert.ok(Math.max(Math.abs(e.a.x - e.b.x), Math.abs(e.a.z - e.b.z)) >= 0.7, 'separados');
+});
+
 test('Acelerador: el reloj del juego avanza al ritmo elegido y la vida solo en parte', () => {
   const { room } = setup();
   room.gameState.timeScale = 3;

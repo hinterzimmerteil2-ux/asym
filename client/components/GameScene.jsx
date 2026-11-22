@@ -144,7 +144,7 @@ function HeldItem({ held }) {
       group.scale.setScalar(Math.max(0.01, (0.7 + 0.8 * easeOut(t)) * (1 - t * 0.6)));
     } else if (held.anim === 'point') {
       const go = t < 0.4 ? 0 : (t - 0.4) / 0.6;
-      group.position.set(0.5, 1.15, 0.5 + 2.4 * go);
+      group.position.set(0.28, 1.15, 0.5 + 2.4 * go);
       group.rotation.set(0, 0, go * 6);
       group.children[0].position.set(0, 0, 0);
       group.scale.setScalar(Math.max(0.01, 1.0 * (1 - go * 0.7)));
@@ -182,7 +182,7 @@ function HeldItem({ held }) {
     } else if (held.anim === 'throw') {
       const wind = Math.min(1, t / 0.3);
       const fly = t < 0.3 ? 0 : (t - 0.3) / 0.7;
-      group.position.set(0.5, 1.2 + 0.6 * wind - 1.0 * fly + Math.sin(fly * Math.PI) * 0.8, 0.2 - 0.3 * wind + fly * 3);
+      group.position.set(0.28, 1.2 + 0.6 * wind - 1.0 * fly + Math.sin(fly * Math.PI) * 0.8, 0.2 - 0.3 * wind + fly * 3);
       group.rotation.set(fly * 9, 0, 0);
       group.children[0].position.set(0, 0, 0);
       group.scale.setScalar(1.2);
@@ -229,10 +229,10 @@ function StateHeld({ holdRef }) {
         const emerge = easeOut(Math.min(1, el / 700));
         const charge = ready ? 1 : Math.min(1, el / 5000);
         if (ready) {
-          claw.current.position.set(0.54, 2.0, 0.5);
+          claw.current.position.set(0.28, 2.0, 0.5);
           claw.current.rotation.set(-1.2, 0, 0);
         } else {
-          claw.current.position.set(0.54, 1.3 + Math.sin(T * 3) * 0.015, 0.66 * emerge);
+          claw.current.position.set(0.28, 1.3 + Math.sin(T * 3) * 0.015, 0.66 * emerge);
           claw.current.rotation.set(0, 0, 0);
         }
         claw.current.scale.setScalar(Math.max(0.01, emerge * (ready ? 1.25 : 1)));
@@ -1077,7 +1077,7 @@ function RifleBayonet({ live }) {
     if (glow.current) glow.current.scale.setScalar(live ? 1 + Math.sin(Date.now() / 40) * 0.2 : 0.01);
   });
   return (
-    <group position={[0.5, 1.1, 0.35]}>
+    <group position={[0.28, 1.1, 0.35]}>
       <mesh position={[0, -0.02, -0.28]}><boxGeometry args={[0.1, 0.17, 0.5]} /><meshStandardMaterial color="#6b4423" roughness={0.8} /></mesh>
       <mesh position={[0, 0.02, 0.08]}><boxGeometry args={[0.11, 0.13, 0.36]} /><meshStandardMaterial color="#2c2f3a" metalness={0.6} roughness={0.4} /></mesh>
       <mesh position={[0, 0.04, 0.62]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.028, 0.028, 0.9, 10]} /><meshStandardMaterial color="#3a3f4e" metalness={0.7} roughness={0.35} /></mesh>
@@ -1747,35 +1747,35 @@ const PlayerBody = memo(function PlayerBody({ bodyRef, headRef, rig, lod, color,
         {psd && <group position={[0.9, 0.1, -1.1]}><StarSpirit act={psa || 0} ready={Boolean(psr)} form={Boolean(psf)} /></group>}
         {wpn && <RifleBayonet live />}
         {bar && <ShieldDisc />}
-        <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
-        <group ref={headRef} position={[0, 1.62, 0]}>
-          <mesh><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
+        <mesh position={[0, 1.09, 0]}><boxGeometry args={[0.4, 0.74, 0.3]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+        <group ref={headRef} position={[0, 1.6, 0]}>
+          <mesh><cylinderGeometry args={[0.18, 0.18, 0.34, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
           <group ref={(el) => { lod.current[0] = el; }}>
           <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
           <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
           <mesh position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
           </group>
-          <mesh position={[0, 0.2, -0.01]}><boxGeometry args={[0.4, 0.1, 0.4]} /><meshStandardMaterial color="#2a2320" roughness={0.9} /></mesh>
+          <mesh position={[0, 0.16, -0.01]}><boxGeometry args={[0.38, 0.1, 0.38]} /><meshStandardMaterial color="#2a2320" roughness={0.9} /></mesh>
           <group ref={(el) => { lod.current[1] = el; }}>
-          <mesh position={[-0.07, 0.115, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
-          <mesh position={[0.07, 0.115, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
+          <mesh position={[-0.07, 0.075, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
+          <mesh position={[0.07, 0.075, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
           </group>
           {wig && <WigPieces />}
           <group ref={(el) => { lod.current[7] = el; }}><CosmeticPieces slot="head" cosmetics={cosmetics} /></group>
         </group>
         <group ref={(el) => { lod.current[2] = el; }}>
-        <mesh position={[0, 0.78, 0]}><boxGeometry args={[0.76, 0.08, 0.4]} /><meshStandardMaterial color="#1b1d29" roughness={0.8} /></mesh>
-        <mesh position={[0, 1.4, 0.19]}><boxGeometry args={[0.3, 0.06, 0.02]} /><meshStandardMaterial color="#e4c9a8" roughness={0.7} /></mesh>
+        <mesh position={[0, 0.78, 0]}><boxGeometry args={[0.42, 0.08, 0.32]} /><meshStandardMaterial color="#1b1d29" roughness={0.8} /></mesh>
+        <mesh position={[0, 1.38, 0.152]}><boxGeometry args={[0.22, 0.06, 0.01]} /><meshStandardMaterial color="#e4c9a8" roughness={0.7} /></mesh>
         </group>
         <group ref={(el) => { lod.current[8] = el; }}>
           <CosmeticPieces slot="torso" cosmetics={cosmetics} />
           <CosmeticPieces slot="back" cosmetics={cosmetics} />
         </group>
-        {[['armL', -0.54, 1.44, SKIN], ['armR', 0.54, 1.44, SKIN], ['legL', -0.18, 0.72, '#3a3d52'], ['legR', 0.18, 0.72, '#3a3d52']].map(([key, px, py, col]) => (
+        {[['armL', -0.275, 1.44, SKIN], ['armR', 0.275, 1.44, SKIN], ['legL', -0.105, 0.72, '#3a3d52'], ['legR', 0.105, 0.72, '#3a3d52']].map(([key, px, py, col]) => (
           <group key={key} ref={(el) => { rig.current[key] = el; }} position={[px, py, 0]}>
-            <mesh position={[0, -0.36, 0]}><boxGeometry args={[0.36, 0.72, 0.36]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
-            {key.startsWith('leg') && <mesh ref={(el) => { lod.current[3 + (key === 'legL' ? 0 : 1)] = el; }} position={[0, -0.68, 0.05]}><boxGeometry args={[0.4, 0.14, 0.5]} /><meshStandardMaterial color="#1b1d29" roughness={0.7} /></mesh>}
-            {key.startsWith('arm') && <mesh ref={(el) => { lod.current[5 + (key === 'armL' ? 0 : 1)] = el; }} position={[0, -0.7, 0]}><boxGeometry args={[0.38, 0.1, 0.38]} /><meshStandardMaterial color="#e4c9a8" roughness={0.6} /></mesh>}
+            <mesh position={[0, key.startsWith('leg') ? -0.35 : -0.355, 0]}><boxGeometry args={key.startsWith('leg') ? [0.19, 0.74, 0.24] : [0.17, 0.73, 0.2]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
+            {key.startsWith('leg') && <mesh ref={(el) => { lod.current[3 + (key === 'legL' ? 0 : 1)] = el; }} position={[0, -0.65, 0.07]}><boxGeometry args={[0.21, 0.14, 0.46]} /><meshStandardMaterial color="#1b1d29" roughness={0.7} /></mesh>}
+            {key.startsWith('arm') && <mesh ref={(el) => { lod.current[5 + (key === 'armL' ? 0 : 1)] = el; }} position={[0, -0.69, 0]}><boxGeometry args={[0.19, 0.08, 0.22]} /><meshStandardMaterial color="#e4c9a8" roughness={0.6} /></mesh>}
             {key === 'armR' && isCurator && <HerbStaff />}
           </group>
         ))}
