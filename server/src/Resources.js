@@ -21,7 +21,9 @@ function fromCards(entity, now, room, pid) {
   if (hand.some((sl) => sl && sl.chosen === 'oi_ojo')) {
     const ov = require('./Oi').view(entity, now);
     out.push(bar('oi', 'Ojos de Precognición', ov.eyes, 30, '#8fe3d0', {
-      tags: ov.eyes <= 0 ? ['Sin ojos'] : (ov.on ? ['Abierto'] : ['Cerrado']),
+      icon: ov.eyes <= 0 ? '/icons/oi_sobrecalentado.png' : '/icons/oi_ojo.png',
+      extra: ov.eyes > 0 ? { label: 'Esquive', value: ov.cost } : null,
+      tags: ov.eyes <= 0 ? [{ text: 'Sin ojos', color: '#ff8a8a' }] : [ov.on ? { text: 'Abierto', color: '#8fe3d0' } : { text: 'Cerrado', color: '#9aa3aa' }],
       timer: ov.timer !== null ? { pct: ov.timer, label: 'Reabriendo' } : null,
       empty: ov.eyes <= 0,
     }));

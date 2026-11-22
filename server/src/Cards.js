@@ -142,7 +142,7 @@ const CARDS = {
     corrupt: true,
     keywords: ['escapista'],
     displayName: 'Oi, [][][][][]!',
-    description: 'Un ojo metálico que ve el golpe antes de que llegue. Al usarla se abre o se cierra (semi-pasiva). Abierta, cuando un ataque del Curador va a darte, esquivas por poco hacia donde no te afecte, cada vez que haga falta, y cada esquiva te cuesta 4 de Flojera (si no tienes, no esquivas). Cada golpe que te da aun así, hace que pierdas 5 Ojos de Precognición (empiezas con 30; recuperas 1 cada 3 s sin golpes ni esquivas). Sin Ojos no puedes usarla, tu gasto de Flojera es el doble y esperas 28 s para volver a 30.',
+    description: 'Un ojo metálico que ve el golpe antes de que llegue. Al usarla se abre o se cierra (semi-pasiva). Abierta, cuando un ataque del Curador va a darte, esquivas por poco hacia donde no te afecte, cada vez que haga falta. Cuantos más Ojos de Precognición tengas, mejor elige la esquiva (se inclina hacia donde tú quieres ir) y menos Flojera cuesta (de 3 con 30 ojos hasta 9 con casi ninguno); si no tienes Flojera, no esquivas. Cada golpe que te da aun así, hace que pierdas 5 Ojos (empiezas con 30; recuperas 1 cada 9 s sin golpes ni esquivas). Sin Ojos no puedes usarla, tu gasto de Flojera es el doble y esperas 28 s para volver a 30.',
     rarity: 'rare',
     cooldownMs: 1000,
     oi: { eyes: 30 },

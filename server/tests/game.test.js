@@ -2839,10 +2839,10 @@ test('Oi, [][][][][]!: esquiva sola los golpes, pierde ojos si te pegan y se ago
   const hp = p.a.hp;
   room.tickHitWindows(now);
   assert.strictEqual(p.a.hp, hp);
-  assert.strictEqual(e.a.flojera, 46);
+  assert.strictEqual(e.a.flojera, 47);
   assert.ok(e.a.dashUntil > now);
   assert.strictEqual(e.a.oi.eyes, 30);
-  e.a.flojera = 2;
+  e.a.flojera = 0;
   e.a.x = 0; e.a.z = 0.8; e.a.dashUntil = 0;
   room.hitWindows.push({ kind: 'm1', playerId: 'c', endsAt: now + 300 });
   room.tickHitWindows(now);
@@ -2860,4 +2860,23 @@ test('Oi, [][][][][]!: esquiva sola los golpes, pierde ojos si te pegan y se ago
   Oi.tick(room, now + 28500);
   assert.strictEqual(e.a.oi.eyes, 30);
   assert.strictEqual(Oi.drainMult(e.a), 1);
+});
+
+
+test('Oi: esquiva aunque el golpe llegue después de abrirse la ventana', () => {
+  const { room, e, p } = setup();
+  give(e.a, 0, 'oi_ojo');
+  e.c.x = 0; e.c.z = 0; e.c.faceX = 0; e.c.faceZ = 1;
+  e.a.x = 6; e.a.z = 0.8; e.a.flojera = 40;
+  room.useCard('a', 0);
+  const now = Date.now();
+  room.hitWindows.push({ kind: 'm1', playerId: 'c', endsAt: now + 260 });
+  room.tickHitWindows(now);
+  assert.strictEqual(e.a.oi.eyes, 30);
+  e.a.x = 0; e.a.z = 0.8;
+  const hp = p.a.hp;
+  room.tickHitWindows(now + 100);
+  assert.strictEqual(p.a.hp, hp);
+  assert.strictEqual(e.a.oi.eyes, 30);
+  assert.ok(e.a.flojera < 40);
 });

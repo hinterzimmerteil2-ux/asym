@@ -6,6 +6,7 @@ function Row({ r }) {
   const cells = r.kind === 'pips' && r.max <= 16;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: empty ? '#ff8a8a' : '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+      {r.icon && <img src={r.icon} alt="" width={18} height={18} style={{ imageRendering: 'pixelated' }} />}
       {name}
       <span style={{ fontVariantNumeric: 'tabular-nums' }}>{r.cur}/{r.max}</span>
       {cells ? (

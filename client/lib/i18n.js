@@ -889,13 +889,14 @@ const PAIRS = [
 ["Láser","Laser"],
 ["Rifle","Rifle"],
 ["niche tower defence game","niche tower defence game"],
-["Un ojo metálico que ve el golpe antes de que llegue. Al usarla se abre o se cierra (semi-pasiva). Abierta, cuando un ataque del Curador va a darte, esquivas por poco hacia donde no te afecte, cada vez que haga falta, y cada esquiva te cuesta 4 de Flojera (si no tienes, no esquivas). Cada golpe que te da aun así, hace que pierdas 5 Ojos de Precognición (empiezas con 30; recuperas 1 cada 3 s sin golpes ni esquivas). Sin Ojos no puedes usarla, tu gasto de Flojera es el doble y esperas 28 s para volver a 30.","A metal eye that sees the blow before it lands. When used it opens or closes (semi-passive). Open, when a Curator attack is about to hit you, you narrowly dodge to where it cannot affect you, as many times as needed, and each dodge costs 4 Laziness (without it, you do not dodge). Every blow that still hits you makes you lose 5 Eyes of Precognition (you start with 30; you recover 1 every 3 s without hits or dodges). Without Eyes you cannot use it, your Laziness spending is doubled and you wait 28 s to return to 30."],
+["Un ojo metálico que ve el golpe antes de que llegue. Al usarla se abre o se cierra (semi-pasiva). Abierta, cuando un ataque del Curador va a darte, esquivas por poco hacia donde no te afecte, cada vez que haga falta. Cuantos más Ojos de Precognición tengas, mejor elige la esquiva (se inclina hacia donde tú quieres ir) y menos Flojera cuesta (de 3 con 30 ojos hasta 9 con casi ninguno); si no tienes Flojera, no esquivas. Cada golpe que te da aun así, hace que pierdas 5 Ojos (empiezas con 30; recuperas 1 cada 9 s sin golpes ni esquivas). Sin Ojos no puedes usarla, tu gasto de Flojera es el doble y esperas 28 s para volver a 30.","A metal eye that sees the blow before it lands. When used it opens or closes (semi-passive). Open, when a Curator attack is about to hit you, you narrowly dodge to where it cannot affect you, as many times as needed. The more Eyes of Precognition you have, the better the dodge is chosen (it leans toward where you want to go) and the less Laziness it costs (from 3 with 30 eyes up to 9 with almost none); if you have no Laziness, you do not dodge. Every blow that still hits you makes you lose 5 Eyes (you start with 30; you recover 1 every 9 s without hits or dodges). Without Eyes you cannot use it, your Laziness spending is doubled and you wait 28 s to return to 30."],
 ["Ojos de Precognición","Eyes of Precognition"],
 ["Sin ojos","No eyes"],
 ["Abierto","Open"],
 ["Cerrado","Closed"],
 ["Reabriendo","Reopening"],
 ["Sin Ojos de Precognición","No Eyes of Precognition"],
+["Esquive","Dodge"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };

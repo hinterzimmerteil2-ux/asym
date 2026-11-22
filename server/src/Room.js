@@ -2463,6 +2463,10 @@ class Room {
         if (!targetEntity) continue;
         const dist = distanceBetween(curadorEntity, targetEntity);
         if (dist > skill.radius) continue;
+        if (skill.type === 'pulse') {
+          if (Oi.evadePulse(this, curadorEntity, targetPlayerId, targetEntity, skill.radius, now)) continue;
+          Oi.onHit(this, targetPlayerId, now);
+        }
 
         if (skill.type === 'pulse') {
           patient.hp = Math.min(patient.maxHp, patient.hp + this.scaleCure(targetEntity, skill.cureAmount * (this.players.get(playerId)?.curatorMult || 1), now));
@@ -2708,13 +2712,13 @@ class Room {
           else if (win.kind === 'melee') { this.healSpears(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now); this.healBlocks(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now); }
           else if (win.kind === 'area') { this.healSpears(owner, 0, win.skill.radius || 1, true, now); this.healBlocks(owner, 0, win.skill.radius || 1, true, now); }
         }
-        if (this.players.get(win.playerId)?.isAsymRole && (win.kind === 'm1' || win.kind === 'melee' || win.kind === 'area')) Oi.predict(this, win, owner, now);
         if (this.bossActive && !this.players.get(win.playerId)?.isBoss) Boss.hurt(this, owner, win, now);
         if (win.kind === 'm1') this.hitPlanks(owner, M1_REACH, M1_RADIUS, false, now);
         else if (win.kind === 'melee') this.hitPlanks(owner, win.skill.reach || 0, win.skill.radius || 0.5, false, now);
         else if (win.kind === 'area') this.hitPlanks(owner, 0, win.skill.radius || 1, true, now);
         else if (win.kind === 'card') this.hitPlanks(owner, win.card.reach || 0, win.card.hitRadius || 0.8, false, now);
       }
+      if (this.players.get(win.playerId)?.isAsymRole && (win.kind === 'm1' || win.kind === 'melee' || win.kind === 'area')) Oi.predict(this, win, owner, now);
       if (win.kind === 'm1') {
         let hitId = null;
         let hitDist = Infinity;

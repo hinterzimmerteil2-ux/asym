@@ -1,9 +1,15 @@
 const Hitbox = require('./Hitbox');
 const Status = require('./Status');
+const C = require('./Constants');
 
-const OI = { eyes: 30, refillMs: 28000, cost: 4, loss: 5, regenEvery: 3000, quietMs: 5000, stepMs: 200, maxStep: 7, toggleGapMs: 700, m1Reach: 1.2, m1Radius: 0.9 };
+const OI = { eyes: 30, refillMs: 28000, costMax: 9, costMin: 3, loss: 5, regenEvery: 9000, bias: 3, slack: 2.5, quietMs: 5000, stepMs: 200, maxStep: 10, toggleGapMs: 700 };
 
 const ANGLES = [90, -90, 45, -45, 135, -135, 0, 180].map((a) => (a * Math.PI) / 180);
+
+function costFor(eyes) {
+  const f = Math.max(0, Math.min(1, eyes / OI.eyes));
+  return Math.round((OI.costMin + (OI.costMax - OI.costMin) * (1 - f)) * 10) / 10;
+}
 
 function has(entity) {
   return (entity.hand || []).some((sl) => sl && sl.chosen === 'oi_ojo');
@@ -41,7 +47,7 @@ function toggle(room, playerId, entity, now) {
 }
 
 function strike(room, win, owner, target) {
-  if (win.kind === 'm1') return Hitbox.handHit(owner, target, OI.m1Reach, OI.m1Radius);
+  if (win.kind === 'm1') return Hitbox.handHit(owner, target, C.M1_REACH, C.M1_RADIUS);
   if (win.kind === 'melee') return Hitbox.handHit(owner, target, win.skill.reach || 0, win.skill.radius);
   if (win.kind === 'area') return Hitbox.distanceBetween(owner, target) <= win.skill.radius;
   return false;
@@ -59,8 +65,14 @@ function pathOk(platforms, e, x, z) {
   return true;
 }
 
-function safeSpot(room, win, owner, te) {
+function landOk(platforms, e, x, z) {
+  const y = e.y || 0;
+  return !Hitbox.blockedAt(platforms, x, z, y) && Hitbox.groundAt(platforms, x, z, y) >= y - 2.5;
+}
+
+function safeSpot(room, win, owner, te, eyes, relaxed) {
   const platforms = room.allPlatforms();
+  const f = Math.max(0, Math.min(1, eyes / OI.eyes));
   let ax = te.x - owner.x;
   let az = te.z - owner.z;
   const al = Math.hypot(ax, az);
@@ -71,42 +83,80 @@ function safeSpot(room, win, owner, te) {
     ax /= al;
     az /= al;
   }
+  let px = ax;
+  let pz = az;
+  const inp = te.input;
+  if (inp && Math.hypot(inp.moveX || 0, inp.moveZ || 0) > 0.3) {
+    const il = Math.hypot(inp.moveX, inp.moveZ);
+    px = inp.moveX / il;
+    pz = inp.moveZ / il;
+  }
+  let best = null;
+  let bestScore = -Infinity;
+  let dMin = null;
   for (let d = 1; d <= OI.maxStep; d += 0.5) {
+    if (dMin !== null && d > dMin + OI.slack * f) break;
     for (const a of ANGLES) {
       const c = Math.cos(a);
-      const s = Math.sin(a);
-      const dx = ax * c - az * s;
-      const dz = ax * s + az * c;
+      const sn = Math.sin(a);
+      const dx = ax * c - az * sn;
+      const dz = ax * sn + az * c;
       const x = te.x + dx * d;
       const z = te.z + dz * d;
       if (strike(room, win, owner, { ...te, x, z })) continue;
-      if (!pathOk(platforms, te, x, z)) continue;
-      return { x, z, dx, dz, d };
+      if (relaxed ? !landOk(platforms, te, x, z) : !pathOk(platforms, te, x, z)) continue;
+      if (dMin === null) dMin = d;
+      const score = (dx * px + dz * pz) * f * OI.bias - (d - dMin);
+      if (score > bestScore) {
+        bestScore = score;
+        best = { x, z, dx, dz, d };
+      }
     }
   }
-  return null;
+  return best;
 }
 
-function predict(room, win, owner, now) {
-  if (!win.dodge) win.dodge = new Set();
-  for (const [id, p] of room.players) {
-    if (p.isAsymRole || p.isBoss || room.gameState.patients[id]?.status !== 'alive') continue;
-    const e = room.gameState.entities[id];
-    if (!e || !active(e) || !strike(room, win, owner, e)) continue;
-    if (Status.blocksMove(e, now) || e.towerSeat || e.tigerLeap || e.flojera < OI.cost) continue;
-    const spot = safeSpot(room, win, owner, e);
-    if (!spot) continue;
-    const s = state(e);
-    e.flojera = Math.max(0, e.flojera - OI.cost);
+function dodge(room, win, owner, id, e, now) {
+  const s0 = state(e);
+  if (Status.blocksMove(e, now) || e.towerSeat || e.tigerLeap || e.flojera <= 0) return false;
+  let spot = safeSpot(room, win, owner, e, s0.eyes, false);
+  let blink = false;
+  if (!spot) {
+    spot = safeSpot(room, win, owner, e, s0.eyes, true);
+    blink = true;
+  }
+  if (!spot) return false;
+  e.flojera = Math.max(0, e.flojera - costFor(s0.eyes));
+  if (blink) {
+    e.x = spot.x;
+    e.z = spot.z;
+  } else {
     e.dashUntil = now + OI.stepMs;
     e.dashVX = (spot.dx * spot.d * 1000) / OI.stepMs;
     e.dashVZ = (spot.dz * spot.d * 1000) / OI.stepMs;
     e.dashExhausted = false;
     e.oiStep = now + OI.stepMs;
-    s.lastUse = now;
-    win.dodge.add(id);
-    room.broadcast('oi_fx', { kind: 'step', playerId: id, x: e.x, y: e.y || 0, z: e.z, tx: spot.x, tz: spot.z });
   }
+  s0.lastUse = now;
+  room.broadcast('oi_fx', { kind: 'step', playerId: id, x: e.x, y: e.y || 0, z: e.z, tx: spot.x, tz: spot.z });
+  return true;
+}
+
+function predict(room, win, owner, now) {
+  if (!win.dodge) win.dodge = new Set();
+  for (const [id, p] of room.players) {
+    if (p.isAsymRole || p.isBoss || win.dodge.has(id) || room.gameState.patients[id]?.status !== 'alive') continue;
+    const e = room.gameState.entities[id];
+    if (!e || !active(e) || !strike(room, win, owner, e)) continue;
+    if (dodge(room, win, owner, id, e, now)) win.dodge.add(id);
+  }
+}
+
+function evadePulse(room, owner, id, e, radius, now) {
+  if (!active(e)) return false;
+  const win = { kind: 'area', skill: { radius } };
+  if (!strike(room, win, owner, e)) return false;
+  return dodge(room, win, owner, id, e, now);
 }
 
 function onHit(room, id, now) {
@@ -144,8 +194,9 @@ function view(entity, now) {
   return {
     eyes: s.eyes,
     on: s.on,
+    cost: costFor(s.eyes),
     timer: s.eyes <= 0 && s.outAt ? Math.max(0, Math.min(1, 1 - (s.outAt - now) / OI.refillMs)) : null,
   };
 }
 
-module.exports = { OI, has, state, depleted, active, drainMult, toggle, predict, onHit, tick, view };
+module.exports = { OI, costFor, evadePulse, has, state, depleted, active, drainMult, toggle, predict, onHit, tick, view };
