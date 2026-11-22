@@ -2,8 +2,8 @@ const Status = require('./Status');
 const Hitbox = require('./Hitbox');
 
 const TW = {
-  laser: { need: 4, buildMs: 65000, aimSpeed: 6, range: 40, chargeMs: 1300, cdMs: 22000, radius: 4.5, stunMs: 11000, bossStunMs: 3000, dmg: 70, bossDmg: 1400000 },
-  rifle: { need: 2, buildMs: 14000, aimSpeed: 45, range: 32, width: 0.9, ammo: 6, reloadMs: 2000, gapMs: 1600, stunMs: 900, flojera: 18 },
+  laser: { need: 4, buildMs: 65000, aimSpeed: 6, pitchSpeed: 0.6, range: 40, speed: 26, contact: 1.5, chargeMs: 1300, cdMs: 22000, radius: 4.5, stunMs: 11000, bossStunMs: 3000, dmg: 70, bossDmg: 1400000 },
+  rifle: { need: 2, buildMs: 14000, aimSpeed: 45, pitchSpeed: 4, range: 32, width: 0.9, ammo: 6, reloadMs: 2000, gapMs: 1600, stunMs: 900, flojera: 18 },
   hp0: 40,
   hpMax: 280,
   regenDelay: 5000,
@@ -14,6 +14,8 @@ const TW = {
   bossDps: 40,
   bossRadius: 5,
   placeDist: 3,
+  muzzle: 1.4,
+  pitchMax: 0.75,
 };
 
 let seq = 1;
@@ -40,10 +42,11 @@ function place(room, playerId, entity, card, now, variant) {
   const x = entity.x + (fx / len) * TW.placeDist;
   const z = entity.z + (fz / len) * TW.placeDist;
   const y = Hitbox.groundAt(room.allPlatforms(), x, z, entity.y || 0, 3);
+  const y0 = Number.isFinite(y) ? y : entity.y || 0;
   const t = {
     id: `tw${seq++}`, type, owner: playerId, x, y: Number.isFinite(y) ? y : entity.y || 0, z,
     hp: TW.hp0, hpMax: TW.hp0, mods: 0, need: TW[type].need, prog: 0, started: false,
-    seat: null, carrier: null, tx: x, tz: z + 6, ax: x, az: z + 6, charging: 0, nextShot: 0,
+    seat: null, carrier: null, tx: x, tz: z + 6, ax: x, az: z + 6, pitch: 0, tpitch: 0, ay: y0 + TW.muzzle, proj: null, charging: 0, nextShot: 0,
     ammo: type === 'rifle' ? TW.rifle.ammo : 0, reloadUntil: 0, lastHit: now, last: now,
   };
   list(room).push(t);
@@ -142,11 +145,45 @@ function drop(room, playerId, entity) {
   t.last = Date.now();
 }
 
-function aim(room, playerId, x, z) {
+function aim(room, playerId, x, z, pitch) {
   const t = list(room).find((tw) => tw.seat === playerId);
-  if (!t || !Number.isFinite(x) || !Number.isFinite(z)) return;
-  t.tx = x;
-  t.tz = z;
+  if (!t) return;
+  if (Number.isFinite(x) && Number.isFinite(z)) {
+    t.tx = x;
+    t.tz = z;
+  }
+  if (Number.isFinite(pitch)) t.tpitch = Math.max(-TW.pitchMax, Math.min(TW.pitchMax, pitch));
+}
+
+function dirOf(t) {
+  let hx = t.ax - t.x;
+  let hz = t.az - t.z;
+  const hd = Math.hypot(hx, hz);
+  if (hd < 0.001) {
+    hx = 0;
+    hz = 1;
+  } else {
+    hx /= hd;
+    hz /= hd;
+  }
+  const dy = Math.tan(t.pitch);
+  const n = Math.hypot(1, dy);
+  return { x: hx / n, y: dy / n, z: hz / n };
+}
+
+function solidAt(platforms, x, y, z) {
+  if (y <= Hitbox.baseAt(platforms, x, z) + 0.02) return true;
+  for (const p of platforms) {
+    if (p.oneway || p.kind === 'pit') continue;
+    const top = Hitbox.platformTop(p, x, z);
+    if (top !== null && y < top && y >= (p.y0 || 0) - 0.05) return true;
+  }
+  return false;
+}
+
+function center(f) {
+  const sz = Math.max(1, f.e.size || 1);
+  return { x: f.e.x, y: (f.e.y || 0) + 0.9 * sz, z: f.e.z, r: 1.4 * sz };
 }
 
 function damage(room, t, amount, now) {
@@ -163,14 +200,15 @@ function damage(room, t, amount, now) {
   }
 }
 
-function blast(room, t, now) {
+function blast(room, t, now, pos, direct) {
   const cfg = TW.laser;
   const owner = t.owner;
-  const boxes = [{ x: t.ax, z: t.az, y: t.y + 1, half: cfg.radius }];
+  const boxes = [{ x: pos.x, z: pos.z, y: pos.y, half: cfg.radius }];
   room.broadcast('hit_fx', { playerId: owner, boxes });
   let hit = false;
   for (const f of enemies(room)) {
-    if (Math.hypot(f.e.x - t.ax, f.e.z - t.az) > cfg.radius || Math.abs((f.e.y || 0) - t.y) > 5) continue;
+    const c = center(f);
+    if (Math.hypot(c.x - pos.x, c.y - pos.y, c.z - pos.z) > cfg.radius + (f.boss ? c.r : 0)) continue;
     hit = true;
     room.stun(f.id, f.e, f.boss ? cfg.bossStunMs : cfg.stunMs, now, 0);
     if (f.boss) require('./Boss').tntHit(room, cfg.bossDmg);
@@ -181,38 +219,75 @@ function blast(room, t, now) {
       room.checkGameEndConditions();
     }
   }
-  room.broadcast('tower_fx', { kind: 'blast', towerId: t.id, x: t.ax, y: t.y, z: t.az, r: cfg.radius, hit });
+  room.broadcast('tower_fx', { kind: 'blast', towerId: t.id, x: pos.x, y: pos.y, z: pos.z, r: cfg.radius, hit, direct: Boolean(direct) });
+}
+
+function launch(room, t, now) {
+  const d = dirOf(t);
+  t.proj = { x: t.x + d.x * 1.2, y: t.y + TW.muzzle + d.y * 1.2, z: t.z + d.z * 1.2, dx: d.x, dy: d.y, dz: d.z, dist: 1.2 };
+}
+
+function flyProjectile(room, t, dt, now) {
+  const cfg = TW.laser;
+  const pr = t.proj;
+  const platforms = room.allPlatforms();
+  let left = cfg.speed * dt;
+  while (left > 0 && t.proj) {
+    const step = Math.min(0.4, left);
+    left -= step;
+    pr.x += pr.dx * step;
+    pr.y += pr.dy * step;
+    pr.z += pr.dz * step;
+    pr.dist += step;
+    let why = null;
+    for (const f of enemies(room)) {
+      const c = center(f);
+      if (Math.hypot(c.x - pr.x, c.y - pr.y, c.z - pr.z) <= cfg.contact + c.r) why = 'direct';
+    }
+    if (!why && solidAt(platforms, pr.x, pr.y, pr.z)) why = 'wall';
+    if (!why && pr.dist >= cfg.range) why = 'range';
+    if (why) {
+      t.proj = null;
+      blast(room, t, now, { x: pr.x, y: pr.y, z: pr.z }, why === 'direct');
+    }
+  }
 }
 
 function shoot(room, t, now) {
   const cfg = TW.rifle;
-  const dx = t.ax - t.x;
-  const dz = t.az - t.z;
-  const len = Math.hypot(dx, dz) || 1;
-  const nx = dx / len;
-  const nz = dz / len;
-  let hit = false;
+  const d = dirOf(t);
+  const m = { x: t.x, y: t.y + TW.muzzle, z: t.z };
+  const platforms = room.allPlatforms();
   let endLen = cfg.range;
+  for (let l = 0.6; l <= cfg.range; l += 0.4) {
+    if (solidAt(platforms, m.x + d.x * l, m.y + d.y * l, m.z + d.z * l)) {
+      endLen = l;
+      break;
+    }
+  }
+  let hit = false;
   for (const f of enemies(room)) {
-    const rx = f.e.x - t.x;
-    const rz = f.e.z - t.z;
-    const along = rx * nx + rz * nz;
-    if (along < 0 || along > cfg.range) continue;
-    const side = Math.abs(rx * nz - rz * nx);
-    if (side > cfg.width + 0.6 || Math.abs((f.e.y || 0) - t.y) > 4) continue;
+    const c = center(f);
+    const rx = c.x - m.x;
+    const ry = c.y - m.y;
+    const rz = c.z - m.z;
+    const along = rx * d.x + ry * d.y + rz * d.z;
+    if (along < 0 || along > endLen) continue;
+    const side = Math.hypot(rx - d.x * along, ry - d.y * along, rz - d.z * along);
+    if (side > cfg.width + 0.4 + c.r * 0.5) continue;
     hit = true;
     endLen = Math.min(endLen, along);
     room.stun(f.id, f.e, cfg.stunMs, now, 0);
     if (typeof f.e.flojera === 'number') f.e.flojera = Math.max(0, f.e.flojera - cfg.flojera);
   }
-  room.broadcast('tower_fx', { kind: 'shot', towerId: t.id, x: t.x, y: t.y + 1.4, z: t.z, nx, nz, len: endLen, hit });
+  room.broadcast('tower_fx', { kind: 'shot', towerId: t.id, x: m.x, y: m.y, z: m.z, dx: d.x, dy: d.y, dz: d.z, len: endLen, hit });
 }
 
 function fire(room, playerId, now) {
   const t = list(room).find((tw) => tw.seat === playerId);
   if (!t || !complete(t)) return;
   if (t.type === 'laser') {
-    if (t.charging || now < t.nextShot) return;
+    if (t.charging || t.proj || now < t.nextShot) return;
     t.charging = now + TW.laser.chargeMs;
     t.nextShot = now + TW.laser.cdMs;
   } else {
@@ -253,6 +328,9 @@ function tick(room, now) {
         t.tz = t.z + 6;
         t.ax = t.tx;
         t.az = t.tz;
+        t.pitch = 0;
+        t.tpitch = 0;
+        t.proj = null;
         t.lastHit = now;
         continue;
       }
@@ -297,10 +375,15 @@ function tick(room, now) {
       t.ax = t.x + (ox / od) * cfg.range;
       t.az = t.z + (oz / od) * cfg.range;
     }
+    const pstep = cfg.pitchSpeed * dt;
+    const dp = t.tpitch - t.pitch;
+    t.pitch += Math.abs(dp) > pstep ? Math.sign(dp) * pstep : dp;
+    t.ay = t.y + TW.muzzle + Math.hypot(t.ax - t.x, t.az - t.z) * Math.tan(t.pitch);
     if (t.charging && now >= t.charging) {
       t.charging = 0;
-      blast(room, t, now);
+      launch(room, t, now);
     }
+    if (t.proj) flyProjectile(room, t, dt, now);
     if (t.type === 'rifle' && t.ammo <= 0 && t.reloadUntil && now >= t.reloadUntil) {
       t.ammo = cfg.ammo;
       t.reloadUntil = 0;
@@ -317,7 +400,7 @@ function view(room, now) {
   return arr.map((t) => ({
     id: t.id, type: t.type, owner: t.owner, x: t.x, y: t.y, z: t.z, hp: Math.ceil(t.hp), hpMax: Math.round(t.hpMax),
     mods: t.mods, need: t.need, prog: t.started ? Math.min(1, t.prog / (TW[t.type].buildMs / t.need)) : 0, seat: t.seat, carrier: t.carrier,
-    ax: t.ax, az: t.az, charge: t.charging ? Math.max(0, Math.min(1, 1 - (t.charging - now) / TW.laser.chargeMs)) : 0,
+    ax: t.ax, ay: t.ay, az: t.az, pitch: t.pitch, proj: t.proj ? { x: t.proj.x, y: t.proj.y, z: t.proj.z } : undefined, charge: t.charging ? Math.max(0, Math.min(1, 1 - (t.charging - now) / TW.laser.chargeMs)) : 0,
     cd: Math.max(0, t.nextShot - now), ammo: t.ammo, reload: t.reloadUntil > now ? Math.max(0, t.reloadUntil - now) : 0,
   }));
 }

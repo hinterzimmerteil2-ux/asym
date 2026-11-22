@@ -402,7 +402,7 @@ wss.on('connection', (ws, req) => {
       case MessageType.TOWER_ACTION: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room || room.phase !== 'action') return;
-        room.towerAction(playerId, msg.payload && msg.payload.op, msg.payload && msg.payload.x, msg.payload && msg.payload.z);
+        room.towerAction(playerId, msg.payload && msg.payload.op, msg.payload && msg.payload.x, msg.payload && msg.payload.z, msg.payload && msg.payload.pitch);
         break;
       }
 

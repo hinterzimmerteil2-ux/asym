@@ -1338,31 +1338,50 @@ const TOWER_IMG = { laser: { w: 2.5, h: 1.55 }, rifle: { w: 1.9, h: 2.1 } };
 function TowerBeam({ t, me }) {
   const a = useRef();
   const b = useRef();
+  const range = t.type === 'laser' ? 40 : 32;
   useFrame(() => {
     const dx = t.ax - t.x;
     const dz = t.az - t.z;
-    const len = Math.hypot(dx, dz) || 0.01;
+    const yaw = Math.atan2(dx, dz);
+    const p = t.pitch || 0;
+    const cp = Math.cos(p);
+    const sp = Math.sin(p);
     const k = 0.6 + 0.4 * Math.sin(Date.now() / 90);
     if (a.current) {
-      a.current.position.set(t.x + dx / 2, t.y + 1.2, t.z + dz / 2);
-      a.current.rotation.set(0, Math.atan2(dx, dz), 0);
-      a.current.scale.set(1, 1, len);
+      a.current.position.set(t.x + Math.sin(yaw) * cp * range / 2, t.y + 1.4 + sp * range / 2, t.z + Math.cos(yaw) * cp * range / 2);
+      a.current.rotation.set(-p, yaw, 0, 'YXZ');
+      a.current.scale.set(1, 1, range);
+      a.current.children[0].material.opacity = t.type === 'laser' ? 0.25 + 0.25 * k : 0.4;
     }
-    if (b.current) b.current.scale.setScalar(t.type === 'laser' ? 1 + t.charge * 0.2 : 1);
-    if (a.current) a.current.children[0].material.opacity = (t.type === 'laser' ? 0.35 + 0.3 * k : 0.55);
+    if (b.current) {
+      b.current.position.set(t.ax, t.ay !== undefined ? t.ay : t.y + 1.4, t.az);
+      b.current.scale.setScalar(t.type === 'laser' ? 1 + t.charge * 0.8 : 1);
+    }
   });
   const col = t.type === 'laser' ? '#ff2a2a' : '#7dff5a';
-  const R = t.type === 'laser' ? 4.5 : 0.7;
   return (
     <>
       <group ref={a}>
-        <mesh><boxGeometry args={[t.type === 'laser' ? 0.07 : 0.05, 0.07, 1]} /><meshBasicMaterial color={col} transparent opacity={0.5} depthWrite={false} /></mesh>
+        <mesh><boxGeometry args={[t.type === 'laser' ? 0.07 : 0.05, 0.07, 1]} /><meshBasicMaterial color={col} transparent opacity={0.4} depthWrite={false} /></mesh>
       </group>
-      <group ref={b} position={[t.ax, t.y + 0.12, t.az]}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[R * 0.96, R, 40]} /><meshBasicMaterial color={col} transparent opacity={0.55} depthWrite={false} side={DoubleSide} /></mesh>
-        {t.type === 'laser' && t.charge > 0 && <mesh rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[R * t.charge, 40]} /><meshBasicMaterial color="#ff4a2a" transparent opacity={0.35} depthWrite={false} side={DoubleSide} /></mesh>}
+      <group ref={b}>
+        <mesh><sphereGeometry args={[t.type === 'laser' ? 0.3 : 0.18, 12, 10]} /><meshBasicMaterial color={col} transparent opacity={0.8} depthWrite={false} /></mesh>
       </group>
     </>
+  );
+}
+
+function TowerProj({ t }) {
+  const g = useRef();
+  useFrame(() => {
+    if (g.current && t.proj) g.current.position.set(t.proj.x, t.proj.y, t.proj.z);
+  });
+  if (!t.proj) return null;
+  return (
+    <group ref={g} position={[t.proj.x, t.proj.y, t.proj.z]}>
+      <mesh><sphereGeometry args={[0.55, 14, 12]} /><meshBasicMaterial color="#ff3a2a" transparent opacity={0.9} depthWrite={false} /></mesh>
+      <mesh><sphereGeometry args={[1.0, 14, 12]} /><meshBasicMaterial color="#ff8a5a" transparent opacity={0.3} depthWrite={false} /></mesh>
+    </group>
   );
 }
 
@@ -1414,6 +1433,7 @@ function TowersLayer({ towers, me, hitboxes }) {
         </group>
       )}
       {t.seat && t.mods >= t.need && <TowerBeam t={t} me={me} />}
+      {t.proj && <TowerProj t={t} />}
     </group>
   ));
 }
@@ -1433,9 +1453,11 @@ function SuperFx({ effect }) {
   });
   if (kind === 'sup_tower_shot') {
     const len = effect.len || 10;
-    const yawT = Math.atan2(effect.nx || 0, effect.nz || 1);
+    const dx = effect.dx || 0;
+    const dy = effect.dy || 0;
+    const dz = effect.dz || 1;
     return (
-      <group position={[(effect.x || 0) + (effect.nx || 0) * len / 2, (effect.y || 1.4), (effect.z || 0) + (effect.nz || 0) * len / 2]} rotation={[0, yawT, 0]}>
+      <group position={[(effect.x || 0) + dx * len / 2, (effect.y || 1.4) + dy * len / 2, (effect.z || 0) + dz * len / 2]} rotation={[-Math.asin(Math.max(-1, Math.min(1, dy))), Math.atan2(dx, dz), 0, 'YXZ']}>
         <mesh><boxGeometry args={[0.12, 0.12, len]} /><Mat reg={life.reg} color="#7dff5a" /></mesh>
         <mesh><boxGeometry args={[0.3, 0.3, len]} /><Mat reg={life.reg} color="#c8ff9a" /></mesh>
       </group>
@@ -1445,9 +1467,9 @@ function SuperFx({ effect }) {
     const r = effect.r || 4.5;
     return (
       <group position={[effect.x || 0, effect.y || 0, effect.z || 0]}>
-        <Ring life={life} color="#ff3030" y={0.15} r0={0.5} r1={r} />
-        <Ring life={life} color="#ffd0a0" y={0.3} r0={0.3} r1={r * 0.65} />
-        <mesh position={[0, r * 0.45, 0]}><sphereGeometry args={[r * 0.55, 18, 14]} /><Mat reg={life.reg} color="#ff5a3a" /></mesh>
+        <Ring life={life} color="#ff3030" y={0} r0={0.5} r1={r} />
+        <Ring life={life} color="#ffd0a0" y={0.15} r0={0.3} r1={r * 0.65} />
+        <mesh position={[0, 0, 0]}><sphereGeometry args={[r * 0.55, 18, 14]} /><Mat reg={life.reg} color="#ff5a3a" /></mesh>
         <Sparks life={life} color="#ffb070" n={26} speed={4} up={3.4} size={0.14} />
       </group>
     );

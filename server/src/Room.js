@@ -3493,12 +3493,12 @@ class Room {
     this.sendCardOffer(playerId, entity);
   }
 
-  towerAction(playerId, op, x, z) {
+  towerAction(playerId, op, x, z, pitch) {
     const entity = this.gameState.entities[playerId];
     if (!entity) return;
     const now = Date.now();
     if (op === 'sit') Towers.sit(this, playerId, entity, now);
-    else if (op === 'aim') Towers.aim(this, playerId, Number(x), Number(z));
+    else if (op === 'aim') Towers.aim(this, playerId, Number(x), Number(z), pitch === undefined ? NaN : Number(pitch));
     else if (op === 'fire') Towers.fire(this, playerId, now);
   }
 

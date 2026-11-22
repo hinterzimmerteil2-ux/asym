@@ -879,4 +879,10 @@ export const PIE = {
   877: 'h₁ent-kʷer',
   878: 'ne pl̥h₁-tom',
   879: '(h₁ent-kʷer-i h₁ésati-tis ek-bʰérti)',
+  880: 'h₂ént-dʰeh₁-tis. kʷod dʰeh₁ti, wéh₂-trom kʷer-eti: léu̯kom u̯é sélg-tero (oinos h₁ent-kʷer sēu̯ōs-ti). h₂óyu-trom mikʷ-ros-dʰeh₁-tis-es kʷéh₃rom dʰeh₁-ti; léu̯kom 4 kʷéh₃rom h₁ésti kʷe 65 sékʷ dʰeh₁-ti, sélg-tero 2 kʷéh₃rom kʷe 14 sékʷ, tu h₂ent 5 h₁ésti. 40 ǵʷíh₃u̯os-tos h₂ént-eti kʷe dʰeh₁-tis ǵʷíh₃u̯os meǵh₂-tero 280 uper-dʰeh₁ti, ne ap-h₂éǵeti; 5 sékʷ ne bʰlig̑-tis, tod swe-solh₂weh₁yeti. kʷis tod dʰeh₁ti, tod bʰér-eti kʷe pl̥h₁-eti h₂ed móduls-kʷe. kʷis h₁en tod h₁ésati h₁ésti: kʷis tod dʰeh₁ti, tod pr̥h₃os h₁ésti. léu̯kom h₂ent-wekʷ-eti, 1,3 sékʷ pl̥h₁-eti, kʷe h₁eit-ti h₁ei-trom-es: kʷod bʰlig̑-ti h₁ésti, meǵh₂-tom bʰlig̑-tom (4,5 h₂ent-tis) dʰeh₁ti, 70 h₂óyu kʷe 11 sékʷ solh₂weh₁yetōr bʰlig̑-eti (3 sékʷ bʰlig̑-tis); kʷod ne bʰlig̑-ti, lugʰ-tis; 22 sékʷ pelh₁-tis. sélg-tero h₂ent-wekʷ-eti, ǵʰlh₃-ros tn̥h₂-us léu̯kom 1,6 sékʷ 6 gʷelh₁-tis (2 sékʷ re-pl̥h₁-tis), 0,9 sékʷ bʰlig̑eti kʷe 18 swépnos h₂ap-eti. léu̯kom kʷe sélg-tero h₁ant-i-kʷe h₂ent-wekʷ-eti. solh₂weh₁yetōr tod te dʰeh₁-trom-es bʰlig̑eti.',
+  881: 'léu̯kom u̯é sélg-tero wélh₁-ti',
+  882: 'h₂ént-dʰeh₁-tis wélh₁-ti',
+  883: 'léu̯kom',
+  884: 'sélg-tero',
+  885: 'mikʷ-ros h₂ént-wéh₂-tis dʰeh₁-trom pl̥h₁-tis',
 };

@@ -130,9 +130,9 @@ const CARDS = {
   },
   niche_tower: {
     id: 'niche_tower',
-    keywords: ['ofensiva'],
+    keywords: ['defensiva'],
     displayName: 'niche tower defence game',
-    description: 'Estructura. Al usarla eliges una torre: láser o rifle (solo una de cada tipo por servidor). Cada módulo de auto-daño que completes te da una caja; el láser necesita 4 y tarda 65 s en construirse, el rifle necesita 2 y tarda 14 s, con tu presencia a menos de 5. Nace con 40 de vida y construir sube su vida máxima hasta 280, sin decaer; sin recibir golpes durante 5 s se cura sola. Quien la colocó puede cargarla y soltarla como un Módulo. Hace falta alguien sentado (interactuar cerca): quien la colocó tiene prioridad y expulsa a los demás. El láser apunta lento, carga 1,3 s y causa una explosión enorme (4,5 de radio) que hace 70 de daño y paraliza 11 s al Curador (3 s al Jefe); recarga 22 s. El rifle apunta con rapidez y dispara un láser verde delgado cada 1,6 s con 6 balas (recarga 2 s) que aturde 0,9 s y quita 18 de Flojera. El Curador la daña con sus habilidades.',
+    description: 'Estructura. Al usarla eliges una torre: láser o rifle (solo una de cada tipo por servidor). Cada módulo de auto-daño que completes te da una caja; el láser necesita 4 y tarda 65 s en construirse, el rifle necesita 2 y tarda 14 s, con tu presencia a menos de 5. Nace con 40 de vida y construir sube su vida máxima hasta 280, sin decaer; sin recibir golpes durante 5 s se cura sola. Quien la colocó puede cargarla y soltarla como un Módulo. Hace falta alguien sentado (interactuar cerca): quien la colocó tiene prioridad y expulsa a los demás. Ambas se apuntan también hacia arriba y abajo. El láser apunta lento, carga 1,3 s y lanza un proyectil que sigue su camino y explota al tocar a alguien o una pared, o al final de su alcance: una explosión enorme (4,5 de radio) que hace 70 de daño y paraliza 11 s al Curador (3 s al Jefe); si no toca a nadie, falla; recarga 22 s. El rifle apunta con rapidez y dispara un láser verde delgado cada 1,6 s con 6 balas (recarga 2 s) que aturde 0,9 s y quita 18 de Flojera. El Curador la daña con sus habilidades.',
     rarity: 'legendary',
     cooldownMs: 6000,
     tower: { variants: ['laser', 'rifle'] },

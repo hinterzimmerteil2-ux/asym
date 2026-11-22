@@ -1228,13 +1228,28 @@ export default function LobbyPage() {
   const playersOpen = panelOpen ?? phase === 'lobby';
   isAsymRoleRef.current = isAsymRole;
   const mySeatTower = towers.find((t) => t.seat === myPlayerId) || null;
+  const towerPitchRef = useRef(0);
+  const towerAimRef = useRef({ x: 0, z: 0, has: false });
+  const sendTowerAim = useCallback(() => {
+    const a = towerAimRef.current;
+    handleSendAction('tower_action', { op: 'aim', x: a.has ? a.x : undefined, z: a.has ? a.z : undefined, pitch: towerPitchRef.current });
+  }, []);
+  const nudgeTowerPitch = useCallback((d) => {
+    towerPitchRef.current = Math.max(-0.75, Math.min(0.75, towerPitchRef.current + d));
+    sendTowerAim();
+  }, [sendTowerAim]);
   useEffect(() => {
     if (!mySeatTower) return undefined;
+    towerPitchRef.current = 0;
+    towerAimRef.current = { x: 0, z: 0, has: false };
     let last = 0;
     const send = (e) => {
       if (e.target && e.target.tagName !== 'CANVAS') return;
       const p = mcAimAt(e.clientX, e.clientY);
-      if (p) handleSendAction('tower_action', { op: 'aim', x: p.x, z: p.z });
+      if (p) {
+        towerAimRef.current = { x: p.x, z: p.z, has: true };
+        sendTowerAim();
+      }
     };
     const move = (e) => {
       const n = performance.now();
@@ -1248,14 +1263,22 @@ export default function LobbyPage() {
     };
     const key = (e) => {
       if (e.code === 'Space') { e.preventDefault(); handleSendAction('tower_action', { op: 'fire' }); }
+      else if (e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); nudgeTowerPitch(0.06); }
+      else if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); nudgeTowerPitch(-0.06); }
+    };
+    const wheel = (e) => {
+      if (e.target && e.target.tagName !== 'CANVAS') return;
+      nudgeTowerPitch(e.deltaY < 0 ? 0.08 : -0.08);
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerdown', down);
     window.addEventListener('keydown', key);
+    window.addEventListener('wheel', wheel, { passive: true });
     return () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerdown', down);
       window.removeEventListener('keydown', key);
+      window.removeEventListener('wheel', wheel);
     };
   }, [mySeatTower ? mySeatTower.id : null]);
 
@@ -1851,7 +1874,11 @@ export default function LobbyPage() {
             return (
               <>
                 <div style={{ position: 'absolute', top: 88, left: '50%', transform: 'translateX(-50%)', zIndex: 31, padding: '5px 12px', borderRadius: 8, background: 'rgba(10,8,14,0.82)', border: `1px solid ${laser ? '#ff4a3a' : '#7dff5a'}`, color: '#fff', fontSize: 12, fontWeight: 700, pointerEvents: 'none' }}>
-                  {laser ? (myTw.charge > 0 ? 'Cargando' : myTw.cd > 0 ? `Recarga ${Math.ceil(myTw.cd / 1000)} s` : 'Láser listo') : (myTw.reload > 0 ? 'Recargando' : `Balas ${myTw.ammo}/6`)} (interactuar para salir)
+                  {laser ? (myTw.charge > 0 ? 'Cargando' : myTw.cd > 0 ? `Recarga ${Math.ceil(myTw.cd / 1000)} s` : 'Láser listo') : (myTw.reload > 0 ? 'Recargando' : `Balas ${myTw.ammo}/6`)} (interactuar para salir, W/S o rueda para subir o bajar)
+                </div>
+                <div style={{ position: 'absolute', right: 134, bottom: 128, zIndex: 31, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <button type="button" onClick={() => nudgeTowerPitch(0.1)} style={{ width: 44, height: 44, borderRadius: 10, border: '2px solid #ffd24a', background: 'rgba(20,10,14,0.85)', color: '#ffd24a', fontSize: 18 }}>▲</button>
+                  <button type="button" onClick={() => nudgeTowerPitch(-0.1)} style={{ width: 44, height: 44, borderRadius: 10, border: '2px solid #ffd24a', background: 'rgba(20,10,14,0.85)', color: '#ffd24a', fontSize: 18 }}>▼</button>
                 </div>
                 <button type="button" onClick={() => handleSendAction('tower_action', { op: 'fire' })} style={{ position: 'absolute', right: 24, bottom: 120, zIndex: 31, width: 96, height: 96, borderRadius: '50%', border: `3px solid ${laser ? '#ff4a3a' : '#7dff5a'}`, background: 'rgba(20,10,14,0.85)', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Disparar</button>
               </>

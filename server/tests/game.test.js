@@ -2611,6 +2611,13 @@ test('Torre láser: cajas por módulo, construcción, asiento con prioridad y ex
   assert.ok(t.charging > clock);
   clock += 1400;
   Towers.tick(room, clock);
+  assert.ok(t.proj);
+  assert.strictEqual(hp - room.gameState.curator.hp, 0);
+  for (let i = 0; i < 20 && t.proj; i++) {
+    clock += 100;
+    Towers.tick(room, clock);
+  }
+  assert.ok(!t.proj);
   assert.strictEqual(hp - room.gameState.curator.hp, 70);
   assert.ok(require('../src/Status').until(e.c, 'stun') - clock > 10000);
   Towers.fire(room, 'a', clock + 100);
@@ -2779,4 +2786,42 @@ test('Panel de host: velocidad, salto, curar, Flojera y velocidad del tiempo', (
   assert.strictEqual(room.gameState.timeScale, 4);
   room.adminScale('c', 50);
   assert.strictEqual(room.gameState.timeScale, 10);
+});
+
+
+test('Torre: el láser puede fallar y se apunta hacia arriba o abajo', () => {
+  const Towers = require('../src/Towers');
+  const { room, e } = setup();
+  give(e.a, 0, 'niche_tower');
+  e.a.x = 0; e.a.z = 0; e.a.faceX = 0; e.a.faceZ = 1;
+  room.useCard('a', 0, 'laser');
+  const t = Towers.list(room)[0];
+  t.mods = 4;
+  t.hpMax = 280;
+  e.a.x = t.x; e.a.z = t.z - 1;
+  assert.ok(Towers.sit(room, 'a', e.a, Date.now()));
+  e.c.x = t.x + 25; e.c.z = t.z + 10; e.c.y = t.y;
+  const hp = room.gameState.curator.hp;
+  Towers.aim(room, 'a', t.x, t.z + 30, 0);
+  let clock = Date.now();
+  for (let i = 0; i < 60; i++) {
+    clock += 500;
+    Towers.tick(room, clock);
+  }
+  Towers.fire(room, 'a', clock);
+  for (let i = 0; i < 60; i++) {
+    clock += 100;
+    Towers.tick(room, clock);
+  }
+  assert.ok(!t.proj);
+  assert.strictEqual(hp, room.gameState.curator.hp);
+  Towers.aim(room, 'a', t.x, t.z + 30, 0.6);
+  for (let i = 0; i < 40; i++) {
+    clock += 100;
+    Towers.tick(room, clock);
+  }
+  assert.ok(t.pitch > 0.5);
+  assert.ok(t.ay > t.y + 10);
+  Towers.aim(room, 'a', t.x, t.z + 30, -9);
+  assert.strictEqual(t.tpitch, -0.75);
 });
