@@ -24,6 +24,10 @@ const securityHeaders = [
 ];
 
 nextConfig.poweredByHeader = false;
-nextConfig.headers = async () => [{ source: '/:path*', headers: securityHeaders }];
+const longCache = [{ key: 'Cache-Control', value: 'public, max-age=3600, stale-while-revalidate=604800' }];
+nextConfig.headers = async () => [
+  { source: '/:path*', headers: securityHeaders },
+  ...['models', 'props', 'icons', 'memes'].map((d) => ({ source: `/${d}/:path*`, headers: longCache })),
+];
 
 module.exports = nextConfig;

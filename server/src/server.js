@@ -118,6 +118,7 @@ const ipConnections = new Map();
 const wss = new WebSocketServer({
   server: httpServer,
   maxPayload: WS_MAX_PAYLOAD,
+  perMessageDeflate: { threshold: 256, serverNoContextTakeover: true, clientNoContextTakeover: true, concurrencyLimit: 8, zlibDeflateOptions: { level: 3 } },
   verifyClient: ({ origin }) => !origin || Security.allowedOrigin(origin, CLIENT_URL),
 });
 
