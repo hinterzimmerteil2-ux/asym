@@ -925,8 +925,26 @@ class Room {
 
   adminAttr(requesterId, kind, value, targets) {
     if (!this.isOp(requesterId) || this.isDefault || this.phase !== 'action' || this.gameState.gameOver) return;
-    if (!['speed', 'jump', 'heal', 'flojera'].includes(kind)) return;
+    if (!['speed', 'jump', 'heal', 'flojera', 'hp', 'maxhp'].includes(kind)) return;
     this.markAdmin();
+    if (kind === 'hp' || kind === 'maxhp') {
+      const amount = Math.max(1, Math.min(9999, Math.round(Number(value) || 0)));
+      for (const id of this.adminTargets(targets, requesterId)) {
+        if (this.players.get(id)?.isAsymRole) {
+          const cur = this.gameState.curator;
+          if (!cur) continue;
+          if (kind === 'maxhp') { cur.max = amount; cur.hp = Math.min(cur.hp, cur.max); } else cur.hp = Math.min(amount, cur.max);
+          continue;
+        }
+        const patient = this.gameState.patients[id];
+        if (!patient || patient.status !== 'alive') continue;
+        if (kind === 'maxhp') {
+          patient.maxHp = Math.max(2, amount);
+          patient.hp = Math.min(patient.hp, patient.maxHp - 1);
+        } else patient.hp = Math.max(1, Math.min(amount, patient.maxHp - 1));
+      }
+      return;
+    }
     const v = Math.max(0.1, Math.min(5, Number(value) || 1));
     for (const id of this.adminTargets(targets, requesterId)) {
       const entity = this.gameState.entities[id];

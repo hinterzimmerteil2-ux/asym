@@ -12,6 +12,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
   const [scale, setScale] = useState(1);
   const [speed, setSpeed] = useState(1);
   const [jump, setJump] = useState(1);
+  const [hpVal, setHpVal] = useState(100);
   const [timeSec, setTimeSec] = useState(300);
   const [timeInf, setTimeInf] = useState(false);
   const [fxPos, setFxPos] = useState(40);
@@ -141,6 +142,14 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
                 <div style={styles.chips}>
                   <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'jump', value: jump, targets: chosen })} style={styles.chip(true)}>Aplicar salto</button>
                   <button type="button" disabled={phase !== 'action'} onClick={() => { setJump(1); onAttr({ kind: 'jump', value: 1, targets: chosen }); }} style={styles.chip(false)}>Normal</button>
+                </div>
+                <div style={styles.subTitle}>Vida</div>
+                <label style={styles.row}>
+                  <input type="number" min={1} max={9999} step={1} value={hpVal} onChange={(e) => setHpVal(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
+                </label>
+                <div style={styles.chips}>
+                  <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'hp', value: hpVal, targets: chosen })} style={styles.chip(true)}>Poner vida actual</button>
+                  <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'maxhp', value: hpVal, targets: chosen })} style={styles.chip(true)}>Poner vida máxima</button>
                 </div>
                 <div style={styles.chips}>
                   <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'heal', targets: chosen })} style={styles.chip(false)}>Curar al máximo</button>

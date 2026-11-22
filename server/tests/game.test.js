@@ -2782,6 +2782,14 @@ test('Panel de host: velocidad, salto, curar, Flojera y velocidad del tiempo', (
   room.adminAttr('c', 'flojera', 1, ['a']);
   assert.strictEqual(p.a.hp, p.a.maxHp);
   assert.strictEqual(e.a.flojera, e.a.flojeraMax);
+  room.adminAttr('c', 'maxhp', 300, ['a']);
+  assert.strictEqual(p.a.maxHp, 300);
+  room.adminAttr('c', 'hp', 150, ['a']);
+  assert.strictEqual(p.a.hp, 150);
+  room.adminAttr('c', 'hp', 5000, ['a']);
+  assert.strictEqual(p.a.hp, 299);
+  room.adminAttr('c', 'maxhp', 50, ['a']);
+  assert.strictEqual(p.a.hp, 49);
   room.adminScale('c', 4);
   assert.strictEqual(room.gameState.timeScale, 4);
   room.adminScale('c', 50);
