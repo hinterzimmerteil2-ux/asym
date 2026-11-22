@@ -885,7 +885,7 @@ export const PIE = {
   883: 'léu̯kom',
   884: 'sélg-tero',
   885: 'mikʷ-ros h₂ént-wéh₂-tis dʰeh₁-trom pl̥h₁-tis',
-  886: 'h₂ép-ōkʷ-yom h₂ayu-ōkʷ-ō. sém-ōd h₁n̥-wekʷ-tis kʷe wekʷ-tis h₁ésti. h₁n̥-wekʷ-tis: h₂ōkʷ-yom h₁ésti-ti, kʷod solh₂weh₁yetōr bʰlig̑-tis te bʰlig̑-ti, h₁n̥-ǵʰ-yetōr tod h₁eh₁-trom h₂ed kʷod ne bʰlig̑-ti, kʷod-kʷe sēu̯-ti. kʷod pl̥h₁-yos h₂ōkʷ-yom prē-wid-tis h₁ésti-ti, h₂óyu-trom h₁n̥-ǵʰ-tis wélh₁-ti (kʷe h₁ei-ti h₂ed kʷod tu wélh₁-ti) kʷe swépnos kwo-ǵʰ-tis h₁ésti (3 h₂ed 9); swépnos ne h₁ésti-ti, ne h₁n̥-ǵʰ-ti. kʷod bʰlig̑-tis te dʰeh₁ti, 5 h₂ōkʷ-yom h₂ap-eti (30 h₂érh₂-eti; 1 kʷod 9 sékʷ ne bʰlig̑-tis ne h₁n̥-ǵʰ-tis re-pl̥h₁-eti). h₂ōkʷ-yom ne h₁ésti-ti: ne dʰeh₁-ti, swépnos-trom dwi-plós h₁ésti, 28 sékʷ 30 h₂ed re-h₁ei-ti. wekʷ-tis: kʷod dʰeh₁-tis, re-h₁ei-ti: 5 swépnos kʷe 2 h₂ōkʷ-yom dʰeh₁ti, 1,8 sékʷ pelh₁-tis, 12 kʷod meǵh₂-tis wékʷ-ti.',
+  886: 'h₂ép-ōkʷ-yom h₂ayu-ōkʷ-ō, kʷod h₁n̥-h₁éh₂-ti, wid-eti. sém-ōd h₁n̥-wekʷ-tis kʷe wekʷ-tis. h₂ōkʷ-yom wid-eti, bʰlig̑-tis h₂epi ne h₁n̥-wid-ti; kʷod bʰlig̑-ti, kʷid-kʷe h₂ap-eti, h₂ōkʷ-yom h₁n̥-h₂ép-eti, kʷid-kʷe pl̥h₁-yos dʰeh₁ti. wekʷ-tis: re-h₁ei-ti. kʷod ne wid-eti, re-h₂ep-ōkʷ-eti, kʷid-kʷe dwi-plós.',
   887: 'h₂ōkʷ-yom prē-wid-tis',
   888: 'ne h₂ōkʷ-yom',
   889: 'h₂ep-ōkʷ-ós',
