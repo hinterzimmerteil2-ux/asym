@@ -219,6 +219,8 @@ const DEAD_WS = { readyState: 3, send() {}, close() {} };
 const GRACE_LOBBY_MS = 20000;
 const GRACE_ACTION_MS = 90000;
 
+const HP_SCALE_SHARE = 0.25;
+
 class Room {
   constructor(roomId) {
     this.roomId = roomId;
@@ -287,7 +289,7 @@ class Room {
 
   navigation(curator = false) {
     const glitch = this.gameState.glitchIds || {};
-    const nowMs = Date.now();
+    const nowMs = this.clock();
     for (const id of Object.keys(glitch)) if (glitch[id] <= nowMs) delete glitch[id];
     const hidden = (this.gameState.hiddenPlatforms || []).filter((id) => !glitch[id]).sort();
     const gates = this.phase === 'action' ? this.gatesState() : null;
@@ -748,7 +750,7 @@ class Room {
     const p = this.players.get(playerId);
     if (!p || p.isBot || p.ws !== ws) return false;
     p.ws = DEAD_WS;
-    p.detachedAt = Date.now();
+    p.detachedAt = this.clock();
     if (p.graceTimer) clearTimeout(p.graceTimer);
     p.graceTimer = setTimeout(() => {
       const cur = this.players.get(playerId);
@@ -880,7 +882,7 @@ class Room {
   adminStatus(requesterId, kind, ms, targets, remove, level) {
     if (!this.isOp(requesterId) || this.isDefault || this.phase !== 'action' || this.gameState.gameOver) return;
     if (!['stun', 'ragdoll', 'slow', 'reveal', 'queue'].includes(kind)) return;
-    const now = Date.now();
+    const now = this.clock();
     const dur = Math.max(0, Math.min(1e10, Number(ms) || 0));
     const lv = Math.max(1, Math.min(3, Math.round(Number(level) || 1)));
     this.markAdmin();
@@ -1120,7 +1122,7 @@ class Room {
   }
 
   bossSize(playerId, size) {
-    if (this.bossActive && this.players.get(playerId)?.isBoss) Boss.setSize(this, playerId, size, Date.now());
+    if (this.bossActive && this.players.get(playerId)?.isBoss) Boss.setSize(this, playerId, size, this.clock());
   }
 
   bossCrouch(playerId, on) {
@@ -1175,7 +1177,7 @@ class Room {
   applyMode() {
     this.clearSecondCurator();
     this.sharedHp = null;
-    this.modeStart = Date.now();
+    this.modeStart = this.clock();
     this.infectionInit = false;
     this.infectionLms = false;
     this.lastGravityFactor = 1;
@@ -1225,7 +1227,7 @@ class Room {
       for (const [, p] of pats) p.infected = true;
     }
     const infected = pats.filter(([, p]) => p.infected);
-    for (const [, p] of infected) p.hp = Math.max(PATIENT_HP_MIN + 1, p.hp - 0.5 * dt);
+    for (const [, p] of infected) p.hp = Math.max(PATIENT_HP_MIN + 1, p.hp - 0.5 * this.hpDt(dt));
     for (const [id, p] of pats) {
       if (p.infected) continue;
       const e = gs.entities[id];
@@ -1379,7 +1381,7 @@ class Room {
     if (!player) return;
     if (typeof rawText !== 'string' || rawText.trim().length === 0) return;
 
-    const now = Date.now();
+    const now = this.clock();
     const lastSent = this.lastChatAt.get(playerId) || 0;
     if (now - lastSent < CHAT_RATE_LIMIT_MS) return;
     this.lastChatAt.set(playerId, now);
@@ -1425,7 +1427,7 @@ class Room {
 
   startTickLoop() {
     if (this.tickInterval) return;
-    this.lastTickAt = Date.now();
+    this.lastTickAt = this.clock();
     this.tickInterval = setInterval(() => this.tick(), TICK_RATE_MS);
   }
 
@@ -1438,7 +1440,7 @@ class Room {
 
   initGameState() {
     this.gameState.patients = {};
-    this.gameState.curatorReleaseAt = Date.now() + CURATOR_SPAWN_DELAY_MS;
+    this.gameState.curatorReleaseAt = this.clock() + CURATOR_SPAWN_DELAY_MS;
     this.gameState.gameOver = false;
     this.gameState.frozen = false;
 
@@ -1530,7 +1532,7 @@ class Room {
       entity.hand = player.isAsymRole || player.isBoss ? [] : Cards.dealSlots(GameMap.getCustomCards(this.mapId));
       entity.role = null;
       entity.rerolls = Cards.REROLLS;
-      entity.draftEndsAt = player.isAsymRole || player.isBoss ? 0 : Date.now() + Cards.DRAFT_DURATION_MS;
+      entity.draftEndsAt = player.isAsymRole || player.isBoss ? 0 : this.clock() + Cards.DRAFT_DURATION_MS;
     }
 
     this.gameState.patientsInitialCount = patientIds.length;
@@ -1539,10 +1541,12 @@ class Room {
     this.gameState.desgracias = {};
     this.gameState.adminUsed = false;
     this.gameState.timeFrozen = false;
+    this.gameState.timeScale = 1;
+    this.clockOffset = 0;
     this.gameState.lastStanding = false;
     this.gameState.lms = null;
 
-    this.lastRelocateAt = Date.now();
+    this.lastRelocateAt = this.clock();
     this.gameState.zones = [];
     this.gameState.dyn = [];
     Towers.reset(this);
@@ -1550,7 +1554,7 @@ class Room {
     this.gameState.dynVer += 1;
     SuperAbilities.resetMatch(this);
     for (const sr of GameMap.resolveSerums(this.mapId, GameMap.areaFor(this.mapId))) {
-      this.gameState.zones.push({ id: `sr_${sr.id}`, kind: 'serum', x: sr.x, z: sr.z, y: sr.y, radius: SERUM_RADIUS, ownerId: null, until: Infinity, activeUntil: Date.now() + SERUM_ACTIVE_MS, armedAt: undefined });
+      this.gameState.zones.push({ id: `sr_${sr.id}`, kind: 'serum', x: sr.x, z: sr.z, y: sr.y, radius: SERUM_RADIUS, ownerId: null, until: Infinity, activeUntil: this.clock() + SERUM_ACTIVE_MS, armedAt: undefined });
     }
     this.gameState.curator = { hp: CURATOR_HP_START, max: CURATOR_HP_MAX };
     this.gameState.curatorDown = false;
@@ -1693,7 +1697,7 @@ class Room {
     const entity = gs.entities[playerId];
     const patient = gs.patients[playerId];
     if (!entity || !patient || patient.status !== 'alive' || this.players.get(playerId)?.isAsymRole) return;
-    const now = Date.now();
+    const now = this.clock();
     if (now < (entity.nextRepairAt || 0)) return;
     const near = this.blockNear(entity.x, entity.z, entity.y || 0, 2.2);
     if (!near.length) return;
@@ -1848,16 +1852,36 @@ class Room {
     this.startMatch();
   }
 
+  clock() {
+    return Date.now() + (this.clockOffset || 0);
+  }
+
+  toRealTime(t) {
+    const sc = this.gameState && this.gameState.timeScale || 1;
+    if (!Number.isFinite(t) || sc === 1) return t;
+    return Date.now() + (t - this.clock()) / sc;
+  }
+
+  hpDt(dt) {
+    const sc = this.gameState && this.gameState.timeScale || 1;
+    if (sc === 1) return dt;
+    return dt * (1 + (sc - 1) * HP_SCALE_SHARE) / sc;
+  }
+
   tick() {
     this.tickCount++;
-    const now = Date.now();
+    const realNow = Date.now();
+    const sc = this.phase === 'action' ? (this.gameState.timeScale || 1) : 1;
+    if (this.lastRealTick && sc !== 1) this.clockOffset = (this.clockOffset || 0) + (realNow - this.lastRealTick) * (sc - 1);
+    this.lastRealTick = realNow;
+    const now = realNow + (this.clockOffset || 0);
     if (this.isDefault && this.phase === 'lobby') this.tickLobbyTimer(now);
     const elapsedMs = now - (this.lastTickAt || now);
     const dt = Math.min(elapsedMs, 100) / 1000;
     this.lastTickAt = now;
 
     if (this.phase === 'action' && !this.gameState.gameOver) {
-      if (!this.gameState.timeFrozen) this.gameState.timeRemainingMs = Math.max(0, this.gameState.timeRemainingMs - elapsedMs * (this.gameState.timeScale || 1));
+      if (!this.gameState.timeFrozen) this.gameState.timeRemainingMs = Math.max(0, this.gameState.timeRemainingMs - elapsedMs);
       if (this.gameState.timeRemainingMs === 0) this.endGame('timeout');
     }
 
@@ -1934,7 +1958,7 @@ class Room {
         spe: entity.spPub,
         hh: entity.bossHitHalf ? Math.round(entity.bossHitHalf * 100) / 100 : undefined,
         hv: entity.bossHitH ? Math.round(entity.bossHitH * 100) / 100 : undefined,
-        sg: entity.sig && entity.sig.until > Date.now() ? entity.sig.m : undefined,
+        sg: entity.sig && entity.sig.until > this.clock() ? entity.sig.m : undefined,
         tem: entity.temblor ? Math.round(entity.temblor) : undefined,
         emote: entity.emote && Status.active(entity, 'emote', now) ? { id: entity.emote.id } : undefined,
         hold: entity.astral ? (entity.astral.state === 'charging' ? 'claw' : 'claw_ready') : entity.eating ? `eat_${entity.eating.cardId}` : entity.channel && entity.channel.endsAt > now ? 'horn' : entity.carry ? 'module' : undefined,
@@ -2045,7 +2069,7 @@ class Room {
 
   revealGhost(playerId) {
     const ghost = this.gameState.ghosts[playerId];
-    const now = Date.now();
+    const now = this.clock();
     if (!ghost || ghost.uses >= GHOST_REVEAL_MAX_USES || now < ghost.cooldownUntil) return;
     ghost.uses += 1;
     ghost.visibleUntil = now + GHOST_REVEAL_MS;
@@ -2086,7 +2110,7 @@ class Room {
 
   stepPhysics(dt) {
     if (this.gameState.frozen) return;
-    this.tickHitWindows(Date.now());
+    this.tickHitWindows(this.clock());
     const area = this.getCurrentArea();
     const collisionObjects =
       this.phase === 'action' ? GameMap.resolveCollisionObjects(this.mapId, GameMap.areaFor(this.mapId)) : [];
@@ -2097,7 +2121,7 @@ class Room {
     const curPlatforms = gates === 'lock' ? allPlatforms : allPlatforms.filter((p) => p.kind !== 'gate');
     const patPlatforms = (gates === 'open' ? curPlatforms : allPlatforms).filter((p) => p.kind !== 'pgate');
 
-    const now = Date.now();
+    const now = this.clock();
     const allyCounts = {};
     for (const [sourceId, source] of Object.entries(this.gameState.entities)) {
       if (source.acetilUntil <= now) continue;
@@ -2138,7 +2162,7 @@ class Room {
         entity.corpse = true;
         entity.gone = false;
         Status.apply(entity, 'ragdoll', 3600000, now);
-        this.gameState.ghosts[entityPlayerId] = { x: entity.x, y: entity.y || 0, z: entity.z, faceX: entity.faceX || 0, faceZ: entity.faceZ || 1, visibleUntil: 0, uses: 0, cooldownUntil: 0, vy: 0, onGround: true };
+        this.gameState.ghosts[entityPlayerId] = { x: entity.x, y: entity.y || 0, z: entity.z, faceX: entity.faceX || 0, faceZ: entity.faceZ || 1, visibleUntil: 0, uses: 0, cooldownUntil: this.toRealTime(0), vy: 0, onGround: true };
       }
       if (entity.channel && entity.channel.endsAt <= now) entity.channel = null;
       if (entity.selfDmg) this.tickSelfDamage(entityPlayerId, entity, now);
@@ -2318,7 +2342,7 @@ class Room {
       entity.x = Math.max(-area.halfSize, Math.min(area.halfSize, entity.x));
       entity.z = Math.max(-area.halfSize, Math.min(area.halfSize, entity.z));
 
-      if (entity.sup) SuperAbilities.glide(this, entity, Date.now(), dt);
+      if (entity.sup) SuperAbilities.glide(this, entity, this.clock(), dt);
       if (input.jump && entity.onGround && !stunned) {
         entity.velocityY = (entity.sup && entity.sup.id === 'minceraft' ? SuperAbilities.MC.jumpV : JUMP_VELOCITY) * (entity.adminJump || 1);
         entity.onGround = false;
@@ -2335,9 +2359,9 @@ class Room {
         entity.velocityY = 0;
         entity.y = Math.max(entity.y, ground);
       } else {
-        entity.velocityY += GRAVITY * (this.phase === 'lobby' ? LOBBY_GRAVITY_FACTOR : MUTATIONS[this.mutation].gravity * this.modeGravityFactor(Date.now())) * dt;
+        entity.velocityY += GRAVITY * (this.phase === 'lobby' ? LOBBY_GRAVITY_FACTOR : MUTATIONS[this.mutation].gravity * this.modeGravityFactor(this.clock())) * dt;
         if (entity.velocityY < 0) entity.velocityY += AIR_DRAG * entity.velocityY * entity.velocityY * dt;
-        if (entity.sup) SuperAbilities.glide(this, entity, Date.now(), dt);
+        if (entity.sup) SuperAbilities.glide(this, entity, this.clock(), dt);
         SuperAbilities.climb(this, entity, input);
         entity.y += entity.velocityY * dt;
         entity.peakY = Math.max(entity.peakY || entity.y, entity.y);
@@ -2401,7 +2425,7 @@ class Room {
 
     const curador = this.players.get(playerId);
     if (curador && curador.isBoss) {
-      if (Number.isInteger(skillIndex) && skillIndex >= 0 && skillIndex <= 9) Boss.ability(this, playerId, skillIndex, Date.now());
+      if (Number.isInteger(skillIndex) && skillIndex >= 0 && skillIndex <= 9) Boss.ability(this, playerId, skillIndex, this.clock());
       return;
     }
     if (!curador || !curador.isAsymRole) {
@@ -2412,7 +2436,7 @@ class Room {
     const curadorEntity = this.gameState.entities[playerId];
     if (!curadorEntity) return;
 
-    const now = Date.now();
+    const now = this.clock();
     if (now < (this.gameState.curatorReleaseAt || 0)) return;
     if (Status.blocksSkills(curadorEntity, now)) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Estás en Diligencia' });
@@ -2455,7 +2479,7 @@ class Room {
     } else if (skill.type === 'melee_stun') {
       this.hitWindows.push({ kind: 'melee', playerId, skill, index, endsAt: now + (skill.windowMs || HIT_WINDOW_MS) });
       this.broadcast(MessageType.HIT_FX, { playerId, boxes: [handBox(curadorEntity, skill.reach || 0, skill.radius)] });
-      this.broadcastPulse({ playerId, skillIndex: index, skillId: skill.id, skillName: skill.name, skillType: skill.type, radius: 0, center: null, cooldownUntil: curadorEntity.skillCooldowns[index], healedPlayerIds: [], affectedPlayerIds: [] });
+      this.broadcastPulse({ playerId, skillIndex: index, skillId: skill.id, skillName: skill.name, skillType: skill.type, radius: 0, center: null, cooldownUntil: this.toRealTime(curadorEntity.skillCooldowns[index]), healedPlayerIds: [], affectedPlayerIds: [] });
     } else {
       for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
         if (patient.status !== 'alive') continue;
@@ -2517,7 +2541,7 @@ class Room {
       skillType: skill.type,
       radius: skill.radius || 0,
       center: skill.reach ? (({ x, z }) => ({ x, z }))(reachPoint(curadorEntity, skill.reach)) : null,
-      cooldownUntil: curadorEntity.skillCooldowns[index],
+      cooldownUntil: this.toRealTime(curadorEntity.skillCooldowns[index]),
       healedPlayerIds: healedAny ? affectedPlayerIds : [],
       affectedPlayerIds,
     };
@@ -2643,7 +2667,7 @@ class Room {
       if (entity.emote) { Status.clear(entity, 'emote'); entity.emote = null; }
       return;
     }
-    this.startEmote(playerId, entity, emoteId, Date.now());
+    this.startEmote(playerId, entity, emoteId, this.clock());
   }
 
   startEmote(playerId, entity, emoteId, now) {
@@ -2686,7 +2710,7 @@ class Room {
   }
 
   broadcastPulse(pulseResult) {
-    this.lastPulse = { radius: pulseResult.radius, type: pulseResult.skillType, at: Date.now() };
+    this.lastPulse = { radius: pulseResult.radius, type: pulseResult.skillType, at: this.clock() };
     const onlyFor = (ids, viewerId) => (this.players.get(viewerId)?.isAsymRole ? ids : ids.filter((id) => id === viewerId));
     for (const targetId of this.players.keys()) {
       this.sendTo(targetId, MessageType.CURATOR_PULSE_RESULT, {
@@ -2767,7 +2791,7 @@ class Room {
             skillType: skill.type,
             radius: skill.radius || 0,
             center: null,
-            cooldownUntil: owner.skillCooldowns[win.index],
+            cooldownUntil: this.toRealTime(owner.skillCooldowns[win.index]),
             healedPlayerIds: [],
             affectedPlayerIds: ids,
           });
@@ -2812,7 +2836,7 @@ class Room {
             skillType: skill.type,
             radius: skill.radius || 0,
             center: null,
-            cooldownUntil: owner.skillCooldowns[win.index],
+            cooldownUntil: this.toRealTime(owner.skillCooldowns[win.index]),
             healedPlayerIds: [nearestId],
             affectedPlayerIds: moving ? [nearestId] : [],
             silent: true,
@@ -2858,13 +2882,13 @@ class Room {
     if (this.gameState.lms && this.gameState.lms.gimmick === 'escudo') delta *= 0.5;
     const hpBefore = curator.hp;
     curator.hp = Math.max(0, Math.min(curator.max, curator.hp + delta));
-    if (this.dmgBy && curator.hp < hpBefore) CardEffects.tigerCredit(this, this.dmgBy, hpBefore - curator.hp, Date.now());
+    if (this.dmgBy && curator.hp < hpBefore) CardEffects.tigerCredit(this, this.dmgBy, hpBefore - curator.hp, this.clock());
     if (this.bossActive) {
       if (curator.hp <= 0 || curator.hp >= curator.max) {
         this.gameState.curatorDown = true;
         const cid = [...this.players.entries()].find(([, p]) => p.isAsymRole)?.[0];
         const ce = cid && this.gameState.entities[cid];
-        if (ce && !ce.down) { ce.down = true; ce.fatiga = 100; Status.apply(ce, 'stun', 3600000, Date.now()); Status.apply(ce, 'ragdoll', 3600000, Date.now()); }
+        if (ce && !ce.down) { ce.down = true; ce.fatiga = 100; Status.apply(ce, 'stun', 3600000, this.clock()); Status.apply(ce, 'ragdoll', 3600000, this.clock()); }
         this.checkGameEndConditions();
       }
       return;
@@ -2892,7 +2916,7 @@ class Room {
     amount = SuperAbilities.absorbHeal(this.gameState.entities[playerId], amount * MUTATIONS[this.mutation].heal) / MUTATIONS[this.mutation].heal;
     patient.hp = Math.min(patient.maxHp, patient.hp + amount * MUTATIONS[this.mutation].heal);
     const healed = this.gameState.entities[playerId];
-    if (healed && amount > 0) this.exitAstral(healed, Date.now());
+    if (healed && amount > 0) this.exitAstral(healed, this.clock());
     if (patient.hp >= patient.maxHp) {
       patient.status = 'eliminated';
       this.onPatientFullyCured();
@@ -2933,7 +2957,7 @@ class Room {
     if (a.slot >= 0) entity.cardCooldowns[a.slot] = a.readyAt;
     Status.clear(entity, 'slow');
     const pid = Object.keys(this.gameState.entities).find((k) => this.gameState.entities[k] === entity);
-    if (pid && a.slot >= 0) this.broadcast(MessageType.CARD_RESULT, { playerId: pid, slot: a.slot, cardId: a.card.id, cooldownUntil: a.readyAt, hitRadius: null, center: null, boxes: [], silent: true });
+    if (pid && a.slot >= 0) this.broadcast(MessageType.CARD_RESULT, { playerId: pid, slot: a.slot, cardId: a.card.id, cooldownUntil: this.toRealTime(a.readyAt), hitRadius: null, center: null, boxes: [], silent: true });
   }
 
   fireAstral(playerId, entity, slotIndex, now) {
@@ -3021,7 +3045,7 @@ class Room {
       if (!entity || this.zoneDistance(entity, zone) > zone.radius) continue;
       const cap = patient.maxHp * SERUM_PATIENT_CAP;
       if (patient.hp < cap) {
-        patient.hp = Math.min(cap, patient.hp + SERUM_PATIENT_PER_SEC * dt * MUTATIONS[this.mutation].heal);
+        patient.hp = Math.min(cap, patient.hp + SERUM_PATIENT_PER_SEC * this.hpDt(dt) * MUTATIONS[this.mutation].heal);
         this.exitAstral(entity, now);
       }
     }
@@ -3255,7 +3279,7 @@ class Room {
   }
 
   carryModule(playerId) {
-    const now = Date.now();
+    const now = this.clock();
     const entity = this.gameState.entities[playerId];
     const patient = this.gameState.patients[playerId];
     if (!entity || !patient || patient.status !== 'alive' || this.gameState.gameOver) return;
@@ -3368,7 +3392,7 @@ class Room {
     if (entity.hand[next].options.length === 0) {
       const chosenIds = entity.hand.filter((slot) => slot.chosen).map((slot) => slot.chosen);
       entity.hand[next] = Cards.dealSlot(chosenIds, GameMap.getCustomCards(this.mapId));
-      entity.draftEndsAt = Date.now() + Cards.DRAFT_DURATION_MS;
+      entity.draftEndsAt = this.clock() + Cards.DRAFT_DURATION_MS;
       this.sendCardOffer(playerId, entity);
     }
   }
@@ -3442,7 +3466,7 @@ class Room {
     entity.hand[0] = { options: [role.card], chosen: null };
     this.finalizeChoice(playerId, 0, role.card);
     entity.hand[1] = { options: Roles.secondOptions(role, Cards.OPTIONS_PER_SLOT), chosen: null };
-    entity.draftEndsAt = Date.now() + Cards.DRAFT_DURATION_MS;
+    entity.draftEndsAt = this.clock() + Cards.DRAFT_DURATION_MS;
     this.sendTo(playerId, MessageType.ROLE_SELECTED, { roleId: role.id });
     this.sendCardOffer(playerId, entity);
   }
@@ -3506,7 +3530,7 @@ class Room {
   towerAction(playerId, op, x, z, pitch) {
     const entity = this.gameState.entities[playerId];
     if (!entity) return;
-    const now = Date.now();
+    const now = this.clock();
     if (op === 'sit') Towers.sit(this, playerId, entity, now);
     else if (op === 'aim') Towers.aim(this, playerId, Number(x), Number(z), pitch === undefined ? NaN : Number(pitch));
     else if (op === 'fire') Towers.fire(this, playerId, now);
@@ -3522,9 +3546,9 @@ class Room {
         e.faceZ = face.z / fl;
       }
     }
-    if (e && e.sup && Number.isFinite(ay)) e.sup.ay = { v: ay, at: Date.now() };
-    if (e && e.sup) e.sup.aim = aim && Number.isFinite(aim.x) && Number.isFinite(aim.z) ? { x: aim.x, z: aim.z, at: Date.now() } : null;
-    SuperAbilities.use(this, playerId, mode, Date.now());
+    if (e && e.sup && Number.isFinite(ay)) e.sup.ay = { v: ay, at: this.clock() };
+    if (e && e.sup) e.sup.aim = aim && Number.isFinite(aim.x) && Number.isFinite(aim.z) ? { x: aim.x, z: aim.z, at: this.clock() } : null;
+    SuperAbilities.use(this, playerId, mode, this.clock());
   }
 
   superPreview(playerId, mode, face, aim, ay) {
@@ -3538,9 +3562,9 @@ class Room {
         e.faceZ = face.z / fl;
       }
     }
-    if (Number.isFinite(ay)) e.sup.ay = { v: ay, at: Date.now() };
-    e.sup.aim = aim && Number.isFinite(aim.x) && Number.isFinite(aim.z) ? { x: aim.x, z: aim.z, at: Date.now() } : null;
-    e.sup.prev = ['andamio', 'telarana', 'redstone', 'slime', 'piston', 'pegajoso', 'polvo', 'tnt', 'miel'].includes(mode) ? { mode, until: Date.now() + 600 } : null;
+    if (Number.isFinite(ay)) e.sup.ay = { v: ay, at: this.clock() };
+    e.sup.aim = aim && Number.isFinite(aim.x) && Number.isFinite(aim.z) ? { x: aim.x, z: aim.z, at: this.clock() } : null;
+    e.sup.prev = ['andamio', 'telarana', 'redstone', 'slime', 'piston', 'pegajoso', 'polvo', 'tnt', 'miel'].includes(mode) ? { mode, until: this.clock() + 600 } : null;
   }
 
   useCard(playerId, slotIndex, variant) {
@@ -3555,7 +3579,7 @@ class Room {
 
     const entity = this.gameState.entities[playerId];
     if (!entity) return;
-    if (Status.blocksSkills(entity, Date.now())) {
+    if (Status.blocksSkills(entity, this.clock())) {
       this.sendTo(playerId, MessageType.ERROR, { message: 'Estás en Diligencia' });
       return;
     }
@@ -3568,7 +3592,7 @@ class Room {
 
     const card = Cards.getCard(slot.chosen);
     if (card && card.super) return;
-    const now = Date.now();
+    const now = this.clock();
     if (card.astral && entity.astral && entity.astral.card.id === card.id) {
       if (entity.astral.state === 'charging') {
         if (now - entity.astral.startedAt < 600) return;
@@ -3579,7 +3603,7 @@ class Room {
       }
       if (entity.astral.state === 'ready' && now >= entity.astral.readyAt) {
         this.fireAstral(playerId, entity, slotIndex, now);
-        this.broadcast(MessageType.CARD_RESULT, { playerId, slot: slotIndex, cardId: card.id, cooldownUntil: entity.cardCooldowns[slotIndex], hitRadius: null, center: null, boxes: [] });
+        this.broadcast(MessageType.CARD_RESULT, { playerId, slot: slotIndex, cardId: card.id, cooldownUntil: this.toRealTime(entity.cardCooldowns[slotIndex]), hitRadius: null, center: null, boxes: [] });
       }
       return;
     }
@@ -3636,7 +3660,7 @@ class Room {
       playerId,
       slot: slotIndex,
       cardId: card.id,
-      cooldownUntil: entity.cardCooldowns[slotIndex],
+      cooldownUntil: this.toRealTime(entity.cardCooldowns[slotIndex]),
       hitRadius: card.hitRadius || null,
       center: card.reach ? (({ x, z }) => ({ x, z }))(reachPoint(entity, card.reach * (card.id === 'red_mist' && entity.redMistWide ? card.combo.heavyReachMult : 1))) : null,
       boxes: card.reach && !(card.id === 'red_mist' && entity.redMistWide) ? [handBox(entity, card.reach, card.hitRadius)] : CardEffects.areaOf(card, entity),
@@ -3649,7 +3673,7 @@ class Room {
     entity.eating = { cardId: card.id, slot: slotIndex, endsAt: now + card.eat.ms, x: entity.x, z: entity.z, hp: patient ? patient.hp : 0, limit: card.eat.moveLimit };
     entity.cardCooldowns[slotIndex] = now + card.eat.ms;
     Status.apply(entity, 'slow', card.eat.ms, now, { tag: 'endlag', level: 2 });
-    this.broadcast(MessageType.CARD_RESULT, { playerId, slot: slotIndex, cardId: card.id, cooldownUntil: entity.cardCooldowns[slotIndex], hitRadius: null, center: null, boxes: [] });
+    this.broadcast(MessageType.CARD_RESULT, { playerId, slot: slotIndex, cardId: card.id, cooldownUntil: this.toRealTime(entity.cardCooldowns[slotIndex]), hitRadius: null, center: null, boxes: [] });
   }
 
   tickEating(now) {
@@ -3665,14 +3689,14 @@ class Room {
         entity.eating = null;
         entity.cardCooldowns[e.slot] = now + 1000;
         Status.apply(entity, 'slow', 1000, now, { tag: 'endlag', level: 2 });
-        this.broadcast(MessageType.CARD_RESULT, { playerId, slot: e.slot, cardId: card.id, cooldownUntil: entity.cardCooldowns[e.slot], hitRadius: null, center: null, boxes: [], silent: true });
+        this.broadcast(MessageType.CARD_RESULT, { playerId, slot: e.slot, cardId: card.id, cooldownUntil: this.toRealTime(entity.cardCooldowns[e.slot]), hitRadius: null, center: null, boxes: [], silent: true });
         continue;
       }
       if (now < e.endsAt) continue;
       entity.eating = null;
       entity.cardCooldowns[e.slot] = now + card.cooldownMs;
       this.applyCardEffect(playerId, entity, card, now);
-      this.broadcast(MessageType.CARD_RESULT, { playerId, slot: e.slot, cardId: card.id, cooldownUntil: entity.cardCooldowns[e.slot], hitRadius: null, center: null, boxes: [], silent: true });
+      this.broadcast(MessageType.CARD_RESULT, { playerId, slot: e.slot, cardId: card.id, cooldownUntil: this.toRealTime(entity.cardCooldowns[e.slot]), hitRadius: null, center: null, boxes: [], silent: true });
     }
   }
 
@@ -3817,14 +3841,14 @@ class Room {
     if (this.gameState.gameOver) return;
     const curador = this.players.get(curadorId);
     if (curador && curador.isBoss) {
-      if (this.phase === 'action') Boss.strike(this, curadorId, Date.now());
+      if (this.phase === 'action') Boss.strike(this, curadorId, this.clock());
       return;
     }
     if (!curador || !curador.isAsymRole) {
       this.sendTo(curadorId, MessageType.ERROR, { message: 'Solo el Curador puede curar' });
       return;
     }
-    const now = Date.now();
+    const now = this.clock();
     if (now < (this.gameState.curatorReleaseAt || 0)) return;
     const entity = this.gameState.entities[curadorId];
     if (!entity || entity.baseCooldownUntil > now || Status.blocksSkills(entity, now)) return;
@@ -3870,7 +3894,7 @@ class Room {
       this.sendTo(playerId, MessageType.ERROR, { message: 'No se pudo validar la posición' });
       return;
     }
-    const now = Date.now();
+    const now = this.clock();
     const game = playerEntity.selfDmg;
     if (game) {
       this.pressSelfDamage(playerId, playerEntity, patient, game, now, dir);
@@ -4152,7 +4176,7 @@ class Room {
     const curatorId = [...this.players.entries()].find(([, p]) => p.isAsymRole)?.[0] || null;
     gs.lms = { survivorId, curatorId, gimmick, mode: this.mode };
     if (this.mode === 'dual') for (const pl of this.players.values()) if (pl.isAsymRole) { pl.curatorSpeed = 1; pl.curatorMult = 1; }
-    const now = Date.now();
+    const now = this.clock();
     for (const entity of [gs.entities[survivorId], curatorId ? gs.entities[curatorId] : null]) {
       if (!entity) continue;
       if (gimmick === 'adrenalina') {

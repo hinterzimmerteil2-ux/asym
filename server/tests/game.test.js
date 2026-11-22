@@ -2788,6 +2788,21 @@ test('Panel de host: velocidad, salto, curar, Flojera y velocidad del tiempo', (
   assert.strictEqual(room.gameState.timeScale, 10);
 });
 
+test('Acelerador: el reloj del juego avanza al ritmo elegido y la vida solo en parte', () => {
+  const { room } = setup();
+  room.gameState.timeScale = 3;
+  room.lastRealTick = Date.now() - 1000;
+  const before = room.clock();
+  room.tick();
+  const adv = room.clock() - before;
+  assert.ok(adv >= 1900, 'avanza ~3x: ' + adv);
+  assert.ok(room.hpDt(1) < 3 && room.hpDt(1) > 1 / 3 * 1);
+  room.gameState.timeScale = 0.5;
+  assert.ok(room.hpDt(1) > 0.5);
+  room.gameState.timeScale = 1;
+  assert.strictEqual(room.hpDt(1), 1);
+});
+
 
 test('Torre: el láser puede fallar y se apunta hacia arriba o abajo', () => {
   const Towers = require('../src/Towers');

@@ -93,7 +93,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
               <input type="checkbox" checked={timeInf} onChange={(e) => setTimeInf(e.target.checked)} />
               <span>Sin límite de tiempo</span>
             </label>
-            <div style={styles.subTitle}>Velocidad del reloj: x{scale}</div>
+            <div style={styles.subTitle}>Velocidad del juego: x{scale}</div>
             <div style={styles.chips}>
               {[0.25, 0.5, 1, 2, 4, 10].map((v) => (
                 <button key={v} type="button" disabled={phase !== 'action'} onClick={() => { setScale(v); onScale({ scale: v }); }} style={styles.chip(scale === v)}>x{v}</button>
@@ -103,7 +103,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
               <input type="number" min={0.1} max={10} step={0.1} value={scale} onChange={(e) => setScale(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
               <button type="button" disabled={phase !== 'action'} onClick={() => onScale({ scale })} style={styles.chip(true)}>Aplicar velocidad</button>
             </label>
-            <div style={styles.hint}>Solo cambia lo rápido que corre el reloj de la partida.</div>
+            <div style={styles.hint}>Acelera o frena movimientos, ataques, recargas, efectos y el reloj. La vida y su regeneración cambian solo en parte.</div>
             <div style={styles.chips}>
               <button type="button" disabled={phase !== 'action'} onClick={() => { onTime({ seconds: timeSec, infinite: timeInf }); setSent('Tiempo'); setTimeout(() => setSent(''), 1600); }} style={styles.chip(true)}>Aplicar</button>
             </div>

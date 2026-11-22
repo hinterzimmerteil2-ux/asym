@@ -129,7 +129,7 @@ function pick(room, playerId, entity, moduleDist) {
   const t = list(room).find((tw) => tw.owner === playerId && !tw.carrier && Math.hypot(tw.x - entity.x, tw.z - entity.z) <= 3.4);
   if (!t) return false;
   if (Math.hypot(t.x - entity.x, t.z - entity.z) >= moduleDist) return false;
-  stand(room, t, Date.now());
+  stand(room, t, room.clock());
   t.carrier = playerId;
   entity.carryTower = t.id;
   return true;
@@ -142,7 +142,7 @@ function drop(room, playerId, entity) {
   t.carrier = null;
   const y = Hitbox.groundAt(room.allPlatforms(), t.x, t.z, entity.y || 0, 3);
   t.y = Number.isFinite(y) ? y : entity.y || 0;
-  t.last = Date.now();
+  t.last = room.clock();
 }
 
 function aim(room, playerId, x, z, pitch) {
