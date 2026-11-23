@@ -8,6 +8,8 @@ function scroller(el) {
     const cs = getComputedStyle(n);
     if (/(auto|scroll)/.test(cs.overflowY) && n.scrollHeight > n.clientHeight + 2) return n;
   }
+  const root = document.scrollingElement;
+  if (root && root.scrollHeight > root.clientHeight + 2) return root;
   return null;
 }
 
@@ -18,11 +20,11 @@ export default function BoardScroll() {
     const on = () => {
       try {
         const m = getSettings().inputMode;
-        return isBoard() || m === 'touch' || m === 'mixed';
+        return isBoard() || m === 'touch' || m === 'mixed' || Math.max(window.screen.width, window.screen.height) >= 1500;
       } catch { return false; }
     };
     const down = (e) => {
-      if (e.pointerType !== 'mouse' || e.button !== 0 || !on()) return;
+      if (e.button !== 0 || (e.pointerType === 'mouse' && !on())) return;
       const el = scroller(e.target);
       st = el ? { el, y: e.clientY, top: el.scrollTop } : null;
       drag = false;
@@ -44,12 +46,35 @@ export default function BoardScroll() {
         drag = false;
       }
     };
+    const tdown = (e) => {
+      const t = e.touches && e.touches[0];
+      if (!t) return;
+      const el = scroller(e.target);
+      st = el ? { el, y: t.clientY, top: el.scrollTop } : null;
+      drag = false;
+    };
+    const tmove = (e) => {
+      const t = e.touches && e.touches[0];
+      if (!st || !t) return;
+      const dy = t.clientY - st.y;
+      if (!drag && Math.abs(dy) < 8) return;
+      drag = true;
+      st.el.scrollTop = st.top - dy;
+    };
+    document.addEventListener('touchstart', tdown, { capture: true, passive: true });
+    document.addEventListener('touchmove', tmove, { capture: true, passive: true });
+    document.addEventListener('touchend', up, true);
+    document.addEventListener('touchcancel', up, true);
     document.addEventListener('pointerdown', down, true);
     document.addEventListener('pointermove', move, true);
     document.addEventListener('pointerup', up, true);
     document.addEventListener('pointercancel', up, true);
     document.addEventListener('click', click, true);
     return () => {
+      document.removeEventListener('touchstart', tdown, true);
+      document.removeEventListener('touchmove', tmove, true);
+      document.removeEventListener('touchend', up, true);
+      document.removeEventListener('touchcancel', up, true);
       document.removeEventListener('pointerdown', down, true);
       document.removeEventListener('pointermove', move, true);
       document.removeEventListener('pointerup', up, true);
