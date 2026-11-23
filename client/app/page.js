@@ -56,7 +56,7 @@ function KitPicker({ roles, onPick }) {
           {roles.map((k, i) => {
             const c = k.isSuper ? '#ffe14a' : (KIT_STYLE[k.id] || {}).color || '#c8a2ff';
             return (
-              <button key={k.id} type="button" onClick={() => setSel(i)} style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', color: '#e8e9f0', background: i === sel ? `${c}33` : 'rgba(255,255,255,0.04)', border: `2px solid ${i === sel ? c : '#294045'}`, transition: 'transform 140ms, background 140ms', transform: i === sel ? 'translateX(6px)' : 'none' }}>
+              <button key={k.id} type="button" onClick={() => setSel(i)} style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', color: '#e8e9f0', background: i === sel ? `${c}33` : 'rgba(255,255,255,0.04)', border: `2px solid ${i === sel ? c : '#3d2c33'}`, transition: 'transform 140ms, background 140ms', transform: i === sel ? 'translateX(6px)' : 'none' }}>
                 <div style={{ fontWeight: 800, fontSize: 14 }}>{k.name}</div>
                 <div style={{ fontSize: 11, opacity: 0.7 }}>{k.tagline}</div>
               </button>
@@ -1490,7 +1490,7 @@ export default function LobbyPage() {
             <button type="button" style={{ ...styles.smallButton, width: '100%', padding: '8px 12px' }} onClick={() => setCosmeticsOpen(true)}>Personalizar personaje <span style={{ color: '#e0b34a', marginLeft: 6 }}>{Math.floor(normQ(desgracias.balance))} ℍ</span></button>
           )}
           {phase === 'lobby' && !isAsymRole && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', border: '1px solid #294045', borderRadius: 8, fontSize: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', border: '1px solid #3d2c33', borderRadius: 8, fontSize: 12 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                 <input type="checkbox" checked={kitPref.on} onChange={(e) => updateKitPref({ ...kitPref, on: e.target.checked })} />
                 Preselección de kit
@@ -1643,7 +1643,7 @@ export default function LobbyPage() {
           )}
 
           {phase === 'lobby' && isDefaultRoom && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 10px', border: '1px solid #294045', borderRadius: 8, fontSize: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 10px', border: '1px solid #3d2c33', borderRadius: 8, fontSize: 12 }}>
               <strong>Votación de la sala</strong>
               {startAt && <span style={{ color: '#f0c26b' }}>Inicio automático en {Math.max(0, Math.ceil((startAt - lobbyNow) / 1000))} s</span>}
               {[
@@ -1661,7 +1661,7 @@ export default function LobbyPage() {
                     <div style={{ opacity: 0.75, marginBottom: 3 }}>{title}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {options.map((o) => (
-                        <button key={String(o.id)} type="button" onClick={() => handleVote(kind, o.id)} style={{ padding: '4px 8px', borderRadius: 6, border: mine === o.id ? '1px solid #f3e9a6' : '1px solid #4d3840', background: mine === o.id ? '#294045' : '#122025', color: '#e7f2ef', fontSize: 12, cursor: 'pointer' }}>
+                        <button key={String(o.id)} type="button" onClick={() => handleVote(kind, o.id)} style={{ padding: '4px 8px', borderRadius: 6, border: mine === o.id ? '1px solid #f3e9a6' : '1px solid #4d3840', background: mine === o.id ? '#3d2c33' : '#241a1e', color: '#f3e8e5', fontSize: 12, cursor: 'pointer' }}>
                           {o.label}{counts[o.id] ? ` (${counts[o.id]})` : ''}
                         </button>
                       ))}
@@ -1739,7 +1739,7 @@ export default function LobbyPage() {
               {!tutorial.minimized && (
                 <>
                   {steps.map(([k, text], i) => (compact && i !== current ? null : (
-                    <div key={k} style={{ color: tutorial.flags[k] ? '#5fd58c' : i === current ? '#f2d154' : '#89a7a3' }}>
+                    <div key={k} style={{ color: tutorial.flags[k] ? '#5fd58c' : i === current ? '#f2d154' : '#a8959a' }}>
                       {tutorial.flags[k] ? '✓' : i === current ? '→' : '-'} {text}
                     </div>
                   )))}
@@ -1757,7 +1757,7 @@ export default function LobbyPage() {
             <div style={{ height: '100%', width: `${Math.round(flojera.astral.charge * 100)}%`, background: flojera.astral.state === 'charging' ? '#f3e9a6' : '#f2b84a' }} />
           </div>
         )}
-        {phase === 'action' && matchSeed != null && <div style={{ position: 'absolute', left: 8, bottom: 8, fontSize: 11, color: '#89a7a3', pointerEvents: 'none', userSelect: 'text' }}>Semilla: {matchSeed}</div>}
+        {phase === 'action' && matchSeed != null && <div style={{ position: 'absolute', left: 8, bottom: 8, fontSize: 11, color: '#a8959a', pointerEvents: 'none', userSelect: 'text' }}>Semilla: {matchSeed}</div>}
         {phase === 'action' && bossHud && <BossHud hud={bossHud} onAbility={(i) => handlePulse('b' + (i + 1))} onSize={(v) => connRef.current?.send('boss_size', { size: v })} onCrouch={(on) => connRef.current?.send('boss_crouch', { on })} />}
         {phase === 'action' && bossHud && <BossOverlay hud={bossHud} />}
         {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} onPress={() => pressMinigameRef.current()} onDir={(d) => pressDirRef.current(d)} />}
@@ -2060,9 +2060,9 @@ export default function LobbyPage() {
         {shiftLock && <div style={{ position: 'absolute', left: '50%', top: '50%', width: 6, height: 6, marginLeft: -3, marginTop: -3, borderRadius: '50%', background: 'rgba(255,255,255,0.8)', pointerEvents: 'none', zIndex: 5 }} />}
         {compact && (
           <>
-            <button type="button" onClick={() => { setPanelOpen(!playersOpen); setChatOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 96, width: 36, height: 36, zIndex: 30, borderColor: playersOpen ? '#f0c26b' : '#294045' })} aria-label="Jugadores">☰</button>
+            <button type="button" onClick={() => { setPanelOpen(!playersOpen); setChatOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 96, width: 36, height: 36, zIndex: 30, borderColor: playersOpen ? '#f0c26b' : '#3d2c33' })} aria-label="Jugadores">☰</button>
             <button type="button" onClick={goFullscreen} style={sx(styles.helpButton, { top: 8, right: 184, width: 36, height: 36, zIndex: 30 })} aria-label="Pantalla completa">⛶</button>
-            <button type="button" onClick={() => { setChatOpen(!chatOpen); setPanelOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 140, width: 36, height: 36, zIndex: 30, borderColor: chatOpen ? '#f0c26b' : '#294045' })} aria-label="Chat">💬</button>
+            <button type="button" onClick={() => { setChatOpen(!chatOpen); setPanelOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 140, width: 36, height: 36, zIndex: 30, borderColor: chatOpen ? '#f0c26b' : '#3d2c33' })} aria-label="Chat">💬</button>
           </>
         )}
         {spectating && specTargets.length > 1 && (
@@ -2071,7 +2071,7 @@ export default function LobbyPage() {
               const pl = players.find((p) => p.id === id);
               const current = ((specIndex % specTargets.length) + specTargets.length) % specTargets.length === i;
               return (
-                <button key={id} type="button" onClick={() => setSpecIndex(i)} style={{ ...styles.smallButton, width: 'auto', padding: '4px 10px', fontSize: 12, borderColor: current ? '#f2d154' : pl?.isAsymRole ? '#f2a154' : '#294045', background: current ? 'rgba(242,209,84,0.18)' : undefined }}>
+                <button key={id} type="button" onClick={() => setSpecIndex(i)} style={{ ...styles.smallButton, width: 'auto', padding: '4px 10px', fontSize: 12, borderColor: current ? '#f2d154' : pl?.isAsymRole ? '#f2a154' : '#3d2c33', background: current ? 'rgba(242,209,84,0.18)' : undefined }}>
                   {id === myPlayerId ? 'Fantasma' : <><span>{pl?.isAsymRole ? '🩺 ' : ''}</span><span translate="no">{pl?.name || id}</span></>}
                 </button>
               );
@@ -2079,7 +2079,7 @@ export default function LobbyPage() {
           </div>
         )}
         {spectating && (
-          <div style={{ position: 'absolute', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, background: 'rgba(14, 26, 30, 0.92)', border: '1px solid #294045', fontSize: 13 }}>
+          <div style={{ position: 'absolute', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, background: 'rgba(27, 29, 41, 0.9)', border: '1px solid #3d2c33', fontSize: 13 }}>
             <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i - 1)} aria-label="Anterior">{'<-'}</button>
             <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px' }} onClick={startReplay}>Repetición</button>
             <span>{ghostMode ? 'Tu fantasma' : specId ? `Espectando: ${players.find((p) => p.id === specId)?.name || specId}` : 'Nadie a quien seguir'}</span>
@@ -2092,13 +2092,13 @@ export default function LobbyPage() {
           </div>
         )}
         {touch && portrait && phase === 'action' && (
-          <p style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', margin: 0, padding: '10px 16px', borderRadius: 8, background: 'rgba(18,19,26,0.9)', border: '1px solid #294045', fontSize: 14, zIndex: 25, textAlign: 'center', pointerEvents: 'none' }}>Gira el teléfono para jugar mejor</p>
+          <p style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', margin: 0, padding: '10px 16px', borderRadius: 8, background: 'rgba(18,19,26,0.9)', border: '1px solid #3d2c33', fontSize: 14, zIndex: 25, textAlign: 'center', pointerEvents: 'none' }}>Gira el teléfono para jugar mejor</p>
         )}
         {adminOpen && isOp && <AdminPanel players={players} myPlayerId={myPlayerId} isHost={isHost} phase={phase} cards={cardCatalog} characters={characters} onOp={(id, on) => connRef.current?.send('set_op', { targetPlayerId: id, on })} onGrant={(g) => connRef.current?.send('admin_grant', g)} onStatus={(g) => connRef.current?.send('admin_status', g)} onTime={(g) => connRef.current?.send('admin_time', g)} onScale={(g) => connRef.current?.send('admin_scale', g)} onAttr={(g) => connRef.current?.send('admin_attr', g)} onClose={() => setAdminOpen(false)} />}
         {helpOpen && <HelpPanel characters={characters} cards={cardCatalog} onClose={() => setHelpOpen(false)} />}
 
         {warn && (
-          <div style={{ position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 60, width: 'min(420px, calc(100% - 24px))', boxSizing: 'border-box', padding: 12, borderRadius: 10, background: '#122025', border: '1px solid #f2a154', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 60, width: 'min(420px, calc(100% - 24px))', boxSizing: 'border-box', padding: 12, borderRadius: 10, background: '#241a1e', border: '1px solid #f2a154', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span>No se puede guardar el juego como marcador ni como archivo desde aquí.</span>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 12px' }} onClick={() => setWarn(false)}>Entendido</button>
@@ -2126,19 +2126,19 @@ export default function LobbyPage() {
 
         {cosmeticsOpen && phase === 'lobby' && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 70, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setCosmeticsOpen(false)}>
-            <div style={{ width: 'min(440px, calc(100% - 24px))', maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', boxSizing: 'border-box', padding: 14, borderRadius: 10, background: '#122025', border: '1px solid #294045', display: 'flex', flexDirection: 'column', gap: 10 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ width: 'min(440px, calc(100% - 24px))', maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', boxSizing: 'border-box', padding: 14, borderRadius: 10, background: '#241a1e', border: '1px solid #3d2c33', display: 'flex', flexDirection: 'column', gap: 10 }} onClick={(e) => e.stopPropagation()}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <strong>Personalizar personaje</strong>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                   <img src="/desgracias.png" alt="Desgracias (hipercomplejos)" title="Desgracias: se miden en hipercomplejos (ℍ, cuaterniones)" width={22} height={22} />
-                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}><strong>{Math.floor(normQ(desgracias.balance))} ℍ</strong><span style={{ fontSize: 10, color: '#89a7a3' }}>{formatQ(desgracias.balance)}</span></span>
+                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}><strong>{Math.floor(normQ(desgracias.balance))} ℍ</strong><span style={{ fontSize: 10, color: '#a8959a' }}>{formatQ(desgracias.balance)}</span></span>
                 </span>
               </div>
               {Object.keys(ITEMS).map((slot) => (
                 <div key={slot} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span style={{ fontSize: 12, color: '#89a7a3' }}>{SLOT_LABELS[slot]}</span>
+                  <span style={{ fontSize: 12, color: '#a8959a' }}>{SLOT_LABELS[slot]}</span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px', borderColor: !cosmetics[slot] ? '#f0c26b' : '#294045' }} onClick={() => { const next = { ...cosmetics }; delete next[slot]; updateCosmetics(next); }}>Ninguno</button>
+                    <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px', borderColor: !cosmetics[slot] ? '#f0c26b' : '#3d2c33' }} onClick={() => { const next = { ...cosmetics }; delete next[slot]; updateCosmetics(next); }}>Ninguno</button>
                     {Object.entries(ITEMS[slot]).map(([id, def]) => {
                       const owned = desgracias.owned.includes(id);
                       const price = priceOf(id);
@@ -2147,7 +2147,7 @@ export default function LobbyPage() {
                         <button
                           key={id}
                           type="button"
-                          style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px', borderColor: cosmetics[slot]?.id === id ? '#f0c26b' : owned ? '#294045' : affordable ? '#f2d154' : '#294045', opacity: owned || affordable ? 1 : 0.55 }}
+                          style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px', borderColor: cosmetics[slot]?.id === id ? '#f0c26b' : owned ? '#3d2c33' : affordable ? '#f2d154' : '#3d2c33', opacity: owned || affordable ? 1 : 0.55 }}
                           onClick={() => {
                             if (!owned && !buyItem(id)) return;
                             updateCosmetics({ ...cosmetics, [slot]: { id, color: cosmetics[slot]?.color || COLORS[0] } });
@@ -2161,7 +2161,7 @@ export default function LobbyPage() {
                   {cosmetics[slot] && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {COLORS.map((c) => (
-                        <button key={c} type="button" aria-label={`Color ${c}`} onClick={() => updateCosmetics({ ...cosmetics, [slot]: { ...cosmetics[slot], color: c } })} style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: cosmetics[slot].color === c ? '2px solid #fff' : '1px solid #294045', cursor: 'pointer', padding: 0 }} />
+                        <button key={c} type="button" aria-label={`Color ${c}`} onClick={() => updateCosmetics({ ...cosmetics, [slot]: { ...cosmetics[slot], color: c } })} style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: cosmetics[slot].color === c ? '2px solid #fff' : '1px solid #3d2c33', cursor: 'pointer', padding: 0 }} />
                       ))}
                     </div>
                   )}
@@ -2190,7 +2190,7 @@ export default function LobbyPage() {
                     : '¡Los Pacientes ganaron!'}
               </h2>
               {lastAward && lastAward.practice && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0', fontSize: 13, color: '#89a7a3' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0', fontSize: 13, color: '#a8959a' }}>
                   <img src="/desgracias.png" alt="Desgracias" width={22} height={22} style={{ opacity: 0.5 }} />
                   <span>Esta partida no da Desgracias</span>
                 </div>
@@ -2201,13 +2201,13 @@ export default function LobbyPage() {
                     <img src="/desgracias.png" alt="Desgracias" width={28} height={28} />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <strong>+{Math.round(normQ(awardToQ(lastAward.items)))} ℍ{lastAward.boss ? ' (partida contra el Jefe, x3)' : ''}</strong>
-                      <span style={{ color: '#89a7a3', fontSize: 12 }}>{formatQ(awardToQ(lastAward.items))}</span>
+                      <span style={{ color: '#a8959a', fontSize: 12 }}>{formatQ(awardToQ(lastAward.items))}</span>
                     </div>
                   </div>
                   {[...lastAward.items].sort((x, y) => y.amount - x.amount).map((it) => (
                     <div key={it.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: '#c9b8bd' }}>
                       <span>{it.label}</span>
-                      <span style={{ color: AXIS_COLOR[it.axis] || '#89a7a3' }}>+{Math.round(it.amount * 10) / 10}{it.axis && it.axis !== 'r' ? it.axis : ''}</span>
+                      <span style={{ color: AXIS_COLOR[it.axis] || '#a8959a' }}>+{Math.round(it.amount * 10) / 10}{it.axis && it.axis !== 'r' ? it.axis : ''}</span>
                     </div>
                   ))}
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 4, marginTop: 2 }}>
@@ -2348,7 +2348,7 @@ export default function LobbyPage() {
             {roomList.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '4px 0 8px' }}>
                 {roomList.map((r) => (
-                  <button key={r.id} type="button" disabled={joinLoading} onClick={() => setRoomId(r.id)} style={{ padding: '6px 10px', borderRadius: 3, border: roomId.trim().toLowerCase() === r.id ? '1px solid #4fd1c1' : '1px solid #294045', borderLeft: roomId.trim().toLowerCase() === r.id ? '3px solid #4fd1c1' : '3px solid #3a5a5f', background: roomId.trim().toLowerCase() === r.id ? 'rgba(79, 209, 193, 0.14)' : '#0c1518', color: '#e7f2ef', fontSize: 13, cursor: 'pointer' }}>
+                  <button key={r.id} type="button" disabled={joinLoading} onClick={() => setRoomId(r.id)} style={{ padding: '6px 10px', borderRadius: 8, border: roomId.trim().toLowerCase() === r.id ? '1px solid #f3e9a6' : '1px solid #4d3840', background: '#241a1e', color: '#f3e8e5', fontSize: 13, cursor: 'pointer' }}>
                     {r.id} ({r.players})
                   </button>
                 ))}
@@ -2416,10 +2416,10 @@ const BODY_FONT = '"Bricolage Grotesque", system-ui, -apple-system, sans-serif';
 function Wordmark() {
   return (
     <div style={{ marginBottom: 22 }}>
-      <div className="cube3d" style={{ fontWeight: 800, fontSize: 50, letterSpacing: '-0.045em', lineHeight: 1.15, color: '#e7f2ef' }}>réplica</div>
+      <div className="cube3d" style={{ fontWeight: 800, fontSize: 46, letterSpacing: '-0.035em', lineHeight: 1.2, color: '#f3e8e5' }}>réplica</div>
       <svg viewBox="0 0 240 28" width="100%" height="28" preserveAspectRatio="xMinYMid meet" aria-hidden="true" style={{ display: 'block', marginTop: 10, overflow: 'visible' }}>
-        <path className="beat" pathLength="1" d="M0 14 H56 L63 14 L69 3 L77 25 L84 8 L89 14 H134" fill="none" stroke="#ef5b63" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M134 14 H240" fill="none" stroke="#4fd1c1" strokeWidth="2" strokeLinecap="round" strokeDasharray="1 7" opacity="0.85" />
+        <path className="beat" pathLength="1" d="M0 14 H56 L63 14 L69 3 L77 25 L84 8 L89 14 H134" fill="none" stroke="#d94a52" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M134 14 H240" fill="none" stroke="#7fe08b" strokeWidth="2" strokeLinecap="round" strokeDasharray="1 7" opacity="0.85" />
       </svg>
     </div>
   );
@@ -2452,19 +2452,17 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#0c1518',
-    color: '#e7f2ef',
+    background: '#1a1215',
+    color: '#f3e8e5',
     fontFamily: BODY_FONT,
   },
   card: {
     width: 'min(380px, calc(100vw - 32px))',
     boxSizing: 'border-box',
-    padding: '26px 28px 28px',
-    borderRadius: 4,
-    background: '#122025',
-    border: '1px solid #294045',
-    borderTop: '3px solid #4fd1c1',
-    boxShadow: '0 24px 60px rgba(0, 8, 10, 0.55)',
+    padding: 28,
+    borderRadius: 12,
+    background: '#241a1e',
+    border: '1px solid #3d2c33',
   },
   header: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 },
   dot: (status) => ({
@@ -2475,18 +2473,18 @@ const styles = {
       status === 'needs_login' || status === 'disconnected'
         ? '#e0555f'
         : status === 'checking_session'
-        ? '#89a7a3'
+        ? '#a8959a'
         : '#5fd58c',
   }),
-  statusText: { fontSize: 13, color: '#89a7a3', letterSpacing: 0.2 },
+  statusText: { fontSize: 13, color: '#a8959a', letterSpacing: 0.2 },
   form: { display: 'flex', flexDirection: 'column', gap: 14 },
-  label: { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: '#89a7a3' },
+  label: { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: '#a8959a' },
   input: {
     padding: '10px 12px',
     borderRadius: 8,
-    border: '1px solid #294045',
-    background: '#0c1518',
-    color: '#e7f2ef',
+    border: '1px solid #3d2c33',
+    background: '#1a1215',
+    color: '#f3e8e5',
     fontSize: 14,
   },
   button: (disabled) => ({
@@ -2494,18 +2492,17 @@ const styles = {
     padding: '10px 16px',
     borderRadius: 8,
     border: 'none',
-    background: '#4fd1c1',
-    color: '#04201c',
+    background: '#d94a52',
+    color: '#fff',
     fontSize: 14,
-    fontWeight: 700,
-    letterSpacing: 0.3,
+    fontWeight: 600,
     cursor: disabled ? 'default' : 'pointer',
-    opacity: disabled ? 0.45 : 1,
+    opacity: disabled ? 0.6 : 1,
     transition: 'opacity 0.15s ease',
   }),
   oauthButton: (bgColor, disabled) => ({
     padding: '10px 16px',
-    borderRadius: 4,
+    borderRadius: 8,
     border: 'none',
     background: bgColor,
     color: '#fff',
@@ -2516,30 +2513,30 @@ const styles = {
     transition: 'opacity 0.15s ease',
   }),
   divider: { display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' },
-  dividerLine: { flex: 1, height: 1, background: '#294045' },
-  dividerText: { fontSize: 12, color: '#89a7a3' },
+  dividerLine: { flex: 1, height: 1, background: '#3d2c33' },
+  dividerText: { fontSize: 12, color: '#a8959a' },
   linkButton: (disabled) => ({
     background: 'none',
     border: 'none',
-    color: '#89a7a3',
+    color: '#a8959a',
     fontSize: 12,
     cursor: disabled ? 'default' : 'pointer',
     opacity: disabled ? 0.5 : 1,
     textDecoration: 'underline',
     padding: 0,
   }),
-  roomLabel: { fontSize: 14, color: '#89a7a3', margin: 0 },
+  roomLabel: { fontSize: 14, color: '#a8959a', margin: 0 },
   nameEditRow: { display: 'flex', gap: 6, alignItems: 'center' },
   inRoomNameInput: {
     padding: '4px 8px',
     borderRadius: 6,
-    border: '1px solid #294045',
-    background: '#0c1518',
-    color: '#e7f2ef',
+    border: '1px solid #3d2c33',
+    background: '#1a1215',
+    color: '#f3e8e5',
     fontSize: 12,
     width: 110,
   },
-  phaseLabel: { fontSize: 13, color: '#89a7a3', margin: 0 },
+  phaseLabel: { fontSize: 13, color: '#a8959a', margin: 0 },
   playerList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '38vh', overflowY: 'auto' },
   playerItem: {
     display: 'flex',
@@ -2548,18 +2545,17 @@ const styles = {
     justifyContent: 'space-between',
     gap: 6,
     padding: '8px 10px',
-    borderRadius: 4,
-    borderLeft: '3px solid #294045',
-    background: '#0c1518',
+    borderRadius: 6,
+    background: '#1a1215',
     fontSize: 14,
   },
-  playerTag: { fontSize: 12, color: '#89a7a3' },
+  playerTag: { fontSize: 12, color: '#a8959a' },
   smallButton: {
     padding: '4px 8px',
     borderRadius: 6,
-    border: '1px solid #294045',
-    background: '#122025',
-    color: '#e7f2ef',
+    border: '1px solid #3d2c33',
+    background: '#241a1e',
+    color: '#f3e8e5',
     fontSize: 11,
     cursor: 'pointer',
     width: '100%',
@@ -2570,9 +2566,9 @@ const styles = {
     gap: 6,
     padding: 10,
     borderRadius: 6,
-    background: '#0c1518',
+    background: '#1a1215',
   },
-  characterPickerLabel: { fontSize: 12, color: '#89a7a3', margin: '0 0 2px' },
+  characterPickerLabel: { fontSize: 12, color: '#a8959a', margin: '0 0 2px' },
   characterOption: (selected) => ({
     display: 'flex',
     flexDirection: 'column',
@@ -2580,40 +2576,39 @@ const styles = {
     gap: 2,
     padding: '8px 10px',
     borderRadius: 6,
-    border: selected ? '1px solid #4fd1c1' : '1px solid #294045',
-    borderLeft: selected ? '4px solid #4fd1c1' : '4px solid #294045',
-    background: selected ? 'rgba(79, 209, 193, 0.13)' : '#122025',
-    color: '#e7f2ef',
+    border: selected ? '1px solid #f2a154' : '1px solid #3d2c33',
+    background: selected ? 'rgba(242, 161, 84, 0.12)' : '#241a1e',
+    color: '#f3e8e5',
     fontSize: 13,
     fontWeight: 600,
     cursor: 'pointer',
     textAlign: 'left',
   }),
-  characterWeapon: { fontSize: 11, fontWeight: 400, color: '#89a7a3' },
+  characterWeapon: { fontSize: 11, fontWeight: 400, color: '#a8959a' },
   mapPicker: {
     display: 'flex',
     flexDirection: 'column',
     gap: 6,
     padding: 10,
     borderRadius: 6,
-    background: '#0c1518',
+    background: '#1a1215',
   },
   mapSelect: {
     padding: '7px 10px',
     borderRadius: 6,
-    border: '1px solid #294045',
-    background: '#122025',
-    color: '#e7f2ef',
+    border: '1px solid #3d2c33',
+    background: '#241a1e',
+    color: '#f3e8e5',
     fontSize: 13,
   },
-  mapReadOnly: { fontSize: 13, color: '#e7f2ef', margin: 0 },
-  editorLink: { fontSize: 11, color: '#4fd1c1', textDecoration: 'none' },
+  mapReadOnly: { fontSize: 13, color: '#f3e8e5', margin: 0 },
+  editorLink: { fontSize: 11, color: '#d94a52', textDecoration: 'none' },
   roleTag: (isAsym) => ({ fontSize: 13, fontWeight: 600, color: isAsym ? '#f2a154' : '#5fd58c', margin: 0 }),
   timerTag: (ms) => ({
     fontSize: 13,
     fontWeight: 700,
     fontVariantNumeric: 'tabular-nums',
-    color: ms < 30000 ? '#e0555f' : '#e7f2ef',
+    color: ms < 30000 ? '#e0555f' : '#f3e8e5',
     margin: 0,
   }),
   error: {
@@ -2642,28 +2637,28 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
-    background: 'rgba(9, 18, 21, 0.66)',
+    background: 'rgba(18, 19, 26, 0.6)',
   },
   chatEmpty: { fontSize: 12, color: '#565a6e', margin: 'auto 0', textAlign: 'center' },
   chatLine: { fontSize: 13, margin: 0, lineHeight: 1.4, wordBreak: 'break-word' },
-  chatAuthor: (isMe) => ({ fontWeight: 600, color: isMe ? '#4fd1c1' : '#89a7a3' }),
-  chatText: { color: '#e7f2ef' },
-  chatInputRow: { display: 'flex', gap: 8, padding: 8, borderTop: '1px solid #294045', background: '#122025' },
+  chatAuthor: (isMe) => ({ fontWeight: 600, color: isMe ? '#d94a52' : '#a8959a' }),
+  chatText: { color: '#f3e8e5' },
+  chatInputRow: { display: 'flex', gap: 8, padding: 8, borderTop: '1px solid #3d2c33', background: '#241a1e' },
   chatInput: {
     flex: 1,
     padding: '8px 10px',
     borderRadius: 6,
-    border: '1px solid #294045',
-    background: '#0c1518',
-    color: '#e7f2ef',
+    border: '1px solid #3d2c33',
+    background: '#1a1215',
+    color: '#f3e8e5',
     fontSize: 13,
   },
   chatSendButton: (disabled) => ({
     padding: '8px 14px',
     borderRadius: 6,
     border: 'none',
-    background: disabled ? '#294045' : '#4fd1c1',
-    color: disabled ? '#5b7a77' : '#04201c',
+    background: disabled ? '#3d2c33' : '#d94a52',
+    color: disabled ? '#565a6e' : '#fff',
     fontSize: 13,
     fontWeight: 600,
     cursor: disabled ? 'default' : 'pointer',
@@ -2674,7 +2669,7 @@ const styles = {
     overflow: 'hidden',
     background: '#0a0b10',
     fontFamily: BODY_FONT,
-    color: '#e7f2ef',
+    color: '#f3e8e5',
   },
   sceneContainer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, userSelect: 'none', WebkitUserSelect: 'none' },
   topBar: {
@@ -2686,8 +2681,8 @@ const styles = {
     gap: 10,
     padding: '8px 14px',
     borderRadius: 8,
-    background: 'rgba(14, 26, 30, 0.88)',
-    border: '1px solid #294045',
+    background: 'rgba(27, 29, 41, 0.85)',
+    border: '1px solid #3d2c33',
     backdropFilter: 'blur(4px)',
   },
   playersOverlay: {
@@ -2697,8 +2692,8 @@ const styles = {
     width: 220,
     padding: 14,
     borderRadius: 8,
-    background: 'rgba(14, 26, 30, 0.88)',
-    border: '1px solid #294045',
+    background: 'rgba(27, 29, 41, 0.85)',
+    border: '1px solid #3d2c33',
     backdropFilter: 'blur(4px)',
     display: 'flex',
     flexDirection: 'column',
@@ -2716,8 +2711,8 @@ const styles = {
     width: 320,
     borderRadius: 8,
     overflow: 'hidden',
-    border: '1px solid #294045',
-    background: 'rgba(14, 26, 30, 0.92)',
+    border: '1px solid #3d2c33',
+    background: 'rgba(27, 29, 41, 0.9)',
     backdropFilter: 'blur(4px)',
   },
   errorOverlay: {
@@ -2741,7 +2736,7 @@ const styles = {
     transform: 'translateX(-50%)',
     fontSize: 13,
     fontWeight: 600,
-    color: '#0c1518',
+    color: '#1a1215',
     background: '#f2a154',
     padding: '8px 14px',
     borderRadius: 6,
@@ -2755,8 +2750,8 @@ const styles = {
     width: 280,
     padding: '10px 14px',
     borderRadius: 8,
-    background: 'rgba(14, 26, 30, 0.88)',
-    border: '1px solid #294045',
+    background: 'rgba(27, 29, 41, 0.85)',
+    border: '1px solid #3d2c33',
     backdropFilter: 'blur(4px)',
   },
   resolvedBanner: (won) => ({
@@ -2773,7 +2768,7 @@ const styles = {
     background: 'rgba(18, 19, 26, 0.92)',
     border: `1px solid ${won ? '#5fd58c' : '#e0555f'}`,
   }),
-  hpBarLabel: { fontSize: 12, color: '#89a7a3', marginBottom: 6, textAlign: 'center' },
+  hpBarLabel: { fontSize: 12, color: '#a8959a', marginBottom: 6, textAlign: 'center' },
   curatorHpBar: {
     position: 'absolute',
     top: 64,
@@ -2782,8 +2777,8 @@ const styles = {
     width: 320,
     padding: '8px 14px',
     borderRadius: 8,
-    background: 'rgba(14, 26, 30, 0.88)',
-    border: '1px solid #294045',
+    background: 'rgba(27, 29, 41, 0.85)',
+    border: '1px solid #3d2c33',
     backdropFilter: 'blur(4px)',
   },
   curatorHpFill: (ratio) => ({
@@ -2800,12 +2795,12 @@ const styles = {
     width: 220,
     padding: '8px 14px',
     borderRadius: 8,
-    background: 'rgba(14, 26, 30, 0.88)',
-    border: '1px solid #294045',
+    background: 'rgba(27, 29, 41, 0.85)',
+    border: '1px solid #3d2c33',
     backdropFilter: 'blur(4px)',
   },
-  flojeraBarLabel: { fontSize: 12, color: '#89a7a3', marginBottom: 6, textAlign: 'center' },
-  flojeraBarTrack: { height: 6, borderRadius: 3, background: '#0c1518', overflow: 'hidden' },
+  flojeraBarLabel: { fontSize: 12, color: '#a8959a', marginBottom: 6, textAlign: 'center' },
+  flojeraBarTrack: { height: 6, borderRadius: 3, background: '#1a1215', overflow: 'hidden' },
   flojeraBarFill: (value, max, locked) => ({
     height: '100%',
     width: `${Math.max(0, Math.min(1, value / max)) * 100}%`,
@@ -2830,9 +2825,9 @@ const styles = {
     height: 72,
     padding: 0,
     borderRadius: 10,
-    border: '1px solid #294045',
+    border: '1px solid #3d2c33',
     background: onCooldown ? 'rgba(27, 29, 41, 0.6)' : 'rgba(95, 213, 140, 0.15)',
-    color: onCooldown ? '#89a7a3' : '#5fd58c',
+    color: onCooldown ? '#a8959a' : '#5fd58c',
     cursor: onCooldown ? 'default' : 'pointer',
     overflow: 'hidden',
   }),
@@ -2844,8 +2839,8 @@ const styles = {
     width: 32,
     height: 32,
     borderRadius: '50%',
-    border: `1px solid ${on ? '#f0c26b' : '#294045'}`,
-    background: 'rgba(14, 26, 30, 0.88)',
+    border: `1px solid ${on ? '#f0c26b' : '#3d2c33'}`,
+    background: 'rgba(27, 29, 41, 0.85)',
     color: on ? '#f0c26b' : '#e8e9f0',
     fontSize: 16,
     cursor: 'pointer',
@@ -2859,8 +2854,8 @@ const styles = {
     gap: 4,
     padding: '6px 10px',
     borderRadius: 8,
-    background: 'rgba(14, 26, 30, 0.92)',
-    border: '1px solid #294045',
+    background: 'rgba(27, 29, 41, 0.9)',
+    border: '1px solid #3d2c33',
     fontSize: 11,
     color: '#c3c5d6',
   },
@@ -2871,8 +2866,8 @@ const styles = {
     width: 32,
     height: 32,
     borderRadius: '50%',
-    border: '1px solid #294045',
-    background: 'rgba(14, 26, 30, 0.88)',
+    border: '1px solid #3d2c33',
+    background: 'rgba(27, 29, 41, 0.85)',
     color: '#e8e9f0',
     fontSize: 16,
     fontWeight: 700,
@@ -2885,8 +2880,8 @@ const styles = {
     gap: 6,
     padding: 8,
     borderRadius: 8,
-    background: 'rgba(14, 26, 30, 0.92)',
-    border: '1px solid #294045',
+    background: 'rgba(27, 29, 41, 0.9)',
+    border: '1px solid #3d2c33',
     width: 170,
   },
   draftOverlay: { position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, maxWidth: '96vw' },
@@ -2896,21 +2891,21 @@ const styles = {
     width: 118,
     height: 168,
     borderRadius: 12,
-    border: `2px solid ${corrupt ? '#d94fd0' : rarity === 'super' ? '#ffe14a' : rarity === 'legendary' ? '#ffd24a' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#d94a52' : '#294045'}`,
+    border: `2px solid ${corrupt ? '#d94fd0' : rarity === 'super' ? '#ffe14a' : rarity === 'legendary' ? '#ffd24a' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#d94a52' : '#3d2c33'}`,
     background: 'linear-gradient(160deg, #241a20, #14151d)',
     boxShadow: '0 8px 22px rgba(0,0,0,0.55)',
     animationDelay: `${n * 90}ms`,
   }),
   draftFace: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', height: '100%', padding: '10px 6px', background: 'transparent', border: 'none', color: '#e8e9f0', cursor: 'pointer', borderRadius: 10, boxSizing: 'border-box', textAlign: 'center' },
   draftReroll: (on) => ({ position: 'absolute', top: 4, right: 4, width: 24, height: 24, padding: 0, background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 12, cursor: on ? 'pointer' : 'default', opacity: on ? 1 : 0.35 }),
-  draftTitle: { fontSize: 11, color: '#89a7a3', textAlign: 'center' },
+  draftTitle: { fontSize: 11, color: '#a8959a', textAlign: 'center' },
   draftOption: (rarity, corrupt) => ({
     display: 'flex',
     flexDirection: 'column',
     gap: 2,
     padding: '6px 8px',
     borderRadius: 6,
-    border: `1px solid ${corrupt ? '#d94fd0' : rarity === 'legendary' ? '#ffd24a' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#d94a52' : '#294045'}`,
+    border: `1px solid ${corrupt ? '#d94fd0' : rarity === 'legendary' ? '#ffd24a' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#d94a52' : '#3d2c33'}`,
     background: 'rgba(18, 19, 26, 0.9)',
     color: '#e8e9f0',
     cursor: 'pointer',
@@ -2919,8 +2914,8 @@ const styles = {
     boxSizing: 'border-box',
   }),
   draftHeader: { display: 'flex', alignItems: 'center', gap: 8 },
-  draftDeck: { fontSize: 9, color: '#89a7a3', textTransform: 'uppercase', letterSpacing: 0.4 },
-  draftDescription: { fontSize: 10, color: '#89a7a3', fontWeight: 400 },
+  draftDeck: { fontSize: 9, color: '#a8959a', textTransform: 'uppercase', letterSpacing: 0.4 },
+  draftDescription: { fontSize: 10, color: '#a8959a', fontWeight: 400 },
   cardButtonCooldown: { fontSize: 11, fontVariantNumeric: 'tabular-nums' },
   skillBar: {
     position: 'absolute',
@@ -2941,9 +2936,9 @@ const styles = {
     height: 72,
     padding: 0,
     borderRadius: 10,
-    border: '1px solid #294045',
+    border: '1px solid #3d2c33',
     background: onCooldown ? 'rgba(27, 29, 41, 0.6)' : 'rgba(95, 213, 140, 0.15)',
-    color: onCooldown ? '#89a7a3' : '#5fd58c',
+    color: onCooldown ? '#a8959a' : '#5fd58c',
     cursor: onCooldown ? 'default' : 'pointer',
     overflow: 'hidden',
   }),
@@ -2968,13 +2963,13 @@ const styles = {
     transform: 'translateX(-50%)',
     padding: '8px 16px',
     borderRadius: 8,
-    background: 'rgba(14, 26, 30, 0.88)',
-    border: '1px solid #294045',
+    background: 'rgba(27, 29, 41, 0.85)',
+    border: '1px solid #3d2c33',
     backdropFilter: 'blur(4px)',
   },
   pulseHudReady: { fontSize: 13, fontWeight: 600, color: '#5fd58c' },
-  pulseHudCooldown: { fontSize: 13, fontWeight: 600, color: '#89a7a3', fontVariantNumeric: 'tabular-nums' },
-  hpBarTrack: { height: 8, borderRadius: 4, background: '#0c1518', overflow: 'hidden' },
+  pulseHudCooldown: { fontSize: 13, fontWeight: 600, color: '#a8959a', fontVariantNumeric: 'tabular-nums' },
+  hpBarTrack: { height: 8, borderRadius: 4, background: '#1a1215', overflow: 'hidden' },
   hpBarFill: (hp, maxHp = 120) => {
     if (maxHp > 1e6) return { height: '100%', width: '100%', background: '#54a8f2' };
     const ratio = Math.max(0, Math.min(1, hp / maxHp));
@@ -2987,7 +2982,7 @@ const styles = {
     left: '50%',
     transform: 'translateX(-50%)',
     fontSize: 13,
-    color: '#e7f2ef',
+    color: '#f3e8e5',
     background: 'rgba(84, 104, 255, 0.9)',
     padding: '6px 14px',
     borderRadius: 6,
@@ -3003,7 +2998,7 @@ const styles = {
     justifyContent: 'center',
     backdropFilter: 'blur(2px)',
   },
-  gameOverCard: { width: 'min(380px, calc(100% - 32px))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box', padding: 28, borderRadius: 12, background: '#122025', border: '1px solid #294045' },
+  gameOverCard: { width: 'min(380px, calc(100% - 32px))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box', padding: 28, borderRadius: 12, background: '#241a1e', border: '1px solid #3d2c33' },
   gameOverTitle: (curatorWon) => ({
     fontSize: 18,
     fontWeight: 700,
@@ -3011,20 +3006,20 @@ const styles = {
     margin: '0 0 6px',
     textAlign: 'center',
   }),
-  gameOverReason: { fontSize: 13, color: '#89a7a3', textAlign: 'center', margin: '0 0 18px' },
-  waitingForHost: { fontSize: 12, color: '#89a7a3', textAlign: 'center', margin: '0 0 10px' },
+  gameOverReason: { fontSize: 13, color: '#a8959a', textAlign: 'center', margin: '0 0 18px' },
+  waitingForHost: { fontSize: 12, color: '#a8959a', textAlign: 'center', margin: '0 0 10px' },
   gameOverList: { listStyle: 'none', padding: 0, margin: '0 0 20px', display: 'flex', flexDirection: 'column', gap: 8 },
   gameOverListItem: {
     display: 'flex',
     justifyContent: 'space-between',
     padding: '8px 10px',
     borderRadius: 6,
-    background: '#0c1518',
+    background: '#1a1215',
     fontSize: 13,
   },
   gameOverResultTag: (resultStatus) => ({
     fontSize: 12,
     fontWeight: 600,
-    color: resultStatus === 'self_won' ? '#5fd58c' : resultStatus === 'eliminated' ? '#e0555f' : '#89a7a3',
+    color: resultStatus === 'self_won' ? '#5fd58c' : resultStatus === 'eliminated' ? '#e0555f' : '#a8959a',
   }),
 };
