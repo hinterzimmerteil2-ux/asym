@@ -1432,7 +1432,7 @@ export default function LobbyPage() {
           )}
         </div>
 
-        <div ref={playersBoxRef} className="pl-overlay" style={{ ...sx(styles.playersOverlay, { top: 52, right: 8, width: 'min(300px, calc(100% - 16px))', maxHeight: 'calc(100dvh - 72px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', scrollbarWidth: 'thin', boxSizing: 'border-box', padding: 10, zIndex: 30 }), ...(compact && !playersOpen ? { display: 'none' } : {}) }}>
+        <div ref={playersBoxRef} className={phase === 'lobby' ? 'pl-overlay pl-lobby' : 'pl-overlay'} style={{ ...sx(styles.playersOverlay, { top: 52, right: 8, width: 'min(300px, calc(100% - 16px))', maxHeight: 'calc(100dvh - 72px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', scrollbarWidth: 'thin', boxSizing: 'border-box', padding: 10, zIndex: 30 }), ...(compact && !playersOpen ? { display: 'none' } : {}) }}>
           <ul style={sx(styles.playerList, { maxHeight: 'none', overflowY: 'visible' })}>
             {players.map((p) => {
               const patientInfo = patients[p.id];
