@@ -2810,6 +2810,19 @@ test('Salto: sube rápido, apex razonable y la resistencia del aire limita la ca
   assert.ok(e.a.velocityY > -32 && e.a.velocityY < -25, 'terminal ' + e.a.velocityY);
 });
 
+test('Acelerador: las recargas no se vuelven eternas con tiempo lento', () => {
+  const { room, e, clock } = setup();
+  room.gameState.timeScale = 0.1;
+  const start = room.clock();
+  e.a.cardCooldowns[0] = start + 10000;
+  room.tickCooldownScale(start, 1000);
+  assert.ok(e.a.cardCooldowns[0] < start + 10000 - 1000, 'progresa más rápido que el reloj lento');
+  room.gameState.timeScale = 1;
+  const before = e.a.cardCooldowns[0];
+  room.tickCooldownScale(start, 1000);
+  assert.strictEqual(e.a.cardCooldowns[0], before);
+});
+
 test('Los cuerpos no se quedan en la misma posición', () => {
   const { room, e, step } = setup();
   e.a.x = 5; e.a.z = 5; e.b.x = 5; e.b.z = 5; e.a.y = 0; e.b.y = 0;

@@ -220,6 +220,7 @@ const GRACE_LOBBY_MS = 20000;
 const GRACE_ACTION_MS = 90000;
 
 const HP_SCALE_SHARE = 0.25;
+const COOLDOWN_SCALE_SHARE = 0.35;
 
 class Room {
   constructor(roomId) {
@@ -1876,8 +1877,21 @@ class Room {
 
   toRealTime(t) {
     const sc = this.gameState && this.gameState.timeScale || 1;
-    if (!Number.isFinite(t) || sc === 1) return t;
-    return Date.now() + (t - this.clock()) / sc;
+    if (!Number.isFinite(t) || !(t > 0)) return t;
+    return Date.now() + Math.max(0, t - this.clock()) / sc;
+  }
+
+  toRealCd(t) {
+    const sc = this.gameState && this.gameState.timeScale || 1;
+    if (!Number.isFinite(t) || !(t > 0)) return t;
+    const rate = Math.pow(sc, 1 - COOLDOWN_SCALE_SHARE);
+    return Date.now() + Math.max(0, t - this.clock()) / rate;
+  }
+
+  realCdMap(map) {
+    const out = {};
+    for (const k of Object.keys(map || {})) out[k] = this.toRealCd(map[k]);
+    return out;
   }
 
   hpDt(dt) {
@@ -1910,6 +1924,7 @@ class Room {
     this.stepPhysics(dt);
     this.tickGhosts(dt);
     this.tickPereza(now, dt);
+    this.tickCooldownScale(now, dt * 1000);
     if (this.phase === 'action' && !this.gameState.gameOver) {
       this.botThink(now);
       this.autoPickExpiredDrafts(now);
@@ -2015,7 +2030,7 @@ class Room {
           channel: own.channel ? { elapsed: now - own.channel.startedAt, total: CHANNEL_MS, beatMs: CHANNEL_BEAT_MS, beats: CHANNEL_BEATS, hits: own.channel.hits, scored: Object.keys(own.channel.scored).map(Number), slot: own.channel.slot } : null,
           sdGame: own.selfDmg ? this.sdView(own.selfDmg, now) : null,
           astral: own.astral ? { state: own.astral.state, charge: own.astral.state === 'charging' ? Math.min(1, (now - own.astral.startedAt) / own.astral.cfg.chargeMs) : own.astral.charge, readyMs: Math.max(0, own.astral.readyAt - now), slot: own.astral.slot } : null,
-          cooldowns: { cards: own.cardCooldowns, skills: own.skillCooldowns },
+          cooldowns: { cards: this.realCdMap(own.cardCooldowns), skills: this.realCdMap(own.skillCooldowns) },
           sup: SuperAbilities.view(own, now),
           res: Resources.build(own, SuperAbilities.view(own, now), now, this, playerId),
         };
@@ -2101,6 +2116,19 @@ class Room {
     return own ? { [playerId]: own } : {};
   }
 
+  tickCooldownScale(now, dtMs) {
+    const sc = this.phase === 'action' && this.gameState.timeScale || 1;
+    if (sc === 1) return;
+    const shift = dtMs * (Math.pow(sc, -COOLDOWN_SCALE_SHARE) - 1);
+    for (const entity of Object.values(this.gameState.entities)) {
+      const lists = [entity.cardCooldowns, entity.skillCooldowns, entity.sup && entity.sup.cd];
+      for (const list of lists) {
+        if (!list) continue;
+        for (const key of Object.keys(list)) if (list[key] > now) list[key] = Math.max(now, list[key] - shift);
+      }
+    }
+  }
+
   tickPereza(now, dt) {
     for (const [entityId, entity] of Object.entries(this.gameState.entities)) {
       let extra = 0;
@@ -2180,7 +2208,7 @@ class Room {
         entity.corpse = true;
         entity.gone = false;
         Status.apply(entity, 'ragdoll', 3600000, now);
-        this.gameState.ghosts[entityPlayerId] = { x: entity.x, y: entity.y || 0, z: entity.z, faceX: entity.faceX || 0, faceZ: entity.faceZ || 1, visibleUntil: 0, uses: 0, cooldownUntil: this.toRealTime(0), vy: 0, onGround: true };
+        this.gameState.ghosts[entityPlayerId] = { x: entity.x, y: entity.y || 0, z: entity.z, faceX: entity.faceX || 0, faceZ: entity.faceZ || 1, visibleUntil: 0, uses: 0, cooldownUntil: this.toRealCd(0), vy: 0, onGround: true };
       }
       if (entity.channel && entity.channel.endsAt <= now) entity.channel = null;
       if (entity.selfDmg) this.tickSelfDamage(entityPlayerId, entity, now);
@@ -2537,7 +2565,7 @@ class Room {
     } else if (skill.type === 'melee_stun') {
       this.hitWindows.push({ kind: 'melee', playerId, skill, index, endsAt: now + (skill.windowMs || HIT_WINDOW_MS) });
       this.broadcast(MessageType.HIT_FX, { playerId, boxes: [handBox(curadorEntity, skill.reach || 0, skill.radius)] });
-      this.broadcastPulse({ playerId, skillIndex: index, skillId: skill.id, skillName: skill.name, skillType: skill.type, radius: 0, center: null, cooldownUntil: this.toRealTime(curadorEntity.skillCooldowns[index]), healedPlayerIds: [], affectedPlayerIds: [] });
+      this.broadcastPulse({ playerId, skillIndex: index, skillId: skill.id, skillName: skill.name, skillType: skill.type, radius: 0, center: null, cooldownUntil: this.toRealCd(curadorEntity.skillCooldowns[index]), healedPlayerIds: [], affectedPlayerIds: [] });
     } else {
       for (const [targetPlayerId, patient] of Object.entries(this.gameState.patients)) {
         if (patient.status !== 'alive') continue;
@@ -2599,7 +2627,7 @@ class Room {
       skillType: skill.type,
       radius: skill.radius || 0,
       center: skill.reach ? (({ x, z }) => ({ x, z }))(reachPoint(curadorEntity, skill.reach)) : null,
-      cooldownUntil: this.toRealTime(curadorEntity.skillCooldowns[index]),
+      cooldownUntil: this.toRealCd(curadorEntity.skillCooldowns[index]),
       healedPlayerIds: healedAny ? affectedPlayerIds : [],
       affectedPlayerIds,
     };
@@ -2849,7 +2877,7 @@ class Room {
             skillType: skill.type,
             radius: skill.radius || 0,
             center: null,
-            cooldownUntil: this.toRealTime(owner.skillCooldowns[win.index]),
+            cooldownUntil: this.toRealCd(owner.skillCooldowns[win.index]),
             healedPlayerIds: [],
             affectedPlayerIds: ids,
           });
@@ -2894,7 +2922,7 @@ class Room {
             skillType: skill.type,
             radius: skill.radius || 0,
             center: null,
-            cooldownUntil: this.toRealTime(owner.skillCooldowns[win.index]),
+            cooldownUntil: this.toRealCd(owner.skillCooldowns[win.index]),
             healedPlayerIds: [nearestId],
             affectedPlayerIds: moving ? [nearestId] : [],
             silent: true,
@@ -3015,7 +3043,7 @@ class Room {
     if (a.slot >= 0) entity.cardCooldowns[a.slot] = a.readyAt;
     Status.clear(entity, 'slow');
     const pid = Object.keys(this.gameState.entities).find((k) => this.gameState.entities[k] === entity);
-    if (pid && a.slot >= 0) this.broadcast(MessageType.CARD_RESULT, { playerId: pid, slot: a.slot, cardId: a.card.id, cooldownUntil: this.toRealTime(a.readyAt), hitRadius: null, center: null, boxes: [], silent: true });
+    if (pid && a.slot >= 0) this.broadcast(MessageType.CARD_RESULT, { playerId: pid, slot: a.slot, cardId: a.card.id, cooldownUntil: this.toRealCd(a.readyAt), hitRadius: null, center: null, boxes: [], silent: true });
   }
 
   fireAstral(playerId, entity, slotIndex, now) {
@@ -3661,7 +3689,7 @@ class Room {
       }
       if (entity.astral.state === 'ready' && now >= entity.astral.readyAt) {
         this.fireAstral(playerId, entity, slotIndex, now);
-        this.broadcast(MessageType.CARD_RESULT, { playerId, slot: slotIndex, cardId: card.id, cooldownUntil: this.toRealTime(entity.cardCooldowns[slotIndex]), hitRadius: null, center: null, boxes: [] });
+        this.broadcast(MessageType.CARD_RESULT, { playerId, slot: slotIndex, cardId: card.id, cooldownUntil: this.toRealCd(entity.cardCooldowns[slotIndex]), hitRadius: null, center: null, boxes: [] });
       }
       return;
     }
@@ -3718,7 +3746,7 @@ class Room {
       playerId,
       slot: slotIndex,
       cardId: card.id,
-      cooldownUntil: this.toRealTime(entity.cardCooldowns[slotIndex]),
+      cooldownUntil: this.toRealCd(entity.cardCooldowns[slotIndex]),
       hitRadius: card.hitRadius || null,
       center: card.reach ? (({ x, z }) => ({ x, z }))(reachPoint(entity, card.reach * (card.id === 'red_mist' && entity.redMistWide ? card.combo.heavyReachMult : 1))) : null,
       boxes: card.reach && !(card.id === 'red_mist' && entity.redMistWide) ? [handBox(entity, card.reach, card.hitRadius)] : CardEffects.areaOf(card, entity),
@@ -3731,7 +3759,7 @@ class Room {
     entity.eating = { cardId: card.id, slot: slotIndex, endsAt: now + card.eat.ms, x: entity.x, z: entity.z, hp: patient ? patient.hp : 0, limit: card.eat.moveLimit };
     entity.cardCooldowns[slotIndex] = now + card.eat.ms;
     Status.apply(entity, 'slow', card.eat.ms, now, { tag: 'endlag', level: 2 });
-    this.broadcast(MessageType.CARD_RESULT, { playerId, slot: slotIndex, cardId: card.id, cooldownUntil: this.toRealTime(entity.cardCooldowns[slotIndex]), hitRadius: null, center: null, boxes: [] });
+    this.broadcast(MessageType.CARD_RESULT, { playerId, slot: slotIndex, cardId: card.id, cooldownUntil: this.toRealCd(entity.cardCooldowns[slotIndex]), hitRadius: null, center: null, boxes: [] });
   }
 
   tickEating(now) {
@@ -3747,14 +3775,14 @@ class Room {
         entity.eating = null;
         entity.cardCooldowns[e.slot] = now + 1000;
         Status.apply(entity, 'slow', 1000, now, { tag: 'endlag', level: 2 });
-        this.broadcast(MessageType.CARD_RESULT, { playerId, slot: e.slot, cardId: card.id, cooldownUntil: this.toRealTime(entity.cardCooldowns[e.slot]), hitRadius: null, center: null, boxes: [], silent: true });
+        this.broadcast(MessageType.CARD_RESULT, { playerId, slot: e.slot, cardId: card.id, cooldownUntil: this.toRealCd(entity.cardCooldowns[e.slot]), hitRadius: null, center: null, boxes: [], silent: true });
         continue;
       }
       if (now < e.endsAt) continue;
       entity.eating = null;
       entity.cardCooldowns[e.slot] = now + card.cooldownMs;
       this.applyCardEffect(playerId, entity, card, now);
-      this.broadcast(MessageType.CARD_RESULT, { playerId, slot: e.slot, cardId: card.id, cooldownUntil: this.toRealTime(entity.cardCooldowns[e.slot]), hitRadius: null, center: null, boxes: [], silent: true });
+      this.broadcast(MessageType.CARD_RESULT, { playerId, slot: e.slot, cardId: card.id, cooldownUntil: this.toRealCd(entity.cardCooldowns[e.slot]), hitRadius: null, center: null, boxes: [], silent: true });
     }
   }
 
