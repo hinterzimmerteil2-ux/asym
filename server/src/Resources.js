@@ -20,13 +20,19 @@ function fromCards(entity, now, room, pid) {
   }
   if (hand.some((sl) => sl && sl.chosen === 'oi_ojo')) {
     const ov = require('./Oi').view(entity, now);
-    out.push(bar('oi', 'Ojos de Precognición', ov.eyes, 30, '#8fe3d0', {
-      icon: ov.eyes <= 0 ? '/icons/oi_sobrecalentado.png' : '/icons/oi_ojo.png',
-      extra: ov.eyes > 0 ? { label: 'Esquive', value: ov.cost } : null,
-      tags: ov.eyes <= 0 ? [{ text: 'Sin ojos', color: '#ff8a8a' }] : [{ text: 'Abierto', color: '#8fe3d0' }],
-      timer: ov.timer !== null ? { pct: ov.timer, label: 'Reabriendo' } : null,
-      empty: ov.eyes <= 0,
-    }));
+    const hot = ov.heat > 0;
+    out.push(hot
+      ? bar('oi', 'Ojo de Precognición Sobrecalentado', ov.heat, 30, '#ff6a5a', {
+        icon: '/icons/oi_sobrecalentado.png',
+        extra: { label: 'Esquive', value: ov.cost },
+        tags: [{ text: 'Sobrecalentado', color: '#ff8a8a' }],
+      })
+      : bar('oi', 'Ojos de Precognición', ov.eyes, 30, '#8fe3d0', {
+        icon: '/icons/oi_ojo.png',
+        extra: { label: 'Esquive', value: ov.cost },
+        tags: [{ text: ov.eyes > 0 ? 'Abierto' : 'Cerrado', color: '#8fe3d0' }],
+        empty: ov.eyes <= 0,
+      }));
   }
   if (hand.some((sl) => sl && sl.chosen === 'tigermark')) {
     const card = Cards.getCard('tigermark');

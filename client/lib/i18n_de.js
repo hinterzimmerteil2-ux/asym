@@ -885,7 +885,7 @@ export const DE = [
 "Laser",
 "Gewehr",
 "niche tower defence game",
-"Ein Metallauge, das sieht, bevor es geschieht. Passiv und aktiv zugleich. Solange es sieht, finden dich Schläge nur selten, aber jedes Mal, wenn doch, erlischt etwas, und je weniger Augen bleiben, desto mehr kostet alles. Der Einsatz wirft dich zurück. Wird es blind, dauert es, bis es sich wieder öffnet, und bis dahin wiegt alles doppelt.",
+"Ein Metallauge, das sieht, bevor es geschieht. Passiv und aktiv zugleich. Solange es sieht, finden dich Schläge nur selten, aber jedes Mal, wenn doch, erlischt etwas, und je weniger Augen bleiben, desto mehr kostet alles. Der Einsatz wirft dich zurück. Verliert es die Sicht, überhitzt das Auge, und alles wiegt etwas mehr.",
 "Augen der Vorahnung",
 "Keine Augen",
 "Offen",
@@ -893,4 +893,6 @@ export const DE = [
 "Öffnet erneut",
 "Keine Augen der Vorahnung",
 "Ausweichen",
+"Überhitztes Auge der Präkognition",
+"Überhitzt",
 ];

@@ -2,13 +2,18 @@ const Hitbox = require('./Hitbox');
 const Status = require('./Status');
 const C = require('./Constants');
 
-const OI = { eyes: 30, refillMs: 28000, costMax: 9, costMin: 3, loss: 5, regenEvery: 9000, bias: 3, slack: 2.5, quietMs: 5000, stepMs: 200, maxStep: 10, useFlojera: 5, useEyes: 2, cdMs: 1800, perMinute: 12, backDist: 4.5 };
+const OI = { eyes: 30, heat: 30, heatCost: 0.02, heatDrain: 0.015, costMax: 14, costMin: 5, loss: 5, regenEvery: 9000, bias: 3, slack: 2.5, quietMs: 5000, stepMs: 200, maxStep: 10, useFlojera: 8, useEyes: 2, cdMs: 1800, perMinute: 12, backDist: 4.5 };
 
 const ANGLES = [90, -90, 45, -45, 135, -135, 0, 180].map((a) => (a * Math.PI) / 180);
 
+function heat(eyes) {
+  return Math.max(0, Math.min(OI.heat, -eyes));
+}
+
 function costFor(eyes) {
   const f = Math.max(0, Math.min(1, eyes / OI.eyes));
-  return Math.round((OI.costMin + (OI.costMax - OI.costMin) * (1 - f)) * 10) / 10;
+  const base = OI.costMin + (OI.costMax - OI.costMin) * (1 - f);
+  return Math.round(base * (1 + OI.heatCost * heat(eyes)) * 10) / 10;
 }
 
 function has(entity) {
@@ -16,27 +21,27 @@ function has(entity) {
 }
 
 function state(entity) {
-  if (!entity.oi) entity.oi = { eyes: OI.eyes, outAt: 0, lastHit: 0, lastUse: 0, lastRegen: 0, uses: [] };
+  if (!entity.oi) entity.oi = { eyes: OI.eyes, lastHit: 0, lastUse: 0, lastRegen: 0, uses: [] };
   return entity.oi;
 }
 
 function depleted(entity) {
-  return has(entity) && state(entity).eyes <= 0;
+  return has(entity) && state(entity).eyes < 0;
 }
 
 function active(entity) {
   if (!has(entity)) return false;
-  const s = state(entity);
-  return s.eyes > 0;
+  state(entity);
+  return true;
 }
 
 function drainMult(entity) {
-  return depleted(entity) ? 2 : 1;
+  if (!has(entity)) return 1;
+  return 1 + OI.heatDrain * heat(state(entity).eyes);
 }
 
 function blocked(entity, now) {
   const s = state(entity);
-  if (s.eyes <= 0) return 'Sin Ojos de Precognición';
   s.uses = s.uses.filter((t) => now - t < 60000);
   if (s.uses.length >= OI.perMinute) return 'Máximo 12 por minuto';
   return null;
@@ -44,9 +49,9 @@ function blocked(entity, now) {
 
 function lose(room, id, e, n, now) {
   const s = state(e);
-  s.eyes = Math.max(0, s.eyes - n);
-  if (s.eyes <= 0) {
-    s.outAt = now + OI.refillMs;
+  const before = s.eyes;
+  s.eyes = Math.max(-OI.heat, s.eyes - n);
+  if (before > 0 && s.eyes <= 0) {
     room.broadcast('oi_fx', { kind: 'close', playerId: id, x: e.x, y: e.y || 0, z: e.z });
   }
 }
@@ -55,7 +60,7 @@ function use(room, playerId, entity, now) {
   const s = state(entity);
   s.uses.push(now);
   s.lastUse = now;
-  entity.flojera = Math.max(0, entity.flojera - OI.useFlojera);
+  entity.flojera = Math.max(0, entity.flojera - OI.useFlojera * (1 + OI.heatCost * heat(s.eyes)));
   const platforms = room.allPlatforms();
   const cur = [...room.players].find(([, pl]) => pl.isAsymRole);
   const ce = cur && room.gameState.entities[cur[0]];
@@ -226,12 +231,7 @@ function tick(room, now) {
   for (const e of Object.values(room.gameState.entities)) {
     if (!e || !e.oi || !has(e)) continue;
     const s = e.oi;
-    if (s.eyes <= 0) {
-      if (s.outAt && now >= s.outAt) {
-        s.eyes = OI.eyes;
-        s.outAt = 0;
-      }
-    } else if (s.eyes < OI.eyes && now - s.lastHit > OI.quietMs && now - s.lastUse > OI.quietMs && now - s.lastRegen >= OI.regenEvery) {
+    if (s.eyes < OI.eyes && now - s.lastHit > OI.quietMs && now - s.lastUse > OI.quietMs && now - s.lastRegen >= OI.regenEvery) {
       s.lastRegen = now;
       s.eyes += 1;
     }
@@ -242,10 +242,10 @@ function view(entity, now) {
   const s = state(entity);
   return {
     eyes: s.eyes,
-    on: s.eyes > 0,
+    heat: heat(s.eyes),
+    on: true,
     cost: costFor(s.eyes),
-    timer: s.eyes <= 0 && s.outAt ? Math.max(0, Math.min(1, 1 - (s.outAt - now) / OI.refillMs)) : null,
   };
 }
 
-module.exports = { OI, costFor, evadePulse, has, state, depleted, active, drainMult, blocked, use, predict, onHit, tick, view };
+module.exports = { OI, heat, costFor, evadePulse, has, state, depleted, active, drainMult, blocked, use, predict, onHit, tick, view };

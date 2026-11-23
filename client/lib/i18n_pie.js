@@ -885,7 +885,7 @@ export const PIE = {
   883: 'léu̯kom',
   884: 'sélg-tero',
   885: 'mikʷ-ros h₂ént-wéh₂-tis dʰeh₁-trom pl̥h₁-tis',
-  886: 'h₂ép-ōkʷ-yom h₂ayu-ōkʷ-ō, kʷod h₁n̥-h₁éh₂-ti, wid-eti. sém-ōd h₁n̥-wekʷ-tis kʷe wekʷ-tis. h₂ōkʷ-yom wid-eti, bʰlig̑-tis h₂epi ne h₁n̥-wid-ti; kʷod bʰlig̑-ti, kʷid-kʷe h₂ap-eti, h₂ōkʷ-yom h₁n̥-h₂ép-eti, kʷid-kʷe pl̥h₁-yos dʰeh₁ti. wekʷ-tis: re-h₁ei-ti. kʷod ne wid-eti, re-h₂ep-ōkʷ-eti, kʷid-kʷe dwi-plós.',
+  886: 'h₂ép-ōkʷ-yom h₂ayu-ōkʷ-ō, kʷod h₁n̥-h₁éh₂-ti, wid-eti. sém-ōd h₁n̥-wekʷ-tis kʷe wekʷ-tis. h₂ōkʷ-yom wid-eti, bʰlig̑-tis h₂epi ne h₁n̥-wid-ti; kʷod bʰlig̑-ti, kʷid-kʷe h₂ap-eti, h₂ōkʷ-yom h₁n̥-h₂ép-eti, kʷid-kʷe pl̥h₁-yos dʰeh₁ti. wekʷ-tis: re-h₁ei-ti. kʷod ne wid-eti, h₂ōkʷ-yom gʷʰer-eti, kʷid-kʷe ml̥h₂-yos pl̥h₁-eti.',
   887: 'h₂ōkʷ-yom prē-wid-tis',
   888: 'ne h₂ōkʷ-yom',
   889: 'h₂ep-ōkʷ-ós',
@@ -893,4 +893,6 @@ export const PIE = {
   891: 're-h₂ep-ōkʷ-eti',
   892: 'ne h₂ōkʷ-yom prē-wid-tis',
   893: 'h₁n̥-ǵʰ-tis',
+  894: 'gʷʰer-mós h₂ōkʷ-yom h₂ép-ōkʷ-yom',
+  895: 'gʷʰer-mós',
 };

@@ -2912,7 +2912,7 @@ test('Oi, [][][][][]!: esquiva sola los golpes, pierde ojos si te pegan y se ago
   const hp = p.a.hp;
   room.tickHitWindows(now);
   assert.strictEqual(p.a.hp, hp);
-  assert.strictEqual(e.a.flojera, 47);
+  assert.strictEqual(e.a.flojera, 45);
   assert.ok(e.a.dashUntil > now);
   assert.strictEqual(e.a.oi.eyes, 30);
   e.a.flojera = 0;
@@ -2925,15 +2925,22 @@ test('Oi, [][][][][]!: esquiva sola los golpes, pierde ojos si te pegan y se ago
   room.hitWindows.push({ kind: 'm1', playerId: 'c', endsAt: now + 300 });
   room.tickHitWindows(now);
   assert.strictEqual(e.a.oi.eyes, 0);
-  assert.strictEqual(Oi.drainMult(e.a), 2);
-  e.a.oi.lastUse = 0;
-  room.useCard('a', 0);
-  assert.strictEqual(e.a.oi.eyes, 0);
-  Oi.tick(room, now + 28500);
-  assert.strictEqual(e.a.oi.eyes, 30);
   assert.strictEqual(Oi.drainMult(e.a), 1);
+  e.a.flojera = 0;
+  e.a.x = 0; e.a.z = 0.8; e.a.dashUntil = 0;
+  room.hitWindows.push({ kind: 'm1', playerId: 'c', endsAt: now + 300 });
+  room.tickHitWindows(now);
+  assert.strictEqual(e.a.oi.eyes, -5);
+  assert.strictEqual(Oi.heat(e.a.oi.eyes), 5);
+  assert.ok(Oi.drainMult(e.a) > 1 && Oi.drainMult(e.a) < 1.2);
+  assert.ok(Oi.costFor(-5) > Oi.costFor(0));
+  e.a.oi.eyes = -28;
+  Oi.onHit(room, 'a', now);
+  assert.strictEqual(e.a.oi.eyes, -30);
+  e.a.oi.lastHit = 0; e.a.oi.lastUse = 0; e.a.oi.lastRegen = 0;
+  Oi.tick(room, now + 10000);
+  assert.strictEqual(e.a.oi.eyes, -29);
 });
-
 
 test('Oi: esquiva aunque el golpe llegue después de abrirse la ventana', () => {
   const { room, e, p } = setup();
@@ -2953,13 +2960,13 @@ test('Oi: esquiva aunque el golpe llegue después de abrirse la ventana', () => 
 });
 
 
-test('Oi: uso activo retrocede, gasta 5 Flojera y 2 ojos, cd 1.8 s y tope de 12 por minuto', () => {
+test('Oi: uso activo retrocede, gasta 8 Flojera y 2 ojos, cd 1.8 s y tope de 12 por minuto', () => {
   const { room, e } = setup();
   give(e.a, 0, 'oi_ojo');
   e.c.x = 0; e.c.z = 0;
   e.a.x = 0; e.a.z = 3; e.a.flojera = 80;
   room.useCard('a', 0);
-  assert.strictEqual(e.a.flojera, 75);
+  assert.strictEqual(e.a.flojera, 72);
   assert.strictEqual(e.a.oi.eyes, 28);
   assert.ok(e.a.dashUntil > Date.now() - 50);
   assert.ok(e.a.dashVZ > 0);

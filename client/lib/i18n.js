@@ -889,7 +889,7 @@ const PAIRS = [
 ["Láser","Laser"],
 ["Rifle","Rifle"],
 ["niche tower defence game","niche tower defence game"],
-["Un ojo metálico que ve antes de que ocurra. Pasiva y activa a la vez. Mientras vea, los golpes casi nunca te encuentran, pero cada vez que sí lo hacen algo se apaga, y con menos ojos todo cuesta más. Usarla te echa hacia atrás. Si se queda ciego, tarda en volver a abrirse y mientras tanto todo pesa el doble.","A metal eye that sees before it happens. Passive and active at once. While it sees, blows rarely find you, but every time one does, something goes dark, and the fewer eyes remain, the more everything costs. Using it throws you backwards. If it goes blind, it takes a while to open again and meanwhile everything weighs double."],
+["Un ojo metálico que ve antes de que ocurra. Pasiva y activa a la vez. Mientras vea, los golpes casi nunca te encuentran, pero cada vez que sí lo hacen algo se apaga, y con menos ojos todo cuesta más. Usarla te echa hacia atrás. Si se queda sin vista, el ojo se sobrecalienta y todo pesa un poco más.","A metal eye that sees before it happens. Passive and active at once. While it sees, blows rarely find you, but every time one does, something goes dark, and the fewer eyes remain, the more everything costs. Using it throws you backwards. If it runs out of sight, the eye overheats and everything weighs a little more."],
 ["Ojos de Precognición","Eyes of Precognition"],
 ["Sin ojos","No eyes"],
 ["Abierto","Open"],
@@ -897,6 +897,8 @@ const PAIRS = [
 ["Reabriendo","Reopening"],
 ["Sin Ojos de Precognición","No Eyes of Precognition"],
 ["Esquive","Dodge"],
+["Ojo de Precognición Sobrecalentado","Overheated Eye of Precognition"],
+["Sobrecalentado","Overheated"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };

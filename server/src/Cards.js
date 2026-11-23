@@ -142,7 +142,7 @@ const CARDS = {
     corrupt: true,
     keywords: ['escapista'],
     displayName: 'Oi, [][][][][]!',
-    description: 'Un ojo metálico que ve antes de que ocurra. Pasiva y activa a la vez. Mientras vea, los golpes casi nunca te encuentran, pero cada vez que sí lo hacen algo se apaga, y con menos ojos todo cuesta más. Usarla te echa hacia atrás. Si se queda ciego, tarda en volver a abrirse y mientras tanto todo pesa el doble.',
+    description: 'Un ojo metálico que ve antes de que ocurra. Pasiva y activa a la vez. Mientras vea, los golpes casi nunca te encuentran, pero cada vez que sí lo hacen algo se apaga, y con menos ojos todo cuesta más. Usarla te echa hacia atrás. Si se queda sin vista, el ojo se sobrecalienta y todo pesa un poco más.',
     rarity: 'rare',
     cooldownMs: 1800,
     oi: { eyes: 30 },
