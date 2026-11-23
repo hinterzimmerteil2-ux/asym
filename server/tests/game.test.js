@@ -2925,21 +2925,23 @@ test('Oi, [][][][][]!: esquiva sola los golpes, pierde ojos si te pegan y se ago
   room.hitWindows.push({ kind: 'm1', playerId: 'c', endsAt: now + 300 });
   room.tickHitWindows(now);
   assert.strictEqual(e.a.oi.eyes, 0);
-  assert.strictEqual(Oi.drainMult(e.a), 1);
-  e.a.flojera = 0;
-  e.a.x = 0; e.a.z = 0.8; e.a.dashUntil = 0;
-  room.hitWindows.push({ kind: 'm1', playerId: 'c', endsAt: now + 300 });
-  room.tickHitWindows(now);
-  assert.strictEqual(e.a.oi.eyes, -5);
-  assert.strictEqual(Oi.heat(e.a.oi.eyes), 5);
-  assert.ok(Oi.drainMult(e.a) > 1 && Oi.drainMult(e.a) < 1.2);
-  assert.ok(Oi.costFor(-5) > Oi.costFor(0));
-  e.a.oi.eyes = -28;
+  assert.strictEqual(Oi.drainMult(e.a), 2);
+  assert.strictEqual(Oi.blocked(e.a, now), 'Sin Ojos de Precognición');
+  e.a.x = 0; e.a.z = 0.8;
   Oi.onHit(room, 'a', now);
-  assert.strictEqual(e.a.oi.eyes, -30);
-  e.a.oi.lastHit = 0; e.a.oi.lastUse = 0; e.a.oi.lastRegen = 0;
-  Oi.tick(room, now + 10000);
-  assert.strictEqual(e.a.oi.eyes, -29);
+  assert.strictEqual(e.a.oi.heat, 5);
+  assert.strictEqual(e.a.oi.eyes, 0);
+  assert.ok(Oi.drainMult(e.a) > 2);
+  e.a.oi.heat = 28;
+  Oi.onHit(room, 'a', now);
+  assert.strictEqual(e.a.oi.heat, 30);
+  assert.ok(Oi.costFor(10, 30) > Oi.costFor(10, 0));
+  Oi.tick(room, now + 28500);
+  assert.strictEqual(e.a.oi.eyes, 30);
+  assert.ok(e.a.oi.heat >= 29);
+  Oi.tick(room, now + 40000);
+  assert.strictEqual(e.a.oi.heat, 28);
+  assert.strictEqual(Oi.drainMult(e.a) > 1, true);
 });
 
 test('Oi: esquiva aunque el golpe llegue después de abrirse la ventana', () => {
