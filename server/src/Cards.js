@@ -156,7 +156,7 @@ const CARDS = {
     curatorHpLoss: 65,
     durationMs: 3000,
     cooldownMs: 18000,
-    tiger: { mag: 6, start: 1, reloadMs: 3000, radius: 2.4, perReload: 60, gainEveryMs: 60000, speed: 13.5, vy: 9.5, bossDmg: 1300000 },
+    tiger: { mag: 6, start: 1, reloadMs: 3000, radius: 2.4, perReload: 60, gainEveryMs: 60000, speed: 15.6, vy: 11, bossDmg: 1300000 },
   },
   grito_animo: {
     id: 'grito_animo',

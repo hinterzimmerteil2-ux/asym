@@ -566,7 +566,7 @@ test('en el lobby hay parkour y la gravedad es 0.6x', () => {
   e.a.x = 12.2; e.a.z = -3.2; e.a.y = 20; e.a.onGround = false; e.a.velocityY = 0;
   room.stepPhysics(0.05);
   const lobbyDrop = e.a.velocityY;
-  assert.ok(Math.abs(lobbyDrop - -18 * 0.6 * 0.05) < 0.01);
+  assert.ok(Math.abs(lobbyDrop - -24 * 0.6 * 0.05) < 0.02);
   for (let i = 0; i < 200; i++) room.stepPhysics(0.05);
   assert.ok(Math.abs(e.a.y - 3.2) < 0.01);
 });
@@ -2795,6 +2795,19 @@ test('Panel de host: velocidad, salto, curar, Flojera y velocidad del tiempo', (
   assert.strictEqual(room.gameState.timeScale, 4);
   room.adminScale('c', 50);
   assert.strictEqual(room.gameState.timeScale, 10);
+});
+
+test('Salto: sube rápido, apex razonable y la resistencia del aire limita la caída', () => {
+  const { room, e } = setup();
+  e.c.x = 30; e.c.z = 30; e.b.x = -30; e.b.z = 30;
+  e.a.x = 0; e.a.z = 0; e.a.y = 0; e.a.onGround = true; e.a.velocityY = 5.6;
+  e.a.onGround = false;
+  let apex = 0;
+  for (let i = 0; i < 40; i++) { room.stepPhysics(0.05); apex = Math.max(apex, e.a.y); }
+  assert.ok(apex > 0.45 && apex < 0.75, 'apex ' + apex);
+  e.a.y = 400; e.a.onGround = false; e.a.velocityY = 0;
+  for (let i = 0; i < 100; i++) { room.stepPhysics(0.05); e.a.y = Math.max(e.a.y, 100); }
+  assert.ok(e.a.velocityY > -32 && e.a.velocityY < -25, 'terminal ' + e.a.velocityY);
 });
 
 test('Los cuerpos no se quedan en la misma posición', () => {

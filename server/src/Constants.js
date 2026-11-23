@@ -24,13 +24,13 @@ const CHAT_RATE_LIMIT_MS = 500;
 const MOVE_SPEED = 5 / 1.2 / 1.5 / 1.2;
 const CURATOR_SPEED_BONUS = 1.05;
 const CURATOR_DRAIN_FACTOR = 0.6;
-const JUMP_VELOCITY = 4.5;
+const JUMP_VELOCITY = 5.6;
 const STEP_UP = 0.5;
 const DASH_STEP_UP = 1.8;
 const STEP_DOWN = 0.7;
 const FALL_ENDLAG_MIN = 1.2;
 const FALL_ENDLAG_MS = 1800;
-const GRAVITY = -18;
+const GRAVITY = -24;
 const MUTATIONS = {
   none: { name: 'Sin mutación', gravity: 1, speed: 1, heal: 1 },
   lowgrav: { name: 'Gravedad baja', gravity: 0.5, speed: 1, heal: 1 },

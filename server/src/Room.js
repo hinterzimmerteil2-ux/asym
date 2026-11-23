@@ -208,7 +208,7 @@ const SD_EASY = ['pulso', 'termometro', 'pelota'];
 const SD_NORMAL = ['rhythm', 'needle', 'mash', 'meter', 'ampolla', 'xilofono', 'tambores', 'boton', 'manometro', 'turbina'];
 const HEART_RANGE = 32;
 const Boss = require('./Boss');
-const AIR_DRAG = 0.012;
+const AIR_DRAG = 0.027;
 const MODES = ['normal', 'dual', 'shared', 'infection', 'lights', 'gravity'];
 const MODULE_RELOCATE_MS = 2000;
 const LOCK_DAMAGE = 20;
@@ -2377,13 +2377,15 @@ class Room {
         entity.velocityY = 0;
         entity.y = Math.max(entity.y, ground);
       } else {
+        const v0 = entity.velocityY;
         entity.velocityY += GRAVITY * (this.phase === 'lobby' ? LOBBY_GRAVITY_FACTOR : MUTATIONS[this.mutation].gravity * this.modeGravityFactor(this.clock())) * dt;
-        if (entity.velocityY < 0) entity.velocityY += AIR_DRAG * entity.velocityY * entity.velocityY * dt;
+        entity.velocityY -= AIR_DRAG * entity.velocityY * Math.abs(entity.velocityY) * dt;
         if (entity.sup) SuperAbilities.glide(this, entity, this.clock(), dt);
         SuperAbilities.climb(this, entity, input);
-        entity.y += entity.velocityY * dt;
+        const stepDy = (v0 + entity.velocityY) / 2 * dt;
+        entity.y += stepDy;
         entity.peakY = Math.max(entity.peakY || entity.y, entity.y);
-        ground = groundAt(gPlats, entity.x, entity.z, entity.y - entity.velocityY * dt, STEP_UP, gS);
+        ground = groundAt(gPlats, entity.x, entity.z, entity.y - stepDy, STEP_UP, gS);
         if (entity.y <= ground) {
           const fall = (entity.peakY || ground) - ground;
           entity.y = ground;

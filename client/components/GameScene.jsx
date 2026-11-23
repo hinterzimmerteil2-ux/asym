@@ -1862,38 +1862,53 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
       let diff = CAMERA_LOCK.yaw + Math.PI - yaw.current;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       yaw.current += diff * Math.min(1, delta * 14);
+      walk.current.turn = Math.max(-1, Math.min(1, diff));
       lastPos.current = [entityState.x, entityState.z];
     } else if (Math.abs(mx) + Math.abs(mz) > 0.01) {
       const target = Math.atan2(mx, mz);
       let diff = target - yaw.current;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       yaw.current += diff * Math.min(1, delta * 14);
+      walk.current.turn = Math.max(-1, Math.min(1, diff));
       lastPos.current = [entityState.x, entityState.z];
-    }
+    } else walk.current.turn = (walk.current.turn || 0) * 0.85;
     FACING.set(playerId, yaw.current);
     if (bodyRef.current) {
       const body = bodyRef.current;
       const w = walk.current;
-      const speed = delta > 0 ? Math.hypot(entityState.x - w.px, entityState.z - w.pz) / delta : 0;
-      w.px = entityState.x;
-      w.pz = entityState.z;
-      w.amp += (Math.min(1, speed / 3) - w.amp) * Math.min(1, delta * 10);
-      w.phase += speed * delta * 1.8;
-      const vy = delta > 0 ? (entityState.y - w.py) / delta : 0;
-      w.py = entityState.y;
-      w.air += ((Math.abs(vy) > 0.6 ? 1 : 0) - w.air) * Math.min(1, delta * 12);
+      const gpos = groupRef.current.position;
+      const rawSpeed = delta > 0 && w.gx !== undefined ? Math.hypot(gpos.x - w.gx, gpos.z - w.gz) / delta : 0;
+      const rawVy = delta > 0 && w.gy !== undefined ? (gpos.y - w.gy) / delta : 0;
+      w.gx = gpos.x;
+      w.gz = gpos.z;
+      w.gy = gpos.y;
+      w.spd = (w.spd || 0) + (Math.min(rawSpeed, 14) - (w.spd || 0)) * Math.min(1, delta * 9);
+      w.vyS = (w.vyS || 0) + (Math.max(-30, Math.min(30, rawVy)) - (w.vyS || 0)) * Math.min(1, delta * 10);
+      const speed = w.spd < 0.15 ? 0 : w.spd;
+      const vy = w.vyS;
+      w.amp += (Math.min(1, speed / 2.6) - w.amp) * Math.min(1, delta * 7);
+      w.phase += Math.min(speed, 9) * delta * (1.7 + 0.12 * Math.min(speed, 6));
+      const airNow = Math.abs(vy) > 0.9 ? 1 : 0;
+      if (w.air > 0.5 && !airNow && (w.fallV || 0) < -2.5) w.land = Math.min(1, -w.fallV / 11);
+      if (vy < -0.5) w.fallV = vy;
+      else if (!airNow) w.fallV = 0;
+      w.land = (w.land || 0) * Math.max(0, 1 - delta * 7);
+      w.air += (airNow - w.air) * Math.min(1, delta * 9);
       w.t += delta;
-      const swing = Math.sin(w.phase) * (0.7 + 0.5 * Math.min(1, speed / 5)) * w.amp;
-      const idle = Math.sin(w.t * 1.8) * 0.06 * (1 - w.amp);
-      const flail = Math.sin(w.t * 18) * 0.35;
+      const spN = Math.min(1, speed / 5);
+      const swing = Math.sin(w.phase) * (0.55 + 0.6 * spN) * w.amp;
+      const idle = Math.sin(w.t * 1.6) * 0.05 * (1 - w.amp) + Math.sin(w.t * 0.9 + 1) * 0.02 * (1 - w.amp);
+      const upK = Math.max(-1, Math.min(1, vy / 5));
+      const flail = Math.sin(w.t * 13) * 0.14;
       let lax = -swing + idle;
       let rax = swing - idle;
-      let laz = -0.06 - 0.3 * Math.abs(swing);
-      let raz = 0.06 + 0.3 * Math.abs(swing);
-      lax = lax * (1 - w.air) + (-2.4 + flail) * w.air;
-      rax = rax * (1 - w.air) + (-2.4 - flail) * w.air;
-      laz -= 0.5 * w.air;
-      raz += 0.5 * w.air;
+      let laz = -0.06 - 0.22 * Math.abs(swing);
+      let raz = 0.06 + 0.22 * Math.abs(swing);
+      const airArm = -1.05 - 0.85 * upK;
+      lax = lax * (1 - w.air) + (airArm + flail) * w.air;
+      rax = rax * (1 - w.air) + (airArm - flail) * w.air;
+      laz -= (0.3 + 0.3 * (1 - upK) * 0.5) * w.air;
+      raz += (0.3 + 0.3 * (1 - upK) * 0.5) * w.air;
       const ha = HAND_ANIMS.get(playerId);
       if (ha && durOf(ha) > 1) {
         const ht = Math.min(1, (Date.now() - ha.startedAt) / durOf(ha));
@@ -2067,14 +2082,20 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         r6.armR.rotation.z = ep ? mix(raz, ep.raz) : raz;
       }
       const sm = w.sm || (w.sm = {});
-      const kk = Math.min(1, delta * 22);
+      const kk = Math.min(1, delta * 16);
       const sm1 = (k, o, prop) => { const v = o.rotation[prop]; const c = sm[k] === undefined ? v : sm[k] + (v - sm[k]) * kk; sm[k] = c; o.rotation[prop] = c; };
       if (r6.legL) {
         sm1('ll', r6.legL, 'x'); sm1('lr', r6.legR, 'x');
         sm1('al', r6.armL, 'x'); sm1('ar', r6.armR, 'x');
         sm1('alz', r6.armL, 'z'); sm1('arz', r6.armR, 'z');
       }
-      if (headRef.current) headRef.current.rotation.set(ep ? mix(0, ep.hx) : 0, ep ? mix(0, ep.hy) : 0, ep ? mix(0, ep.hz) : 0);
+      const twist = Math.sin(w.phase) * 0.09 * w.amp;
+      if (headRef.current) {
+        const hh = headRef.current;
+        const turn = w.turn || 0;
+        w.headY = (w.headY || 0) + ((-turn * 0.5 - twist * 0.9) - (w.headY || 0)) * Math.min(1, delta * 10);
+        hh.rotation.set((ep ? mix(0, ep.hx) : 0) - 0.05 * spN + Math.sin(w.t * 1.3) * 0.012 * (1 - w.amp), (ep ? mix(0, ep.hy) : 0) + w.headY, ep ? mix(0, ep.hz) : 0);
+      }
       const showRag = Boolean(ragdoll && entityState.rag && entityState.rag.p);
       body.visible = !showRag;
       const pa = HAND_ANIMS.get(playerId);
@@ -2108,8 +2129,15 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
       pitch += tl.slide * 0.35 + tl.fly * 1.05 + (tl.tig || 0) * 0.75;
       offY -= tl.slide * 0.18 + tl.rel * 0.06;
       body.rotation.order = 'YXZ';
-      body.rotation.set(pitch, yaw.current + (ep && ep.yaw ? ep.yaw * ew : 0), ep && ep.roll ? ep.roll * ew : 0);
-      body.position.set(Math.sin(yaw.current) * offF, offY, Math.cos(yaw.current) * offF);
+      const moving = w.amp * (1 - tl.fly) * (1 - tl.slide) * (1 - (tl.tig || 0));
+      const lean = (0.05 + 0.1 * spN) * moving + w.land * 0.12 - Math.max(0, Math.min(1, vy / 6)) * 0.05 * w.air;
+      const bob = Math.abs(Math.sin(w.phase)) * (0.02 + 0.035 * spN) * moving - Math.sin(w.t * 1.6) * 0.004 * (1 - w.amp);
+      const roll = Math.sin(w.phase) * 0.045 * moving;
+      body.rotation.set(pitch + lean, yaw.current + (ep && ep.yaw ? ep.yaw * ew : 0) + twist * moving, (ep && ep.roll ? ep.roll * ew : 0) + roll);
+      body.position.set(Math.sin(yaw.current) * offF, offY + bob, Math.cos(yaw.current) * offF);
+      const stretch = Math.max(0, Math.min(1, vy / 6)) * 0.035 * w.air;
+      const squash = w.land * 0.1;
+      body.scale.set(1 + squash * 0.5 - stretch * 0.5, 1 - squash + stretch, 1 + squash * 0.5 - stretch * 0.5);
       limbRefs.current.forEach((limb) => { if (limb) limb.visible = false; });
     }
     const anim = HAND_ANIMS.get(playerId);
