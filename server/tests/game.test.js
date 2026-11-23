@@ -2823,6 +2823,24 @@ test('Acelerador: las recargas no se vuelven eternas con tiempo lento', () => {
   assert.strictEqual(e.a.cardCooldowns[0], before);
 });
 
+test('Acelerador: marcas de tiempo hacia el cliente en tiempo real y multiplicador de recargas', () => {
+  const { room } = setup();
+  room.gameState.timeScale = 10;
+  room.clockOffset = 5000000;
+  const virtual = room.clock();
+  const out = room.outgoing({ cooldownUntil: virtual + 10000, zone: { until: virtual + 10000 }, x: virtual });
+  assert.ok(Math.abs(out.zone.until - (Date.now() + 1000)) < 50, 'until real ' + (out.zone.until - Date.now()));
+  assert.ok(out.cooldownUntil - Date.now() > 1500, 'recarga más lenta que el reloj');
+  assert.strictEqual(out.x, virtual);
+  room.gameState.timeScale = 1;
+  room.clockOffset = 0;
+  room.gameState.cdMult = 4;
+  const now = room.clock();
+  room.gameState.entities.a.cardCooldowns[0] = now + 8000;
+  room.tickCooldownScale(now, 1000);
+  assert.ok(room.gameState.entities.a.cardCooldowns[0] <= now + 8000 - 2900);
+});
+
 test('Los cuerpos no se quedan en la misma posición', () => {
   const { room, e, step } = setup();
   e.a.x = 5; e.a.z = 5; e.b.x = 5; e.b.z = 5; e.a.y = 0; e.b.y = 0;

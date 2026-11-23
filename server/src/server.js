@@ -380,7 +380,7 @@ wss.on('connection', (ws, req) => {
       case MessageType.ADMIN_SCALE: {
         const room = roomManager.getRoom(currentRoomId);
         if (!room) return;
-        room.adminScale(playerId, msg.payload && msg.payload.scale);
+        room.adminScale(playerId, msg.payload ? msg.payload.scale : undefined, msg.payload ? msg.payload.cd : undefined);
         break;
       }
 

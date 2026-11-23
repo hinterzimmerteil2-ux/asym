@@ -13,6 +13,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
   const [speed, setSpeed] = useState(1);
   const [jump, setJump] = useState(1);
   const [hpVal, setHpVal] = useState(100);
+  const [cdm, setCdm] = useState(1);
   const [timeSec, setTimeSec] = useState(300);
   const [timeInf, setTimeInf] = useState(false);
   const [fxPos, setFxPos] = useState(40);
@@ -105,6 +106,13 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
               <button type="button" disabled={phase !== 'action'} onClick={() => onScale({ scale })} style={styles.chip(true)}>Aplicar velocidad</button>
             </label>
             <div style={styles.hint}>Acelera o frena movimientos, ataques, recargas, efectos y el reloj. La vida y su regeneración cambian solo en parte.</div>
+            <div style={styles.subTitle}>Velocidad de recargas: x{cdm}</div>
+            <div style={styles.chips}>
+              {[0.25, 0.5, 1, 2, 4, 10].map((v) => (
+                <button key={v} type="button" disabled={phase !== 'action'} onClick={() => { setCdm(v); onScale({ cd: v }); }} style={styles.chip(cdm === v)}>x{v}</button>
+              ))}
+            </div>
+            <div style={styles.hint}>Se suma a la velocidad del juego. Con x1 las recargas siguen el tiempo solo en parte.</div>
             <div style={styles.chips}>
               <button type="button" disabled={phase !== 'action'} onClick={() => { onTime({ seconds: timeSec, infinite: timeInf }); setSent('Tiempo'); setTimeout(() => setSent(''), 1600); }} style={styles.chip(true)}>Aplicar</button>
             </div>
