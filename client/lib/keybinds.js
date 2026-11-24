@@ -36,6 +36,7 @@ export const ACTIONS = [
   { id: 'sup7', label: 'Súper 7', def: 'Digit7' },
   { id: 'sup8', label: 'Súper 8', def: 'Digit8' },
   { id: 'sup9', label: 'Súper 9 (Pico)', def: 'Digit9' },
+  { id: 'layer', label: 'Alternar números entre Súper y cartas', def: 'Tab' },
   { id: 'mcsticky', label: 'Pistón pegajoso (variante, Minceraft)', def: 'KeyC' },
   { id: 'mcrot', label: 'Orientación del pistón (Minceraft)', def: 'KeyR' },
   { id: 'emote', label: 'Emotes', def: 'KeyV' },

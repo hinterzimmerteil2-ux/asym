@@ -2688,6 +2688,12 @@ test('Panel de host: OP dan cartas y habilidades a quien eligen', () => {
   room.adminGrant('a', 'card', 'tigermark', 5, ['a']);
   assert.strictEqual(e.a.hand.length, 3);
   assert.strictEqual(e.a.hand[2].chosen, 'tigermark');
+  room.adminGrant('a', 'card', 'super_town_level', 0, ['a']);
+  assert.strictEqual(e.a.sup.id, 'town_level');
+  assert.strictEqual(e.a.hand[0].chosen, 'super_town_level');
+  assert.strictEqual(e.a.hand[2].chosen, 'tigermark');
+  room.adminGrant('a', 'card', 'tigermark', 0, ['a']);
+  assert.strictEqual(e.a.sup, null);
   room.adminGrant('a', 'skill', 'anestesia', 5, ['c']);
   const cs = room.getPlayersSummary().find((p) => p.id === 'c').character.skills;
   assert.strictEqual(cs.length, 5);

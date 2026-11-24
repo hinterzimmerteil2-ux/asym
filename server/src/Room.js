@@ -999,17 +999,17 @@ class Room {
         if (this.gameState.patients[t]?.status !== 'alive') continue;
         if (!entity.role) entity.role = 'none';
         while (entity.hand.length < 2) entity.hand.push({ options: [], chosen: null });
+        const isSuperSlot = (sl) => Boolean(sl && sl.chosen && Cards.getCard(sl.chosen)?.super);
         if (card.super && card.superId) {
-          entity.hand.length = 2;
+          const held = entity.hand.findIndex(isSuperSlot);
+          const at = held >= 0 ? held : Math.min(idx, entity.hand.length);
           SuperAbilities.grant(entity, card.superId, this.superTune);
-          entity.hand[0] = { options: [id], chosen: null };
-          this.finalizeChoice(t, 0, id);
-          entity.hand[1] = { options: [], chosen: null };
-          this.finalizeChoice(t, 1, 'super_slot');
-          entity.cardCooldowns = {};
+          entity.hand[at] = { options: [id], chosen: null };
+          this.finalizeChoice(t, at, id);
+          delete entity.cardCooldowns[at];
         } else {
-          if (entity.hand.some((sl) => sl && sl.chosen === 'super_slot')) SuperAbilities.grant(entity, null);
           const at = Math.min(idx, entity.hand.length);
+          if (isSuperSlot(entity.hand[at])) SuperAbilities.grant(entity, null);
           entity.hand[at] = { options: [id], chosen: null };
           this.finalizeChoice(t, at, id);
           delete entity.cardCooldowns[at];
@@ -3575,9 +3575,8 @@ class Room {
       SuperAbilities.grant(entity, supId, this.superTune);
       entity.hand[0] = { options: [cardId], chosen: null };
       this.finalizeChoice(playerId, 0, cardId);
-      entity.hand[1] = { options: [], chosen: null };
-      this.finalizeChoice(playerId, 1, 'super_slot');
-      entity.draftEndsAt = 0;
+      entity.hand[1] = Cards.dealSlot([cardId], GameMap.getCustomCards(this.mapId));
+      entity.draftEndsAt = this.clock() + Cards.DRAFT_DURATION_MS;
       this.sendTo(playerId, MessageType.ROLE_SELECTED, { roleId });
       this.sendCardOffer(playerId, entity);
       return;
@@ -3619,9 +3618,9 @@ class Room {
     if (picked && picked.super && picked.superId) {
       SuperAbilities.grant(entity, picked.superId, this.superTune);
       if (this.tutorial) SuperAbilities.gainMana(entity, 80);
-      this.finalizeChoice(playerId, 0, cardId);
-      this.finalizeChoice(playerId, 1, 'super_slot');
-      entity.draftEndsAt = 0;
+      this.finalizeChoice(playerId, index, cardId);
+      for (const sl of entity.hand) if (!sl.chosen && sl.options) sl.options = sl.options.filter((id) => id !== cardId && !Cards.getCard(id)?.super);
+      if (entity.hand.every((sl) => sl.chosen)) entity.draftEndsAt = 0;
       this.sendCardOffer(playerId, entity);
       return;
     }

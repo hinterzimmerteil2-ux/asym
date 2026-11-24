@@ -183,7 +183,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
               </>
             ) : tab === 'supers' ? (
               <>
-                <div style={styles.hint}>Una Súper-habilidad reemplaza las cartas del jugador.</div>
+                <div style={styles.hint}>Una Súper-habilidad convive con las cartas del jugador y ocupa una casilla.</div>
                 <div style={styles.list}>
                   {SUPERS.map(([id, name, tag]) => (
                     <button key={id} type="button" disabled={phase !== 'action'} onClick={() => give('card', { id, name })} style={styles.item}>

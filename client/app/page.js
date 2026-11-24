@@ -1101,6 +1101,12 @@ export default function LobbyPage() {
 
   const supRef = useRef(null);
   supRef.current = flojera?.sup?.id || null;
+  const [cardLayer, setCardLayer] = useState(false);
+  const cardLayerRef = useRef(false);
+  cardLayerRef.current = cardLayer;
+  const handHasCardRef = useRef(false);
+  handHasCardRef.current = hand.some((sl) => sl.chosen && !sl.chosen.super);
+  const supOn = () => Boolean(supRef.current) && !(cardLayerRef.current && handHasCardRef.current);
   const handleSuper = useCallback((m) => {
     if (isAsymRole || phase !== 'action') return;
     const mode = typeof m === 'number' ? (SUPER_MODES[supRef.current] || [])[m]?.[0] : m;
@@ -1212,25 +1218,26 @@ export default function LobbyPage() {
       else if (e.code === 'KeyC' && bossHudRef.current?.isBoss) { if (!e.repeat) connRef.current?.send('boss_crouch', { on: !bossHudRef.current.cr }); }
       else if (keyMatches('carry', e.code)) { if (!e.repeat && !isAsymRoleRef.current) connRef.current?.send('module_carry', {}); }
       else if (keyMatches('dropmod', e.code)) { if (!e.repeat && !isAsymRoleRef.current) connRef.current?.send('module_drop', {}); }
-      else if (supRef.current && keyMatches('sup1', e.code)) { if (!e.repeat) handleSuper(0); }
-      else if (supRef.current && keyMatches('sup2', e.code)) { if (!e.repeat) handleSuper(1); }
-      else if (supRef.current && keyMatches('sup3', e.code)) { if (!e.repeat) handleSuper(2); }
-      else if (supRef.current && keyMatches('sup4', e.code)) { if (!e.repeat) handleSuper(3); }
-      else if (supRef.current && keyMatches('sup5', e.code)) { if (!e.repeat) handleSuper(4); }
-      else if (supRef.current && keyMatches('sup6', e.code)) { if (!e.repeat) handleSuper(5); }
-      else if (supRef.current && keyMatches('sup7', e.code)) { if (!e.repeat) handleSuper(6); }
-      else if (supRef.current && keyMatches('sup8', e.code)) { if (!e.repeat) handleSuper(7); }
-      else if (supRef.current && keyMatches('sup9', e.code)) { if (!e.repeat) handleSuper(8); }
-      else if (!supRef.current && keyMatches('card1', e.code)) { if (!e.repeat) handleUseCard(0); }
-      else if (!supRef.current && keyMatches('card2', e.code)) { if (!e.repeat) handleUseCard(1); }
-      else if (!supRef.current && keyMatches('card3', e.code)) { if (!e.repeat) handleUseCard(2); }
-      else if (!supRef.current && keyMatches('card4', e.code)) { if (!e.repeat) handleUseCard(3); }
-      else if (!supRef.current && keyMatches('card5', e.code)) { if (!e.repeat) handleUseCard(4); }
-      else if (!supRef.current && keyMatches('card6', e.code)) { if (!e.repeat) handleUseCard(5); }
-      else if (!supRef.current && keyMatches('card7', e.code)) { if (!e.repeat) handleUseCard(6); }
-      else if (!supRef.current && keyMatches('card8', e.code)) { if (!e.repeat) handleUseCard(7); }
-      else if (!supRef.current && keyMatches('card9', e.code)) { if (!e.repeat) handleUseCard(8); }
-      else if (!supRef.current && keyMatches('card10', e.code)) { if (!e.repeat) handleUseCard(9); }
+      else if (keyMatches('layer', e.code) && supRef.current && handHasCardRef.current) { e.preventDefault(); if (!e.repeat) setCardLayer((v) => !v); }
+      else if (supOn() && keyMatches('sup1', e.code)) { if (!e.repeat) handleSuper(0); }
+      else if (supOn() && keyMatches('sup2', e.code)) { if (!e.repeat) handleSuper(1); }
+      else if (supOn() && keyMatches('sup3', e.code)) { if (!e.repeat) handleSuper(2); }
+      else if (supOn() && keyMatches('sup4', e.code)) { if (!e.repeat) handleSuper(3); }
+      else if (supOn() && keyMatches('sup5', e.code)) { if (!e.repeat) handleSuper(4); }
+      else if (supOn() && keyMatches('sup6', e.code)) { if (!e.repeat) handleSuper(5); }
+      else if (supOn() && keyMatches('sup7', e.code)) { if (!e.repeat) handleSuper(6); }
+      else if (supOn() && keyMatches('sup8', e.code)) { if (!e.repeat) handleSuper(7); }
+      else if (supOn() && keyMatches('sup9', e.code)) { if (!e.repeat) handleSuper(8); }
+      else if (!supOn() && keyMatches('card1', e.code)) { if (!e.repeat) handleUseCard(0); }
+      else if (!supOn() && keyMatches('card2', e.code)) { if (!e.repeat) handleUseCard(1); }
+      else if (!supOn() && keyMatches('card3', e.code)) { if (!e.repeat) handleUseCard(2); }
+      else if (!supOn() && keyMatches('card4', e.code)) { if (!e.repeat) handleUseCard(3); }
+      else if (!supOn() && keyMatches('card5', e.code)) { if (!e.repeat) handleUseCard(4); }
+      else if (!supOn() && keyMatches('card6', e.code)) { if (!e.repeat) handleUseCard(5); }
+      else if (!supOn() && keyMatches('card7', e.code)) { if (!e.repeat) handleUseCard(6); }
+      else if (!supOn() && keyMatches('card8', e.code)) { if (!e.repeat) handleUseCard(7); }
+      else if (!supOn() && keyMatches('card9', e.code)) { if (!e.repeat) handleUseCard(8); }
+      else if (!supOn() && keyMatches('card10', e.code)) { if (!e.repeat) handleUseCard(9); }
     }
     function onKeyUp(e) {
       if (keyMatches('shiftlock', e.code)) shiftKeyRef.current.up();
@@ -1524,11 +1531,6 @@ export default function LobbyPage() {
           {phase === 'lobby' && (
             <div className="lb-head" onPointerDown={lbBegin('move')} onDoubleClick={(e) => { if (!(e.target.closest && e.target.closest('button'))) lbToggleMax(); }}>
               <h2 className="lb-title">Sala de espera</h2>
-              <div className="lb-tabs" role="tablist">
-                {[['sala', 'Sala'], ['personaje', 'Personaje'], ...(isDefaultRoom ? [['votos', 'Votación']] : []), ['partida', 'Partida']].map(([id, label]) => (
-                  <button key={id} type="button" role="tab" aria-selected={lobbyTab === id} style={btn.secondary(lobbyTab === id)} onClick={() => setLobbyTab(id)}>{label}</button>
-                ))}
-              </div>
               <div className="lb-tools">
                 <button type="button" style={btn.icon(false)} onClick={() => lbSetZoom(lbZoom - 0.1)} aria-label="Texto más pequeño" title="Texto más pequeño">A-</button>
                 <button type="button" style={btn.icon(false)} onClick={() => lbSetZoom(lbZoom + 0.1)} aria-label="Texto más grande" title="Texto más grande">A+</button>
@@ -1536,6 +1538,13 @@ export default function LobbyPage() {
                 <button type="button" style={btn.icon(false)} onClick={lbReset} aria-label="Restablecer ventana" title="Restablecer tamaño y posición">⟲</button>
               </div>
             </div>
+          )}
+          {phase === 'lobby' && (
+            <div className="lb-rail" role="tablist">
+                {[['sala', 'Sala'], ['personaje', 'Personaje'], ...(isDefaultRoom ? [['votos', 'Votación']] : []), ['partida', 'Partida']].map(([id, label]) => (
+                  <button key={id} type="button" role="tab" aria-selected={lobbyTab === id} style={btn.secondary(lobbyTab === id)} onClick={() => setLobbyTab(id)}>{label}</button>
+                ))}
+              </div>
           )}
           {phase === 'lobby' && !lbMax && ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map((d) => <div key={d} className={'lb-rz ' + d} onPointerDown={lbBegin(d)} />)}
           <div {...tabProps('sala')}>
@@ -1958,8 +1967,11 @@ export default function LobbyPage() {
           <KitPicker roles={matchSuperIds.includes(myPlayerId) && superRoles.length ? superRoles : roles} onPick={handleSelectRole} />
         )}
 
-        {phase === 'action' && !isAsymRole && hand.length > 0 && !flojera?.sup && (
+        {phase === 'action' && !isAsymRole && hand.length > 0 && (
           <div style={sx(styles.handContainer, { top: 50, bottom: 'auto', right: 8, maxWidth: 'calc(100% - 16px)', maxHeight: 'calc(100% - 60px)', overflow: 'auto', zIndex: 30 })}>
+            {flojera?.sup && hand.some((sl) => sl.chosen && !sl.chosen.super) && (
+              <button type="button" onClick={() => setCardLayer((v) => !v)} style={{ ...btn.secondary(false), padding: '3px 8px', fontSize: 11 }} title="Cambia las teclas numéricas entre la Súper-habilidad y las cartas">{cardLayer ? 'Números: Cartas' : 'Números: Súper'} (Tab)</button>
+            )}
             {hand.map((slot, i) => {
               if (!slot.chosen) {
                 if (hand.findIndex((sl) => !sl.chosen) !== i) return null;
@@ -1975,7 +1987,6 @@ export default function LobbyPage() {
                             <SkillIcon id={card.id} size={44} />
                             <span style={styles.cardButtonName}>{card.displayName}</span>
                             {card.corrupt && <span style={styles.draftDeck}>corrupto</span>}
-                            {card.super && <span style={styles.draftDeck}>Reemplaza tus 2 cartas</span>}
                             <span style={styles.keywordRow}>
                               {(card.keywords || []).slice(0, 2).map((k) => <KeywordChip key={k} id={k} />)}
                             </span>
@@ -1987,6 +1998,7 @@ export default function LobbyPage() {
                   </div>
                 );
               }
+              if (slot.chosen.super) return null;
               if (touch && !keysUi) return null;
               const cooldownUntil = cardCooldowns[i] || 0;
               const onCooldown = cooldownUntil > cardCooldownNow;
