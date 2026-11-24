@@ -144,12 +144,12 @@ export default function TouchControls({ lobby, ghost, onReveal, ghostUsed, isAsy
       </div>
     );
   }
-  const skills = [['skill1'], ['skill2'], ['skill3'], ['skill4'], ['melee']];
+  const skills = [['skill1'], ['skill2'], ['skill3'], ['skill4'], ...[['skill5'], ['skill6']].slice(0, Math.max(0, skillIds.length - 4)), ['melee']];
   const sz = (portrait ? 50 : 54);
   const actions = isAsymRole
-    ? skills.map(([act], i) => <Btn key={act} label={act === 'melee' ? 'Golpe' : keyLabel(getKey(act))} icon={act === 'melee' ? 'golpe_aturdidor' : skillIds[i]} act={act} size={sz} style={{ fontSize: 12 }} until={skillCooldowns[i === 4 ? 'melee' : i] || 0} />)
+    ? skills.map(([act], i) => <Btn key={act} label={act === 'melee' ? 'Golpe' : keyLabel(getKey(act))} icon={act === 'melee' ? 'golpe_aturdidor' : skillIds[i]} act={act} size={sz} style={{ fontSize: 12 }} until={skillCooldowns[act === 'melee' ? 'melee' : i] || 0} />)
     : [
-      ...(supIcons ? supIcons.map((ic, i) => <Btn key={'sup' + i} label={keyLabel(getKey('sup' + (i + 1)))} icon={ic} act={'sup' + (i + 1)} size={sz + 6} style={{ fontSize: 12 }} />) : [['card1', 0], ['card2', 1]].map(([act, slot]) => <Btn key={act} label={keyLabel(getKey(act))} icon={cardIds[slot]} act={act} size={sz + 6} style={{ fontSize: 12 }} until={cardCooldowns[slot] || 0} />)),
+      ...(supIcons ? supIcons.map((ic, i) => <Btn key={'sup' + i} label={keyLabel(getKey('sup' + (i + 1)))} icon={ic} act={'sup' + (i + 1)} size={sz + 6} style={{ fontSize: 12 }} />) : Array.from({ length: Math.max(2, Math.min(6, cardIds.length)) }, (_, n) => ['card' + (n + 1), n]).map(([act, slot]) => <Btn key={act} label={keyLabel(getKey(act))} icon={cardIds[slot]} act={act} size={sz + 6} style={{ fontSize: 12 }} until={cardCooldowns[slot] || 0} />)),
       <Btn key={carrying ? 'drop' : 'carry'} label={carrying ? 'Soltar' : 'Módulo'} act={carrying ? 'dropmod' : 'carry'} size={sz + 2} style={{ fontSize: 11, background: carrying ? 'rgba(242,161,84,0.8)' : undefined }} />,
     ];
   const useBtn = (

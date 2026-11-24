@@ -3588,7 +3588,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platfo
   return null;
 }
 
-const SKILL_ACTIONS = ['skill1', 'skill2', 'skill3', 'skill4', 'melee'];
+const SKILL_ACTIONS = ['skill1', 'skill2', 'skill3', 'skill4', 'melee', 'skill5', 'skill6'];
 
 const ATTACK = { fn: null };
 
@@ -3613,7 +3613,7 @@ function useKeyboardInput(sendInput, yawRef, onPulse, shiftRef) {
       if (dm && !keysPressed.current.has(e.code) && !/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName || '')) onPulse?.('b' + (dm[1] === '0' ? '10' : dm[1]));
       const skillIndex = SKILL_ACTIONS.findIndex((a) => matches(a, e.code));
       if (skillIndex !== -1 && !keysPressed.current.has(e.code)) {
-        onPulse?.(skillIndex === 4 ? 'melee' : skillIndex);
+        onPulse?.(skillIndex === 4 ? 'melee' : skillIndex > 4 ? skillIndex - 1 : skillIndex);
       }
       if (matches('slow', e.code) && !e.repeat) slowKey.current.down();
       keysPressed.current.add(e.code);

@@ -4,6 +4,9 @@ import SkillIcon from './SkillIcon';
 import { KEYWORDS } from '../lib/keywords';
 
 const FX_KINDS = [['stun', 'Aturdimiento'], ['ragdoll', 'Ragdoll'], ['slow', 'Ralentizado'], ['reveal', 'Revelado'], ['queue', 'En cola']];
+const SUPERS = [['super_sunat_paperwork', 'Sunat Paperwork', 'Súper-consumible'], ['super_town_level', 'Town Level Verse Lol', 'Súper-movilidad'], ['super_platinum_star', 'Platinum Star', 'Súper-combate'], ['super_minceraft', 'Minceraft', 'Súper-estructuras']];
+const SKILL_KEYS = ['Q', 'E', 'R', 'F', 'Z', 'X'];
+const MAX_SLOTS = 6;
 const MIN_S = 0.05;
 const MAX_S = 600;
 const secFromPos = (v) => MIN_S * Math.pow(MAX_S / MIN_S, v / 100);
@@ -14,6 +17,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
   const [speed, setSpeed] = useState(1);
   const [jump, setJump] = useState(1);
   const [hpVal, setHpVal] = useState(100);
+  const [floVal, setFloVal] = useState(100);
   const [cdm, setCdm] = useState(1);
   const [timeSec, setTimeSec] = useState(300);
   const [timeInf, setTimeInf] = useState(false);
@@ -45,9 +49,9 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
   const filterFn = (it) => !q || `${it.displayName || it.name} ${it.description || ''}`.toLowerCase().includes(q);
   const cardList = cards.filter(filterFn);
   const skillList = skills.filter(filterFn);
-  const maxSlot = tab === 'skills' ? 4 : 2;
+  const maxSlot = MAX_SLOTS;
   const fxMs = fxInf ? 1e10 : Math.round(secFromPos(fxPos) * 1000);
-  const slotLabel = (i) => (tab === 'skills' ? ['Q', 'E', 'R', 'F'][i] : String(i + 1));
+  const slotLabel = (i) => (tab === 'skills' ? SKILL_KEYS[i] : String(i + 1));
 
   return (
     <div style={styles.backdrop} onClick={onClose}>
@@ -60,6 +64,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
           {isHost && <button type="button" onClick={() => setTab('op')} style={styles.tab(tab === 'op')}>OP</button>}
           <button type="button" onClick={() => { setTab('cards'); setSlot(0); }} style={styles.tab(tab === 'cards')}>Cartas</button>
           <button type="button" onClick={() => { setTab('skills'); setSlot(0); }} style={styles.tab(tab === 'skills')}>Habilidades del Curador</button>
+          <button type="button" onClick={() => setTab('supers')} style={styles.tab(tab === 'supers')}>Súper-habilidades</button>
           <button type="button" onClick={() => setTab('fx')} style={styles.tab(tab === 'fx')}>Estados</button>
           <button type="button" onClick={() => setTab('attr')} style={styles.tab(tab === 'attr')}>Cuerpo</button>
           <button type="button" onClick={() => setTab('time')} style={styles.tab(tab === 'time')}>Tiempo</button>
@@ -160,9 +165,30 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
                   <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'hp', value: hpVal, targets: chosen })} style={styles.chip(true)}>Poner vida actual</button>
                   <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'maxhp', value: hpVal, targets: chosen })} style={styles.chip(true)}>Poner vida máxima</button>
                 </div>
+                <div style={styles.subTitle}>Flojera</div>
+                <label style={styles.row}>
+                  <input type="number" min={1} max={100000} step={1} value={floVal} onChange={(e) => setFloVal(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
+                </label>
+                <div style={styles.chips}>
+                  <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'floval', value: floVal, targets: chosen })} style={styles.chip(true)}>Poner Flojera actual</button>
+                  <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'flomax', value: floVal, targets: chosen })} style={styles.chip(true)}>Poner Flojera máxima</button>
+                </div>
                 <div style={styles.chips}>
                   <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'heal', targets: chosen })} style={styles.chip(false)}>Curar al máximo</button>
                   <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'flojera', targets: chosen })} style={styles.chip(false)}>Recargar Flojera</button>
+                </div>
+              </>
+            ) : tab === 'supers' ? (
+              <>
+                <div style={styles.hint}>Una Súper-habilidad reemplaza las cartas del jugador.</div>
+                <div style={styles.list}>
+                  {SUPERS.map(([id, name, tag]) => (
+                    <button key={id} type="button" disabled={phase !== 'action'} onClick={() => give('card', { id, name })} style={styles.item}>
+                      <SkillIcon id={id} size={24} />
+                      <span style={styles.itemName}>{name}</span>
+                      <span style={styles.itemText}>{tag}</span>
+                    </button>
+                  ))}
                 </div>
               </>
             ) : tab === 'fx' ? (
@@ -193,6 +219,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
             ) : (
               <>
             <div style={styles.subTitle}>{tab === 'skills' ? 'Tecla' : 'Casilla'}</div>
+            <div style={styles.hint}>Hasta 6 casillas. Si eliges una que aún no existe, se añade al final.</div>
             <div style={styles.chips}>
               {Array.from({ length: maxSlot }).map((_, i) => (
                 <button key={i} type="button" onClick={() => setSlot(i)} style={styles.chip(slot === i)}>{slotLabel(i)}</button>

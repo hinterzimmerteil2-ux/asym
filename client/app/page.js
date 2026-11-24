@@ -192,6 +192,75 @@ export default function LobbyPage() {
   const specRef = useRef({ on: false });
   const [panelOpen, setPanelOpen] = useState(null);
   const [lobbyTab, setLobbyTab] = useState('sala');
+  const [lbWin, setLbWin] = useState(null);
+  const [lbMax, setLbMax] = useState(false);
+  const [lbZoom, setLbZoom] = useState(1);
+  useEffect(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('asym_lobbywin') || 'null');
+      if (raw && typeof raw === 'object') {
+        if (raw.win && [raw.win.x, raw.win.y, raw.win.w, raw.win.h].every(Number.isFinite)) setLbWin(raw.win);
+        if (Number.isFinite(raw.zoom)) setLbZoom(Math.max(0.7, Math.min(1.5, raw.zoom)));
+        if (raw.max) setLbMax(true);
+      }
+    } catch {}
+  }, []);
+  const lbSave = (win, zoom, max) => {
+    try { localStorage.setItem('asym_lobbywin', JSON.stringify({ win, zoom, max })); } catch {}
+  };
+  const lbBegin = (mode) => (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    if (mode === 'move' && e.target.closest && e.target.closest('button')) return;
+    const el = playersBoxRef.current;
+    if (!el || lbMax) return;
+    e.preventDefault();
+    document.body.style.userSelect = 'none';
+    const r = el.getBoundingClientRect();
+    const start = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height };
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let cur = { x: r.left, y: r.top, w: r.width, h: r.height };
+    const move = (ev) => {
+      const dx = ev.clientX - start.x;
+      const dy = ev.clientY - start.y;
+      let l = start.l;
+      let t = start.t;
+      let w = start.w;
+      let h = start.h;
+      if (mode === 'move') { l += dx; t += dy; } else {
+        if (mode.includes('e')) w = start.w + dx;
+        if (mode.includes('s')) h = start.h + dy;
+        if (mode.includes('w')) { w = start.w - dx; l = start.l + dx; }
+        if (mode.includes('n')) { h = start.h - dy; t = start.t + dy; }
+        if (w < 320) { if (mode.includes('w')) l -= 320 - w; w = 320; }
+        if (h < 240) { if (mode.includes('n')) t -= 240 - h; h = 240; }
+      }
+      w = Math.min(w, vw);
+      h = Math.min(h, vh);
+      l = Math.max(80 - w, Math.min(vw - 80, l));
+      t = Math.max(0, Math.min(vh - 40, t));
+      cur = { x: l, y: t, w, h };
+      el.classList.add('lb-custom');
+      el.style.setProperty('--lb-x', l + 'px');
+      el.style.setProperty('--lb-y', t + 'px');
+      el.style.setProperty('--lb-w', w + 'px');
+      el.style.setProperty('--lb-h', h + 'px');
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      document.body.style.userSelect = '';
+      setLbWin(cur);
+      lbSave(cur, lbZoom, false);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  };
+  const lbToggleMax = () => { const v = !lbMax; setLbMax(v); lbSave(lbWin, lbZoom, v); };
+  const lbSetZoom = (z) => { const v = Math.max(0.7, Math.min(1.5, Math.round(z * 10) / 10)); setLbZoom(v); lbSave(lbWin, v, lbMax); };
+  const lbReset = () => { setLbWin(null); setLbMax(false); setLbZoom(1); lbSave(null, 1, false); };
   const [chatOpen, setChatOpen] = useState(false);
   useEffect(() => {
     if (status !== 'in_room') return undefined;
@@ -1146,6 +1215,10 @@ export default function LobbyPage() {
       else if (supRef.current && keyMatches('sup9', e.code)) { if (!e.repeat) handleSuper(8); }
       else if (!supRef.current && keyMatches('card1', e.code)) { if (!e.repeat) handleUseCard(0); }
       else if (!supRef.current && keyMatches('card2', e.code)) { if (!e.repeat) handleUseCard(1); }
+      else if (!supRef.current && keyMatches('card3', e.code)) { if (!e.repeat) handleUseCard(2); }
+      else if (!supRef.current && keyMatches('card4', e.code)) { if (!e.repeat) handleUseCard(3); }
+      else if (!supRef.current && keyMatches('card5', e.code)) { if (!e.repeat) handleUseCard(4); }
+      else if (!supRef.current && keyMatches('card6', e.code)) { if (!e.repeat) handleUseCard(5); }
     }
     function onKeyUp(e) {
       if (keyMatches('shiftlock', e.code)) shiftKeyRef.current.up();
@@ -1435,17 +1508,24 @@ export default function LobbyPage() {
           )}
         </div>
 
-        <div ref={playersBoxRef} className={phase === 'lobby' ? 'pl-overlay lb-shell lb-skin' : 'pl-overlay'} style={{ ...sx(styles.playersOverlay, { top: 52, right: 8, width: 'min(300px, calc(100% - 16px))', maxHeight: 'calc(100dvh - 72px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', scrollbarWidth: 'thin', boxSizing: 'border-box', padding: 10, zIndex: 30 }), ...(compact && !playersOpen ? { display: 'none' } : {}) }}>
+        <div ref={playersBoxRef} className={phase === 'lobby' ? 'pl-overlay lb-shell lb-skin' + (lbMax ? ' lb-max' : lbWin ? ' lb-custom' : '') : 'pl-overlay'} style={{ ...(phase === 'lobby' && lbWin ? { '--lb-x': lbWin.x + 'px', '--lb-y': lbWin.y + 'px', '--lb-w': lbWin.w + 'px', '--lb-h': lbWin.h + 'px' } : {}), '--lb-zoom': lbZoom, ...sx(styles.playersOverlay, { top: 52, right: 8, width: 'min(300px, calc(100% - 16px))', maxHeight: 'calc(100dvh - 72px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', scrollbarWidth: 'thin', boxSizing: 'border-box', padding: 10, zIndex: 30 }), ...(compact && !playersOpen ? { display: 'none' } : {}) }}>
           {phase === 'lobby' && (
-            <div className="lb-head">
+            <div className="lb-head" onPointerDown={lbBegin('move')} onDoubleClick={(e) => { if (!(e.target.closest && e.target.closest('button'))) lbToggleMax(); }}>
               <h2 className="lb-title">Sala de espera</h2>
               <div className="lb-tabs" role="tablist">
                 {[['sala', 'Sala'], ['personaje', 'Personaje'], ...(isDefaultRoom ? [['votos', 'Votación']] : []), ['partida', 'Partida']].map(([id, label]) => (
                   <button key={id} type="button" role="tab" aria-selected={lobbyTab === id} style={btn.secondary(lobbyTab === id)} onClick={() => setLobbyTab(id)}>{label}</button>
                 ))}
               </div>
+              <div className="lb-tools">
+                <button type="button" style={btn.icon(false)} onClick={() => lbSetZoom(lbZoom - 0.1)} aria-label="Texto más pequeño" title="Texto más pequeño">A-</button>
+                <button type="button" style={btn.icon(false)} onClick={() => lbSetZoom(lbZoom + 0.1)} aria-label="Texto más grande" title="Texto más grande">A+</button>
+                <button type="button" style={btn.icon(lbMax)} onClick={lbToggleMax} aria-label="Maximizar" title="Maximizar o restaurar">▢</button>
+                <button type="button" style={btn.icon(false)} onClick={lbReset} aria-label="Restablecer ventana" title="Restablecer tamaño y posición">⟲</button>
+              </div>
             </div>
           )}
+          {phase === 'lobby' && !lbMax && ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map((d) => <div key={d} className={'lb-rz ' + d} onPointerDown={lbBegin(d)} />)}
           <div {...tabProps('sala')}>
           <ul style={sx(styles.playerList, { maxHeight: 'none', overflowY: 'visible' })}>
             {players.map((p) => {
@@ -2020,7 +2100,7 @@ export default function LobbyPage() {
 
         {phase === 'action' && keysUi && isAsymRole && mySkills.length > 0 && (
           <div style={styles.skillBar}>
-            {[...mySkills.map((skill, i) => ({ id: skill.id, name: skill.name, description: skill.description, key: ['Q', 'E', 'R', 'F'][i], index: i, cooldownKey: i })),
+            {[...mySkills.map((skill, i) => ({ id: skill.id, name: skill.name, description: skill.description, key: ['Q', 'E', 'R', 'F', 'Z', 'X'][i], index: i, cooldownKey: i })),
               { id: 'golpe_aturdidor', name: 'Atún Medicinal', description: 'Aturde 1.2s al Paciente frente a ti (cubo corto desde la mano).', key: 'G', index: 'melee', cooldownKey: 'melee' }].map((skill) => {
               const until = skillCooldowns[skill.cooldownKey] || 0;
               const onCooldown = until > skillCooldownNow;

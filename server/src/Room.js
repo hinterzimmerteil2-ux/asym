@@ -223,6 +223,8 @@ const HP_SCALE_SHARE = 0.25;
 const TIME_KEY = /(until|endsat|startedat|readyat|expiresat)$/i;
 const COOLDOWN_SCALE_SHARE = 0.35;
 
+const ADMIN_MAX_SLOTS = 6;
+
 class Room {
   constructor(roomId) {
     this.roomId = roomId;
@@ -857,7 +859,10 @@ class Room {
   curatorSkillList(player) {
     const base = Characters.withOverride(Characters.getCharacter(player.characterId), CustomCards.healerSkills(this.mapId));
     const over = player.skillOverride;
-    return over ? base.map((s, i) => over[i] || s) : base;
+    if (!over) return base;
+    const out = base.map((s, i) => over[i] || s);
+    for (let i = base.length; i < over.length; i++) if (over[i]) out.push(over[i]);
+    return out;
   }
 
   curatorSkillsPublic(player, characterData) {
@@ -928,8 +933,20 @@ class Room {
 
   adminAttr(requesterId, kind, value, targets) {
     if (!this.isOp(requesterId) || this.isDefault || this.phase !== 'action' || this.gameState.gameOver) return;
-    if (!['speed', 'jump', 'heal', 'flojera', 'hp', 'maxhp'].includes(kind)) return;
+    if (!['speed', 'jump', 'heal', 'flojera', 'hp', 'maxhp', 'floval', 'flomax'].includes(kind)) return;
     this.markAdmin();
+    if (kind === 'floval' || kind === 'flomax') {
+      const amount = Math.max(1, Math.min(100000, Math.round(Number(value) || 0)));
+      for (const id of this.adminTargets(targets, requesterId)) {
+        const entity = this.gameState.entities[id];
+        if (!entity || typeof entity.flojeraMax !== 'number') continue;
+        if (kind === 'flomax') {
+          entity.flojeraMax = amount;
+          entity.flojera = Math.min(entity.flojera, amount);
+        } else entity.flojera = Math.min(amount, entity.flojeraMax);
+      }
+      return;
+    }
     if (kind === 'hp' || kind === 'maxhp') {
       const amount = Math.max(1, Math.min(1000000, Math.round(Number(value) || 0)));
       for (const id of this.adminTargets(targets, requesterId)) {
@@ -973,7 +990,7 @@ class Room {
     let done = 0;
     if (kind === 'card') {
       const card = Cards.getCard(id);
-      if (!card || !(idx === 0 || idx === 1)) return;
+      if (!card || !Number.isInteger(idx) || idx < 0 || idx >= ADMIN_MAX_SLOTS) return;
       for (const t of ids) {
         const player = this.players.get(t);
         const entity = this.gameState.entities[t];
@@ -982,6 +999,7 @@ class Room {
         if (!entity.role) entity.role = 'none';
         while (entity.hand.length < 2) entity.hand.push({ options: [], chosen: null });
         if (card.super && card.superId) {
+          entity.hand.length = 2;
           SuperAbilities.grant(entity, card.superId, this.superTune);
           entity.hand[0] = { options: [id], chosen: null };
           this.finalizeChoice(t, 0, id);
@@ -990,9 +1008,10 @@ class Room {
           entity.cardCooldowns = {};
         } else {
           if (entity.hand.some((sl) => sl && sl.chosen === 'super_slot')) SuperAbilities.grant(entity, null);
-          entity.hand[idx] = { options: [id], chosen: null };
-          this.finalizeChoice(t, idx, id);
-          delete entity.cardCooldowns[idx];
+          const at = Math.min(idx, entity.hand.length);
+          entity.hand[at] = { options: [id], chosen: null };
+          this.finalizeChoice(t, at, id);
+          delete entity.cardCooldowns[at];
         }
         entity.draftEndsAt = 0;
         this.sendCardOffer(t, entity);
@@ -1001,14 +1020,15 @@ class Room {
     } else if (kind === 'skill') {
       let skill = null;
       for (const c of Object.values(Characters.CHARACTERS)) for (const s of c.skills) if (s.id === id) skill = s;
-      if (!skill || !(idx >= 0 && idx <= 3)) return;
+      if (!skill || !Number.isInteger(idx) || idx < 0 || idx >= ADMIN_MAX_SLOTS) return;
       for (const t of ids) {
         const player = this.players.get(t);
         const entity = this.gameState.entities[t];
         if (!player || !entity || !player.isAsymRole) continue;
         if (!player.skillOverride) player.skillOverride = [];
-        player.skillOverride[idx] = skill;
-        entity.skillCooldowns[idx] = 0;
+        const at = Math.min(idx, this.curatorSkillList(player).length);
+        player.skillOverride[at] = skill;
+        entity.skillCooldowns[at] = 0;
         done++;
       }
       if (done) this.broadcast(MessageType.ROOM_UPDATE, { players: this.getPlayersSummary(), hostId: this.hostId });
