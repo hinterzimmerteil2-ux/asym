@@ -1788,8 +1788,6 @@ const PlayerBody = memo(function PlayerBody({ bodyRef, headRef, rig, lod, color,
         {[['armL', -0.275, 1.44, SKIN], ['armR', 0.275, 1.44, SKIN], ['legL', -0.105, 0.72, '#3a3d52'], ['legR', 0.105, 0.72, '#3a3d52']].map(([key, px, py, col]) => (
           <group key={key} ref={(el) => { rig.current[key] = el; }} position={[px, py, 0]}>
             <mesh position={[0, key.startsWith('leg') ? -0.35 : -0.355, 0]}><boxGeometry args={key.startsWith('leg') ? [0.19, 0.74, 0.24] : [0.17, 0.73, 0.2]} /><meshStandardMaterial color={col} roughness={0.6} /></mesh>
-            {key.startsWith('leg') && <mesh ref={(el) => { lod.current[3 + (key === 'legL' ? 0 : 1)] = el; }} position={[0, -0.65, 0.07]}><boxGeometry args={[0.21, 0.14, 0.46]} /><meshStandardMaterial color="#1b1d29" roughness={0.7} /></mesh>}
-            {key.startsWith('arm') && <mesh ref={(el) => { lod.current[5 + (key === 'armL' ? 0 : 1)] = el; }} position={[0, -0.69, 0]}><boxGeometry args={[0.19, 0.08, 0.22]} /><meshStandardMaterial color="#e4c9a8" roughness={0.6} /></mesh>}
             {key === 'armR' && isCurator && <HerbStaff />}
           </group>
         ))}
