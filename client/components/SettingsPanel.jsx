@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import KeybindsEditor from './KeybindsEditor';
 import { useSettings, setSettings, gfx, detectMode } from '../lib/settings';
-import { resetKeys } from '../lib/keybinds';
+import { btn } from '../lib/ui';
 
 const MODES = [
   ['touch', 'Táctil (como celular)'],
@@ -52,7 +52,7 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
       <div style={styles.panel} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
           <h2 style={styles.title}>Ajustes</h2>
-          <button type="button" onClick={onClose} style={styles.close}>×</button>
+          <button type="button" onClick={onClose} style={btn.icon(false)} aria-label="Cerrar">×</button>
         </div>
 
         <h3 style={styles.section}>Gráficos</h3>
@@ -150,7 +150,6 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
 
         <h3 style={styles.section}>Controles (haz clic y pulsa la nueva tecla)</h3>
         <KeybindsEditor />
-        <button type="button" onClick={resetKeys} style={styles.reset}>Restablecer teclas</button>
 
         <p style={styles.hint}>El idioma se cambia con los botones es / en / de de arriba a la derecha.</p>
       </div>
@@ -168,9 +167,9 @@ const styles = {
   card: { background: '#181a24', border: '1px solid #3d2c33', borderRadius: 10, padding: 12 },
   rowTop: { display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 14 },
   presets: { display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  preset: (on) => ({ background: on ? '#d94a52' : '#242738', color: '#e8e9f0', border: '1px solid #3a3d52', borderRadius: 6, padding: '4px 8px', fontSize: 12, cursor: 'pointer' }),
+  preset: (on) => ({ ...btn.secondary(on), padding: '5px 10px', fontSize: 12 }),
   list: { margin: '10px 0 0', paddingLeft: 18, fontSize: 12, color: '#b9bbcc', lineHeight: 1.6 },
   hint: { fontSize: 12, color: '#a8959a', margin: '8px 0 0' },
   check: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 13 },
-  reset: { marginTop: 8, background: '#242738', color: '#e8e9f0', border: '1px solid #3a3d52', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' },
+  reset: { ...btn.secondary(false), marginTop: 8 },
 };

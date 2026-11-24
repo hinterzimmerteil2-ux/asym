@@ -895,4 +895,13 @@ export const DE = [
 "Ausweichen",
 "Überhitztes Auge der Präkognition",
 "Überhitzt",
+"Wartezimmer",
+"Figur",
+"Spiel",
+"Fähigkeiten",
+"Karten",
+"Karte suchen",
+"Keine Karte passt.",
+"Die Tasten lassen sich in den Einstellungen ändern.",
+"Abstimmung",
 ];

@@ -18,6 +18,7 @@ import SkillIcon from '../components/SkillIcon';
 import { watchMedia, useInputMode } from '../lib/settings';
 import { protectNames } from '../lib/i18n';
 import HelpPanel from '../components/HelpPanel';
+import { btn } from '../lib/ui';
 import AdminPanel from '../components/AdminPanel';
 import StatusColumn from '../components/StatusColumn';
 import ResourcePanel from '../components/ResourcePanel';
@@ -190,6 +191,7 @@ export default function LobbyPage() {
   const [hitboxCfg, setHitboxCfg] = useState({ half: 0.36, height: 1.8, interact: 1.2 });
   const specRef = useRef({ on: false });
   const [panelOpen, setPanelOpen] = useState(null);
+  const [lobbyTab, setLobbyTab] = useState('sala');
   const [chatOpen, setChatOpen] = useState(false);
   useEffect(() => {
     if (status !== 'in_room') return undefined;
@@ -1244,6 +1246,7 @@ export default function LobbyPage() {
   }, [platforms, hiddenPlatforms, dynPlatforms]);
   const shakeIds = mapEvents.filter((e) => e.target && e.phase === 'warn').map((e) => e.target);
   const sx = (base, extra) => (compact ? { ...base, ...extra } : base);
+  const tabProps = (id) => (phase === 'lobby' ? { className: 'lb-tab', style: { display: lobbyTab === id ? 'block' : 'none' } } : { style: { display: 'contents' } });
   const playersOpen = panelOpen ?? phase === 'lobby';
   isAsymRoleRef.current = isAsymRole;
   const mySeatTower = towers.find((t) => t.seat === myPlayerId) || null;
@@ -1432,7 +1435,18 @@ export default function LobbyPage() {
           )}
         </div>
 
-        <div ref={playersBoxRef} className={phase === 'lobby' ? 'pl-overlay pl-lobby' : 'pl-overlay'} style={{ ...sx(styles.playersOverlay, { top: 52, right: 8, width: 'min(300px, calc(100% - 16px))', maxHeight: 'calc(100dvh - 72px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', scrollbarWidth: 'thin', boxSizing: 'border-box', padding: 10, zIndex: 30 }), ...(compact && !playersOpen ? { display: 'none' } : {}) }}>
+        <div ref={playersBoxRef} className={phase === 'lobby' ? 'pl-overlay lb-shell lb-skin' : 'pl-overlay'} style={{ ...sx(styles.playersOverlay, { top: 52, right: 8, width: 'min(300px, calc(100% - 16px))', maxHeight: 'calc(100dvh - 72px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', scrollbarWidth: 'thin', boxSizing: 'border-box', padding: 10, zIndex: 30 }), ...(compact && !playersOpen ? { display: 'none' } : {}) }}>
+          {phase === 'lobby' && (
+            <div className="lb-head">
+              <h2 className="lb-title">Sala de espera</h2>
+              <div className="lb-tabs" role="tablist">
+                {[['sala', 'Sala'], ['personaje', 'Personaje'], ...(isDefaultRoom ? [['votos', 'Votación']] : []), ['partida', 'Partida']].map(([id, label]) => (
+                  <button key={id} type="button" role="tab" aria-selected={lobbyTab === id} style={btn.secondary(lobbyTab === id)} onClick={() => setLobbyTab(id)}>{label}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div {...tabProps('sala')}>
           <ul style={sx(styles.playerList, { maxHeight: 'none', overflowY: 'visible' })}>
             {players.map((p) => {
               const patientInfo = patients[p.id];
@@ -1466,8 +1480,26 @@ export default function LobbyPage() {
             <button type="button" style={{ ...styles.smallButton, width: '100%', marginTop: 6 }} onClick={() => handleSetAsymRole('random')}>Curador al azar</button>
           )}
 
+          {phase === 'lobby' && isHost && !isDefaultRoom && (
+            <label style={styles.botRow}>
+              <span style={{ minWidth: 56 }}>Bots: {players.filter((pl) => pl.isBot).length}</span>
+              <button type="button" style={{ ...styles.smallButton, width: 34, height: 34, padding: 0, fontSize: 18 }} onClick={() => handleBotCount(Math.max(0, players.filter((pl) => pl.isBot).length - 1))} aria-label="Menos bots">-</button>
+              <input
+                type="range"
+                min={0}
+                max={19}
+                value={players.filter((pl) => pl.isBot).length}
+                onChange={(e) => handleBotCount(Number(e.target.value))}
+                style={{ flex: 1, height: 34, minWidth: 0, cursor: 'pointer', touchAction: 'none', accentColor: '#f0c26b' }}
+              />
+              <button type="button" style={{ ...styles.smallButton, width: 34, height: 34, padding: 0, fontSize: 18 }} onClick={() => handleBotCount(Math.min(19, players.filter((pl) => pl.isBot).length + 1))} aria-label="Más bots">+</button>
+            </label>
+          )}
+
+          </div>
+          <div {...tabProps('personaje')}>
           {phase === 'lobby' && isAsymRole && characters.length > 0 && (
-            <div style={styles.characterPicker}>
+            <div className="lb-chars" style={styles.characterPicker}>
               <p style={styles.characterPickerLabel}>Elegí tu personaje</p>
               {characters.map((c) => {
                 const mine = players.find((p) => p.id === myPlayerId);
@@ -1487,7 +1519,7 @@ export default function LobbyPage() {
           )}
 
           {phase === 'lobby' && (
-            <button type="button" style={{ ...styles.smallButton, width: '100%', padding: '8px 12px' }} onClick={() => setCosmeticsOpen(true)}>Personalizar personaje <span style={{ color: '#e0b34a', marginLeft: 6 }}>{Math.floor(normQ(desgracias.balance))} ℍ</span></button>
+            <button type="button" style={{ ...styles.smallButton, width: '100%' }} onClick={() => setCosmeticsOpen(true)}>Personalizar personaje <span style={{ color: '#e0b34a', marginLeft: 6 }}>{Math.floor(normQ(desgracias.balance))} ℍ</span></button>
           )}
           {phase === 'lobby' && !isAsymRole && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', border: '1px solid #3d2c33', borderRadius: 8, fontSize: 12 }}>
@@ -1509,13 +1541,50 @@ export default function LobbyPage() {
           )}
 
           {phase === 'lobby' && isHost && (
-            <button type="button" style={{ ...styles.smallButton, width: '100%', padding: '8px 12px', borderColor: '#f2d154' }} onClick={handleStartTutorial} disabled={tutorial.launching}>
+            <button type="button" style={{ ...styles.smallButton, width: '100%', borderColor: '#f2d154' }} onClick={handleStartTutorial} disabled={tutorial.launching}>
               {tutorial.launching ? 'Preparando tutorial...' : 'Tutorial (jugar contra un bot)'}
             </button>
           )}
 
+          </div>
+          <div {...tabProps('votos')}>
+          {phase === 'lobby' && isDefaultRoom && (
+            <div className="lb-vote" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 10px', border: '1px solid #3d2c33', borderRadius: 8, fontSize: 12 }}>
+              <strong>Votación de la sala</strong>
+              {startAt && <span style={{ color: '#f0c26b' }}>Inicio automático en {Math.max(0, Math.ceil((startAt - lobbyNow) / 1000))} s</span>}
+              {[
+                ['bots', 'Bots', [0, 4, 8, 12, 16].map((n) => ({ id: n, label: String(n) }))],
+                ['map', 'Mapa', maps.filter((m) => !m.id.startsWith('c_')).map((m) => ({ id: m.id, label: m.name }))],
+                ['mutation', 'Modificador', mutations.map((m) => ({ id: m.id, label: m.name }))],
+                ...(modeVoteOpen ? [['mode', 'Modo de esta ronda', MODE_LIST.map((m) => ({ id: m.id, label: m.name }))]] : []),
+                ['curator', 'Curador', [{ id: 'random', label: 'Al azar' }, ...players.filter((pl) => !pl.isBot).map((pl) => ({ id: pl.id, label: pl.name }))]],
+              ].map(([kind, title, options]) => {
+                const counts = {};
+                for (const v of Object.values(votes[kind] || {})) counts[v] = (counts[v] || 0) + 1;
+                const mine = (votes[kind] || {})[myPlayerId];
+                return (
+                  <div key={kind}>
+                    <div style={{ opacity: 0.75, marginBottom: 3 }}>{title}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {options.map((o) => (
+                        <button key={String(o.id)} type="button" onClick={() => handleVote(kind, o.id)} style={btn.secondary(mine === o.id)}>
+                          {o.label}{counts[o.id] ? ` (${counts[o.id]})` : ''}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              <span style={{ opacity: 0.65 }}>Gana lo más votado. Si hay empate, se elige al azar.</span>
+            </div>
+          )}
+
+          </div>
+          <div {...tabProps('partida')}>
           {phase === 'lobby' && (
-            <div style={styles.mapPicker}>
+            <>
+            <div className="lg-grid">
+              <div className="lg-field">
               <p style={styles.characterPickerLabel}>Mapa</p>
               {isHost && !isDefaultRoom ? (
                 <select
@@ -1547,9 +1616,11 @@ export default function LobbyPage() {
               ) : null)}
               {mapId.startsWith('c_') && <p style={styles.mapReadOnly}>Mapa de la comunidad: <span translate="no">{communityName[mapId] || maps.find((m) => m.id === mapId)?.name || ''}</span></p>}
               <button type="button" style={{ ...styles.smallButton, width: '100%', marginTop: 4 }} onClick={() => setCommunityOpen(true)}>Mapas de la comunidad</button>
+              </div>
+              <div className="lg-field">
               {mutations.length > 0 && (
                 <>
-                  <p style={{ ...styles.characterPickerLabel, marginTop: 8 }}>Mutación</p>
+                  <p style={styles.characterPickerLabel}>Mutación</p>
                   {isHost && !isDefaultRoom ? (
                     <select style={styles.mapSelect} value={mutation} onChange={(e) => handleSetMutation(e.target.value)}>
                       {mutations.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -1559,7 +1630,9 @@ export default function LobbyPage() {
                   )}
                 </>
               )}
-              <p style={{ ...styles.characterPickerLabel, marginTop: 8 }}>Modo</p>
+              </div>
+              <div className="lg-field">
+              <p style={styles.characterPickerLabel}>Modo</p>
               {isHost && !isDefaultRoom ? (
                 <>
                   <select style={styles.mapSelect} value={mode} onChange={(e) => handleSetMode(e.target.value, e.target.value === 'dual' ? 'random' : undefined)}>
@@ -1575,7 +1648,9 @@ export default function LobbyPage() {
               ) : (
                 <p style={styles.mapReadOnly}>{MODE_LIST.find((m) => m.id === mode)?.name || ''}</p>
               )}
-              <p style={{ ...styles.characterPickerLabel, marginTop: 8 }}>Boss</p>
+              </div>
+              <div className="lg-field">
+              <p style={styles.characterPickerLabel}>Boss</p>
               {isHost && !isDefaultRoom ? (
                 <>
                   <select style={styles.mapSelect} value={bossOn ? 'on' : 'off'} onChange={(e) => handleSetBoss(e.target.value === 'on', bossId)}>
@@ -1592,7 +1667,9 @@ export default function LobbyPage() {
               ) : (
                 <p style={styles.mapReadOnly}>{bossOn ? 'Jeffrey' : 'Sin Boss'}</p>
               )}
-              <p style={{ ...styles.characterPickerLabel, marginTop: 8 }}>Súper-habilidades</p>
+              </div>
+              <div className="lg-field">
+              <p style={styles.characterPickerLabel}>Súper-habilidades</p>
               {isHost && !isDefaultRoom ? (
                 <>
                   <select style={styles.mapSelect} value={supersMode} onChange={(e) => handleSetSupers(e.target.value, superIds)}>
@@ -1619,60 +1696,18 @@ export default function LobbyPage() {
               ) : (
                 <p style={styles.mapReadOnly}>{supersMode === 'all' ? 'Para todos' : supersMode === 'some' ? `Para: ${players.filter((pl) => superIds.includes(pl.id)).map((pl) => pl.name).join(', ') || 'nadie'}` : 'Desactivadas'}</p>
               )}
+              </div>
+            </div>
+            <div className="lg-links">
               <p style={{ fontSize: 10, opacity: 0.6, margin: '6px 0 0' }}>Modelo de Jeffrey: SinisterClock, CC-BY-NC 4.0</p>
               <Link href="/editor" style={styles.editorLink}>Crear mapa nuevo →</Link>
               <Link href="/legal" style={{ ...styles.editorLink, display: 'block', marginTop: 4, opacity: 0.8 }}>Aviso legal y contacto</Link>
               <Link href="/equipo" style={{ ...styles.editorLink, display: 'block', marginTop: 4, opacity: 0.8 }}>Equipo de traducción</Link>
             </div>
+            </>
           )}
-
-          {phase === 'lobby' && isHost && !isDefaultRoom && (
-            <label style={styles.botRow}>
-              <span style={{ minWidth: 56 }}>Bots: {players.filter((pl) => pl.isBot).length}</span>
-              <button type="button" style={{ ...styles.smallButton, width: 34, height: 34, padding: 0, fontSize: 18 }} onClick={() => handleBotCount(Math.max(0, players.filter((pl) => pl.isBot).length - 1))} aria-label="Menos bots">-</button>
-              <input
-                type="range"
-                min={0}
-                max={19}
-                value={players.filter((pl) => pl.isBot).length}
-                onChange={(e) => handleBotCount(Number(e.target.value))}
-                style={{ flex: 1, height: 34, minWidth: 0, cursor: 'pointer', touchAction: 'none', accentColor: '#f0c26b' }}
-              />
-              <button type="button" style={{ ...styles.smallButton, width: 34, height: 34, padding: 0, fontSize: 18 }} onClick={() => handleBotCount(Math.min(19, players.filter((pl) => pl.isBot).length + 1))} aria-label="Más bots">+</button>
-            </label>
-          )}
-
-          {phase === 'lobby' && isDefaultRoom && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 10px', border: '1px solid #3d2c33', borderRadius: 8, fontSize: 12 }}>
-              <strong>Votación de la sala</strong>
-              {startAt && <span style={{ color: '#f0c26b' }}>Inicio automático en {Math.max(0, Math.ceil((startAt - lobbyNow) / 1000))} s</span>}
-              {[
-                ['bots', 'Bots', [0, 4, 8, 12, 16].map((n) => ({ id: n, label: String(n) }))],
-                ['map', 'Mapa', maps.filter((m) => !m.id.startsWith('c_')).map((m) => ({ id: m.id, label: m.name }))],
-                ['mutation', 'Modificador', mutations.map((m) => ({ id: m.id, label: m.name }))],
-                ...(modeVoteOpen ? [['mode', 'Modo de esta ronda', MODE_LIST.map((m) => ({ id: m.id, label: m.name }))]] : []),
-                ['curator', 'Curador', [{ id: 'random', label: 'Al azar' }, ...players.filter((pl) => !pl.isBot).map((pl) => ({ id: pl.id, label: pl.name }))]],
-              ].map(([kind, title, options]) => {
-                const counts = {};
-                for (const v of Object.values(votes[kind] || {})) counts[v] = (counts[v] || 0) + 1;
-                const mine = (votes[kind] || {})[myPlayerId];
-                return (
-                  <div key={kind}>
-                    <div style={{ opacity: 0.75, marginBottom: 3 }}>{title}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {options.map((o) => (
-                        <button key={String(o.id)} type="button" onClick={() => handleVote(kind, o.id)} style={{ padding: '4px 8px', borderRadius: 6, border: mine === o.id ? '1px solid #f3e9a6' : '1px solid #4d3840', background: mine === o.id ? '#3d2c33' : '#241a1e', color: '#f3e8e5', fontSize: 12, cursor: 'pointer' }}>
-                          {o.label}{counts[o.id] ? ` (${counts[o.id]})` : ''}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-              <span style={{ opacity: 0.65 }}>Gana lo más votado. Si hay empate, se elige al azar.</span>
-            </div>
-          )}
-
+          </div>
+          <div className={phase === 'lobby' ? 'lb-foot' : undefined} style={phase === 'lobby' ? undefined : { display: 'none' }}>
           {phase === 'lobby' && isHost && (
             <button
               style={styles.button(players.length < 2)}
@@ -1683,8 +1718,8 @@ export default function LobbyPage() {
               Iniciar partida{players.length < 2 ? ' (falta 1 jugador)' : ''}
             </button>
           )}
+          </div>
         </div>
-
         {phase === 'action' && !isAsymRole && myPlayerId && patients[myPlayerId] && patients[myPlayerId].status !== 'alive' && (
           <div style={sx(styles.resolvedBanner(patients[myPlayerId].status === 'self_won'), { top: 150, fontSize: 15, maxWidth: '70%' })}>
             {patients[myPlayerId].status === 'self_won'
@@ -1734,7 +1769,7 @@ export default function LobbyPage() {
             <div style={{ position: 'absolute', left: 8, top: compact ? 96 : 200, zIndex: 40, width: compact ? 'min(260px, calc(100% - 16px))' : 'min(280px, calc(100% - 16px))', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, background: 'rgba(27,29,41,0.92)', border: '1px solid #f2d154', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <strong>Tutorial</strong>
-                <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '2px 8px', fontSize: 11 }} onClick={() => setTutorial((t) => ({ ...t, minimized: !t.minimized }))}>{tutorial.minimized ? 'Mostrar' : 'Ocultar'}</button>
+                <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => setTutorial((t) => ({ ...t, minimized: !t.minimized }))}>{tutorial.minimized ? 'Mostrar' : 'Ocultar'}</button>
               </div>
               {!tutorial.minimized && (
                 <>
@@ -1908,20 +1943,20 @@ export default function LobbyPage() {
         })()}
 
         {!isDefaultRoom && isOp && !tutorial.active && (phase === 'lobby' || phase === 'action') && (
-          <button type="button" onClick={() => setAdminOpen(true)} style={{ position: 'absolute', top: phase === 'action' ? (compact ? 126 : 92) : 8, left: 16, zIndex: 25, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(255,210,74,0.7)', background: 'rgba(40,34,12,0.85)', color: '#ffd24a', fontSize: 11, cursor: 'pointer' }}>Panel de host</button>
+          <button type="button" onClick={() => setAdminOpen(true)} style={{ ...btn.secondary(false), position: 'absolute', top: phase === 'action' ? (compact ? 126 : 92) : 8, left: 16, zIndex: 25 }}>Panel de host</button>
         )}
 
         {towerPick !== null && phase === 'action' && (
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 210, zIndex: 40, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: 'rgba(10,8,14,0.9)', border: '1px solid #ffd24a' }}>
             <span style={{ color: '#ffd24a', fontSize: 12, fontWeight: 700 }}>Elige la torre</span>
-            <button type="button" onClick={() => handleUseCard(towerPick, 'laser')} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #ff8a3a', background: 'rgba(255,138,58,0.15)', color: '#ffb27a', cursor: 'pointer', fontSize: 12 }}>Láser</button>
-            <button type="button" onClick={() => handleUseCard(towerPick, 'rifle')} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #7dff5a', background: 'rgba(125,255,90,0.15)', color: '#a8ff90', cursor: 'pointer', fontSize: 12 }}>Rifle</button>
-            <button type="button" onClick={() => setTowerPick(null)} style={{ padding: '4px 8px', borderRadius: 8, border: 'none', background: 'transparent', color: '#8a8da3', cursor: 'pointer', fontSize: 14 }}>×</button>
+            <button type="button" onClick={() => handleUseCard(towerPick, 'laser')} style={btn.secondary(false)}>Láser</button>
+            <button type="button" onClick={() => handleUseCard(towerPick, 'rifle')} style={btn.secondary(false)}>Rifle</button>
+            <button type="button" onClick={() => setTowerPick(null)} style={btn.ghost(false)}>×</button>
           </div>
         )}
 
         {phase === 'action' && isHost && !isDefaultRoom && !tutorial.active && (
-          <button type="button" onClick={handleReturnToLobby} style={{ position: 'absolute', top: compact ? 96 : 62, left: 16, zIndex: 25, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(224,85,95,0.7)', background: 'rgba(40,16,20,0.85)', color: '#ffb3b8', fontSize: 11, cursor: 'pointer' }}>Reiniciar y volver al lobby</button>
+          <button type="button" onClick={handleReturnToLobby} style={{ ...btn.secondary(false), position: 'absolute', top: compact ? 96 : 62, left: 16, zIndex: 25 }}>Reiniciar y volver al lobby</button>
         )}
 
         {phase === 'action' && !isAsymRole && (keysUi || (touch && flojera?.sup?.id === 'minceraft')) && (flojera?.sup?.id === 'town_level' || flojera?.sup?.id === 'platinum_star' || flojera?.sup?.id === 'minceraft') && (
@@ -1945,9 +1980,9 @@ export default function LobbyPage() {
         {phase === 'action' && !isAsymRole && flojera?.sup?.id === 'minceraft' && (
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 176, zIndex: 20, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#fff' }}>
             <span style={{ color: '#ffd86b' }}>{mcSel ? (touch ? 'Toca el suelo para colocar' : 'Clic para colocar') : (touch ? 'Elige una pieza' : 'Elige una pieza (1 a 8)')}</span>
-            {mcSel === 'piston' && <button type="button" onClick={() => setMcSticky((v) => !v)} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>{mcSticky ? 'Variante: pegajoso (C)' : 'Variante: normal (C)'}</button>}
-            {mcSel === 'piston' && <button type="button" onClick={() => setMcDir((d) => (d === 0 ? 1 : d === 1 ? -1 : 0))} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>{mcDir === 0 ? 'Apuntado: automático (R)' : mcDir === 1 ? 'Apuntado: arriba (R)' : 'Apuntado: abajo (R)'}</button>}
-            {mcSel && <button type="button" onClick={() => placeMc()} style={{ padding: '2px 10px', borderRadius: 6, border: '1px solid #ffd86b', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>Colocar</button>}
+            {mcSel === 'piston' && <button type="button" onClick={() => setMcSticky((v) => !v)} style={btn.secondary(false)}>{mcSticky ? 'Variante: pegajoso (C)' : 'Variante: normal (C)'}</button>}
+            {mcSel === 'piston' && <button type="button" onClick={() => setMcDir((d) => (d === 0 ? 1 : d === 1 ? -1 : 0))} style={btn.secondary(false)}>{mcDir === 0 ? 'Apuntado: automático (R)' : mcDir === 1 ? 'Apuntado: arriba (R)' : 'Apuntado: abajo (R)'}</button>}
+            {mcSel && <button type="button" onClick={() => placeMc()} style={btn.secondary(false)}>Colocar</button>}
           </div>
         )}
 
@@ -2071,7 +2106,7 @@ export default function LobbyPage() {
               const pl = players.find((p) => p.id === id);
               const current = ((specIndex % specTargets.length) + specTargets.length) % specTargets.length === i;
               return (
-                <button key={id} type="button" onClick={() => setSpecIndex(i)} style={{ ...styles.smallButton, width: 'auto', padding: '4px 10px', fontSize: 12, borderColor: current ? '#f2d154' : pl?.isAsymRole ? '#f2a154' : '#3d2c33', background: current ? 'rgba(242,209,84,0.18)' : undefined }}>
+                <button key={id} type="button" onClick={() => setSpecIndex(i)} style={{ ...styles.smallButton, width: 'auto', borderColor: current ? '#f2d154' : pl?.isAsymRole ? '#f2a154' : '#3d2c33', background: current ? 'rgba(242,209,84,0.18)' : undefined }}>
                   {id === myPlayerId ? 'Fantasma' : <><span>{pl?.isAsymRole ? '🩺 ' : ''}</span><span translate="no">{pl?.name || id}</span></>}
                 </button>
               );
@@ -2080,15 +2115,15 @@ export default function LobbyPage() {
         )}
         {spectating && (
           <div style={{ position: 'absolute', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, background: 'rgba(27, 29, 41, 0.9)', border: '1px solid #3d2c33', fontSize: 13 }}>
-            <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i - 1)} aria-label="Anterior">{'<-'}</button>
-            <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px' }} onClick={startReplay}>Repetición</button>
+            <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => setSpecIndex((i) => i - 1)} aria-label="Anterior">{'<-'}</button>
+            <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={startReplay}>Repetición</button>
             <span>{ghostMode ? 'Tu fantasma' : specId ? `Espectando: ${players.find((p) => p.id === specId)?.name || specId}` : 'Nadie a quien seguir'}</span>
             {ghostMode && (
-              <button type="button" disabled={ghostBlocked} style={{ ...styles.smallButton, width: 'auto', padding: '6px 12px' }} onClick={() => handlePulse(0)}>
+              <button type="button" disabled={ghostBlocked} style={{ ...styles.smallButton, width: 'auto' }} onClick={() => handlePulse(0)}>
                 {myGhost.visible ? `Visible ${Math.ceil(myGhost.visibleMs / 1000)}s` : myGhost.uses >= myGhost.maxUses ? 'Sin usos' : myGhost.cooldownMs > 0 ? `Aparecer ${Math.ceil(myGhost.cooldownMs / 1000)}s` : `Aparecer (Q) ${myGhost.maxUses - myGhost.uses}/${myGhost.maxUses}`}
               </button>
             )}
-            <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 14px', fontSize: 16 }} onClick={() => setSpecIndex((i) => i + 1)} aria-label="Siguiente">{'->'}</button>
+            <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => setSpecIndex((i) => i + 1)} aria-label="Siguiente">{'->'}</button>
           </div>
         )}
         {touch && portrait && phase === 'action' && (
@@ -2101,8 +2136,8 @@ export default function LobbyPage() {
           <div style={{ position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 60, width: 'min(420px, calc(100% - 24px))', boxSizing: 'border-box', padding: 12, borderRadius: 10, background: '#241a1e', border: '1px solid #f2a154', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span>No se puede guardar el juego como marcador ni como archivo desde aquí.</span>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 12px' }} onClick={() => setWarn(false)}>Entendido</button>
-              <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 12px' }} onClick={() => { try { localStorage.setItem('asym_no_warn', '1'); } catch {} setWarn(false); }}>No volver a preguntar</button>
+              <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => setWarn(false)}>Entendido</button>
+              <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => { try { localStorage.setItem('asym_no_warn', '1'); } catch {} setWarn(false); }}>No volver a preguntar</button>
             </div>
           </div>
         )}
@@ -2138,7 +2173,7 @@ export default function LobbyPage() {
                 <div key={slot} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <span style={{ fontSize: 12, color: '#a8959a' }}>{SLOT_LABELS[slot]}</span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px', borderColor: !cosmetics[slot] ? '#f0c26b' : '#3d2c33' }} onClick={() => { const next = { ...cosmetics }; delete next[slot]; updateCosmetics(next); }}>Ninguno</button>
+                    <button type="button" style={{ ...styles.smallButton, width: 'auto', borderColor: !cosmetics[slot] ? '#f0c26b' : '#3d2c33' }} onClick={() => { const next = { ...cosmetics }; delete next[slot]; updateCosmetics(next); }}>Ninguno</button>
                     {Object.entries(ITEMS[slot]).map(([id, def]) => {
                       const owned = desgracias.owned.includes(id);
                       const price = priceOf(id);
@@ -2147,7 +2182,7 @@ export default function LobbyPage() {
                         <button
                           key={id}
                           type="button"
-                          style={{ ...styles.smallButton, width: 'auto', padding: '6px 10px', borderColor: cosmetics[slot]?.id === id ? '#f0c26b' : owned ? '#3d2c33' : affordable ? '#f2d154' : '#3d2c33', opacity: owned || affordable ? 1 : 0.55 }}
+                          style={{ ...styles.smallButton, width: 'auto', borderColor: cosmetics[slot]?.id === id ? '#f0c26b' : owned ? '#3d2c33' : affordable ? '#f2d154' : '#3d2c33', opacity: owned || affordable ? 1 : 0.55 }}
                           onClick={() => {
                             if (!owned && !buyItem(id)) return;
                             updateCosmetics({ ...cosmetics, [slot]: { id, color: cosmetics[slot]?.color || COLORS[0] } });
@@ -2167,14 +2202,14 @@ export default function LobbyPage() {
                   )}
                 </div>
               ))}
-              <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '6px 12px', alignSelf: 'flex-end' }} onClick={() => setCosmeticsOpen(false)}>Listo</button>
+              <button type="button" style={{ ...styles.smallButton, width: 'auto', alignSelf: 'flex-end' }} onClick={() => setCosmeticsOpen(false)}>Listo</button>
             </div>
           </div>
         )}
         {replay && (
           <div style={{ position: 'absolute', top: 56, left: '50%', transform: 'translateX(-50%)', zIndex: 60, display: 'flex', gap: 10, alignItems: 'center', padding: '6px 12px', borderRadius: 8, background: 'rgba(27, 29, 41, 0.92)', border: '1px solid #f2a154', fontSize: 13 }}>
             <span>Repetición</span>
-            <button type="button" style={{ ...styles.smallButton, width: 'auto', padding: '4px 10px' }} onClick={() => setReplay(null)}>Saltar</button>
+            <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => setReplay(null)}>Saltar</button>
           </div>
         )}
         {gameOverInfo && !replay && (
@@ -2348,7 +2383,7 @@ export default function LobbyPage() {
             {roomList.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '4px 0 8px' }}>
                 {roomList.map((r) => (
-                  <button key={r.id} type="button" disabled={joinLoading} onClick={() => setRoomId(r.id)} style={{ padding: '6px 10px', borderRadius: 8, border: roomId.trim().toLowerCase() === r.id ? '1px solid #f3e9a6' : '1px solid #4d3840', background: '#241a1e', color: '#f3e8e5', fontSize: 13, cursor: 'pointer' }}>
+                  <button key={r.id} type="button" disabled={joinLoading} onClick={() => setRoomId(r.id)} style={btn.secondary(roomId.trim().toLowerCase() === r.id, joinLoading)}>
                     {r.id} ({r.players})
                   </button>
                 ))}
@@ -2487,44 +2522,15 @@ const styles = {
     color: '#f3e8e5',
     fontSize: 14,
   },
-  button: (disabled) => ({
-    marginTop: 6,
-    padding: '10px 16px',
-    borderRadius: 8,
-    border: 'none',
-    background: '#d94a52',
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: disabled ? 'default' : 'pointer',
-    opacity: disabled ? 0.6 : 1,
-    transition: 'opacity 0.15s ease',
-  }),
-  oauthButton: (bgColor, disabled) => ({
-    padding: '10px 16px',
-    borderRadius: 8,
-    border: 'none',
-    background: bgColor,
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: disabled ? 'default' : 'pointer',
-    opacity: disabled ? 0.6 : 1,
-    transition: 'opacity 0.15s ease',
-  }),
+  button: (disabled) => ({ ...btn.primary(disabled), marginTop: 6 }),
+
+  oauthButton: (bgColor, disabled) => ({ ...btn.primary(disabled), background: bgColor, color: '#fff', opacity: disabled ? 0.6 : 1 }),
+
   divider: { display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' },
   dividerLine: { flex: 1, height: 1, background: '#3d2c33' },
   dividerText: { fontSize: 12, color: '#a8959a' },
-  linkButton: (disabled) => ({
-    background: 'none',
-    border: 'none',
-    color: '#a8959a',
-    fontSize: 12,
-    cursor: disabled ? 'default' : 'pointer',
-    opacity: disabled ? 0.5 : 1,
-    textDecoration: 'underline',
-    padding: 0,
-  }),
+  linkButton: (disabled) => ({ ...btn.ghost(disabled), padding: 0, textDecoration: 'underline', fontSize: 12, fontWeight: 500 }),
+
   roomLabel: { fontSize: 14, color: '#a8959a', margin: 0 },
   nameEditRow: { display: 'flex', gap: 6, alignItems: 'center' },
   inRoomNameInput: {
@@ -2550,16 +2556,8 @@ const styles = {
     fontSize: 14,
   },
   playerTag: { fontSize: 12, color: '#a8959a' },
-  smallButton: {
-    padding: '4px 8px',
-    borderRadius: 6,
-    border: '1px solid #3d2c33',
-    background: '#241a1e',
-    color: '#f3e8e5',
-    fontSize: 11,
-    cursor: 'pointer',
-    width: '100%',
-  },
+  smallButton: { ...btn.secondary(false), width: '100%' },
+
   characterPicker: {
     display: 'flex',
     flexDirection: 'column',
@@ -2569,21 +2567,7 @@ const styles = {
     background: '#1a1215',
   },
   characterPickerLabel: { fontSize: 12, color: '#a8959a', margin: '0 0 2px' },
-  characterOption: (selected) => ({
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: 2,
-    padding: '8px 10px',
-    borderRadius: 6,
-    border: selected ? '1px solid #f2a154' : '1px solid #3d2c33',
-    background: selected ? 'rgba(242, 161, 84, 0.12)' : '#241a1e',
-    color: '#f3e8e5',
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: 'pointer',
-    textAlign: 'left',
-  }),
+  characterOption: (selected) => ({ ...btn.secondary(selected), display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, padding: '8px 10px', textAlign: 'left' }),
   characterWeapon: { fontSize: 11, fontWeight: 400, color: '#a8959a' },
   mapPicker: {
     display: 'flex',
@@ -2653,16 +2637,8 @@ const styles = {
     color: '#f3e8e5',
     fontSize: 13,
   },
-  chatSendButton: (disabled) => ({
-    padding: '8px 14px',
-    borderRadius: 6,
-    border: 'none',
-    background: disabled ? '#3d2c33' : '#d94a52',
-    color: disabled ? '#565a6e' : '#fff',
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: disabled ? 'default' : 'pointer',
-  }),
+  chatSendButton: (disabled) => btn.primary(disabled),
+
   gameMain: {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -2832,19 +2808,8 @@ const styles = {
     overflow: 'hidden',
   }),
   botRow: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#c3c5d6' },
-  hitboxButton: (on) => ({
-    position: 'absolute',
-    top: 16,
-    right: 288,
-    width: 32,
-    height: 32,
-    borderRadius: '50%',
-    border: `1px solid ${on ? '#f0c26b' : '#3d2c33'}`,
-    background: 'rgba(27, 29, 41, 0.85)',
-    color: on ? '#f0c26b' : '#e8e9f0',
-    fontSize: 16,
-    cursor: 'pointer',
-  }),
+  hitboxButton: (on) => ({ ...btn.icon(on), position: 'absolute', top: 16, right: 288 }),
+
   hitboxSlider: {
     position: 'absolute',
     top: 56,
@@ -2859,20 +2824,8 @@ const styles = {
     fontSize: 11,
     color: '#c3c5d6',
   },
-  helpButton: {
-    position: 'absolute',
-    top: 16,
-    right: 248,
-    width: 32,
-    height: 32,
-    borderRadius: '50%',
-    border: '1px solid #3d2c33',
-    background: 'rgba(27, 29, 41, 0.85)',
-    color: '#e8e9f0',
-    fontSize: 16,
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
+  helpButton: { ...btn.icon(false), position: 'absolute', top: 16, right: 248 },
+
   cardButtonName: { fontSize: 13, fontWeight: 600 },
   draftSlot: {
     display: 'flex',

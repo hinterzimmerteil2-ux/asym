@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { btn } from '../lib/ui';
 import { ACTIONS, getBinds, setKey, resetKeys, subscribeKeys, keyLabel } from '../lib/keybinds';
 
 export default function KeybindsEditor() {
@@ -28,7 +29,7 @@ export default function KeybindsEditor() {
             key={a.id}
             type="button"
             onClick={() => setWaiting(a.id)}
-            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 8, border: `1px solid ${waiting === a.id ? '#f2d154' : '#2a2d3d'}`, background: '#1b1d29', color: '#e8eaf0', cursor: 'pointer', textAlign: 'left', fontSize: 13 }}
+            style={{ ...btn.secondary(waiting === a.id), display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, textAlign: 'left', fontWeight: 500 }}
           >
             <span>{a.label}</span>
             <span translate="no" style={{ minWidth: 54, textAlign: 'center', padding: '2px 8px', borderRadius: 6, background: waiting === a.id ? '#f2d154' : '#2a2d3d', color: waiting === a.id ? '#12131a' : '#e8eaf0', fontWeight: 700 }}>
@@ -37,7 +38,7 @@ export default function KeybindsEditor() {
           </button>
         ))}
       </div>
-      <button type="button" onClick={resetKeys} style={{ marginTop: 8, padding: '6px 12px', borderRadius: 8, border: '1px solid #4a5270', background: 'transparent', color: '#e8eaf0', cursor: 'pointer' }}>Restablecer teclas</button>
+      <button type="button" onClick={resetKeys} style={{ ...btn.secondary(false), marginTop: 8 }}>Restablecer teclas</button>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { translate, detectLang, LANGS } from '../lib/i18n';
+import { btn } from '../lib/ui';
 import SettingsPanel from './SettingsPanel';
 import FpsCounter from './FpsCounter';
 import AutoQuality from './AutoQuality';
@@ -140,14 +141,14 @@ export default function I18n() {
     {ui.fps && <FpsCounter />}
     <AutoQuality />
     <div translate="no" style={{ position: 'fixed', top: 3, right: 3, zIndex: 500, display: 'flex', gap: 3 }}>
-      <button type="button" onClick={() => setSettingsOpen(true)} title="Ajustes" aria-label="Ajustes" style={{ fontSize: 14, padding: '1px 9px', borderRadius: 5, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(20,22,30,0.65)', color: '#e8e9f0', cursor: 'pointer', lineHeight: 1.4 }}>⚙</button>
+      <button type="button" onClick={() => setSettingsOpen(true)} title="Ajustes" aria-label="Ajustes" style={{ ...btn.secondary(false), padding: '3px 9px', fontSize: 13, background: 'rgba(36,26,30,0.8)' }}>⚙</button>
       {!narrow && LANGS.map((l) => (
         <button
           key={l}
           type="button"
           onClick={() => choose(l)}
           aria-label={`language ${l}`}
-          style={{ fontSize: 13, padding: '3px 9px', borderRadius: 5, border: '1px solid rgba(255,255,255,0.3)', background: lang === l ? 'rgba(84,104,255,0.85)' : 'rgba(20,22,30,0.65)', color: '#e8e9f0', opacity: lang === l ? 1 : 0.75, cursor: 'pointer', lineHeight: 1.4 }}
+          style={{ ...btn.secondary(lang === l), padding: '3px 9px', fontSize: 13, background: lang === l ? 'rgba(240,194,107,0.2)' : 'rgba(36,26,30,0.8)' }}
         >
           {l === 'en-GB' ? 'en' : l}
         </button>

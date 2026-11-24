@@ -1,4 +1,5 @@
 'use client';
+import { btn } from '../lib/ui';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -43,7 +44,7 @@ const TEXT = {
 
 const box = { maxWidth: 760, margin: '0 auto', padding: '32px 18px 64px', color: '#e8e6ef', lineHeight: 1.6, fontSize: 15 };
 const h2 = { fontSize: 18, margin: '28px 0 8px', color: '#fff' };
-const tab = (on) => ({ border: '1px solid #d94a52', background: on ? '#d94a52' : 'transparent', color: '#fff', borderRadius: 6, padding: '4px 12px', fontSize: 13, cursor: 'pointer' });
+const tab = (on) => ({ ...btn.secondary(on), padding: '5px 12px' });
 
 export default function LegalView() {
   const [lang, setLang] = useState('es');

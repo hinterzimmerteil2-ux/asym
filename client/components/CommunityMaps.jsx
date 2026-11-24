@@ -1,9 +1,10 @@
 'use client';
+import { btn as uiBtn } from '../lib/ui';
 import { useEffect, useState } from 'react';
 import { listCommunityMaps, voteCommunityMap, deleteCommunityMap } from '../lib/community';
 
 const box = { position: 'absolute', top: 50, left: '50%', transform: 'translateX(-50%)', zIndex: 40, display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(20,24,40,0.97)', border: '1px solid #8fc6ea', borderRadius: 10, padding: 10, width: 'min(94vw, 460px)', maxHeight: 'calc(100% - 70px)', overflow: 'auto' };
-const btn = (on) => ({ padding: '3px 9px', borderRadius: 6, border: `1px solid ${on ? '#ff6b81' : '#4a5270'}`, background: on ? 'rgba(255,107,129,0.18)' : 'transparent', color: '#eee', cursor: 'pointer', fontSize: 12 });
+const btn = (on) => ({ ...uiBtn.secondary(on), padding: '4px 10px', fontSize: 12 });
 
 export default function CommunityMaps({ isHost, currentMapId, onUse, onClose }) {
   const [sort, setSort] = useState('top');

@@ -899,6 +899,15 @@ const PAIRS = [
 ["Esquive","Dodge"],
 ["Ojo de Precognición Sobrecalentado","Overheated Eye of Precognition"],
 ["Sobrecalentado","Overheated"],
+["Sala de espera","Waiting room"],
+["Personaje","Character"],
+["Partida","Match"],
+["Habilidades","Skills"],
+["Cartas","Cards"],
+["Buscar carta","Search card"],
+["Ninguna carta coincide.","No card matches."],
+["Las teclas se cambian en Ajustes.","Keys can be changed in Settings."],
+["Votación","Voting"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };

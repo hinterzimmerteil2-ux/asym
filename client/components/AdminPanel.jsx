@@ -1,3 +1,4 @@
+import { btn } from '../lib/ui';
 import { useState } from 'react';
 import SkillIcon from './SkillIcon';
 import { KEYWORDS } from '../lib/keywords';
@@ -53,7 +54,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
       <div style={styles.panel} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
           <h2 style={styles.title}>Panel de host</h2>
-          <button type="button" onClick={onClose} style={styles.close}>×</button>
+          <button type="button" onClick={onClose} style={btn.icon(false)} aria-label="Cerrar">×</button>
         </div>
         <div style={styles.tabs}>
           {isHost && <button type="button" onClick={() => setTab('op')} style={styles.tab(tab === 'op')}>OP</button>}
@@ -230,15 +231,14 @@ const styles = {
   panel: { width: 'min(560px, 100%)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: '#1a1c28', border: '1px solid #2e3146', borderRadius: 12, color: '#e8e9f0', fontSize: 13 },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 4px' },
   title: { margin: 0, fontSize: 16 },
-  close: { background: 'transparent', border: 'none', color: '#e8e9f0', fontSize: 22, cursor: 'pointer' },
   tabs: { display: 'flex', gap: 6, padding: '4px 16px 8px', flexWrap: 'wrap' },
-  tab: (on) => ({ padding: '5px 12px', borderRadius: 8, border: '1px solid', borderColor: on ? '#ffd24a' : '#2e3146', background: on ? 'rgba(255,210,74,0.12)' : 'transparent', color: on ? '#ffd24a' : '#c9cbe0', fontSize: 12, cursor: 'pointer' }),
+  tab: (on) => btn.secondary(on),
   body: { padding: '4px 16px 16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0 },
   hint: { color: '#8a8da3', fontSize: 12 },
   subTitle: { color: '#8a8da3', fontSize: 11, marginTop: 4 },
   row: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px', cursor: 'pointer' },
   chips: { display: 'flex', flexWrap: 'wrap', gap: 6 },
-  chip: (on) => ({ padding: '4px 10px', borderRadius: 999, border: '1px solid', borderColor: on ? '#5fd58c' : '#2e3146', background: on ? 'rgba(95,213,140,0.14)' : 'transparent', color: on ? '#8ff0b4' : '#c9cbe0', fontSize: 12, cursor: 'pointer' }),
+  chip: (on) => ({ ...btn.secondary(on), padding: '4px 10px', fontSize: 12 }),
   search: { padding: '6px 10px', borderRadius: 8, border: '1px solid #2e3146', background: '#12131a', color: '#e8e9f0', fontSize: 13 },
   list: { display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto', maxHeight: '38vh', minHeight: 80 },
   item: { display: 'grid', gridTemplateColumns: '24px minmax(0, 1fr) auto', alignItems: 'center', gap: 8, padding: '5px 6px', borderRadius: 6, border: 'none', background: 'transparent', color: '#e8e9f0', textAlign: 'left', cursor: 'pointer', fontSize: 12 },
