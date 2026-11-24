@@ -2692,8 +2692,10 @@ test('Panel de host: OP dan cartas y habilidades a quien eligen', () => {
   const cs = room.getPlayersSummary().find((p) => p.id === 'c').character.skills;
   assert.strictEqual(cs.length, 5);
   assert.strictEqual(cs[4].id, 'anestesia');
-  room.adminGrant('a', 'card', 'tigermark', 6, ['a']);
+  room.adminGrant('a', 'card', 'tigermark', 10, ['a']);
   assert.strictEqual(e.a.hand.length, 3);
+  room.adminGrant('a', 'card', 'tigermark', 9, ['a']);
+  assert.strictEqual(e.a.hand.length, 4);
   room.setOp('c', 'a', false);
   assert.strictEqual(room.isOp('a'), false);
 });
@@ -2813,8 +2815,8 @@ test('Panel de host: velocidad, salto, curar, Flojera y velocidad del tiempo', (
   assert.strictEqual(p.a.hp, 49);
   room.adminScale('c', 4);
   assert.strictEqual(room.gameState.timeScale, 4);
-  room.adminScale('c', 50);
-  assert.strictEqual(room.gameState.timeScale, 10);
+  room.adminScale('c', 500);
+  assert.strictEqual(room.gameState.timeScale, 50);
 });
 
 test('Salto: sube rápido, apex razonable y la resistencia del aire limita la caída', () => {

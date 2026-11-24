@@ -223,7 +223,8 @@ const HP_SCALE_SHARE = 0.25;
 const TIME_KEY = /(until|endsat|startedat|readyat|expiresat)$/i;
 const COOLDOWN_SCALE_SHARE = 0.35;
 
-const ADMIN_MAX_SLOTS = 6;
+const ADMIN_MAX_CARD_SLOTS = 10;
+const ADMIN_MAX_SKILL_SLOTS = 8;
 
 class Room {
   constructor(roomId) {
@@ -927,8 +928,8 @@ class Room {
   adminScale(requesterId, scale, cd) {
     if (!this.isOp(requesterId) || this.isDefault || this.phase !== 'action' || this.gameState.gameOver) return;
     this.markAdmin();
-    if (scale !== undefined) this.gameState.timeScale = Math.max(0.1, Math.min(10, Number(scale) || 1));
-    if (cd !== undefined) this.gameState.cdMult = Math.max(0.1, Math.min(10, Number(cd) || 1));
+    if (scale !== undefined) this.gameState.timeScale = Math.max(0.1, Math.min(50, Number(scale) || 1));
+    if (cd !== undefined) this.gameState.cdMult = Math.max(0.1, Math.min(50, Number(cd) || 1));
   }
 
   adminAttr(requesterId, kind, value, targets) {
@@ -936,7 +937,7 @@ class Room {
     if (!['speed', 'jump', 'heal', 'flojera', 'hp', 'maxhp', 'floval', 'flomax'].includes(kind)) return;
     this.markAdmin();
     if (kind === 'floval' || kind === 'flomax') {
-      const amount = Math.max(1, Math.min(100000, Math.round(Number(value) || 0)));
+      const amount = Math.max(1, Math.min(1000000000, Math.round(Number(value) || 0)));
       for (const id of this.adminTargets(targets, requesterId)) {
         const entity = this.gameState.entities[id];
         if (!entity || typeof entity.flojeraMax !== 'number') continue;
@@ -948,7 +949,7 @@ class Room {
       return;
     }
     if (kind === 'hp' || kind === 'maxhp') {
-      const amount = Math.max(1, Math.min(1000000, Math.round(Number(value) || 0)));
+      const amount = Math.max(1, Math.min(1000000000, Math.round(Number(value) || 0)));
       for (const id of this.adminTargets(targets, requesterId)) {
         if (this.players.get(id)?.isAsymRole) {
           const cur = this.gameState.curator;
@@ -965,7 +966,7 @@ class Room {
       }
       return;
     }
-    const v = Math.max(0.1, Math.min(5, Number(value) || 1));
+    const v = Math.max(0.1, Math.min(20, Number(value) || 1));
     for (const id of this.adminTargets(targets, requesterId)) {
       const entity = this.gameState.entities[id];
       const patient = this.gameState.patients[id];
@@ -990,7 +991,7 @@ class Room {
     let done = 0;
     if (kind === 'card') {
       const card = Cards.getCard(id);
-      if (!card || !Number.isInteger(idx) || idx < 0 || idx >= ADMIN_MAX_SLOTS) return;
+      if (!card || !Number.isInteger(idx) || idx < 0 || idx >= ADMIN_MAX_CARD_SLOTS) return;
       for (const t of ids) {
         const player = this.players.get(t);
         const entity = this.gameState.entities[t];
@@ -1020,7 +1021,7 @@ class Room {
     } else if (kind === 'skill') {
       let skill = null;
       for (const c of Object.values(Characters.CHARACTERS)) for (const s of c.skills) if (s.id === id) skill = s;
-      if (!skill || !Number.isInteger(idx) || idx < 0 || idx >= ADMIN_MAX_SLOTS) return;
+      if (!skill || !Number.isInteger(idx) || idx < 0 || idx >= ADMIN_MAX_SKILL_SLOTS) return;
       for (const t of ids) {
         const player = this.players.get(t);
         const entity = this.gameState.entities[t];

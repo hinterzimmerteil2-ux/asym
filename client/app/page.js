@@ -1219,6 +1219,10 @@ export default function LobbyPage() {
       else if (!supRef.current && keyMatches('card4', e.code)) { if (!e.repeat) handleUseCard(3); }
       else if (!supRef.current && keyMatches('card5', e.code)) { if (!e.repeat) handleUseCard(4); }
       else if (!supRef.current && keyMatches('card6', e.code)) { if (!e.repeat) handleUseCard(5); }
+      else if (!supRef.current && keyMatches('card7', e.code)) { if (!e.repeat) handleUseCard(6); }
+      else if (!supRef.current && keyMatches('card8', e.code)) { if (!e.repeat) handleUseCard(7); }
+      else if (!supRef.current && keyMatches('card9', e.code)) { if (!e.repeat) handleUseCard(8); }
+      else if (!supRef.current && keyMatches('card10', e.code)) { if (!e.repeat) handleUseCard(9); }
     }
     function onKeyUp(e) {
       if (keyMatches('shiftlock', e.code)) shiftKeyRef.current.up();
@@ -2100,7 +2104,7 @@ export default function LobbyPage() {
 
         {phase === 'action' && keysUi && isAsymRole && mySkills.length > 0 && (
           <div style={styles.skillBar}>
-            {[...mySkills.map((skill, i) => ({ id: skill.id, name: skill.name, description: skill.description, key: ['Q', 'E', 'R', 'F', 'Z', 'X'][i], index: i, cooldownKey: i })),
+            {[...mySkills.map((skill, i) => ({ id: skill.id, name: skill.name, description: skill.description, key: ['Q', 'E', 'R', 'F', 'Z', 'X', 'T', 'Y'][i], index: i, cooldownKey: i })),
               { id: 'golpe_aturdidor', name: 'Atún Medicinal', description: 'Aturde 1.2s al Paciente frente a ti (cubo corto desde la mano).', key: 'G', index: 'melee', cooldownKey: 'melee' }].map((skill) => {
               const until = skillCooldowns[skill.cooldownKey] || 0;
               const onCooldown = until > skillCooldownNow;

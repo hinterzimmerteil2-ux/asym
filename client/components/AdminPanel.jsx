@@ -5,8 +5,7 @@ import { KEYWORDS } from '../lib/keywords';
 
 const FX_KINDS = [['stun', 'Aturdimiento'], ['ragdoll', 'Ragdoll'], ['slow', 'Ralentizado'], ['reveal', 'Revelado'], ['queue', 'En cola']];
 const SUPERS = [['super_sunat_paperwork', 'Sunat Paperwork', 'Súper-consumible'], ['super_town_level', 'Town Level Verse Lol', 'Súper-movilidad'], ['super_platinum_star', 'Platinum Star', 'Súper-combate'], ['super_minceraft', 'Minceraft', 'Súper-estructuras']];
-const SKILL_KEYS = ['Q', 'E', 'R', 'F', 'Z', 'X'];
-const MAX_SLOTS = 6;
+const SKILL_KEYS = ['Q', 'E', 'R', 'F', 'Z', 'X', 'T', 'Y'];
 const MIN_S = 0.05;
 const MAX_S = 600;
 const secFromPos = (v) => MIN_S * Math.pow(MAX_S / MIN_S, v / 100);
@@ -41,7 +40,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
   for (const c of characters) for (const s of c.skills) if (!seen.has(s.id)) { seen.add(s.id); skills.push({ ...s, owner: c.displayName }); }
 
   const give = (kind, item) => {
-    onGrant({ kind, id: item.id, slot, targets: chosen });
+    onGrant({ kind, id: item.id, slot: Math.min(slot, maxSlot - 1), targets: chosen });
     setSent(item.displayName || item.name);
     setTimeout(() => setSent(''), 1600);
   };
@@ -49,7 +48,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
   const filterFn = (it) => !q || `${it.displayName || it.name} ${it.description || ''}`.toLowerCase().includes(q);
   const cardList = cards.filter(filterFn);
   const skillList = skills.filter(filterFn);
-  const maxSlot = MAX_SLOTS;
+  const maxSlot = tab === 'skills' ? 8 : 10;
   const fxMs = fxInf ? 1e10 : Math.round(secFromPos(fxPos) * 1000);
   const slotLabel = (i) => (tab === 'skills' ? SKILL_KEYS[i] : String(i + 1));
 
@@ -108,7 +107,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
               ))}
             </div>
             <label style={styles.row}>
-              <input type="number" min={0.1} max={10} step={0.1} value={scale} onChange={(e) => setScale(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
+              <input type="number" min={0.1} max={50} step={0.1} value={scale} onChange={(e) => setScale(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
               <button type="button" disabled={phase !== 'action'} onClick={() => onScale({ scale })} style={styles.chip(true)}>Aplicar velocidad</button>
             </label>
             <div style={styles.hint}>Acelera o frena movimientos, ataques, recargas, efectos y el reloj. La vida y su regeneración cambian solo en parte.</div>
@@ -146,20 +145,20 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
             {tab === 'attr' ? (
               <>
                 <div style={styles.subTitle}>Velocidad de movimiento: x{speed}</div>
-                <input type="range" min={0.1} max={5} step={0.1} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} />
+                <input type="range" min={0.1} max={20} step={0.1} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} />
                 <div style={styles.chips}>
                   <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'speed', value: speed, targets: chosen })} style={styles.chip(true)}>Aplicar velocidad</button>
                   <button type="button" disabled={phase !== 'action'} onClick={() => { setSpeed(1); onAttr({ kind: 'speed', value: 1, targets: chosen }); }} style={styles.chip(false)}>Normal</button>
                 </div>
                 <div style={styles.subTitle}>Salto: x{jump}</div>
-                <input type="range" min={0.1} max={5} step={0.1} value={jump} onChange={(e) => setJump(Number(e.target.value))} />
+                <input type="range" min={0.1} max={20} step={0.1} value={jump} onChange={(e) => setJump(Number(e.target.value))} />
                 <div style={styles.chips}>
                   <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'jump', value: jump, targets: chosen })} style={styles.chip(true)}>Aplicar salto</button>
                   <button type="button" disabled={phase !== 'action'} onClick={() => { setJump(1); onAttr({ kind: 'jump', value: 1, targets: chosen }); }} style={styles.chip(false)}>Normal</button>
                 </div>
                 <div style={styles.subTitle}>Vida</div>
                 <label style={styles.row}>
-                  <input type="number" min={1} max={1000000} step={1} value={hpVal} onChange={(e) => setHpVal(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
+                  <input type="number" min={1} max={1000000000} step={1} value={hpVal} onChange={(e) => setHpVal(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
                 </label>
                 <div style={styles.chips}>
                   <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'hp', value: hpVal, targets: chosen })} style={styles.chip(true)}>Poner vida actual</button>
@@ -167,7 +166,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
                 </div>
                 <div style={styles.subTitle}>Flojera</div>
                 <label style={styles.row}>
-                  <input type="number" min={1} max={100000} step={1} value={floVal} onChange={(e) => setFloVal(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
+                  <input type="number" min={1} max={1000000000} step={1} value={floVal} onChange={(e) => setFloVal(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
                 </label>
                 <div style={styles.chips}>
                   <button type="button" disabled={phase !== 'action'} onClick={() => onAttr({ kind: 'floval', value: floVal, targets: chosen })} style={styles.chip(true)}>Poner Flojera actual</button>
@@ -219,7 +218,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
             ) : (
               <>
             <div style={styles.subTitle}>{tab === 'skills' ? 'Tecla' : 'Casilla'}</div>
-            <div style={styles.hint}>Hasta 6 casillas. Si eliges una que aún no existe, se añade al final.</div>
+            <div style={styles.hint}>Hasta 10 casillas de carta y 8 de habilidad. Si eliges una que aún no existe, se añade al final.</div>
             <div style={styles.chips}>
               {Array.from({ length: maxSlot }).map((_, i) => (
                 <button key={i} type="button" onClick={() => setSlot(i)} style={styles.chip(slot === i)}>{slotLabel(i)}</button>

@@ -3588,7 +3588,7 @@ function FollowCamera({ myEntity, yawRef, shiftLock, onLockLost, focusId, platfo
   return null;
 }
 
-const SKILL_ACTIONS = ['skill1', 'skill2', 'skill3', 'skill4', 'melee', 'skill5', 'skill6'];
+const SKILL_ACTIONS = ['skill1', 'skill2', 'skill3', 'skill4', 'melee', 'skill5', 'skill6', 'skill7', 'skill8'];
 
 const ATTACK = { fn: null };
 
