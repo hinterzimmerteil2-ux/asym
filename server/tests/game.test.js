@@ -2817,6 +2817,11 @@ test('Panel de host: velocidad, salto, curar, Flojera y velocidad del tiempo', (
   assert.strictEqual(room.gameState.timeScale, 4);
   room.adminScale('c', 500);
   assert.strictEqual(room.gameState.timeScale, 50);
+  room.adminScale('c', 0.001);
+  assert.strictEqual(room.gameState.timeScale, 0.01);
+  room.adminScale('c', undefined, 0.001);
+  assert.strictEqual(room.gameState.cdMult, 0.01);
+  room.adminScale('c', 1, 1);
 });
 
 test('Salto: sube rápido, apex razonable y la resistencia del aire limita la caída', () => {

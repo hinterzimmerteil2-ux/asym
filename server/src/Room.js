@@ -928,8 +928,8 @@ class Room {
   adminScale(requesterId, scale, cd) {
     if (!this.isOp(requesterId) || this.isDefault || this.phase !== 'action' || this.gameState.gameOver) return;
     this.markAdmin();
-    if (scale !== undefined) this.gameState.timeScale = Math.max(0.1, Math.min(50, Number(scale) || 1));
-    if (cd !== undefined) this.gameState.cdMult = Math.max(0.1, Math.min(50, Number(cd) || 1));
+    if (scale !== undefined) this.gameState.timeScale = Math.max(0.01, Math.min(50, Number(scale) || 1));
+    if (cd !== undefined) this.gameState.cdMult = Math.max(0.01, Math.min(50, Number(cd) || 1));
   }
 
   adminAttr(requesterId, kind, value, targets) {

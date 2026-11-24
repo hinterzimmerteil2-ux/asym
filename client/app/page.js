@@ -419,6 +419,7 @@ export default function LobbyPage() {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [nameSaving, setNameSaving] = useState(false);
+  const cdRateRef = useRef(1);
   const [skillCooldowns, setSkillCooldowns] = useState({});
   const [skillCooldownNow, setSkillCooldownNow] = useState(() => Date.now());
   const [flojera, setFlojera] = useState(null);
@@ -588,10 +589,17 @@ export default function LobbyPage() {
             if (payload.flojera && myPlayerIdRef.current) {
               setFlojera(payload.flojera[myPlayerIdRef.current] || null);
               const mine = payload.flojera[myPlayerIdRef.current];
-              if (mine?.cooldowns && mine.statuses?.some((s) => s.id === 'pereza')) {
-                setCardCooldowns(mine.cooldowns.cards || {});
-                setSkillCooldowns(mine.cooldowns.skills || {});
+              if (mine?.cooldowns && (mine.statuses?.some((s) => s.id === 'pereza') || (payload.timeScale || 1) !== 1 || (payload.cdMult || 1) !== 1 || cdRateRef.current !== 1)) {
+                const near = (a, b) => {
+                  const ka = Object.keys(a);
+                  return ka.length === Object.keys(b).length && ka.every((k) => Math.abs((a[k] || 0) - (b[k] || 0)) < 120);
+                };
+                const nextCards = mine.cooldowns.cards || {};
+                const nextSkills = mine.cooldowns.skills || {};
+                setCardCooldowns((prev) => (near(prev, nextCards) ? prev : nextCards));
+                setSkillCooldowns((prev) => (near(prev, nextSkills) ? prev : nextSkills));
               }
+              cdRateRef.current = (payload.timeScale || 1) !== 1 || (payload.cdMult || 1) !== 1 ? 2 : 1;
             }
             break;
           case 'cure_result':

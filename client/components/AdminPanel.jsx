@@ -102,21 +102,25 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
             </label>
             <div style={styles.subTitle}>Velocidad del juego: x{scale}</div>
             <div style={styles.chips}>
-              {[0.25, 0.5, 1, 2, 4, 10].map((v) => (
+              {[0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 4, 10].map((v) => (
                 <button key={v} type="button" disabled={phase !== 'action'} onClick={() => { setScale(v); onScale({ scale: v }); }} style={styles.chip(scale === v)}>x{v}</button>
               ))}
             </div>
             <label style={styles.row}>
-              <input type="number" min={0.1} max={50} step={0.1} value={scale} onChange={(e) => setScale(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
+              <input type="number" min={0.01} max={50} step={0.01} value={scale} onChange={(e) => setScale(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
               <button type="button" disabled={phase !== 'action'} onClick={() => onScale({ scale })} style={styles.chip(true)}>Aplicar velocidad</button>
             </label>
             <div style={styles.hint}>Acelera o frena movimientos, ataques, recargas, efectos y el reloj. La vida y su regeneración cambian solo en parte.</div>
             <div style={styles.subTitle}>Velocidad de recargas: x{cdm}</div>
             <div style={styles.chips}>
-              {[0.25, 0.5, 1, 2, 4, 10].map((v) => (
+              {[0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 4, 10].map((v) => (
                 <button key={v} type="button" disabled={phase !== 'action'} onClick={() => { setCdm(v); onScale({ cd: v }); }} style={styles.chip(cdm === v)}>x{v}</button>
               ))}
             </div>
+            <label style={styles.row}>
+              <input type="number" min={0.01} max={50} step={0.01} value={cdm} onChange={(e) => setCdm(Number(e.target.value))} style={{ ...styles.search, width: 100 }} />
+              <button type="button" disabled={phase !== 'action'} onClick={() => onScale({ cd: cdm })} style={styles.chip(true)}>Aplicar recargas</button>
+            </label>
             <div style={styles.hint}>Se suma a la velocidad del juego. Con x1 las recargas siguen el tiempo solo en parte.</div>
             <div style={styles.chips}>
               <button type="button" disabled={phase !== 'action'} onClick={() => { onTime({ seconds: timeSec, infinite: timeInf }); setSent('Tiempo'); setTimeout(() => setSent(''), 1600); }} style={styles.chip(true)}>Aplicar</button>
