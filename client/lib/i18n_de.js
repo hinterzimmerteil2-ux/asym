@@ -906,4 +906,9 @@ export const DE = [
 "Abstimmung",
 "Zahlen: Karten",
 "Zahlen: Super",
+"Lobby",
+"Automatisch",
+"Nächtlicher Flur",
+"Operationssaal",
+"Innenhof",
 ];

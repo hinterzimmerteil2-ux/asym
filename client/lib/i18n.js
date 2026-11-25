@@ -910,6 +910,11 @@ const PAIRS = [
 ["Votación","Voting"],
 ["Números: Cartas","Numbers: Cards"],
 ["Números: Súper","Numbers: Super"],
+["Lobby","Lobby"],
+["Automático","Automatic"],
+["Pasillo nocturno","Night corridor"],
+["Quirófano","Operating theatre"],
+["Patio interior","Inner courtyard"],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };

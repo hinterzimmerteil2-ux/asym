@@ -12,7 +12,7 @@ import {
   clearSession,
   updateDisplayName,
 } from '../lib/session';
-import GameScene, { facingOf, setMcAim, mcAimPoint, mcAimAt, setAimSlope, aimSlope } from '../components/GameScene';
+import GameScene, { facingOf, setMcAim, mcAimPoint, mcAimAt, setAimSlope, aimSlope, setLobbyThemePref, setLobbyThemeRoom, getLobbyThemePref, LOBBY_THEME_LIST } from '../components/GameScene';
 import { play as playSfx, trackSteps, unlockAudio } from '../lib/sfx';
 import SkillIcon from '../components/SkillIcon';
 import { watchMedia, useInputMode } from '../lib/settings';
@@ -444,7 +444,9 @@ export default function LobbyPage() {
   const roomIdRef = useRef(null);
   const sessionTokenRef = useRef(null);
   const myPlayerIdRef = useRef(null);
-  useEffect(() => { roomIdRef.current = roomId; }, [roomId]);
+  useEffect(() => { roomIdRef.current = roomId; setLobbyThemeRoom(roomId.trim().toLowerCase()); }, [roomId]);
+  const [lobbyThemePref, setLobbyThemePrefState] = useState('auto');
+  useEffect(() => { setLobbyThemePrefState(getLobbyThemePref()); }, []);
   useEffect(() => { sessionTokenRef.current = sessionToken; }, [sessionToken]);
   useEffect(() => { myPlayerIdRef.current = myPlayerId; }, [myPlayerId]);
 
@@ -1596,6 +1598,15 @@ export default function LobbyPage() {
               <button type="button" style={{ ...styles.smallButton, width: 34, height: 34, padding: 0, fontSize: 18 }} onClick={() => handleBotCount(Math.min(19, players.filter((pl) => pl.isBot).length + 1))} aria-label="Más bots">+</button>
             </label>
           )}
+
+          <div style={{ marginTop: 14 }}>
+            <div style={{ color: '#a8959a', fontSize: 13, marginBottom: 6 }}>Lobby</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {[{ id: 'auto', name: 'Automático' }, ...LOBBY_THEME_LIST].map((t) => (
+                <button key={t.id} type="button" style={btn.secondary(lobbyThemePref === t.id)} onClick={() => { setLobbyThemePref(t.id); setLobbyThemePrefState(t.id); }}>{t.name}</button>
+              ))}
+            </div>
+          </div>
 
           </div>
           <div {...tabProps('personaje')}>
