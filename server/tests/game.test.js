@@ -599,6 +599,54 @@ test('los bots sienten: duelo al caer un compañero, alegría al salvarlo, miedo
   assert.equal(angry.mood, 'anger');
 });
 
+test('la red de los bots aprende, tiene memoria y reacciona a la multitud y al tiempo', () => {
+  const BotBrain = require('../src/BotBrain');
+  const ctx = (o) => Object.assign({ dist: 6, hpFrac: 0.6, flo: 0.2, crowd: 0, allyFrac: 1, timeFrac: 0 }, o);
+  const mk = () => Object.assign(BotBrain.createMind(), { bravery: 0.5, greed: 0.7, caution: 0.6, patience: 0.5 });
+  const alone = mk();
+  const group = mk();
+  const a = BotBrain.think(alone, ctx({ crowd: 0 })).slice();
+  const g = BotBrain.think(group, ctx({ crowd: 4 })).slice();
+  assert.ok(g[1] < a[1], 'en grupo evaden menos');
+  const early = BotBrain.think(mk(), ctx({ timeFrac: 0, dist: 30 })).slice();
+  const late = BotBrain.think(mk(), ctx({ timeFrac: 0.95, dist: 30 })).slice();
+  assert.ok(late[0] > early[0], 'con poco tiempo trabajan mas');
+  const learner = mk();
+  const before = BotBrain.think(Object.assign(mk(), { bias: [0, 0, 0] }), ctx()).slice();
+  for (let i = 0; i < 8; i++) { BotBrain.feel(learner, { dist: 5, hp: i * 10, fallen: 0 }, 1000 + i * 200); }
+  assert.ok(learner.bias[1] > 0.05 && learner.bias[0] < 0, 'curarlo repetidamente enseña a evadir');
+  assert.ok(Math.abs(learner.bias[1]) <= 1.2);
+  const smooth = mk();
+  smooth.out = [0.9, 0.05, 0.05];
+  const o = BotBrain.think(smooth, ctx({ dist: 1, flo: 0.9 }));
+  assert.ok(o[0] > 0.4, 'la memoria evita cambios bruscos');
+  assert.ok(before[0] + before[1] + before[2] > 0.99);
+});
+
+test('las rutas por partes devuelven lo mismo que la busqueda directa y se pueden cancelar', () => {
+  const Pathfinding = require('../src/Pathfinding');
+  const GameMap = require('../src/GameMap');
+  const area = GameMap.areaFor('general');
+  const grid = Pathfinding.buildGrid(area.halfSize, GameMap.resolveCollisionObjects('general', area), GameMap.resolvePlatforms('general', area));
+  const from = { x: -20, z: -10, y: 0 };
+  const to = { x: 30, z: 25, y: 0 };
+  const direct = Pathfinding.findPath(grid, from, to);
+  let got = null;
+  const job = Pathfinding.requestPath(grid, from, to, (p) => { got = p; });
+  let guard = 0;
+  while (!got && guard++ < 2000) Pathfinding.pumpPaths(0.5);
+  assert.ok(got, 'la ruta termina entre varias pasadas');
+  assert.equal(got.length, direct.length);
+  assert.deepEqual(got[got.length - 1], direct[direct.length - 1]);
+  let cancelled = 'no';
+  const j2 = Pathfinding.requestPath(grid, from, to, () => { cancelled = 'si'; });
+  Pathfinding.cancelPath(j2);
+  for (let i = 0; i < 50; i++) Pathfinding.pumpPaths(1);
+  assert.equal(cancelled, 'no');
+  assert.equal(Pathfinding.pendingPaths(), 0);
+  assert.ok(job);
+});
+
 test('el lobby tiene 9 salas: las paredes bloquean y las puertas dejan pasar', () => {
   const { room, e } = setup();
   room.phase = 'lobby';

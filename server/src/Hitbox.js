@@ -44,11 +44,16 @@ function fpFor(s) {
   return FP_CACHE.get(k);
 }
 
+let FP_R = 0;
+for (const [a, b] of FOOTPRINT) FP_R = Math.max(FP_R, Math.abs(a), Math.abs(b));
+
 function groundAt(platforms, x, z, y, stepUp = STEP_UP, s = 1) {
   const FP = fpFor(s);
+  const R = FP_R * s;
   let g = -Infinity;
   for (const [ox, oz] of FP) g = Math.max(g, baseAt(platforms, x + ox, z + oz));
   for (const p of platforms) {
+    if (p.kind === 'pit' || Math.abs(x - p.x) > p.hx + R || Math.abs(z - p.z) > p.hz + R) continue;
     for (const [ox, oz] of FP) {
       const top = platformTop(p, x + ox, z + oz);
       if (top !== null && top <= y + stepUp && top > g) g = top;
@@ -59,9 +64,10 @@ function groundAt(platforms, x, z, y, stepUp = STEP_UP, s = 1) {
 
 function blockedAt(platforms, x, z, y, stepUp = STEP_UP, s = 1, height = PLAYER_HEIGHT) {
   const FP = fpFor(s);
+  const R = FP_R * s;
   for (const [ox, oz] of FP) if (baseAt(platforms, x + ox, z + oz) > y + stepUp) return true;
   for (const p of platforms) {
-    if (p.oneway) continue;
+    if (p.oneway || p.kind === 'pit' || Math.abs(x - p.x) > p.hx + R || Math.abs(z - p.z) > p.hz + R) continue;
     for (const [ox, oz] of FP) {
       const top = platformTop(p, x + ox, z + oz);
       if (top !== null && top > y + stepUp && (p.ramp || p.slab ? top - (p.slab || RAMP_SLAB) : p.y0 || 0) < y + height) return true;

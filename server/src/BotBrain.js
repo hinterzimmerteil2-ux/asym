@@ -30,6 +30,8 @@ function createMind() {
     frustration: 0,
     lastHp: null,
     at: 0,
+    quiet: 0,
+    bias: [0, 0, 0],
     out: [0.6, 0.3, 0.1],
   };
 }
@@ -47,6 +49,9 @@ function feel(m, ctx, now) {
       m.frustration = clamp(m.frustration + 0.04 * d);
       m.fear = clamp(m.fear + 0.03 * d);
       m.confidence = clamp(m.confidence - 0.02 * d);
+      learn(m, 1, 0.05 * d);
+      learn(m, 0, -0.03 * d);
+      m.quiet = 0;
     } else if (d < -0.4) {
       m.confidence = clamp(m.confidence + 0.05 * -d);
       m.frustration = clamp(m.frustration - 0.03 * -d);
@@ -69,6 +74,14 @@ function feel(m, ctx, now) {
     }
     m.lastFallen = ctx.fallen;
   }
+  if (m.fear < 0.12) {
+    m.quiet += dt;
+    if (m.quiet > 10) { m.quiet = 0; learn(m, 0, 0.1); learn(m, 1, -0.05); }
+  } else if (m.fear > 0.6) m.quiet = 0;
+  const bd = 1 - Math.min(1, 0.012 * dt);
+  m.bias[0] *= bd;
+  m.bias[1] *= bd;
+  m.bias[2] *= bd;
   m.confidence += (0.5 - m.confidence) * 0.05 * dt;
   m.frustration = clamp(m.frustration - (0.08 + 0.1 * m.patience) * dt);
   m.anger = clamp(m.anger + (m.frustration * (0.4 + m.temper) - m.anger) * Math.min(1, 1.5 * dt));
@@ -76,6 +89,11 @@ function feel(m, ctx, now) {
   m.joy = clamp(m.joy - 0.05 * dt);
   m.grief = clamp(m.grief - (0.02 + 0.03 * (1 - m.empathy)) * dt);
   settleMood(m);
+}
+
+function learn(m, i, v) {
+  const b = m.bias[i] + v;
+  m.bias[i] = b > 1.2 ? 1.2 : b < -1.2 ? -1.2 : b;
 }
 
 function settleMood(m) {
@@ -97,27 +115,34 @@ function think(m, ctx) {
   const close = clamp(1 - ctx.dist / 14);
   const hp = clamp(ctx.hpFrac);
   const flo = clamp(ctx.flo);
+  const crowd = clamp((ctx.crowd || 0) / 4);
+  const allies = ctx.allyFrac === undefined ? 1 : clamp(ctx.allyFrac);
+  const urgency = clamp(ctx.timeFrac || 0);
   const h0 = tanh(4 * close - 1);
   const h1 = tanh(3 * hp - 1.4);
   const h2 = tanh(2 * (1 - flo) - 0.6);
-  const h3 = tanh(3 * m.fear + 2 * close - 2);
+  const h3 = tanh(3 * m.fear + 2 * close - 2 - 0.8 * crowd);
   const h4 = tanh(3 * m.confidence - 1.5);
   const h5 = tanh(2 * m.frustration - 0.8);
   const h6 = tanh(2.4 * m.grief - 0.6);
   const h7 = tanh(2.2 * m.joy - 0.5);
   const h8 = tanh(2.4 * m.anger - 0.7);
-  const work = 0.3 + 1.2 * m.greed + 1.5 * h4 - 1.3 * h0 * (1.1 - m.bravery) - 1.1 * h3 - 0.5 * h2 - 0.7 * h6 + 0.8 * h7 + 0.5 * h8;
-  const evade = 1.7 * h0 * (1.2 - m.bravery) + 1.4 * h3 + 0.9 * h1 * m.caution - 0.6 * h4 * m.bravery - 0.6 * h8 * m.bravery;
-  const rest = 1.4 * h2 + 0.9 * h5 * (1 - m.patience) - 0.9 * h0 + 1.0 * h6 - 0.4 * h7;
+  const h9 = tanh(2 * crowd - 0.6);
+  const h10 = tanh(2.5 * (1 - allies) - 0.5);
+  const h11 = tanh(3 * urgency - 1.5);
+  const work = 0.3 + 1.2 * m.greed + 1.5 * h4 - 1.3 * h0 * (1.1 - m.bravery) - 1.1 * h3 - 0.5 * h2 - 0.7 * h6 + 0.8 * h7 + 0.5 * h8 + 0.4 * h9 + 0.9 * h11 * m.greed + m.bias[0];
+  const evade = 1.7 * h0 * (1.2 - m.bravery) + 1.4 * h3 + 0.9 * h1 * m.caution - 0.6 * h4 * m.bravery - 0.6 * h8 * m.bravery - 0.5 * h9 * m.bravery + 0.7 * h10 * m.caution - 0.4 * h11 + m.bias[1];
+  const rest = 1.4 * h2 + 0.9 * h5 * (1 - m.patience) - 0.9 * h0 + 1.0 * h6 - 0.4 * h7 - 0.6 * h11 + m.bias[2];
   const mx = Math.max(work, evade, rest);
   const a = Math.exp(work - mx);
   const b = Math.exp(evade - mx);
   const c = Math.exp(rest - mx);
   const s = a + b + c;
-  m.out[0] = a / s;
-  m.out[1] = b / s;
-  m.out[2] = c / s;
-  return m.out;
+  const o = m.out;
+  o[0] = 0.5 * o[0] + 0.5 * (a / s);
+  o[1] = 0.5 * o[1] + 0.5 * (b / s);
+  o[2] = 0.5 * o[2] + 0.5 * (c / s);
+  return o;
 }
 
-module.exports = { createMind, feel, think, moodSpeed, TYPES };
+module.exports = { createMind, feel, think, moodSpeed, learn, TYPES };

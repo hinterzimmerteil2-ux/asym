@@ -350,7 +350,7 @@ class Room {
 
   botSteer(player, entity, goal, now, stopDist = 0.3) {
     const st = player.nav || (player.nav = { path: [], goal: null, repathAt: 0, lastX: entity.x, lastZ: entity.z, lastCheck: now, stuck: 0 });
-    const grid = this.navigation(Boolean(player.isAsymRole));
+    const grid = this.botGrids && (!player.isAsymRole || this.botGrids.cur) ? (player.isAsymRole ? this.botGrids.cur : this.botGrids.pat) : this.navigation(Boolean(player.isAsymRole));
     if (now - st.lastCheck > 700) {
       const moved = Math.hypot(entity.x - st.lastX, entity.z - st.lastZ);
       st.stuck = moved < 0.15 && (entity.input.moveX || entity.input.moveZ) ? st.stuck + 1 : 0;
@@ -359,17 +359,24 @@ class Room {
       st.lastCheck = now;
       if (st.stuck >= 1) st.repathAt = 0;
     }
+    if (st.gridRef !== grid) { st.gridRef = grid; st.repathAt = 0; }
+    if (st.job && Math.hypot(goal.x - st.job.to.x, goal.z - st.job.to.z) > 3) { Pathfinding.cancelPath(st.job); st.job = null; }
     const goalMoved = !st.goal || Math.hypot(goal.x - st.goal.x, goal.z - st.goal.z) > 3 || Math.abs((goal.y || 0) - (st.goal.y || 0)) > 1;
     const wantPath = goalMoved || now >= st.repathAt || !st.path.length;
-    if (wantPath && (this.pathBudget > 0 || !st.path.length && !st.everPathed)) {
+    if (wantPath && !st.job && (this.pathBudget > 0 || !st.path.length && !st.everPathed) && Pathfinding.pendingPaths() < 12) {
       this.pathBudget -= 1;
       st.everPathed = true;
       const jitter = st.stuck >= 2 ? { x: (Math.random() - 0.5) * 3, z: (Math.random() - 0.5) * 3 } : { x: 0, z: 0 };
-      st.path = Pathfinding.findPath(grid, { x: entity.x + jitter.x, z: entity.z + jitter.z, y: entity.y || 0 }, goal);
-      st.goal = { x: goal.x, z: goal.z, y: goal.y };
+      const to = { x: goal.x, z: goal.z, y: goal.y };
       const calm = !goalMoved && st.stuck === 0 && st.path.length > 0;
       const farMs = Math.min(2500, Math.hypot(goal.x - entity.x, goal.z - entity.z) * 80);
-      st.repathAt = now + (calm ? 5000 + Math.random() * 3000 : 1500 + farMs * 0.5 + Math.random() * 1000);
+      st.job = Pathfinding.requestPath(grid, { x: entity.x + jitter.x, z: entity.z + jitter.z, y: entity.y || 0 }, to, (path) => {
+        st.job = null;
+        st.path = path;
+        st.goal = to;
+        st.repathAt = now + (calm && path.length > 0 ? 9000 + Math.random() * 6000 : 1500 + farMs * 0.5 + Math.random() * 1000);
+      });
+      if (!st.path.length) st.path = [to];
     }
     while (st.path.length > 1 && Math.hypot(st.path[0].x - entity.x, st.path[0].z - entity.z) < 0.6 && Math.abs((st.path[0].y ?? entity.y) - (entity.y || 0)) < 1.2) st.path.shift();
     if (!st.path.length) {
@@ -547,7 +554,28 @@ class Room {
       if (!other.isBot && other.ws && other.ws.readyState === 1) { humansOnline = true; break; }
     }
     if (!humansOnline) return;
-    this.pathBudget = 1;
+    this.pathBudget = 4;
+    const ents = this.gameState.entities;
+    const pats = this.gameState.patients;
+    let tickCurator = null;
+    let curatorIsBot = false;
+    const tickBosses = [];
+    const tickHumans = [];
+    const tickAlive = [];
+    for (const [id, pl] of this.players) {
+      const ce = ents[id];
+      if (!ce) continue;
+      if (pl.isAsymRole) { tickCurator = ce; curatorIsBot = Boolean(pl.isBot); }
+      if (this.bossActive && pl.isBoss) tickBosses.push(ce);
+      if (!pl.isBot) tickHumans.push(ce);
+      else if (!pl.isBoss && !pl.isAsymRole && pats[id] && pats[id].status === 'alive') tickAlive.push(ce);
+    }
+    let tickFallen = 0;
+    let tickTotal = 0;
+    for (const id in pats) { tickTotal++; if (pats[id].status !== 'alive') tickFallen++; }
+    const tickSd = Object.entries(this.gameState.selfDamageObjectPositions);
+    const tickUrgency = 1 - Math.max(0, Math.min(1, this.gameState.timeRemainingMs / GAME_DURATION_MS));
+    this.botGrids = { pat: this.navigation(false), cur: curatorIsBot ? this.navigation(true) : null };
     for (const [botId, player] of this.players) {
       if (!player.isBot) continue;
       if (player.isBoss) {
@@ -559,9 +587,15 @@ class Room {
         continue;
       }
       if (now < (player.nextThink || 0)) continue;
-      player.nextThink = now + 160 + Math.random() * 120;
-      const entity = this.gameState.entities[botId];
-      const patient = this.gameState.patients[botId];
+      const entity = ents[botId];
+      const patient = pats[botId];
+      let lod = 1;
+      if (entity && tickHumans.length) {
+        let nh = Infinity;
+        for (const he of tickHumans) { const dx = he.x - entity.x; const dz = he.z - entity.z; const dd = dx * dx + dz * dz; if (dd < nh) nh = dd; }
+        if (nh > 3600 && !(tickCurator && euclid(entity, tickCurator) < 25)) lod = 2;
+      }
+      player.nextThink = now + (160 + Math.random() * 120) * lod;
       if (!entity || !patient || patient.status !== 'alive') {
         if (entity) { entity.input.moveX = 0; entity.input.moveZ = 0; entity.mood = null; }
         continue;
@@ -576,19 +610,11 @@ class Room {
         this.chooseCard(botId, 0, openSlot.options[Math.floor(Math.random() * openSlot.options.length)]);
         player.nextBotPick = now + 800;
       }
-      let curatorEntity = null;
-      let curatorDist = Infinity;
-      for (const [otherId, other] of this.players) {
-        if (!other.isAsymRole) continue;
-        const ce = this.gameState.entities[otherId];
-        if (ce) { curatorEntity = ce; curatorDist = euclid(entity, ce); }
-      }
+      let curatorEntity = tickCurator;
+      let curatorDist = tickCurator ? euclid(entity, tickCurator) : Infinity;
       let dodged = false;
-      if (this.bossActive) {
-        for (const [otherId, other] of this.players) {
-          if (!other.isBoss) continue;
-          const be = this.gameState.entities[otherId];
-          if (!be) continue;
+      if (tickBosses.length) {
+        for (const be of tickBosses) {
           const bd = euclid(entity, be);
           if (bd < curatorDist) { curatorEntity = be; curatorDist = bd; }
           const fx = be.bfx;
@@ -607,17 +633,35 @@ class Room {
       if (dodged) continue;
       if (this.bossActive && this.fleeBoss(botId, player, entity, now)) continue;
       const mind = player.mind || (player.mind = BotBrain.createMind());
-      let fallen = 0;
-      for (const pt of Object.values(this.gameState.patients)) if (pt.status !== 'alive') fallen++;
-      BotBrain.feel(mind, { dist: curatorDist, hp: patient.hp, fallen }, now);
+      const fctx = player.fctx || (player.fctx = { dist: 0, hp: 0, fallen: 0 });
+      fctx.dist = curatorDist;
+      fctx.hp = patient.hp;
+      fctx.fallen = tickFallen;
+      BotBrain.feel(mind, fctx, now);
       entity.mood = mind.mood || null;
       this.botEmote(botId, player, entity, mind, now, curatorDist, 'patient');
-      const [wantWork, wantEvade, wantRest] = BotBrain.think(mind, { dist: curatorDist, hpFrac: patient.hp / (patient.maxHp || 100), flo: entity.flojera / (entity.flojeraMax || 100) });
+      let crowd = 0;
+      for (const ae of tickAlive) {
+        if (ae === entity) continue;
+        const dx = ae.x - entity.x;
+        const dz = ae.z - entity.z;
+        if (dx * dx + dz * dz < 144) crowd++;
+      }
+      const tctx = player.tctx || (player.tctx = { dist: 0, hpFrac: 0, flo: 0, crowd: 0, allyFrac: 1, timeFrac: 0 });
+      tctx.dist = curatorDist;
+      tctx.hpFrac = patient.hp / (patient.maxHp || 100);
+      tctx.flo = entity.flojera / (entity.flojeraMax || 100);
+      tctx.crowd = crowd;
+      tctx.allyFrac = tickTotal ? 1 - tickFallen / tickTotal : 1;
+      tctx.timeFrac = tickUrgency;
+      const [wantWork, wantEvade, wantRest] = BotBrain.think(mind, tctx);
       let best = null;
       let bestDist = Infinity;
       let bestScore = Infinity;
       let keptTarget = null;
-      for (const [objectId, pos] of Object.entries(this.gameState.selfDamageObjectPositions)) {
+      for (let si = 0; si < tickSd.length; si++) {
+        const objectId = tickSd[si][0];
+        const pos = tickSd[si][1];
         const d = distanceBetween(entity, pos);
         const danger = curatorEntity ? Math.max(0, 14 - euclid(curatorEntity, pos)) : 0;
         const score = d + danger * (0.6 + 1.8 * mind.caution);
@@ -694,6 +738,8 @@ class Room {
         if (entity.hand[slotIndex]?.chosen && !['niche_tower', 'oi_ojo'].includes(entity.hand[slotIndex].chosen)) this.useCard(botId, slotIndex);
       }
     }
+    this.botGrids = null;
+    Pathfinding.pumpPaths(2);
   }
 
   isFull() {

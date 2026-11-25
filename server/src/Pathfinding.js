@@ -172,39 +172,60 @@ function nearestNode(grid, x, z, y) {
 }
 
 class Heap {
-  constructor() { this.a = []; }
-  push(item) {
-    const a = this.a;
-    a.push(item);
-    let i = a.length - 1;
+  constructor(cap = 4096) {
+    this.keys = new Float64Array(cap);
+    this.vals = new Int32Array(cap);
+    this.size = 0;
+  }
+  clear() { this.size = 0; }
+  grow() {
+    const cap = this.keys.length * 2;
+    const k = new Float64Array(cap);
+    const v = new Int32Array(cap);
+    k.set(this.keys);
+    v.set(this.vals);
+    this.keys = k;
+    this.vals = v;
+  }
+  push(key, val) {
+    if (this.size >= this.keys.length) this.grow();
+    const keys = this.keys;
+    const vals = this.vals;
+    let i = this.size++;
     while (i > 0) {
       const p = (i - 1) >> 1;
-      if (a[p][0] <= a[i][0]) break;
-      [a[p], a[i]] = [a[i], a[p]];
+      if (keys[p] <= key) break;
+      keys[i] = keys[p];
+      vals[i] = vals[p];
       i = p;
     }
+    keys[i] = key;
+    vals[i] = val;
   }
   pop() {
-    const a = this.a;
-    const top = a[0];
-    const last = a.pop();
-    if (a.length) {
-      a[0] = last;
+    const keys = this.keys;
+    const vals = this.vals;
+    const top = vals[0];
+    const n = --this.size;
+    if (n > 0) {
+      const key = keys[n];
+      const val = vals[n];
       let i = 0;
       for (;;) {
         const l = i * 2 + 1;
+        if (l >= n) break;
         const r = l + 1;
-        let m = i;
-        if (l < a.length && a[l][0] < a[m][0]) m = l;
-        if (r < a.length && a[r][0] < a[m][0]) m = r;
-        if (m === i) break;
-        [a[m], a[i]] = [a[i], a[m]];
+        const m = r < n && keys[r] < keys[l] ? r : l;
+        if (keys[m] >= key) break;
+        keys[i] = keys[m];
+        vals[i] = vals[m];
         i = m;
       }
+      keys[i] = key;
+      vals[i] = val;
     }
     return top;
   }
-  get size() { return this.a.length; }
 }
 
 function neighbors(grid, node, di, dj) {
@@ -239,106 +260,190 @@ function lineClear(grid, a, b) {
   return Math.abs(y - b.y) <= STEP + 0.01;
 }
 
-let SCRATCH = null;
+const SCRATCHES = { sync: null, async: null };
 
-function findPath(grid, from, to) {
-  const start = nearestNode(grid, from.x, from.z, from.y);
-  const goal = nearestNode(grid, to.x, to.z, to.y);
-  if (start < 0 || goal < 0) return [];
-  if (start === goal) return [{ x: to.x, y: grid.ys[goal], z: to.z }];
-  const total = grid.n * grid.n * grid.K;
-  if (!SCRATCH || SCRATCH.g.length < total) SCRATCH = { g: new Float32Array(total), came: new Int32Array(total), mark: new Uint32Array(total), stamp: 0 };
-  const sc = SCRATCH;
-  sc.stamp++;
-  const stamp = sc.stamp;
-  const gScore = sc.g;
-  const came = sc.came;
-  const mark = sc.mark;
-  const gOf = (k) => (mark[k] === stamp ? gScore[k] : Infinity);
-  const closedSet = new Set();
-  const closed = { has: (k) => closedSet.has(k) };
-  const gc = Math.floor(goal / grid.K);
-  const gi = gc % grid.n;
-  const gj = Math.floor(gc / grid.n);
-  const heuristic = (k) => {
+function scratchFor(kind, total) {
+  let sc = SCRATCHES[kind];
+  if (!sc || sc.g.length < total) {
+    sc = { g: new Float32Array(total), came: new Int32Array(total), mark: new Uint32Array(total), closed: new Uint32Array(total), heap: new Heap(), stamp: 0 };
+    SCRATCHES[kind] = sc;
+  }
+  return sc;
+}
+
+class PathSearch {
+  constructor(grid, from, to, kind = 'sync') {
+    this.grid = grid;
+    this.from = from;
+    this.to = to;
+    this.done = false;
+    this.result = [];
+    this.found = false;
+    this.expansions = 0;
+    const start = nearestNode(grid, from.x, from.z, from.y);
+    const goal = nearestNode(grid, to.x, to.z, to.y);
+    this.start = start;
+    this.goal = goal;
+    if (start < 0 || goal < 0) { this.done = true; return; }
+    if (start === goal) { this.result = [{ x: to.x, y: grid.ys[goal], z: to.z }]; this.done = true; return; }
+    const sc = scratchFor(kind, grid.n * grid.n * grid.K);
+    sc.stamp++;
+    this.sc = sc;
+    this.stamp = sc.stamp;
+    const gc = Math.floor(goal / grid.K);
+    this.gi = gc % grid.n;
+    this.gj = Math.floor(gc / grid.n);
+    sc.heap.clear();
+    sc.mark[start] = this.stamp;
+    sc.g[start] = 0;
+    sc.came[start] = -1;
+    const h0 = this.heuristic(start);
+    sc.heap.push(h0 * WEIGHT, start);
+    this.best = start;
+    this.bestH = h0;
+  }
+
+  heuristic(k) {
+    const grid = this.grid;
     const c = Math.floor(k / grid.K);
-    const dx = Math.abs((c % grid.n) - gi);
-    const dz = Math.abs(Math.floor(c / grid.n) - gj);
-    return Math.max(dx, dz) + 0.414 * Math.min(dx, dz);
-  };
-  const heap = new Heap();
-  mark[start] = stamp;
-  gScore[start] = 0;
-  came[start] = -1;
-  heap.push([heuristic(start) * WEIGHT, start]);
-  let expansions = 0;
-  let found = false;
-  let best = start;
-  let bestH = heuristic(start);
-  const n = grid.n;
-  const Kk = grid.K;
-  while (heap.size && expansions < MAX_EXPANSIONS) {
-    const [, cur] = heap.pop();
-    if (closedSet.has(cur)) continue;
-    closedSet.add(cur);
-    expansions++;
-    const hc = heuristic(cur);
-    if (hc < bestH) { bestH = hc; best = cur; }
-    if (cur === goal) { found = true; break; }
-    const cc = Math.floor(cur / Kk);
-    const ci = cc % n;
-    const cj = Math.floor(cc / n);
-    const cy = grid.ys[cur];
-    for (let dj = -1; dj <= 1; dj++) {
-      for (let di = -1; di <= 1; di++) {
-        if (!di && !dj) continue;
-        const ni = ci + di;
-        const nj = cj + dj;
-        if (ni < 0 || nj < 0 || ni >= n || nj >= n) continue;
-        const nc = nj * n + ni;
-        const diag = di && dj;
-        for (let l = 0; l < grid.cnt[nc]; l++) {
-          const nk = nc * Kk + l;
-          if (grid.blocked[nk] || Math.abs(grid.ys[nk] - cy) > STEP || closedSet.has(nk)) continue;
-          if (diag) {
-            let okA = false;
-            let okB = false;
-            const ca = cj * n + ni;
-            for (let m = 0; m < grid.cnt[ca]; m++) { const k2 = ca * Kk + m; if (!grid.blocked[k2] && Math.abs(grid.ys[k2] - cy) <= STEP && Math.abs(grid.ys[k2] - grid.ys[nk]) <= STEP) { okA = true; break; } }
-            const cb = nj * n + ci;
-            for (let m = 0; m < grid.cnt[cb]; m++) { const k2 = cb * Kk + m; if (!grid.blocked[k2] && Math.abs(grid.ys[k2] - cy) <= STEP && Math.abs(grid.ys[k2] - grid.ys[nk]) <= STEP) { okB = true; break; } }
-            if (!okA || !okB) continue;
-          }
-          const g = gOf(cur) + (diag ? 1.414 : 1);
-          if (g < gOf(nk)) {
-            mark[nk] = stamp;
-            gScore[nk] = g;
-            came[nk] = cur;
-            heap.push([g + heuristic(nk) * WEIGHT, nk]);
+    const dx = Math.abs((c % grid.n) - this.gi);
+    const dz = Math.abs(Math.floor(c / grid.n) - this.gj);
+    return dx > dz ? dx + 0.414 * dz : dz + 0.414 * dx;
+  }
+
+  step(maxExpansions) {
+    if (this.done) return true;
+    const grid = this.grid;
+    const sc = this.sc;
+    const stamp = this.stamp;
+    if (sc.stamp !== stamp) { this.done = true; this.result = []; return true; }
+    const gScore = sc.g;
+    const came = sc.came;
+    const mark = sc.mark;
+    const closedArr = sc.closed;
+    const heap = sc.heap;
+    const goal = this.goal;
+    const n = grid.n;
+    const Kk = grid.K;
+    let budget = maxExpansions;
+    while (heap.size && this.expansions < MAX_EXPANSIONS && budget-- > 0) {
+      const cur = heap.pop();
+      if (closedArr[cur] === stamp) continue;
+      closedArr[cur] = stamp;
+      this.expansions++;
+      const hc = this.heuristic(cur);
+      if (hc < this.bestH) { this.bestH = hc; this.best = cur; }
+      if (cur === goal) { this.found = true; break; }
+      const cc = Math.floor(cur / Kk);
+      const ci = cc % n;
+      const cj = Math.floor(cc / n);
+      const cy = grid.ys[cur];
+      const gCur = gScore[cur];
+      for (let dj = -1; dj <= 1; dj++) {
+        for (let di = -1; di <= 1; di++) {
+          if (!di && !dj) continue;
+          const ni = ci + di;
+          const nj = cj + dj;
+          if (ni < 0 || nj < 0 || ni >= n || nj >= n) continue;
+          const nc = nj * n + ni;
+          const diag = di && dj;
+          for (let l = 0; l < grid.cnt[nc]; l++) {
+            const nk = nc * Kk + l;
+            if (grid.blocked[nk] || Math.abs(grid.ys[nk] - cy) > STEP || closedArr[nk] === stamp) continue;
+            if (diag) {
+              let okA = false;
+              let okB = false;
+              const ca = cj * n + ni;
+              for (let m = 0; m < grid.cnt[ca]; m++) { const k2 = ca * Kk + m; if (!grid.blocked[k2] && Math.abs(grid.ys[k2] - cy) <= STEP && Math.abs(grid.ys[k2] - grid.ys[nk]) <= STEP) { okA = true; break; } }
+              const cb = nj * n + ci;
+              for (let m = 0; m < grid.cnt[cb]; m++) { const k2 = cb * Kk + m; if (!grid.blocked[k2] && Math.abs(grid.ys[k2] - cy) <= STEP && Math.abs(grid.ys[k2] - grid.ys[nk]) <= STEP) { okB = true; break; } }
+              if (!okA || !okB) continue;
+            }
+            const g = gCur + (diag ? 1.414 : 1);
+            if (mark[nk] !== stamp || g < gScore[nk]) {
+              mark[nk] = stamp;
+              gScore[nk] = g;
+              came[nk] = cur;
+              heap.push(g + this.heuristic(nk) * WEIGHT, nk);
+            }
           }
         }
       }
     }
+    if (!this.found && heap.size && this.expansions < MAX_EXPANSIONS) return false;
+    this.finish();
+    return true;
   }
-  const end = found ? goal : best;
-  if (!found && end === start) return [];
-  const nodes = [];
-  for (let k = end; k !== -1; k = mark[k] === stamp ? came[k] : -1) nodes.push(k);
-  nodes.reverse();
-  const points = nodes.map((k) => ({ ...centerOfCell(grid, Math.floor(k / grid.K)), y: grid.ys[k] }));
-  points[0] = { x: from.x, z: from.z, y: grid.ys[start] };
-  const out = [];
-  let anchor = 0;
-  while (anchor < points.length - 1) {
-    let far = anchor + 1;
-    for (let k = points.length - 1; k > anchor + 1; k--) {
-      if (lineClear(grid, points[anchor], points[k])) { far = k; break; }
+
+  finish() {
+    this.done = true;
+    const grid = this.grid;
+    const sc = this.sc;
+    const stamp = this.stamp;
+    const end = this.found ? this.goal : this.best;
+    if (!this.found && end === this.start) { this.result = []; return; }
+    const nodes = [];
+    for (let k = end; k !== -1; k = sc.mark[k] === stamp ? sc.came[k] : -1) nodes.push(k);
+    nodes.reverse();
+    const points = nodes.map((k) => ({ ...centerOfCell(grid, Math.floor(k / grid.K)), y: grid.ys[k] }));
+    points[0] = { x: this.from.x, z: this.from.z, y: grid.ys[this.start] };
+    const out = [];
+    let anchor = 0;
+    while (anchor < points.length - 1) {
+      let far = anchor + 1;
+      for (let k = points.length - 1; k > anchor + 1; k--) {
+        if (lineClear(grid, points[anchor], points[k])) { far = k; break; }
+      }
+      out.push(points[far]);
+      anchor = far;
     }
-    out.push(points[far]);
-    anchor = far;
+    if (this.found && out.length) out[out.length - 1] = { x: this.to.x, z: this.to.z, y: out[out.length - 1].y };
+    this.result = out;
   }
-  if (found && out.length) out[out.length - 1] = { x: to.x, z: to.z, y: out[out.length - 1].y };
-  return out;
+}
+
+function findPath(grid, from, to) {
+  const job = new PathSearch(grid, from, to, 'sync');
+  job.step(Infinity);
+  return job.result;
+}
+
+const queue = [];
+let active = null;
+
+function requestPath(grid, from, to, cb) {
+  const job = { grid, from, to, cb, cancelled: false, search: null };
+  queue.push(job);
+  return job;
+}
+
+function cancelPath(job) {
+  if (job) job.cancelled = true;
+}
+
+function pumpPaths(maxMs, now = () => Number(process.hrtime.bigint()) / 1e6) {
+  const t0 = now();
+  let guard = 0;
+  while (guard++ < 64) {
+    if (!active) {
+      while (queue.length && queue[0].cancelled) queue.shift();
+      if (!queue.length) return;
+      active = queue.shift();
+      active.search = new PathSearch(active.grid, active.from, active.to, 'async');
+    }
+    if (active.cancelled) { active = null; continue; }
+    const done = active.search.step(1500);
+    if (done) {
+      const job = active;
+      active = null;
+      job.cb(job.search.result);
+    }
+    if (now() - t0 >= maxMs) return;
+  }
+}
+
+function pendingPaths() {
+  return queue.length + (active ? 1 : 0);
 }
 
 function reachableFrom(grid, from) {
@@ -377,4 +482,4 @@ function isReachableNear(grid, seen, x, z, cells = 2, y) {
   return false;
 }
 
-module.exports = { buildGrid, findPath, lineClear, reachableFrom, isReachableNear };
+module.exports = { buildGrid, findPath, requestPath, cancelPath, pumpPaths, pendingPaths, PathSearch, lineClear, reachableFrom, isReachableNear };
