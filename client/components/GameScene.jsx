@@ -1755,7 +1755,69 @@ function SuperFx({ effect }) {
   return null;
 }
 
-const PlayerBody = memo(function PlayerBody({ bodyRef, headRef, rig, lod, color, cosmetics, isCurator, wig, wpn, bar, held, holdRef, psd, psa, psr, psf }) {
+const FACE_POSES = {
+  none: { eyeW: 1, eyeH: 1, eyeY: 0, mouthW: 1, mouthH: 1, mouthY: 0, brow: 0, browY: 0 },
+  fear: { eyeW: 1.35, eyeH: 1.6, eyeY: 0.01, mouthW: 0.5, mouthH: 3.2, mouthY: -0.01, brow: -0.28, browY: 0.025 },
+  anger: { eyeW: 1.1, eyeH: 0.55, eyeY: -0.005, mouthW: 0.9, mouthH: 0.7, mouthY: -0.015, brow: 0.5, browY: -0.02 },
+  joy: { eyeW: 1.2, eyeH: 0.35, eyeY: 0, mouthW: 1.5, mouthH: 2.4, mouthY: 0.0, brow: -0.12, browY: 0.03 },
+  grief: { eyeW: 1, eyeH: 0.8, eyeY: -0.015, mouthW: 0.7, mouthH: 1.2, mouthY: -0.02, brow: -0.42, browY: 0.0 },
+};
+
+const MOOD_COLORS = { fear: '#7fd4ff', anger: '#e5484d', joy: '#f0c26b', grief: '#7c8fb8' };
+
+const MoodFx = memo(function MoodFx({ mood }) {
+  const g = useRef();
+  const parts = useRef([]);
+  useFrame(({ clock }) => {
+    if (!g.current) return;
+    const t = clock.elapsedTime;
+    parts.current.forEach((o, i) => {
+      if (!o) return;
+      if (mood === 'fear') {
+        const f = (t * 1.3 + i * 0.5) % 1;
+        o.position.set((i ? 0.28 : -0.28), 2.05 - f * 0.35, 0.05);
+        o.scale.setScalar(0.75 + 0.25 * (1 - f));
+        o.visible = true;
+      } else if (mood === 'anger') {
+        const p = 1 + Math.sin(t * 9 + i) * 0.18;
+        o.position.set(i ? 0.22 : -0.22, 2.2 + (i ? 0.06 : 0), 0);
+        o.scale.setScalar(p);
+        o.rotation.z = i ? 0.6 : -0.6;
+      } else if (mood === 'joy') {
+        const a = t * 2.2 + (i * Math.PI * 2) / 3;
+        o.position.set(Math.cos(a) * 0.38, 2.15 + Math.sin(t * 3 + i) * 0.06, Math.sin(a) * 0.38);
+        o.rotation.y = t * 3;
+        o.scale.setScalar(0.9);
+      } else {
+        const f = (t * 0.9 + i * 0.37) % 1;
+        o.position.set(-0.12 + i * 0.12, 2.0 - f * 0.5, 0);
+        o.scale.setScalar(0.7);
+        o.visible = f < 0.9;
+      }
+    });
+  });
+  const color = MOOD_COLORS[mood] || '#ffffff';
+  const count = mood === 'joy' ? 3 : mood === 'grief' ? 3 : 2;
+  return (
+    <group ref={g}>
+      {Array.from({ length: count }, (_, i) => (
+        <mesh key={`${mood}${i}`} ref={(el) => { parts.current[i] = el; }}>
+          {mood === 'anger' ? <boxGeometry args={[0.07, 0.24, 0.05]} /> : mood === 'joy' ? <octahedronGeometry args={[0.07, 0]} /> : <sphereGeometry args={[0.055, 8, 6]} />}
+          <meshBasicMaterial color={color} />
+        </mesh>
+      ))}
+      {mood === 'grief' && (
+        <group position={[0, 2.22, 0]}>
+          {[[-0.12, 0, 0.1], [0.04, 0.03, 0.13], [0.2, 0, 0.1]].map(([x, y, r], i) => (
+            <mesh key={i} position={[x, y, 0]}><sphereGeometry args={[r, 8, 6]} /><meshBasicMaterial color="#5d6a86" /></mesh>
+          ))}
+        </group>
+      )}
+    </group>
+  );
+});
+
+const PlayerBody = memo(function PlayerBody({ bodyRef, headRef, rig, lod, face, color, cosmetics, isCurator, wig, wpn, bar, held, holdRef, psd, psa, psr, psf }) {
   return (
     <group ref={bodyRef}>
         {psd && <group position={[0.9, 0.1, -1.1]}><StarSpirit act={psa || 0} ready={Boolean(psr)} form={Boolean(psf)} /></group>}
@@ -1765,14 +1827,14 @@ const PlayerBody = memo(function PlayerBody({ bodyRef, headRef, rig, lod, color,
         <group ref={headRef} position={[0, 1.6, 0]}>
           <mesh><cylinderGeometry args={[0.18, 0.18, 0.34, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
           <group ref={(el) => { lod.current[0] = el; }}>
-          <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
-          <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
-          <mesh position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+          <mesh ref={(el) => { face.current.eyeL = el; }} position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+          <mesh ref={(el) => { face.current.eyeR = el; }} position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
+          <mesh ref={(el) => { face.current.mouth = el; }} position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#12131a" /></mesh>
           </group>
           <mesh position={[0, 0.16, -0.01]}><boxGeometry args={[0.38, 0.1, 0.38]} /><meshStandardMaterial color="#2a2320" roughness={0.9} /></mesh>
           <group ref={(el) => { lod.current[1] = el; }}>
-          <mesh position={[-0.07, 0.075, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
-          <mesh position={[0.07, 0.075, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
+          <mesh ref={(el) => { face.current.browL = el; }} position={[-0.07, 0.075, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
+          <mesh ref={(el) => { face.current.browR = el; }} position={[0.07, 0.075, 0.178]}><boxGeometry args={[0.07, 0.015, 0.02]} /><meshBasicMaterial color="#2a2320" /></mesh>
           </group>
           {wig && <WigPieces />}
           <group ref={(el) => { lod.current[7] = el; }}><CosmeticPieces slot="head" cosmetics={cosmetics} /></group>
@@ -1813,6 +1875,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
   const limbRefs = useRef([]);
   const rig = useRef({});
   const headRef = useRef();
+  const face = useRef({});
   const emo = useRef({ id: null, start: 0 });
   const walk = useRef({ fly: 0, slide: 0, rel: 0, phase: 0, amp: 0, px: entityState.x, pz: entityState.z, py: entityState.y, air: 0, t: 0 });
   const targetPos = useRef([entityState.x, entityState.y, entityState.z]);
@@ -2012,6 +2075,25 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
         }
       }
       const r6 = rig.current;
+      const fc = face.current;
+      if (fc.mouth) {
+        const P = FACE_POSES[entityState.mo] || FACE_POSES.none;
+        const k = Math.min(1, delta * 7);
+        const cur = fc.cur || (fc.cur = { ...FACE_POSES.none });
+        for (const key in P) cur[key] += (P[key] - cur[key]) * k;
+        fc.eyeL.scale.set(cur.eyeW, cur.eyeH, 1);
+        fc.eyeR.scale.set(cur.eyeW, cur.eyeH, 1);
+        fc.eyeL.position.y = 0.04 + cur.eyeY;
+        fc.eyeR.position.y = 0.04 + cur.eyeY;
+        fc.mouth.scale.set(cur.mouthW, cur.mouthH, 1);
+        fc.mouth.position.y = -0.06 + cur.mouthY;
+        if (fc.browL) {
+          fc.browL.rotation.z = -cur.brow;
+          fc.browR.rotation.z = cur.brow;
+          fc.browL.position.y = 0.075 + cur.browY;
+          fc.browR.position.y = 0.075 + cur.browY;
+        }
+      }
       let stompLeg = null;
       const eid = entityState.emote ? entityState.emote.id : null;
       if (eid !== emo.current.id) emo.current = { id: eid, start: performance.now() };
@@ -2159,9 +2241,10 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
     <group ref={groupRef} position={targetPos.current} scale={entityState.scl || 1}>
       {entityState.chg && <ManaAura />}
       {entityState.gld && <GlideFx />}
-      <PlayerBody bodyRef={bodyRef} headRef={headRef} rig={rig} lod={lod} color={color} cosmetics={cosmetics} isCurator={isCurator} wig={Boolean(entityState.wig)} wpn={Boolean(entityState.wpn)} bar={Boolean(entityState.bar)} held={held} holdRef={holdRef} psd={Boolean(entityState.psd)} psa={entityState.psa || 0} psr={Boolean(entityState.psr)} psf={Boolean(entityState.psf)} />
+      <PlayerBody bodyRef={bodyRef} headRef={headRef} rig={rig} lod={lod} face={face} color={color} cosmetics={cosmetics} isCurator={isCurator} wig={Boolean(entityState.wig)} wpn={Boolean(entityState.wpn)} bar={Boolean(entityState.bar)} held={held} holdRef={holdRef} psd={Boolean(entityState.psd)} psa={entityState.psa || 0} psr={Boolean(entityState.psr)} psf={Boolean(entityState.psf)} />
       {ragdoll && entityState.rag && entityState.rag.p && <RagdollR6 entityState={entityState} color={color} />}
       {stunned && <StunHalo />}
+      {entityState.mo && <MoodFx mood={entityState.mo} />}
       {isMe && (
         <mesh position={[0, 2.1, 0]}>
           <coneGeometry args={[0.15, 0.3, 4]} />

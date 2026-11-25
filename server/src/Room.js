@@ -415,6 +415,15 @@ class Room {
     if (kept && kept.d <= targetDist * (1.1 + 0.6 * mind.patience) + 2) { target = { id: kept.id, entity: kept.entity }; targetDist = kept.d; }
     if (target && (!prog || prog.id !== target.id)) player.curProgress = { id: target.id, hp: this.gameState.patients[target.id].hp, at: now };
     mind.frustration = Math.max(0, mind.frustration - 0.004);
+    mind.anger = Math.min(1, mind.anger + (mind.frustration * (0.4 + mind.temper) - mind.anger) * 0.08);
+    mind.joy = Math.max(0, Math.min(1, mind.joy + (mind.confidence > 0.7 ? 0.01 : 0) - 0.004));
+    mind.fear = Math.max(0, mind.fear - 0.01);
+    mind.grief = 0;
+    entity.mood = (() => {
+      if (mind.anger > 0.5 && mind.anger >= mind.joy) return 'anger';
+      if (mind.joy > 0.5) return 'joy';
+      return null;
+    })();
     player.curTarget = target ? target.id : null;
     this.botEmote(botId, player, entity, mind, now, targetDist, 'curator');
     if (!target) {
@@ -554,7 +563,7 @@ class Room {
       const entity = this.gameState.entities[botId];
       const patient = this.gameState.patients[botId];
       if (!entity || !patient || patient.status !== 'alive') {
-        if (entity) { entity.input.moveX = 0; entity.input.moveZ = 0; }
+        if (entity) { entity.input.moveX = 0; entity.input.moveZ = 0; entity.mood = null; }
         continue;
       }
       if (!entity.role && entity.hand[0] && !entity.hand[0].chosen && now > (player.nextBotPick || 0)) {
@@ -601,6 +610,7 @@ class Room {
       let fallen = 0;
       for (const pt of Object.values(this.gameState.patients)) if (pt.status !== 'alive') fallen++;
       BotBrain.feel(mind, { dist: curatorDist, hp: patient.hp, fallen }, now);
+      entity.mood = mind.mood || null;
       this.botEmote(botId, player, entity, mind, now, curatorDist, 'patient');
       const [wantWork, wantEvade, wantRest] = BotBrain.think(mind, { dist: curatorDist, hpFrac: patient.hp / (patient.maxHp || 100), flo: entity.flojera / (entity.flojeraMax || 100) });
       let best = null;
@@ -661,6 +671,18 @@ class Room {
           entity.input.moveZ = mz / ml;
         }
         entity.input.slow = curatorDist > 9 && (entity.flojera < 20 || entity.flojeraLockedUntil > now);
+      }
+      if (mind.fear > 0.75 && (entity.input.moveX || entity.input.moveZ) && Math.random() < 0.35) {
+        const jx = (Math.random() - 0.5) * 1.4;
+        const jz = (Math.random() - 0.5) * 1.4;
+        const jl = Math.hypot(entity.input.moveX + jx, entity.input.moveZ + jz) || 1;
+        entity.input.moveX = (entity.input.moveX + jx) / jl;
+        entity.input.moveZ = (entity.input.moveZ + jz) / jl;
+      }
+      const moodK = BotBrain.moodSpeed(mind);
+      if (moodK !== 1) {
+        entity.input.moveX *= moodK;
+        entity.input.moveZ *= moodK;
       }
       if (curatorEntity && curatorDist < 2 + 2.5 * mind.fear) {
         const rollSlot = entity.hand.findIndex((sl) => sl && sl.chosen === 'rodar');
@@ -2030,6 +2052,7 @@ class Room {
         sg: entity.sig && entity.sig.until > this.clock() ? entity.sig.m : undefined,
         tem: entity.temblor ? Math.round(entity.temblor) : undefined,
         emote: entity.emote && Status.active(entity, 'emote', now) ? { id: entity.emote.id } : undefined,
+        mo: entity.mood || undefined,
         hold: entity.astral ? (entity.astral.state === 'charging' ? 'claw' : 'claw_ready') : entity.eating ? `eat_${entity.eating.cardId}` : entity.channel && entity.channel.endsAt > now ? 'horn' : entity.carry ? 'module' : undefined,
         rag: entity.rag ? { p: RagdollBody.serialize(entity.rag, entity) } : null,
       };
@@ -2820,9 +2843,13 @@ class Room {
     if (entity.emote || now < (entity.emoteCdUntil || 0) || now < (player.nextEmoteTry || 0)) return;
     player.nextEmoteTry = now + 700;
     const calm = dist > 12 && mind.confidence > 0.6 && Math.random() < 0.012;
-    if (!calm && Math.random() >= mind.pressure * (0.04 + 0.08 * (1 - mind.patience))) return;
+    const moody = Boolean(mind.mood) && Math.random() < 0.02;
+    if (!calm && !moody && Math.random() >= mind.pressure * (0.04 + 0.08 * (1 - mind.patience))) return;
     let pool;
-    if (calm) pool = ['costenas'];
+    if (mind.mood === 'joy' && Math.random() < 0.6) pool = ['costenas', 'yo_me_encargo', 'schadenfreude'];
+    else if (mind.mood === 'grief') pool = ['ni_idea', 'ya_pues'];
+    else if (mind.mood === 'anger' && Math.random() < 0.6) pool = ['fue_el', 'ni_me_mires', 'ya_pues'];
+    else if (calm) pool = ['costenas'];
     else if (mind.fear > 0.6) pool = ['ya_pues', 'ni_me_mires'];
     else if (mind.type === 'valiente') pool = ['schadenfreude', 'yo_me_encargo', 'fue_el'];
     else if (mind.type === 'temerario') pool = ['schadenfreude', 'fue_el', 'costenas'];

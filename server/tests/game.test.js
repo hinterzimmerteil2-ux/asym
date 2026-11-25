@@ -571,6 +571,34 @@ test('en el lobby hay parkour y la gravedad es 0.6x', () => {
   assert.ok(Math.abs(e.a.y - 3.2) < 0.01);
 });
 
+test('los bots sienten: duelo al caer un compañero, alegría al salvarlo, miedo y enojo', () => {
+  const BotBrain = require('../src/BotBrain');
+  const mk = (over) => Object.assign(BotBrain.createMind(), { empathy: 0.8, bravery: 0.5, patience: 0.5, temper: 0.6, confidence: 0.5 }, over);
+  const ctx = (o) => Object.assign({ dist: 30, hp: 50, fallen: 0, hpFrac: 0.5, flo: 0.2 }, o);
+  const m = mk();
+  BotBrain.feel(m, ctx(), 1000);
+  assert.equal(m.mood, null);
+  BotBrain.feel(m, ctx({ fallen: 2 }), 1200);
+  assert.ok(m.grief > 0.6, 'duelo sube al caer compañeros');
+  assert.equal(m.mood, 'grief');
+  const calm = mk({ grief: 0 });
+  calm.mood = null;
+  const base = BotBrain.think(calm, ctx());
+  const sad = BotBrain.think(m, ctx({ fallen: 2 }));
+  assert.ok(sad[2] > base[2], 'quien sufre descansa mas');
+  assert.ok(sad[0] < base[0], 'quien sufre trabaja menos');
+  assert.ok(BotBrain.moodSpeed(m) < 1, 'el duelo ralentiza');
+  BotBrain.feel(m, ctx({ fallen: 0 }), 1400);
+  assert.ok(m.joy > 0.4, 'alegria al revivir a alguien');
+  const scared = mk();
+  BotBrain.feel(scared, ctx({ dist: 1 }), 1000);
+  for (let t = 1100; t < 3000; t += 100) BotBrain.feel(scared, ctx({ dist: 1 }), t);
+  assert.equal(scared.mood, 'fear');
+  const angry = mk({ frustration: 0.95, temper: 0.9 });
+  for (let t = 1000; t < 2500; t += 100) { angry.frustration = 0.95; BotBrain.feel(angry, ctx(), t); }
+  assert.equal(angry.mood, 'anger');
+});
+
 test('el lobby tiene 9 salas: las paredes bloquean y las puertas dejan pasar', () => {
   const { room, e } = setup();
   room.phase = 'lobby';
