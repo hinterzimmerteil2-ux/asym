@@ -16,13 +16,48 @@ const LOBBY_AREA = {
   spawnRadius: 3,
 };
 
-const LOBBY_PLATFORMS = [
-  { id: 'lp1', x: 16, z: -9, hx: 1.3, hz: 1.3, h: 0.8, ramp: null },
-  { id: 'lp2', x: 19, z: -9.5, hx: 1.2, hz: 1.2, h: 1.6, ramp: null },
-  { id: 'lp3', x: 21.2, z: -6.8, hx: 1.2, hz: 1.2, h: 2.4, ramp: null },
-  { id: 'lp4', x: 21.2, z: -3.2, hx: 1.1, hz: 1.1, h: 3.2, ramp: null },
-  { id: 'lp5', x: 20.5, z: 0.6, hx: 1.8, hz: 1.8, h: 4.0, ramp: null },
+const LOBBY_STAIRS = [
+  { id: 'lp1', x: 11.5, z: -4.8, hx: 1.3, hz: 1.3, h: 0.8, ramp: null },
+  { id: 'lp2', x: 14.5, z: -5.3, hx: 1.2, hz: 1.2, h: 1.6, ramp: null },
+  { id: 'lp3', x: 16.7, z: -2.6, hx: 1.2, hz: 1.2, h: 2.4, ramp: null },
+  { id: 'lp4', x: 16.7, z: 1.0, hx: 1.1, hz: 1.1, h: 3.2, ramp: null },
+  { id: 'lp5', x: 16, z: 4.8, hx: 1.8, hz: 1.8, h: 4.0, ramp: null },
 ];
+
+const LOBBY_WALL_T = 0.25;
+const LOBBY_WALL_H = 8;
+const LOBBY_DOOR_W = 4.4;
+const LOBBY_CELLS = [-24, -8, 8, 24];
+const LOBBY_WALL_LINES = [
+  { axis: 'x', at: -8, doors: [-15, 0, 15] },
+  { axis: 'x', at: 8, doors: [-17, 0, 17] },
+  { axis: 'z', at: -8, doors: [-19, 0, 20] },
+  { axis: 'z', at: 8, doors: [-13, 0, 20] },
+];
+
+function buildLobbyWalls() {
+  const out = [];
+  let n = 0;
+  const t = LOBBY_WALL_T;
+  for (const line of LOBBY_WALL_LINES) {
+    for (let r = 0; r < 3; r++) {
+      const lo = LOBBY_CELLS[r];
+      const hi = LOBBY_CELLS[r + 1];
+      const d = line.doors[r];
+      const pieces = [[lo - t, d - LOBBY_DOOR_W / 2], [d + LOBBY_DOOR_W / 2, hi + t]];
+      for (const [a, b] of pieces) {
+        if (b - a < 0.1) continue;
+        const mid = (a + b) / 2;
+        const half = (b - a) / 2;
+        const base = { id: `lw${n++}`, h: LOBBY_WALL_H, ramp: null, kind: 'lwall' };
+        out.push(line.axis === 'x' ? { ...base, x: line.at, z: mid, hx: t, hz: half } : { ...base, x: mid, z: line.at, hx: half, hz: t });
+      }
+    }
+  }
+  return out;
+}
+
+const LOBBY_PLATFORMS = [...LOBBY_STAIRS, ...buildLobbyWalls()];
 
 const REF_HALF = 30;
 

@@ -563,12 +563,33 @@ test('los cosméticos se validan y se publican en el resumen de jugadores', () =
 test('en el lobby hay parkour y la gravedad es 0.6x', () => {
   const { room, e } = setup();
   room.phase = 'lobby';
-  e.a.x = 21.2; e.a.z = -3.2; e.a.y = 20; e.a.onGround = false; e.a.velocityY = 0;
+  e.a.x = 16.7; e.a.z = 1.0; e.a.y = 20; e.a.onGround = false; e.a.velocityY = 0;
   room.stepPhysics(0.05);
   const lobbyDrop = e.a.velocityY;
   assert.ok(Math.abs(lobbyDrop - -24 * 0.6 * 0.05) < 0.02);
   for (let i = 0; i < 200; i++) room.stepPhysics(0.05);
   assert.ok(Math.abs(e.a.y - 3.2) < 0.01);
+});
+
+test('el lobby tiene 9 salas: las paredes bloquean y las puertas dejan pasar', () => {
+  const { room, e } = setup();
+  room.phase = 'lobby';
+  const walk = (x, z, mx, mz, steps) => {
+    e.a.x = x; e.a.z = z; e.a.y = 0; e.a.onGround = true; e.a.velocityY = 0;
+    e.a.input = { moveX: mx, moveZ: mz, jump: false, slow: false };
+    for (let i = 0; i < steps; i++) room.stepPhysics(0.05);
+    return { x: e.a.x, z: e.a.z };
+  };
+  const wall = walk(-4, -5, -1, 0, 60);
+  assert.ok(wall.x > -8, 'pared de x=-8 bloquea fuera de la puerta');
+  const door = walk(-4, 0, -1, 0, 60);
+  assert.ok(door.x < -9, 'la puerta central de x=-8 deja pasar');
+  const wallZ = walk(5, -4, 0, -1, 60);
+  assert.ok(wallZ.z > -8, 'pared de z=-8 bloquea');
+  const doorZ = walk(0, -4, 0, -1, 60);
+  assert.ok(doorZ.z < -9, 'la puerta central de z=-8 deja pasar');
+  const stairs = walk(9.2, 0, 1, 0, 5);
+  assert.ok(stairs.x > 9.2);
 });
 
 test('Agua del Río Rímac: melee AoE con DoT, charco con tope de 12 y costos de corrupta', () => {
