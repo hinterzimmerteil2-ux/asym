@@ -563,7 +563,7 @@ test('los cosméticos se validan y se publican en el resumen de jugadores', () =
 test('en el lobby hay parkour y la gravedad es 0.6x', () => {
   const { room, e } = setup();
   room.phase = 'lobby';
-  e.a.x = 12.2; e.a.z = -3.2; e.a.y = 20; e.a.onGround = false; e.a.velocityY = 0;
+  e.a.x = 21.2; e.a.z = -3.2; e.a.y = 20; e.a.onGround = false; e.a.velocityY = 0;
   room.stepPhysics(0.05);
   const lobbyDrop = e.a.velocityY;
   assert.ok(Math.abs(lobbyDrop - -24 * 0.6 * 0.05) < 0.02);

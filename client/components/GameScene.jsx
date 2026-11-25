@@ -14,7 +14,7 @@ import { useSettings, gfx, isBoard, resolveMode } from '../lib/settings';
 import { setListener } from '../lib/sfx';
 import { setPolyScale, installLowPoly } from '../lib/lowpoly';
 
-const LOBBY_HALF_SIZE = 15;
+const LOBBY_HALF_SIZE = 24;
 const MATCH_HALF_SIZE = 60;
 
 const COLOR_SELF_DAMAGE_OBJECT = '#e0555f';
@@ -2174,7 +2174,7 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
 
 const LOBBY_THEMES = {
   espera: { name: 'Sala de espera', bone: '#ddd0bd', boneDark: '#b9aa94', ink: '#1a1215', wine: '#5e2a33', wineDark: '#43202a', gold: '#f0c26b', red: '#d94a52', leaf: '#2f5a43', floor: '#b7aa9c', win: '#8fb1cf', winE: '#6f93b8', lamp: '#ffe2b0', light: '#ffd9ad', light2: '#ffe3c4', lightI: 38, ambient: '#ffe9d6', ambientI: 0.5, dir: '#ffdcb8', dirI: 0.7, hemi: ['#ffe3c8', '#2a1c20', 0.4], bg: '#140d10', windows: true },
-  pasillo: { name: 'Pasillo nocturno', bone: '#41605f', boneDark: '#8aa09c', ink: '#0d1517', wine: '#25373a', wineDark: '#1b292c', gold: '#8fe0c8', red: '#d94a52', leaf: '#2f5a43', floor: '#7f8e8c', win: '#3a5a78', winE: '#2b4968', lamp: '#bfeee0', light: '#bfeee0', light2: '#a8d8ff', lightI: 30, ambient: '#bfe6e0', ambientI: 0.38, dir: '#a8d8ff', dirI: 0.45, hemi: ['#a8d8e8', '#10181a', 0.35], bg: '#070d10', windows: true },
+  pasillo: { name: 'Pasillo nocturno', bone: '#41605f', boneDark: '#8aa09c', ink: '#0d1517', wine: '#25373a', wineDark: '#1b292c', gold: '#8fe0c8', red: '#d94a52', leaf: '#2f5a43', floor: '#7f8e8c', win: '#3a5a78', winE: '#2b4968', lamp: '#bfeee0', light: '#bfeee0', light2: '#a8d8ff', lightI: 30, ambient: '#bfe6e0', ambientI: 0.5, dir: '#a8d8ff', dirI: 0.45, hemi: ['#a8d8e8', '#10181a', 0.35], bg: '#070d10', windows: true },
   quirofano: { name: 'Quirófano', bone: '#d6e4e4', boneDark: '#a9c0c0', ink: '#10181a', wine: '#2f6f73', wineDark: '#24595c', gold: '#9fd8ff', red: '#d94a52', leaf: '#3a7a60', floor: '#94b6b6', win: '#b9d9ec', winE: '#9fc4dc', lamp: '#e6f6ff', light: '#e3f4ff', light2: '#d8efff', lightI: 40, ambient: '#e3f4ff', ambientI: 0.6, dir: '#dff0ff', dirI: 0.6, hemi: ['#e3f4ff', '#1a2a2c', 0.45], bg: '#0a1214', windows: false },
   patio: { name: 'Patio interior', bone: '#3f6b48', boneDark: '#8a8272', ink: '#1d2a1f', wine: '#6c6254', wineDark: '#554c40', gold: '#e7c98a', red: '#d94a52', leaf: '#4f8a52', floor: '#9a917f', win: '#8fb1cf', winE: '#6f93b8', lamp: '#ffe2b0', light: '#ffd19a', light2: '#ffe0b8', lightI: 34, ambient: '#fff1d6', ambientI: 0.6, dir: '#ffd19a', dirI: 0.9, hemi: ['#ffe6c0', '#2a2a40', 0.5], bg: '#1b1830', windows: false },
 };
@@ -2214,6 +2214,8 @@ function useLobbyTheme() {
 }
 
 
+const LH = LOBBY_HALF_SIZE;
+
 function LobbyBench({ c, position, rotation = 0 }) {
   return (
     <group position={position} rotation={[0, rotation, 0]}>
@@ -2238,29 +2240,54 @@ function LobbyPlant({ c, position, scale = 1 }) {
   );
 }
 
-function LobbyWall({ c, position, rotation, width = 31, windows = [] }) {
+const WALL_H = 8;
+
+function LobbyWall({ c, position, rotation, count = 0, doors = [], pilasters = false, gallery = false }) {
+  const width = LH * 2 + 1;
+  const step = (LH * 2) / (count + 1);
+  const windows = Array.from({ length: count }, (_, i) => -LH + step * (i + 1));
   return (
     <group position={position} rotation={[0, rotation, 0]}>
-      <mesh position={[0, 3.3, 0]}><planeGeometry args={[width, 4.2]} /><meshStandardMaterial color={c.bone} roughness={0.95} /></mesh>
+      <mesh position={[0, 1.5 + (WALL_H - 1.5) / 2, 0]}><planeGeometry args={[width, WALL_H - 1.5]} /><meshStandardMaterial color={c.bone} roughness={0.95} /></mesh>
       <mesh position={[0, 0.75, 0]}><planeGeometry args={[width, 1.5]} /><meshStandardMaterial color={c.wine} roughness={0.85} /></mesh>
       <mesh position={[0, 1.52, 0.02]}><boxGeometry args={[width, 0.07, 0.05]} /><meshBasicMaterial color={c.gold} /></mesh>
       <mesh position={[0, 0.09, 0.03]}><boxGeometry args={[width, 0.18, 0.06]} /><meshStandardMaterial color={c.ink} roughness={0.9} /></mesh>
-      <mesh position={[0, 5.45, 0.03]}><boxGeometry args={[width, 0.12, 0.1]} /><meshStandardMaterial color={c.ink} roughness={0.9} /></mesh>
+      <mesh position={[0, WALL_H - 0.03, 0.05]}><boxGeometry args={[width, 0.3, 0.2]} /><meshStandardMaterial color={c.ink} roughness={0.9} /></mesh>
       {windows.map((x) => (
-        <group key={x} position={[x, 3.4, 0.03]}>
-          <mesh><planeGeometry args={[3, 1.9]} /><meshStandardMaterial color={c.win} emissive={c.winE} emissiveIntensity={0.55} roughness={0.4} /></mesh>
-          <mesh position={[0, 0, 0.01]}><boxGeometry args={[0.06, 1.9, 0.04]} /><meshStandardMaterial color={c.ink} /></mesh>
-          <mesh position={[0, 0, 0.01]}><boxGeometry args={[3, 0.06, 0.04]} /><meshStandardMaterial color={c.ink} /></mesh>
-          {[[0, 1], [0, -1]].map(([, s]) => (
-            <mesh key={s} position={[0, s * 0.97, 0.01]}><boxGeometry args={[3.2, 0.1, 0.08]} /><meshStandardMaterial color={c.boneDark} /></mesh>
+        <group key={x} position={[x, 4.7, 0.03]}>
+          <mesh><planeGeometry args={[3.2, 2.7]} /><meshStandardMaterial color={c.win} emissive={c.winE} emissiveIntensity={0.55} roughness={0.4} /></mesh>
+          <mesh position={[0, 0, 0.01]}><boxGeometry args={[0.07, 2.7, 0.04]} /><meshStandardMaterial color={c.ink} /></mesh>
+          <mesh position={[0, 0, 0.01]}><boxGeometry args={[3.2, 0.07, 0.04]} /><meshStandardMaterial color={c.ink} /></mesh>
+          {[-1, 1].map((s) => (
+            <mesh key={s} position={[0, s * 1.38, 0.01]}><boxGeometry args={[3.5, 0.12, 0.1]} /><meshStandardMaterial color={c.boneDark} /></mesh>
           ))}
           {[-1, 1].map((s) => (
-            <mesh key={`v${s}`} position={[s * 1.55, 0, 0.01]}><boxGeometry args={[0.1, 2.0, 0.08]} /><meshStandardMaterial color={c.boneDark} /></mesh>
+            <mesh key={`v${s}`} position={[s * 1.65, 0, 0.01]}><boxGeometry args={[0.12, 2.8, 0.1]} /><meshStandardMaterial color={c.boneDark} /></mesh>
           ))}
         </group>
       ))}
-      {[-9, 9].map((x) => (
-        <group key={`s${x}`} position={[x, 3.7, 0.12]}>
+      {doors.map((x) => (
+        <group key={`d${x}`} position={[x, 1.7, 0.05]}>
+          <mesh><boxGeometry args={[2.2, 3.4, 0.1]} /><meshStandardMaterial color={c.ink} roughness={0.7} /></mesh>
+          <mesh position={[0, 0.7, 0.06]}><planeGeometry args={[0.7, 1.0]} /><meshStandardMaterial color="#10161a" emissive={c.gold} emissiveIntensity={0.35} /></mesh>
+          <mesh position={[0.8, -0.2, 0.07]}><boxGeometry args={[0.08, 0.3, 0.06]} /><meshStandardMaterial color={c.gold} metalness={0.6} roughness={0.4} /></mesh>
+        </group>
+      ))}
+      {pilasters && Array.from({ length: 7 }, (_, i) => -LH + 4 + i * ((LH * 2 - 8) / 6)).map((x) => (
+        <mesh key={`p${x}`} position={[x, WALL_H / 2, 0.3]}><boxGeometry args={[0.9, WALL_H, 0.6]} /><meshStandardMaterial color={c.boneDark} roughness={0.8} /></mesh>
+      ))}
+      {gallery && (
+        <group position={[0, 5.3, 0.04]}>
+          <mesh><planeGeometry args={[width - 2, 2.4]} /><meshStandardMaterial color="#9fd0e6" emissive="#6fa8c4" emissiveIntensity={0.5} transparent opacity={0.8} roughness={0.2} /></mesh>
+          {Array.from({ length: 13 }, (_, i) => -LH + 1 + i * ((LH * 2 - 2) / 12)).map((x) => (
+            <mesh key={x} position={[x, 0, 0.02]}><boxGeometry args={[0.12, 2.5, 0.08]} /><meshStandardMaterial color={c.ink} /></mesh>
+          ))}
+          <mesh position={[0, -1.25, 0.04]}><boxGeometry args={[width - 2, 0.12, 0.2]} /><meshStandardMaterial color={c.boneDark} metalness={0.4} roughness={0.4} /></mesh>
+          <mesh position={[0, 1.25, 0.04]}><boxGeometry args={[width - 2, 0.12, 0.2]} /><meshStandardMaterial color={c.boneDark} metalness={0.4} roughness={0.4} /></mesh>
+        </group>
+      )}
+      {[-0.5, 0.5].map((f) => (
+        <group key={`s${f}`} position={[f * LH * 1.2, 6.2, 0.12]}>
           <mesh><boxGeometry args={[0.9, 0.18, 0.18]} /><meshBasicMaterial color={c.lamp} /></mesh>
         </group>
       ))}
@@ -2268,6 +2295,25 @@ function LobbyWall({ c, position, rotation, width = 31, windows = [] }) {
   );
 }
 
+function ColumnLine({ c, position, rotation = 0, count = 7, span = 6, h = 5.5, r = 0.4, arches = true, wood = false }) {
+  const x0 = -((count - 1) * span) / 2;
+  const colColor = wood ? '#7a5a3c' : c.bone;
+  return (
+    <group position={position} rotation={[0, rotation, 0]}>
+      {Array.from({ length: count }, (_, i) => x0 + i * span).map((x) => (
+        <group key={x} position={[x, 0, 0]}>
+          <mesh position={[0, 0.2, 0]}><boxGeometry args={[r * 2.8, 0.4, r * 2.8]} /><meshStandardMaterial color={c.boneDark} roughness={0.8} /></mesh>
+          <mesh position={[0, h / 2, 0]}><cylinderGeometry args={[r, r * 1.12, h, wood ? 6 : 14]} /><meshStandardMaterial color={colColor} roughness={0.85} /></mesh>
+          <mesh position={[0, h + 0.1, 0]}><boxGeometry args={[r * 2.8, 0.25, r * 2.8]} /><meshStandardMaterial color={c.boneDark} roughness={0.8} /></mesh>
+        </group>
+      ))}
+      {arches && Array.from({ length: count - 1 }, (_, i) => x0 + span / 2 + i * span).map((x) => (
+        <mesh key={`a${x}`} position={[x, h + 0.2, 0]}><torusGeometry args={[span / 2 - r * 0.6, r * 0.6, 6, 22, Math.PI]} /><meshStandardMaterial color={c.boneDark} roughness={0.8} /></mesh>
+      ))}
+      {!arches && <mesh position={[0, h + 0.35, 0]}><boxGeometry args={[(count - 1) * span + r * 3, 0.3, 0.35]} /><meshStandardMaterial color={colColor} roughness={0.85} /></mesh>}
+    </group>
+  );
+}
 
 function LobbyGurney({ c, position, rotation = 0 }) {
   return (
@@ -2293,17 +2339,38 @@ function LobbyTree({ c, position, scale = 1 }) {
   );
 }
 
+function LobbyPergola({ c, position, rotation = 0, length = 36, depth = 3.6, h = 4.2 }) {
+  const n = Math.floor(length / 1.0);
+  return (
+    <group position={position} rotation={[0, rotation, 0]}>
+      {[-1, 1].map((s) => (
+        <mesh key={s} position={[0, h, s * depth / 2]}><boxGeometry args={[length, 0.3, 0.3]} /><meshStandardMaterial color="#6a4c32" roughness={0.9} /></mesh>
+      ))}
+      {Array.from({ length: n }, (_, i) => -length / 2 + 0.5 + i).map((x) => (
+        <mesh key={x} position={[x, h + 0.2, 0]}><boxGeometry args={[0.16, 0.12, depth + 0.4]} /><meshStandardMaterial color="#8a6a48" roughness={0.9} /></mesh>
+      ))}
+      {Array.from({ length: 14 }, (_, i) => -length / 2 + 1 + i * (length / 14)).map((x, i) => (
+        <mesh key={`v${i}`} position={[x, h - 0.5 - (i % 3) * 0.3, depth / 2 - 0.1]}><boxGeometry args={[0.5, 0.9 + (i % 3) * 0.5, 0.2]} /><meshStandardMaterial color={c.leaf} roughness={0.95} /></mesh>
+      ))}
+    </group>
+  );
+}
+
 function LobbyExtras({ id, c }) {
+  const E = LH - 1.5;
   if (id === 'espera') {
     return (
       <group>
-        <group position={[0, 0, -15.38]}>
-          <mesh position={[0, 3.6, 0]}><boxGeometry args={[2.5, 2.5, 0.1]} /><meshStandardMaterial color={c.ink} roughness={0.8} /></mesh>
-          <mesh position={[0, 3.6, 0.06]}><boxGeometry args={[0.55, 1.7, 0.05]} /><meshBasicMaterial color={c.red} /></mesh>
-          <mesh position={[0, 3.6, 0.06]}><boxGeometry args={[1.7, 0.55, 0.05]} /><meshBasicMaterial color={c.red} /></mesh>
-          <mesh position={[0, 3.6, 0.03]}><boxGeometry args={[2.62, 2.62, 0.06]} /><meshBasicMaterial color={c.gold} /></mesh>
+        <ColumnLine c={c} position={[0, 0, -(LH - 4)]} count={7} span={6} />
+        <ColumnLine c={c} position={[0, 0, LH - 4]} count={7} span={6} />
+        <ColumnLine c={c} position={[-(LH - 4), 0, 0]} rotation={Math.PI / 2} count={7} span={6} />
+        <group position={[0, 0, -(LH + 0.38)]}>
+          <mesh position={[0, 4.6, 0]}><boxGeometry args={[3.4, 3.4, 0.1]} /><meshStandardMaterial color={c.ink} roughness={0.8} /></mesh>
+          <mesh position={[0, 4.6, 0.06]}><boxGeometry args={[0.75, 2.3, 0.05]} /><meshBasicMaterial color={c.red} /></mesh>
+          <mesh position={[0, 4.6, 0.06]}><boxGeometry args={[2.3, 0.75, 0.05]} /><meshBasicMaterial color={c.red} /></mesh>
+          <mesh position={[0, 4.6, 0.03]}><boxGeometry args={[3.55, 3.55, 0.06]} /><meshBasicMaterial color={c.gold} /></mesh>
         </group>
-        <group position={[-5.5, 0, -13.2]}>
+        <group position={[-9, 0, -16.8]}>
           <mesh position={[0, 0.55, 0]}><boxGeometry args={[5.4, 1.1, 1.2]} /><meshStandardMaterial color={c.wineDark} roughness={0.7} /></mesh>
           <mesh position={[0, 1.13, 0.05]}><boxGeometry args={[5.6, 0.1, 1.4]} /><meshStandardMaterial color={c.bone} roughness={0.4} /></mesh>
           <mesh position={[0, 0.9, 0.61]}><boxGeometry args={[5.4, 0.04, 0.02]} /><meshBasicMaterial color={c.gold} /></mesh>
@@ -2311,26 +2378,36 @@ function LobbyExtras({ id, c }) {
           <mesh position={[1.4, 1.35, 0]}><cylinderGeometry args={[0.05, 0.12, 0.3, 8]} /><meshStandardMaterial color={c.gold} metalness={0.6} roughness={0.35} /></mesh>
           <mesh position={[1.4, 1.58, 0]}><sphereGeometry args={[0.16, 12, 8]} /><meshBasicMaterial color={c.lamp} /></mesh>
         </group>
-        <group position={[11.5, 0, 14.5]} rotation={[0, Math.PI, 0]}>
+        <group position={[18, 0, E]} rotation={[0, Math.PI, 0]}>
           <mesh position={[0, 1.1, 0]}><boxGeometry args={[1.5, 2.2, 0.9]} /><meshStandardMaterial color={c.ink} roughness={0.5} /></mesh>
           <mesh position={[0, 1.25, 0.46]}><planeGeometry args={[1.15, 1.5]} /><meshStandardMaterial color="#f0c26b" emissive="#f0c26b" emissiveIntensity={0.6} /></mesh>
           <mesh position={[0, 0.3, 0.46]}><planeGeometry args={[0.9, 0.22]} /><meshBasicMaterial color="#0c0809" /></mesh>
         </group>
+        <mesh position={[0, 7.3, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[4.4, 0.1, 6, 40]} /><meshBasicMaterial color={c.gold} /></mesh>
       </group>
     );
   }
   if (id === 'pasillo') {
     return (
       <group>
-        <LobbyGurney c={c} position={[-12.5, 0, -9]} rotation={0.1} />
-        <LobbyGurney c={c} position={[-10.6, 0, -12.6]} rotation={Math.PI / 2 + 0.05} />
-        <LobbyGurney c={c} position={[-12.8, 0, 9.5]} rotation={-0.08} />
-        {[[-12, -15.38, 0], [12, -15.38, 0], [0, 15.38, Math.PI]].map(([x, z, r], i) => (
-          <group key={i} position={[x, 4.9, z]} rotation={[0, r, 0]}>
+        {Array.from({ length: 9 }, (_, i) => -LH + 3 + i * ((LH * 2 - 6) / 8)).map((z) => (
+          <mesh key={z} position={[0, WALL_H - 0.4, z]}><boxGeometry args={[LH * 2, 0.4, 0.55]} /><meshStandardMaterial color={c.ink} roughness={0.8} /></mesh>
+        ))}
+        {Array.from({ length: 8 }, (_, i) => -LH + 3 + (i + 0.5) * ((LH * 2 - 6) / 8)).map((z) => (
+          [-14, 0, 14].map((x) => (
+            <mesh key={`${z}${x}`} position={[x, WALL_H - 0.75, z]}><boxGeometry args={[5, 0.08, 0.35]} /><meshBasicMaterial color={c.lamp} /></mesh>
+          ))
+        ))}
+        <LobbyGurney c={c} position={[-20, 0, -12]} rotation={0.1} />
+        <LobbyGurney c={c} position={[-17, 0, -20.5]} rotation={Math.PI / 2 + 0.05} />
+        <LobbyGurney c={c} position={[-20, 0, 18]} rotation={-0.08} />
+        <LobbyGurney c={c} position={[12, 0, 20.5]} rotation={Math.PI / 2} />
+        {[[-12, -(LH + 0.38), 0], [12, -(LH + 0.38), 0], [0, LH + 0.38, Math.PI], [-(LH + 0.38), 0, Math.PI / 2]].map(([x, z, r], i) => (
+          <group key={i} position={[x, 6.9, z]} rotation={[0, r, 0]}>
             <mesh><boxGeometry args={[1.3, 0.4, 0.08]} /><meshBasicMaterial color="#58d68d" /></mesh>
           </group>
         ))}
-        <group position={[13, 0, -14.6]}>
+        <group position={[20.5, 0, -E]}>
           <mesh position={[0, 1.0, 0]}><boxGeometry args={[1.6, 2.0, 0.8]} /><meshStandardMaterial color={c.wine} roughness={0.5} /></mesh>
           <mesh position={[0, 1.2, 0.41]}><planeGeometry args={[1.2, 0.6]} /><meshStandardMaterial color="#10161a" emissive={c.gold} emissiveIntensity={0.5} /></mesh>
         </group>
@@ -2340,43 +2417,56 @@ function LobbyExtras({ id, c }) {
   if (id === 'quirofano') {
     return (
       <group>
-        {[[-6, -6], [6, -6]].map(([x, z], i) => (
+        <mesh position={[0, 7.2, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[11, 0.18, 8, 48]} /><meshStandardMaterial color={c.boneDark} metalness={0.5} roughness={0.4} /></mesh>
+        <mesh position={[0, 7.2, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[7, 0.1, 6, 40]} /><meshStandardMaterial color={c.boneDark} metalness={0.5} roughness={0.4} /></mesh>
+        {Array.from({ length: 12 }, (_, i) => (i / 12) * Math.PI * 2).map((a, i) => (
+          <mesh key={i} position={[Math.cos(a) * 11, 7.0, Math.sin(a) * 11]}><sphereGeometry args={[0.22, 10, 8]} /><meshBasicMaterial color={c.lamp} /></mesh>
+        ))}
+        {[[-10, -10], [10, -10], [-10, 10]].map(([x, z], i) => (
           <group key={i} position={[x, 0, z]}>
             <mesh position={[0, 0.5, 0]}><cylinderGeometry args={[0.3, 0.5, 1.0, 10]} /><meshStandardMaterial color={c.boneDark} metalness={0.5} roughness={0.35} /></mesh>
             <mesh position={[0, 1.05, 0]}><boxGeometry args={[1.0, 0.14, 2.4]} /><meshStandardMaterial color={c.bone} roughness={0.35} metalness={0.2} /></mesh>
             <mesh position={[0, 1.13, 0.4]}><boxGeometry args={[0.7, 0.02, 1.3]} /><meshStandardMaterial color="#7fc7a8" roughness={0.6} /></mesh>
-            <mesh position={[0, 5.2, 0]}><cylinderGeometry args={[0.04, 0.04, 2.4, 6]} /><meshStandardMaterial color={c.boneDark} /></mesh>
-            <mesh position={[0, 3.9, 0]}><cylinderGeometry args={[1.05, 0.9, 0.25, 20]} /><meshStandardMaterial color={c.boneDark} roughness={0.4} metalness={0.5} /></mesh>
-            <mesh position={[0, 3.76, 0]}><cylinderGeometry args={[0.85, 0.85, 0.05, 20]} /><meshBasicMaterial color="#f4fbff" /></mesh>
-            <pointLight position={[0, 3.2, 0]} intensity={22} distance={12} color="#eaf7ff" />
+            <mesh position={[0, 5.9, 0]}><cylinderGeometry args={[0.04, 0.04, 2.6, 6]} /><meshStandardMaterial color={c.boneDark} /></mesh>
+            <mesh position={[0, 4.5, 0]}><cylinderGeometry args={[1.05, 0.9, 0.25, 20]} /><meshStandardMaterial color={c.boneDark} roughness={0.4} metalness={0.5} /></mesh>
+            <mesh position={[0, 4.36, 0]}><cylinderGeometry args={[0.85, 0.85, 0.05, 20]} /><meshBasicMaterial color="#f4fbff" /></mesh>
           </group>
         ))}
-        <group position={[0, 0, -15.38]}>
-          <mesh position={[0, 3.4, 0]}><boxGeometry args={[3.4, 1.6, 0.1]} /><meshStandardMaterial color={c.ink} roughness={0.8} /></mesh>
-          <mesh position={[0, 3.4, 0.06]}><planeGeometry args={[3.0, 1.2]} /><meshStandardMaterial color="#0f1f22" emissive="#58d68d" emissiveIntensity={0.35} /></mesh>
+        <group position={[0, 0, -(LH + 0.38)]}>
+          <mesh position={[0, 3.4, 0]}><boxGeometry args={[4.4, 1.8, 0.1]} /><meshStandardMaterial color={c.ink} roughness={0.8} /></mesh>
+          <mesh position={[0, 3.4, 0.06]}><planeGeometry args={[4.0, 1.4]} /><meshStandardMaterial color="#0f1f22" emissive="#58d68d" emissiveIntensity={0.35} /></mesh>
         </group>
-        <group position={[11, 0, -14.6]}>
-          <mesh position={[0, 0.9, 0]}><boxGeometry args={[3.4, 1.8, 0.9]} /><meshStandardMaterial color={c.boneDark} roughness={0.5} metalness={0.3} /></mesh>
-          <mesh position={[0, 1.85, 0]}><boxGeometry args={[3.5, 0.08, 1.0]} /><meshStandardMaterial color={c.bone} /></mesh>
+        <group position={[16, 0, -(LH - 1.2)]}>
+          <mesh position={[0, 0.9, 0]}><boxGeometry args={[4.4, 1.8, 0.9]} /><meshStandardMaterial color={c.boneDark} roughness={0.5} metalness={0.3} /></mesh>
+          <mesh position={[0, 1.85, 0]}><boxGeometry args={[4.5, 0.08, 1.0]} /><meshStandardMaterial color={c.bone} /></mesh>
         </group>
       </group>
     );
   }
   return (
     <group>
-      <group position={[-9, 0, -9]}>
-        <mesh position={[0, 0.3, 0]}><cylinderGeometry args={[2.2, 2.4, 0.6, 24]} /><meshStandardMaterial color={c.boneDark} roughness={0.8} /></mesh>
-        <mesh position={[0, 0.58, 0]}><cylinderGeometry args={[1.9, 1.9, 0.1, 24]} /><meshStandardMaterial color="#5f9bb8" emissive="#3a6f8c" emissiveIntensity={0.4} roughness={0.2} /></mesh>
-        <mesh position={[0, 1.0, 0]}><cylinderGeometry args={[0.25, 0.4, 1.0, 10]} /><meshStandardMaterial color={c.boneDark} roughness={0.8} /></mesh>
-        <mesh position={[0, 1.7, 0]}><sphereGeometry args={[0.5, 12, 8]} /><meshStandardMaterial color="#7fb6cf" emissive="#4f8fa8" emissiveIntensity={0.4} /></mesh>
+      <LobbyPergola c={c} position={[0, 0, -(LH - 2.2)]} length={40} />
+      <LobbyPergola c={c} position={[0, 0, LH - 2.2]} length={40} />
+      <LobbyPergola c={c} position={[-(LH - 2.2), 0, 0]} rotation={Math.PI / 2} length={40} />
+      <ColumnLine c={c} position={[0, 0, -(LH - 4)]} count={7} span={6} h={4.2} r={0.2} arches={false} wood />
+      <ColumnLine c={c} position={[0, 0, LH - 4]} count={7} span={6} h={4.2} r={0.2} arches={false} wood />
+      <ColumnLine c={c} position={[-(LH - 4), 0, 0]} rotation={Math.PI / 2} count={7} span={6} h={4.2} r={0.2} arches={false} wood />
+      <group position={[-12, 0, -12]}>
+        <mesh position={[0, 0.3, 0]}><cylinderGeometry args={[3.2, 3.4, 0.6, 28]} /><meshStandardMaterial color={c.boneDark} roughness={0.8} /></mesh>
+        <mesh position={[0, 0.58, 0]}><cylinderGeometry args={[2.9, 2.9, 0.1, 28]} /><meshStandardMaterial color="#5f9bb8" emissive="#3a6f8c" emissiveIntensity={0.4} roughness={0.2} /></mesh>
+        <mesh position={[0, 1.2, 0]}><cylinderGeometry args={[0.3, 0.5, 1.2, 10]} /><meshStandardMaterial color={c.boneDark} roughness={0.8} /></mesh>
+        <mesh position={[0, 1.95, 0]}><cylinderGeometry args={[1.2, 0.5, 0.3, 14]} /><meshStandardMaterial color={c.boneDark} roughness={0.8} /></mesh>
+        <mesh position={[0, 2.35, 0]}><sphereGeometry args={[0.45, 12, 8]} /><meshStandardMaterial color="#7fb6cf" emissive="#4f8fa8" emissiveIntensity={0.4} /></mesh>
       </group>
-      <LobbyTree c={c} position={[-13.5, 0, -13.5]} />
-      <LobbyTree c={c} position={[13.5, 0, 13.5]} scale={1.1} />
-      <LobbyTree c={c} position={[-13.5, 0, 12]} scale={0.9} />
-      {[[-8, 8], [8, 8], [-8, -3], [3, -12]].map(([x, z], i) => (
+      <LobbyTree c={c} position={[-20, 0, -20]} scale={1.2} />
+      <LobbyTree c={c} position={[20, 0, 20]} scale={1.3} />
+      <LobbyTree c={c} position={[14, 0, -19]} scale={1.0} />
+      <LobbyTree c={c} position={[-12, 0, 12]} scale={1.1} />
+      <LobbyTree c={c} position={[12, 0, 12]} scale={0.9} />
+      {[[-12, 6], [12, 6], [-6, -12], [6, -16], [0, 18]].map(([x, z], i) => (
         <group key={i} position={[x, 0, z]}>
-          <mesh position={[0, 1.6, 0]}><cylinderGeometry args={[0.07, 0.1, 3.2, 8]} /><meshStandardMaterial color={c.ink} roughness={0.6} /></mesh>
-          <mesh position={[0, 3.3, 0]}><sphereGeometry args={[0.3, 12, 8]} /><meshBasicMaterial color={c.lamp} /></mesh>
+          <mesh position={[0, 1.8, 0]}><cylinderGeometry args={[0.07, 0.1, 3.6, 8]} /><meshStandardMaterial color={c.ink} roughness={0.6} /></mesh>
+          <mesh position={[0, 3.7, 0]}><sphereGeometry args={[0.32, 12, 8]} /><meshBasicMaterial color={c.lamp} /></mesh>
         </group>
       ))}
     </group>
@@ -2390,12 +2480,18 @@ function LobbyDecor() {
   useFrame(({ clock }) => {
     if (halo.current) { halo.current.rotation.y = clock.elapsedTime * 0.4; halo.current.position.y = 6.3 + Math.sin(clock.elapsedTime * 1.2) * 0.12; }
   });
+  const gl = (LH - 3.6) / 2 + 3.6 - 0.2;
+  const gLen = LH - 3.6 - 0.4;
   const guide = [
-    { col: c.red, x: 0, z: -9, w: 0.2, l: 10.8 },
-    { col: '#5b8fb9', x: -9, z: 0, w: 10.8, l: 0.2 },
-    { col: '#5aa27c', x: 0, z: 9, w: 0.2, l: 10.8 },
+    { col: c.red, x: 0, z: -gl, w: 0.2, l: gLen },
+    { col: '#5b8fb9', x: -gl, z: 0, w: gLen, l: 0.2 },
+    { col: '#5aa27c', x: 0, z: gl, w: 0.2, l: gLen },
   ];
-  const w = (list) => (c.windows ? list : []);
+  const pas = id === 'pasillo';
+  const quiro = id === 'quirofano';
+  const winCount = id === 'espera' || pas ? 4 : 0;
+  const doorList = pas ? [-16, -8, 0, 8, 16] : [];
+  const wo = LH + 0.5;
   return (
     <group>
       <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -2421,33 +2517,34 @@ function LobbyDecor() {
         </mesh>
       ))}
 
-      <LobbyWall c={c} position={[0, 0, -15.5]} rotation={0} windows={w([-9, 9])} />
-      <LobbyWall c={c} position={[0, 0, 15.5]} rotation={Math.PI} windows={w([-9, 0, 9])} />
-      <LobbyWall c={c} position={[-15.5, 0, 0]} rotation={Math.PI / 2} windows={w([-8, 8])} />
-      <LobbyWall c={c} position={[15.5, 0, 0]} rotation={-Math.PI / 2} windows={w([8])} />
+      <LobbyWall c={c} position={[0, 0, -wo]} rotation={0} count={winCount} doors={doorList} pilasters={pas} gallery={quiro} />
+      <LobbyWall c={c} position={[0, 0, wo]} rotation={Math.PI} count={winCount ? winCount + 1 : 0} pilasters={pas} gallery={quiro} />
+      <LobbyWall c={c} position={[-wo, 0, 0]} rotation={Math.PI / 2} count={winCount} doors={doorList} pilasters={pas} gallery={quiro} />
+      <LobbyWall c={c} position={[wo, 0, 0]} rotation={-Math.PI / 2} count={winCount ? 3 : 0} pilasters={pas} gallery={quiro} />
 
       <LobbyExtras id={id} c={c} />
 
-      <LobbyBench c={c} position={[-14.5, 0, -6.5]} rotation={Math.PI / 2} />
-      <LobbyBench c={c} position={[-14.5, 0, 0]} rotation={Math.PI / 2} />
-      <LobbyBench c={c} position={[-14.5, 0, 6.5]} rotation={Math.PI / 2} />
-      <LobbyBench c={c} position={[-6.5, 0, 14.5]} rotation={Math.PI} />
-      <LobbyBench c={c} position={[6.5, 0, 14.5]} rotation={Math.PI} />
+      {[-14, -7, 0, 7, 14].map((z) => (
+        <LobbyBench key={`w${z}`} c={c} position={[-(LH - 0.6), 0, z]} rotation={Math.PI / 2} />
+      ))}
+      {[-14, -7, 7, 14].map((x) => (
+        <LobbyBench key={`s${x}`} c={c} position={[x, 0, LH - 0.6]} rotation={Math.PI} />
+      ))}
 
-      <LobbyPlant c={c} position={[-14, 0, 14]} scale={1.2} />
-      <LobbyPlant c={c} position={[14, 0, 14]} scale={1.2} />
-      <LobbyPlant c={c} position={[-0.2, 0, 14.4]} scale={0.9} />
-      {id === 'espera' && <LobbyPlant c={c} position={[-14, 0, -14]} scale={1.2} />}
-      {id === 'espera' && <LobbyPlant c={c} position={[-14.2, 0, -10.4]} scale={0.8} />}
+      {[[-1, 1], [1, 1], [-1, -1]].map(([sx, sz], i) => (
+        <LobbyPlant key={i} c={c} position={[sx * (LH - 1.6), 0, sz * (LH - 1.6)]} scale={1.3} />
+      ))}
+      <LobbyPlant c={c} position={[-0.2, 0, LH - 0.8]} scale={1} />
+      {id !== 'patio' && <LobbyPlant c={c} position={[LH - 1.6, 0, -(LH - 1.6)]} scale={1.3} />}
 
-      <group ref={halo} position={[11.5, 6.3, 0.6]}>
-        <mesh><octahedronGeometry args={[0.42, 0]} /><meshBasicMaterial color={c.gold} /></mesh>
+      <group ref={halo} position={[20.5, 6.3, 0.6]}>
+        <mesh><octahedronGeometry args={[0.5, 0]} /><meshBasicMaterial color={c.gold} /></mesh>
       </group>
 
-      <pointLight position={[-8, 4.6, -8]} intensity={c.lightI} distance={26} color={c.light} />
-      <pointLight position={[8, 4.6, 8]} intensity={c.lightI} distance={26} color={c.light} />
-      <pointLight position={[-8, 4.6, 8]} intensity={c.lightI * 0.8} distance={26} color={c.light2} />
-      <pointLight position={[0, 5.4, 0]} intensity={26} distance={20} color={c.gold} />
+      {[[-12, -12], [12, 12], [-12, 12], [12, -12]].map(([x, z], i) => (
+        <pointLight key={i} position={[x, 6.2, z]} intensity={c.lightI * (i < 2 ? 1.7 : 1.4)} distance={40} color={i % 2 ? c.light2 : c.light} />
+      ))}
+      <pointLight position={[0, 7, 0]} intensity={34} distance={26} color={c.gold} />
     </group>
   );
 }
