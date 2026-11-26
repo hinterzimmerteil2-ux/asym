@@ -5,6 +5,7 @@ import { useGLTF, useAnimations } from '@react-three/drei';
 import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
 import { Raycaster, Shape, Path, ShapeGeometry, BoxGeometry, BufferGeometry, Float32BufferAttribute, EdgesGeometry, MeshLambertMaterial, MeshStandardMaterial, Vector3, Matrix4, Quaternion, Euler, TextureLoader, DoubleSide, SRGBColorSpace, Color } from 'three';
 import { itemOf } from '../lib/cosmetics';
+import { MC_AIM, FACING, LOBBY_THEME_LIST, lobbyThemeStore } from '../lib/sceneApi';
 import { getTexture, setTextureQuality } from '../lib/textures';
 import { matches } from '../lib/keybinds';
 import { createModeKey } from '../lib/modeKey';
@@ -27,19 +28,7 @@ const COLOR_METAL = '#8a8674';
 const COLOR_WALL_TINT = '#bcd6ea';
 const COLOR_EMERGENCY_LIGHT = '#5468ff';
 
-const MC_AIM = { on: false, has: false, x: 0, z: 0, slopeOn: false, sy: 0 };
-export function setAimSlope(on) {
-  MC_AIM.slopeOn = on;
-  if (!on) MC_AIM.sy = 0;
-}
-export function aimSlope() {
-  return MC_AIM.slopeOn ? Math.round(MC_AIM.sy * 100) / 100 : undefined;
-}
-export function setMcAim(on) {
-  MC_AIM.on = on;
-  if (!on) MC_AIM.has = false;
-}
-export function mcAimAt(clientX, clientY) {
+MC_AIM.aimAt = function aimAt(clientX, clientY) {
   const { cam, el, me } = MC_AIM;
   if (!cam || !el || !me) return null;
   const r = el.getBoundingClientRect();
@@ -52,15 +41,7 @@ export function mcAimAt(clientX, clientY) {
   const x = ray.ray.origin.x + dir.x * t;
   const z = ray.ray.origin.z + dir.z * t;
   return Number.isFinite(x) && Number.isFinite(z) ? { x: Math.round(x * 100) / 100, z: Math.round(z * 100) / 100 } : null;
-}
-export function mcAimPoint() {
-  return MC_AIM.on && MC_AIM.has ? { x: Math.round(MC_AIM.x * 100) / 100, z: Math.round(MC_AIM.z * 100) / 100 } : null;
-}
-const FACING = new Map();
-export function facingOf(id) {
-  const y = FACING.get(id);
-  return y === undefined ? null : { x: Math.round(Math.sin(y) * 100) / 100, z: Math.round(Math.cos(y) * 100) / 100 };
-}
+};
 const HAND_ANIMS = new Map();
 const ANIM_DURATION = { swing: 650, swingL: 650, consume: 1700, throw: 750, cast: 850, shout: 1200, stumble: 900, roll: 600, plant: 900, vanish: 1000, pulse: 900, point: 750, pull: 900, lunge: 1100 };
 const IMPACT_MS = { swing: 260, swingL: 260, consume: 1500, throw: 340, cast: 380, shout: 350, stumble: 250, roll: 150, plant: 520, vanish: 400, pulse: 350, point: 300, pull: 450, lunge: 400 };
@@ -2256,35 +2237,17 @@ function PlayerCapsule({ playerId, entityState, color, isMe, isCurator, stunned,
 }
 
 const LOBBY_THEMES = {
-  espera: { name: 'Sala de espera', bone: '#ddd0bd', boneDark: '#b9aa94', ink: '#1a1215', wine: '#5e2a33', wineDark: '#43202a', gold: '#f0c26b', red: '#d94a52', leaf: '#2f5a43', floor: '#b7aa9c', win: '#8fb1cf', winE: '#6f93b8', lamp: '#ffe2b0', light: '#ffd9ad', light2: '#ffe3c4', lightI: 38, ambient: '#ffe9d6', ambientI: 0.5, dir: '#ffdcb8', dirI: 0.7, hemi: ['#ffe3c8', '#2a1c20', 0.4], bg: '#140d10', windows: true },
-  pasillo: { name: 'Pasillo nocturno', bone: '#41605f', boneDark: '#8aa09c', ink: '#0d1517', wine: '#25373a', wineDark: '#1b292c', gold: '#8fe0c8', red: '#d94a52', leaf: '#2f5a43', floor: '#7f8e8c', win: '#3a5a78', winE: '#2b4968', lamp: '#bfeee0', light: '#bfeee0', light2: '#a8d8ff', lightI: 30, ambient: '#bfe6e0', ambientI: 0.5, dir: '#a8d8ff', dirI: 0.45, hemi: ['#a8d8e8', '#10181a', 0.35], bg: '#070d10', windows: true },
-  quirofano: { name: 'Quirófano', bone: '#d6e4e4', boneDark: '#a9c0c0', ink: '#10181a', wine: '#2f6f73', wineDark: '#24595c', gold: '#9fd8ff', red: '#d94a52', leaf: '#3a7a60', floor: '#94b6b6', win: '#b9d9ec', winE: '#9fc4dc', lamp: '#e6f6ff', light: '#e3f4ff', light2: '#d8efff', lightI: 40, ambient: '#e3f4ff', ambientI: 0.6, dir: '#dff0ff', dirI: 0.6, hemi: ['#e3f4ff', '#1a2a2c', 0.45], bg: '#0a1214', windows: false },
-  patio: { name: 'Patio interior', bone: '#3f6b48', boneDark: '#8a8272', ink: '#1d2a1f', wine: '#6c6254', wineDark: '#554c40', gold: '#e7c98a', red: '#d94a52', leaf: '#4f8a52', floor: '#9a917f', win: '#8fb1cf', winE: '#6f93b8', lamp: '#ffe2b0', light: '#ffd19a', light2: '#ffe0b8', lightI: 34, ambient: '#fff1d6', ambientI: 0.6, dir: '#ffd19a', dirI: 0.9, hemi: ['#ffe6c0', '#2a2a40', 0.5], bg: '#1b1830', windows: false },
+  espera: { bone: '#ddd0bd', boneDark: '#b9aa94', ink: '#1a1215', wine: '#5e2a33', wineDark: '#43202a', gold: '#f0c26b', red: '#d94a52', leaf: '#2f5a43', floor: '#b7aa9c', win: '#8fb1cf', winE: '#6f93b8', lamp: '#ffe2b0', light: '#ffd9ad', light2: '#ffe3c4', lightI: 38, ambient: '#ffe9d6', ambientI: 0.5, dir: '#ffdcb8', dirI: 0.7, hemi: ['#ffe3c8', '#2a1c20', 0.4], bg: '#140d10', windows: true },
+  pasillo: { bone: '#41605f', boneDark: '#8aa09c', ink: '#0d1517', wine: '#25373a', wineDark: '#1b292c', gold: '#8fe0c8', red: '#d94a52', leaf: '#2f5a43', floor: '#7f8e8c', win: '#3a5a78', winE: '#2b4968', lamp: '#bfeee0', light: '#bfeee0', light2: '#a8d8ff', lightI: 30, ambient: '#bfe6e0', ambientI: 0.5, dir: '#a8d8ff', dirI: 0.45, hemi: ['#a8d8e8', '#10181a', 0.35], bg: '#070d10', windows: true },
+  quirofano: { bone: '#d6e4e4', boneDark: '#a9c0c0', ink: '#10181a', wine: '#2f6f73', wineDark: '#24595c', gold: '#9fd8ff', red: '#d94a52', leaf: '#3a7a60', floor: '#94b6b6', win: '#b9d9ec', winE: '#9fc4dc', lamp: '#e6f6ff', light: '#e3f4ff', light2: '#d8efff', lightI: 40, ambient: '#e3f4ff', ambientI: 0.6, dir: '#dff0ff', dirI: 0.6, hemi: ['#e3f4ff', '#1a2a2c', 0.45], bg: '#0a1214', windows: false },
+  patio: { bone: '#3f6b48', boneDark: '#8a8272', ink: '#1d2a1f', wine: '#6c6254', wineDark: '#554c40', gold: '#e7c98a', red: '#d94a52', leaf: '#4f8a52', floor: '#9a917f', win: '#8fb1cf', winE: '#6f93b8', lamp: '#ffe2b0', light: '#ffd19a', light2: '#ffe0b8', lightI: 34, ambient: '#fff1d6', ambientI: 0.6, dir: '#ffd19a', dirI: 0.9, hemi: ['#ffe6c0', '#2a2a40', 0.5], bg: '#1b1830', windows: false },
 };
-const LOBBY_THEME_IDS = Object.keys(LOBBY_THEMES);
-const lobbyThemeStore = { pref: 'auto', room: '', subs: new Set() };
-if (typeof window !== 'undefined') {
-  try { lobbyThemeStore.pref = window.localStorage.getItem('asym_lobbytheme') || 'auto'; } catch (e) { lobbyThemeStore.pref = 'auto'; }
-}
 function resolveLobbyTheme() {
   if (LOBBY_THEMES[lobbyThemeStore.pref]) return lobbyThemeStore.pref;
   let h = 0;
   for (const ch of lobbyThemeStore.room || '') h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return LOBBY_THEME_IDS[h % LOBBY_THEME_IDS.length];
+  return LOBBY_THEME_LIST[h % LOBBY_THEME_LIST.length].id;
 }
-function notifyLobbyTheme() { lobbyThemeStore.subs.forEach((f) => f()); }
-export function setLobbyThemePref(id) {
-  lobbyThemeStore.pref = id;
-  try { window.localStorage.setItem('asym_lobbytheme', id); } catch (e) { /* storage unavailable */ }
-  notifyLobbyTheme();
-}
-export function setLobbyThemeRoom(room) {
-  if (lobbyThemeStore.room === room) return;
-  lobbyThemeStore.room = room;
-  notifyLobbyTheme();
-}
-export function getLobbyThemePref() { return lobbyThemeStore.pref; }
-export const LOBBY_THEME_LIST = LOBBY_THEME_IDS.map((id) => ({ id, name: LOBBY_THEMES[id].name }));
 function useLobbyTheme() {
   const [id, setId] = useState(resolveLobbyTheme);
   useEffect(() => {

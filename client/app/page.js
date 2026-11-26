@@ -12,7 +12,8 @@ import {
   clearSession,
   updateDisplayName,
 } from '../lib/session';
-import GameScene, { facingOf, setMcAim, mcAimPoint, mcAimAt, setAimSlope, aimSlope, setLobbyThemePref, setLobbyThemeRoom, getLobbyThemePref, LOBBY_THEME_LIST } from '../components/GameScene';
+import dynamic from 'next/dynamic';
+import { facingOf, setMcAim, mcAimPoint, mcAimAt, setAimSlope, aimSlope, setLobbyThemePref, setLobbyThemeRoom, getLobbyThemePref, LOBBY_THEME_LIST } from '../lib/sceneApi';
 import { play as playSfx, trackSteps, unlockAudio } from '../lib/sfx';
 import SkillIcon from '../components/SkillIcon';
 import { watchMedia, useInputMode } from '../lib/settings';
@@ -26,13 +27,15 @@ import RhythmBar from '../components/RhythmBar';
 import SelfDamageBar from '../components/SelfDamageBar';
 import EventLayer from '../components/EventLayer';
 import CommunityMaps from '../components/CommunityMaps';
-import LmsIntro from '../components/LmsIntro';
 import { matches as keyMatches, getKey, keyLabel } from '../lib/keybinds';
 import TouchControls from '../components/TouchControls';
 import { createModeKey } from '../lib/modeKey';
 import { KEYWORDS } from '../lib/keywords';
 import { ITEMS, COLORS, SLOT_LABELS } from '../lib/cosmetics';
 import { loadDesgracias, saveDesgracias, priceOf, FREE_ITEMS, emptyQ, addQ, normQ, spendQ, awardToQ, formatQ } from '../lib/desgracias';
+
+const GameScene = dynamic(() => import('../components/GameScene'), { ssr: false, loading: () => null });
+const LmsIntro = dynamic(() => import('../components/LmsIntro'), { ssr: false, loading: () => null });
 
 const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 

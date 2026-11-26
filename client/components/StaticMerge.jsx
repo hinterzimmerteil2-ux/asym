@@ -54,18 +54,21 @@ export default function StaticMerge({ children, enabled = true }) {
       made.push(mesh);
     });
     meshes.forEach((m) => { m.visible = false; });
-    const mergedSet = new Set(meshes);
-    const frozen = [];
-    const freeze = (o) => {
-      let ok = true;
-      for (const c of o.children) if (!freeze(c)) ok = false;
-      if (o.isMesh || o.isPoints || o.isLine) ok = ok && mergedSet.has(o);
-      if (ok && o !== root && o.matrixAutoUpdate) { o.matrixAutoUpdate = false; frozen.push(o); }
-      return ok;
+    const detached = [];
+    const detach = (o) => {
+      const par = o.parent;
+      if (!par) return;
+      par.remove(o);
+      detached.push([par, o]);
     };
-    freeze(root);
+    meshes.forEach((m) => { if (m.children.length === 0) detach(m); });
+    const prune = (o) => {
+      for (const c of o.children.slice()) prune(c);
+      if (o !== root && o.isGroup && o.children.length === 0) detach(o);
+    };
+    prune(root);
     return () => {
-      frozen.forEach((o) => { o.matrixAutoUpdate = true; });
+      for (let i = detached.length - 1; i >= 0; i--) detached[i][0].add(detached[i][1]);
       made.forEach((m) => { root.remove(m); m.geometry.dispose(); });
       meshes.forEach((m) => { m.visible = true; });
     };
