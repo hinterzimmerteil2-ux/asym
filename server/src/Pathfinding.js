@@ -9,6 +9,7 @@ const K = 4;
 const MAX_EXPANSIONS = 90000;
 const WEIGHT = 1.8;
 const RAMP_SLAB = 0.4;
+const NO_PLATFORMS = [];
 
 function buildGrid(half, objects, platforms) {
   const n = Math.ceil((half * 2) / CELL);
@@ -33,15 +34,22 @@ function buildGrid(half, objects, platforms) {
       }
     }
   }
+  const pits = platforms.filter((p) => p.kind === 'pit');
+  let maxNear = 0;
+  buckets.forEach((arr) => { if (arr.length > maxNear) maxNear = arr.length; });
+  const eTop = new Float64Array(maxNear + 1);
+  const eBot = new Float64Array(maxNear + 1);
+  const cand = new Float64Array(maxNear + 2);
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
       const cell = j * n + i;
       const x = -half + (i + 0.5) * CELL;
       const z = -half + (j + 0.5) * CELL;
       const edge = i === 0 || j === 0 || i === n - 1 || j === n - 1 || Math.abs(x) > half - 0.6 || Math.abs(z) > half - 0.6;
-      const near = buckets.get(cell) || [];
-      const entries = [];
-      for (const p of near) {
+      const near = buckets.get(cell) || NO_PLATFORMS;
+      let ne = 0;
+      for (let q = 0; q < near.length; q++) {
+        const p = near[q];
         let top = platformTop(p, x, z);
         if (p.ramp) {
           for (const [ox, oz] of FOOTPRINT) {
@@ -50,22 +58,30 @@ function buildGrid(half, objects, platforms) {
           }
         }
         if (top === null) continue;
-        const bottom = p.ramp || p.slab ? top - (p.slab || RAMP_SLAB) : (p.y0 || 0);
-        entries.push({ top, bottom });
+        eTop[ne] = top;
+        eBot[ne] = p.ramp || p.slab ? top - (p.slab || RAMP_SLAB) : (p.y0 || 0);
+        ne++;
       }
-      const cands = [baseAt(platforms, x, z)];
-      for (const e of entries) cands.push(e.top);
-      cands.sort((a, b) => a - b);
+      cand[0] = baseAt(pits, x, z);
+      for (let q = 0; q < ne; q++) {
+        const v = eTop[q];
+        let w = q;
+        while (w >= 0 && cand[w] > v) { cand[w + 1] = cand[w]; w--; }
+        cand[w + 1] = v;
+      }
       let c = 0;
       let last = -Infinity;
-      for (const y of cands) {
+      for (let q = 0; q <= ne; q++) {
+        const y = cand[q];
         if (y - last < 0.05) continue;
         last = y;
         let ok = !edge;
         let ceil = Infinity;
-        for (const e of entries) {
-          if (e.bottom < y - 0.05 && e.top > y + 0.05) { ok = false; break; }
-          if (e.bottom >= y - 0.05 && e.top > y + 0.05 && e.bottom < ceil) ceil = e.bottom;
+        for (let r = 0; r < ne; r++) {
+          const et = eTop[r];
+          const eb = eBot[r];
+          if (eb < y - 0.05 && et > y + 0.05) { ok = false; break; }
+          if (eb >= y - 0.05 && et > y + 0.05 && eb < ceil) ceil = eb;
         }
         if (!ok || ceil - y < HEAD) continue;
         if (c >= K) break;
