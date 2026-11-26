@@ -2450,7 +2450,7 @@ test('red mist: combo de 3 tajos, el tercero largo cura mas y recarga larga', ()
   const cId = ids.find((id) => room.players.get(id).isAsymRole);
   const a = e[aId];
   const cur = e[cId];
-  a.hand = [{ chosen: 'red_mist' }, null];
+  a.hand = [{ chosen: 'red_mist', options: [] }, { options: [] }];
   a.cardCooldowns = {};
   a.faceX = 1; a.faceZ = 0;
   cur.x = a.x + 1.2; cur.z = a.z;

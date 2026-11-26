@@ -152,6 +152,10 @@ const EMOTE_COOLDOWN_MS = 2500;
 const FIELD_KINDS = new Set(['herbs', 'drip', 'gas', 'rootshot', 'dart', 'gurney']);
 const LMS_GIMMICKS = ['adrenalina', 'reflejos', 'escudo', 'codicia'];
 
+const NAV_SHARED = new WeakMap();
+const NAV_RECENT = [];
+const NAV_SHARED_MAX = 8;
+
 function ownHidden(playerId, player, publicEntities, room, now) {
   let out = publicEntities;
   const edit = () => (out === publicEntities ? (out = { ...publicEntities }) : out);
@@ -304,13 +308,26 @@ class Room {
     if (!entry) {
       if (this.navCache.size > 3) this.navCache.clear();
       const area = GameMap.areaFor(this.mapId);
-      const objects = GameMap.resolveCollisionObjects(this.mapId, area);
-      const all = GameMap.resolvePlatforms(this.mapId, area).filter((p) => !hidden.includes(p.id));
-      const cur = gates === 'lock' ? all : all.filter((p) => p.kind !== 'gate');
-      const pat = (gates === 'open' ? cur : all).filter((p) => p.kind !== 'pgate');
-      const grid = Pathfinding.buildGrid(area.halfSize, objects, pat);
-      const sameSides = !all.some((p) => p.kind === 'gate' || p.kind === 'pgate');
-      entry = { grid, gridCur: sameSides ? grid : Pathfinding.buildGrid(area.halfSize, objects, cur) };
+      const source = GameMap.resolvePlatforms(this.mapId, area);
+      let shared = NAV_SHARED.get(source);
+      if (!shared) NAV_SHARED.set(source, (shared = new Map()));
+      const subKey = `${hidden.join(',')}|${gates || ''}`;
+      entry = shared.get(subKey);
+      if (!entry) {
+        const objects = GameMap.resolveCollisionObjects(this.mapId, area);
+        const all = source.filter((p) => !hidden.includes(p.id));
+        const cur = gates === 'lock' ? all : all.filter((p) => p.kind !== 'gate');
+        const pat = (gates === 'open' ? cur : all).filter((p) => p.kind !== 'pgate');
+        const grid = Pathfinding.buildGrid(area.halfSize, objects, pat);
+        const sameSides = !all.some((p) => p.kind === 'gate' || p.kind === 'pgate');
+        entry = { grid, gridCur: sameSides ? grid : Pathfinding.buildGrid(area.halfSize, objects, cur) };
+        shared.set(subKey, entry);
+        NAV_RECENT.push({ shared, subKey });
+        if (NAV_RECENT.length > NAV_SHARED_MAX) {
+          const old = NAV_RECENT.shift();
+          old.shared.delete(old.subKey);
+        }
+      }
       this.navCache.set(key, entry);
     }
     this.nav = entry;
@@ -2045,63 +2062,112 @@ class Room {
     }
 
     const publicEntities = {};
-    for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
-      publicEntities[entityPlayerId] = {
-        x: Math.round(entity.x * 100) / 100,
-        y: Math.round(entity.y * 100) / 100,
-        z: Math.round(entity.z * 100) / 100,
-        corpse: Boolean(entity.corpse),
-        gone: Boolean(entity.gone),
-        invis: this.isInvisible(entity, now),
-        carry: entity.carry || undefined,
-        boss: this.players.get(entityPlayerId)?.isBoss || undefined,
-        size: entity.size && entity.size !== 1 ? entity.size : undefined,
-        sk: entity.strikeAt || undefined,
-        bhp: entity.hp !== undefined ? entity.hp : undefined,
-        bmax: entity.hpMax || undefined,
-        bfx: entity.bfx || undefined,
-        shadow: entity.shadow ? { x: Math.round(entity.shadow.x * 10) / 10, z: Math.round(entity.shadow.z * 10) / 10 } : undefined,
-        live: (entity.liveUntil || 0) > now || undefined,
-        scn: (entity.scanUntil || 0) > now || undefined,
-        bhold: entity.holdUntil && entity.holdUntil > now ? Math.ceil((entity.holdUntil - now) / 1000) : undefined,
-        blue: (entity.drunkUntil || 0) > now || undefined,
-        cr: entity.crouch || undefined,
-        dark: entity.tpAt ? true : undefined,
-        cen: (entity.censorUntil || 0) > now || undefined,
-        red: (entity.redUntil || 0) > now ? entity.redKind : undefined,
-        ult: entity.ultAt || undefined,
-        vm: entity.vmode,
-        bcd: entity.bcdPub,
-        scl: entity.sup && entity.sup.id === 'town_level' ? 0.6 : undefined,
-        bar: entity.sup && entity.sup.dome > now ? 1 : undefined,
-        wpn: SuperAbilities.wpnActive(entity, now) || undefined,
-        chg: entity.sup && entity.sup.charging ? 1 : undefined,
-        dec: entity.sup && entity.sup.decoy ? { x: Math.round(entity.sup.decoy.x * 10) / 10, y: Math.round(entity.sup.decoy.y * 10) / 10, z: Math.round(entity.sup.decoy.z * 10) / 10 } : undefined,
-        gld: entity.sup && entity.sup.glide ? 1 : undefined,
-        tla: entity.sup && entity.sup.id === 'town_level' ? (entity.sup.slideUntil > now ? 2 : entity.sup.reload ? 1 : undefined) : undefined,
-        mcv: entity.sup && entity.sup.pv ? entity.sup.pv : undefined,
-        tgl: entity.tigerLeap ? 1 : undefined,
-        psd: entity.sup && entity.sup.id === 'platinum_star' ? 1 : undefined,
-        psa: entity.sup && entity.sup.id === 'platinum_star' ? (entity.sup.barrage ? 1 : entity.sup.poke ? 2 : entity.sup.grab ? 3 : entity.sup.poseUntil > now ? 4 : 0) || undefined : undefined,
-        psf: entity.sup && entity.sup.id === 'platinum_star' && entity.sup.form ? 1 : undefined,
-        psr: entity.sup && entity.sup.id === 'platinum_star' && entity.sup.rhythm >= 30 && now >= entity.sup.cd.react ? 1 : undefined,
-        wig: entity.sup && SuperAbilities.DEFS[entity.sup.id] && SuperAbilities.DEFS[entity.sup.id].wig ? 1 : undefined,
-        ntf: entity.ntf && entity.ntf.until > now ? entity.ntf.until - now : undefined,
-        tpMark: entity.tpMark ? { x: Math.round(entity.tpMark.x * 10) / 10, z: Math.round(entity.tpMark.z * 10) / 10 } : undefined,
-        fat: entity.fatiga ? Math.round(entity.fatiga * 10) / 10 : undefined,
-        debt: entity.debt ? Math.round(entity.debt * 10) / 10 : undefined,
-        down: entity.down || undefined,
-        sp: entity.sp !== undefined ? Math.round(entity.sp) : undefined,
-        spe: entity.spPub,
-        hh: entity.bossHitHalf ? Math.round(entity.bossHitHalf * 100) / 100 : undefined,
-        hv: entity.bossHitH ? Math.round(entity.bossHitH * 100) / 100 : undefined,
-        sg: entity.sig && entity.sig.until > this.clock() ? entity.sig.m : undefined,
-        tem: entity.temblor ? Math.round(entity.temblor) : undefined,
-        emote: entity.emote && Status.active(entity, 'emote', now) ? { id: entity.emote.id } : undefined,
-        mo: entity.mood || undefined,
-        hold: entity.astral ? (entity.astral.state === 'charging' ? 'claw' : 'claw_ready') : entity.eating ? `eat_${entity.eating.cardId}` : entity.channel && entity.channel.endsAt > now ? 'horn' : entity.carry ? 'module' : undefined,
-        rag: entity.rag ? { p: RagdollBody.serialize(entity.rag, entity) } : null,
-      };
+    for (const entityPlayerId in this.gameState.entities) {
+      const entity = this.gameState.entities[entityPlayerId];
+      const pe = {};
+      let v;
+      pe.x = Math.round(entity.x * 100) / 100;
+      pe.y = Math.round(entity.y * 100) / 100;
+      pe.z = Math.round(entity.z * 100) / 100;
+      pe.corpse = Boolean(entity.corpse);
+      pe.gone = Boolean(entity.gone);
+      pe.invis = this.isInvisible(entity, now);
+      v = entity.carry || undefined;
+      if (v !== undefined) pe.carry = v;
+      v = this.players.get(entityPlayerId)?.isBoss || undefined;
+      if (v !== undefined) pe.boss = v;
+      v = entity.size && entity.size !== 1 ? entity.size : undefined;
+      if (v !== undefined) pe.size = v;
+      v = entity.strikeAt || undefined;
+      if (v !== undefined) pe.sk = v;
+      v = entity.hp !== undefined ? entity.hp : undefined;
+      if (v !== undefined) pe.bhp = v;
+      v = entity.hpMax || undefined;
+      if (v !== undefined) pe.bmax = v;
+      v = entity.bfx || undefined;
+      if (v !== undefined) pe.bfx = v;
+      v = entity.shadow ? { x: Math.round(entity.shadow.x * 10) / 10, z: Math.round(entity.shadow.z * 10) / 10 } : undefined;
+      if (v !== undefined) pe.shadow = v;
+      v = (entity.liveUntil || 0) > now || undefined;
+      if (v !== undefined) pe.live = v;
+      v = (entity.scanUntil || 0) > now || undefined;
+      if (v !== undefined) pe.scn = v;
+      v = entity.holdUntil && entity.holdUntil > now ? Math.ceil((entity.holdUntil - now) / 1000) : undefined;
+      if (v !== undefined) pe.bhold = v;
+      v = (entity.drunkUntil || 0) > now || undefined;
+      if (v !== undefined) pe.blue = v;
+      v = entity.crouch || undefined;
+      if (v !== undefined) pe.cr = v;
+      v = entity.tpAt ? true : undefined;
+      if (v !== undefined) pe.dark = v;
+      v = (entity.censorUntil || 0) > now || undefined;
+      if (v !== undefined) pe.cen = v;
+      v = (entity.redUntil || 0) > now ? entity.redKind : undefined;
+      if (v !== undefined) pe.red = v;
+      v = entity.ultAt || undefined;
+      if (v !== undefined) pe.ult = v;
+      v = entity.vmode;
+      if (v !== undefined) pe.vm = v;
+      v = entity.bcdPub;
+      if (v !== undefined) pe.bcd = v;
+      v = entity.sup && entity.sup.id === 'town_level' ? 0.6 : undefined;
+      if (v !== undefined) pe.scl = v;
+      v = entity.sup && entity.sup.dome > now ? 1 : undefined;
+      if (v !== undefined) pe.bar = v;
+      v = SuperAbilities.wpnActive(entity, now) || undefined;
+      if (v !== undefined) pe.wpn = v;
+      v = entity.sup && entity.sup.charging ? 1 : undefined;
+      if (v !== undefined) pe.chg = v;
+      v = entity.sup && entity.sup.decoy ? { x: Math.round(entity.sup.decoy.x * 10) / 10, y: Math.round(entity.sup.decoy.y * 10) / 10, z: Math.round(entity.sup.decoy.z * 10) / 10 } : undefined;
+      if (v !== undefined) pe.dec = v;
+      v = entity.sup && entity.sup.glide ? 1 : undefined;
+      if (v !== undefined) pe.gld = v;
+      v = entity.sup && entity.sup.id === 'town_level' ? (entity.sup.slideUntil > now ? 2 : entity.sup.reload ? 1 : undefined) : undefined;
+      if (v !== undefined) pe.tla = v;
+      v = entity.sup && entity.sup.pv ? entity.sup.pv : undefined;
+      if (v !== undefined) pe.mcv = v;
+      v = entity.tigerLeap ? 1 : undefined;
+      if (v !== undefined) pe.tgl = v;
+      v = entity.sup && entity.sup.id === 'platinum_star' ? 1 : undefined;
+      if (v !== undefined) pe.psd = v;
+      v = entity.sup && entity.sup.id === 'platinum_star' ? (entity.sup.barrage ? 1 : entity.sup.poke ? 2 : entity.sup.grab ? 3 : entity.sup.poseUntil > now ? 4 : 0) || undefined : undefined;
+      if (v !== undefined) pe.psa = v;
+      v = entity.sup && entity.sup.id === 'platinum_star' && entity.sup.form ? 1 : undefined;
+      if (v !== undefined) pe.psf = v;
+      v = entity.sup && entity.sup.id === 'platinum_star' && entity.sup.rhythm >= 30 && now >= entity.sup.cd.react ? 1 : undefined;
+      if (v !== undefined) pe.psr = v;
+      v = entity.sup && SuperAbilities.DEFS[entity.sup.id] && SuperAbilities.DEFS[entity.sup.id].wig ? 1 : undefined;
+      if (v !== undefined) pe.wig = v;
+      v = entity.ntf && entity.ntf.until > now ? entity.ntf.until - now : undefined;
+      if (v !== undefined) pe.ntf = v;
+      v = entity.tpMark ? { x: Math.round(entity.tpMark.x * 10) / 10, z: Math.round(entity.tpMark.z * 10) / 10 } : undefined;
+      if (v !== undefined) pe.tpMark = v;
+      v = entity.fatiga ? Math.round(entity.fatiga * 10) / 10 : undefined;
+      if (v !== undefined) pe.fat = v;
+      v = entity.debt ? Math.round(entity.debt * 10) / 10 : undefined;
+      if (v !== undefined) pe.debt = v;
+      v = entity.down || undefined;
+      if (v !== undefined) pe.down = v;
+      v = entity.sp !== undefined ? Math.round(entity.sp) : undefined;
+      if (v !== undefined) pe.sp = v;
+      v = entity.spPub;
+      if (v !== undefined) pe.spe = v;
+      v = entity.bossHitHalf ? Math.round(entity.bossHitHalf * 100) / 100 : undefined;
+      if (v !== undefined) pe.hh = v;
+      v = entity.bossHitH ? Math.round(entity.bossHitH * 100) / 100 : undefined;
+      if (v !== undefined) pe.hv = v;
+      v = entity.sig && entity.sig.until > this.clock() ? entity.sig.m : undefined;
+      if (v !== undefined) pe.sg = v;
+      v = entity.temblor ? Math.round(entity.temblor) : undefined;
+      if (v !== undefined) pe.tem = v;
+      v = entity.emote && Status.active(entity, 'emote', now) ? { id: entity.emote.id } : undefined;
+      if (v !== undefined) pe.emote = v;
+      v = entity.mood || undefined;
+      if (v !== undefined) pe.mo = v;
+      v = entity.astral ? (entity.astral.state === 'charging' ? 'claw' : 'claw_ready') : entity.eating ? `eat_${entity.eating.cardId}` : entity.channel && entity.channel.endsAt > now ? 'horn' : entity.carry ? 'module' : undefined;
+      if (v !== undefined) pe.hold = v;
+      pe.rag = entity.rag ? { p: RagdollBody.serialize(entity.rag, entity) } : null;
+      publicEntities[entityPlayerId] = pe;
     }
     const ghostsFor = (viewerId) => {
       const out = {};
@@ -2115,13 +2181,25 @@ class Room {
     };
     const zones = this.gameState.zones.map((z) => ({ id: z.id, kind: z.kind, y: z.y || 0, level: z.level || 0, cardId: z.cardId || null, x: z.x, z: z.z, radius: z.radius, mode: z.mode || null, dx: z.dx || 0, dz: z.dz || 0, armed: z.armedAt === undefined || now >= z.armedAt }));
 
+    let flojeraBase = null;
+    let towersView = null;
+    let eventsView = null;
+    let dynView;
+    Delta.beginTick();
     for (const [playerId, player] of this.players) {
       if (player.isBot || player.ws.readyState !== 1) continue;
       const own = this.gameState.entities[playerId];
-      const flojera = {};
-      for (const [entityPlayerId, entity] of Object.entries(this.gameState.entities)) {
-        flojera[entityPlayerId] = { stunned: Status.active(entity, 'stun', now), ragdoll: Status.active(entity, 'ragdoll', now) };
+      if (!flojeraBase) {
+        flojeraBase = {};
+        for (const entityPlayerId in this.gameState.entities) {
+          const entity = this.gameState.entities[entityPlayerId];
+          flojeraBase[entityPlayerId] = { stunned: Status.active(entity, 'stun', now), ragdoll: Status.active(entity, 'ragdoll', now) };
+        }
+        towersView = Towers.view(this, now);
+        eventsView = this.eventsFor();
+        dynView = this.gameState.dyn.length ? SuperAbilities.minceraftView(this, now) : undefined;
       }
+      const flojera = { ...flojeraBase };
       if (own) {
         flojera[playerId] = {
           value: own.flojera,
@@ -2142,8 +2220,8 @@ class Room {
       }
       const snapFull = {
         flojera,
-        dyn: this.gameState.dyn.length ? SuperAbilities.minceraftView(this, now) : undefined,
-        towers: Towers.view(this, now),
+        dyn: dynView,
+        towers: towersView,
         tick: this.tickCount,
         entities: ownHidden(playerId, player, publicEntities, this, now),
         ghosts: ghostsFor(playerId),
@@ -2155,7 +2233,7 @@ class Room {
         selfDamageObjects: this.gameState.selfDamageObjectPositions,
         selfDamageTypes: this.gameState.selfDamageTypes,
         curator: player.isAsymRole ? this.gameState.curator : null,
-        events: this.eventsFor(),
+        events: eventsView,
         hiddenPlatforms: this.gameState.hiddenPlatforms || [],
         plankHp: this.gameState.plankHp || {},
         blockHp: this.gameState.blockHp || {},
@@ -2166,6 +2244,7 @@ class Room {
       };
       this.sendTo(playerId, MessageType.STATE_SNAPSHOT, Delta.diff(player, snapFull, this.tickCount));
     }
+    Delta.endTick();
   }
 
   tickGhosts(dt) {
@@ -3123,7 +3202,8 @@ class Room {
 
   zoneDistance(entity, zone) {
     if (Math.abs((entity.y || 0) - (zone.y || 0)) > 1.6) return Infinity;
-    return distanceBetween({ ...entity, y: 0 }, { x: zone.x, z: zone.z, y: 0 });
+    const reach = Hitbox.extentOf(entity).half;
+    return Math.max(0, Math.abs(entity.x - zone.x) - reach, Math.abs(entity.z - zone.z) - reach);
   }
 
   addZone(zone) {
