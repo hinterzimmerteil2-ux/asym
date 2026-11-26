@@ -54,7 +54,18 @@ export default function StaticMerge({ children, enabled = true }) {
       made.push(mesh);
     });
     meshes.forEach((m) => { m.visible = false; });
+    const mergedSet = new Set(meshes);
+    const frozen = [];
+    const freeze = (o) => {
+      let ok = true;
+      for (const c of o.children) if (!freeze(c)) ok = false;
+      if (o.isMesh || o.isPoints || o.isLine) ok = ok && mergedSet.has(o);
+      if (ok && o !== root && o.matrixAutoUpdate) { o.matrixAutoUpdate = false; frozen.push(o); }
+      return ok;
+    };
+    freeze(root);
     return () => {
+      frozen.forEach((o) => { o.matrixAutoUpdate = true; });
       made.forEach((m) => { root.remove(m); m.geometry.dispose(); });
       meshes.forEach((m) => { m.visible = true; });
     };

@@ -2677,7 +2677,7 @@ function LobbyExtras({ id, c }) {
   );
 }
 
-function LobbyDecor({ walls }) {
+function LobbyDecor({ walls, lightCount = 5, lights = true }) {
   const id = useLobbyTheme();
   const c = LOBBY_THEMES[id];
   const halo = useRef();
@@ -2721,6 +2721,7 @@ function LobbyDecor({ walls }) {
         </mesh>
       ))}
 
+      <StaticMerge key={`${id}:${walls ? walls.length : 0}`}>
       <LobbyWall c={c} position={[0, 0, -wo]} rotation={0} count={winCount} doors={doorList} pilasters={pas} gallery={quiro} />
       <LobbyWall c={c} position={[0, 0, wo]} rotation={Math.PI} count={winCount} doors={doorList} pilasters={pas} gallery={quiro} />
       <LobbyWall c={c} position={[-wo, 0, 0]} rotation={Math.PI / 2} count={winCount} doors={doorList} pilasters={pas} gallery={quiro} />
@@ -2728,15 +2729,16 @@ function LobbyDecor({ walls }) {
 
       <LobbyPartitions c={c} walls={walls} />
       <LobbyExtras id={id} c={c} />
+      </StaticMerge>
 
       <group ref={halo} position={[16, 6.3, 4.8]}>
         <mesh><octahedronGeometry args={[0.5, 0]} /><meshBasicMaterial color={c.gold} /></mesh>
       </group>
 
-      {[[-12, -12], [12, 12], [-12, 12], [12, -12]].map(([x, z], i) => (
+      {lights && [[-12, -12], [12, 12], [-12, 12], [12, -12]].slice(0, lightCount >= 5 ? 4 : lightCount >= 2 ? 2 : 0).map(([x, z], i) => (
         <pointLight key={i} position={[x, 6.2, z]} intensity={c.lightI * (i < 2 ? 1.7 : 1.4)} distance={40} color={i % 2 ? c.light2 : c.light} />
       ))}
-      <pointLight position={[0, 7, 0]} intensity={34} distance={26} color={c.gold} />
+      {lights && <pointLight position={[0, 7, 0]} intensity={lightCount >= 2 ? 34 : 48} distance={lightCount >= 2 ? 26 : 34} color={c.gold} />}
     </group>
   );
 }
@@ -3213,7 +3215,7 @@ function BrokenBottle({ color }) {
   );
 }
 
-function Embers() {
+const Embers = memo(function Embers() {
   const ref = useRef();
   const { camera } = useThree();
   const N = 220;
@@ -3249,7 +3251,7 @@ function Embers() {
       <pointsMaterial color="#ff8a3d" size={0.12} transparent opacity={0.55} depthWrite={false} sizeAttenuation />
     </points>
   );
-}
+});
 
 function SpearMesh({ zone }) {
   const arm = useRef();
@@ -4239,7 +4241,7 @@ function SquareFrame({ x, z, half, color, opacity, y = 0, hy, hz }) {
 
 const PLAT_TEX = { wall: 'plaster', partition: 'plaster', tower: 'tower', roof: 'roof', ramp: 'ramp', mezzanine: 'concrete' };
 
-function NightDecor({ showStars = true, lights = true, lightCount = 5 }) {
+const NightDecor = memo(function NightDecor({ showStars = true, lights = true, lightCount = 5 }) {
   const stars = useMemo(() => {
     const pts = [];
     for (let i = 0; i < 400; i++) {
@@ -4270,7 +4272,7 @@ function NightDecor({ showStars = true, lights = true, lightCount = 5 }) {
       )}
     </group>
   );
-}
+});
 
 function GateMesh({ p }) {
   const c = p.kind === 'pgate' ? '#5fd58c' : '#f2a154';
@@ -4892,7 +4894,7 @@ export default function GameScene({
 
       <MGround halfSize={areaHalfSize} themed={phase === 'action'} lobby={phase !== 'action'} lobbyFloor={lobbyTheme.floor} pits={pits} />
       {pits.map((p) => <MPit key={p.id} p={p} pits={pits} />)}
-      {phase !== 'action' && <MLobbyDecor walls={lobbyWalls} />}
+      {phase !== 'action' && <MLobbyDecor walls={lobbyWalls} lightCount={g.lightCount} lights={g.lights} />}
 
       {phase === 'action' && (effects || []).map((effect) => (effect.sup ? <SuperFx key={effect.id} effect={effect} /> : <SkillEffect key={effect.id} effect={effect} />))}
 

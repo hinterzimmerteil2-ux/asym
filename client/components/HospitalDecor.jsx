@@ -1,7 +1,7 @@
 'use client';
 
 import StaticMerge from './StaticMerge';
-import { useMemo, useRef } from 'react';
+import { memo, useMemo, useRef } from 'react';
 import { CanvasTexture, SRGBColorSpace } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { AdditiveBlending, DoubleSide, MeshBasicMaterial } from 'three';
@@ -517,7 +517,7 @@ function Dust({ half, count }) {
   );
 }
 
-export default function HospitalDecor({ half, platforms, level = 'full', dust = 260, lightsOn = true }) {
+function HospitalDecor({ half, platforms, level = 'full', dust = 260, lightsOn = true }) {
   const mats = useMemo(() => ({
     steady: new MeshBasicMaterial({ color: '#d6efd9' }),
     flicker: new MeshBasicMaterial({ color: '#d6efd9' }),
@@ -546,3 +546,5 @@ export default function HospitalDecor({ half, platforms, level = 'full', dust = 
     </group>
   );
 }
+
+export default memo(HospitalDecor);
