@@ -66,7 +66,7 @@ export const DE = [
 "Charakter anpassen",
 "Karte",
 "(eigene)",
-"Neue Karte erstellen →",
+"Neue Karte erstellen",
 "Bots:",
 "Weniger Bots",
 "Mehr Bots",

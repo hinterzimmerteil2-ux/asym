@@ -118,9 +118,9 @@ function SideEditor({ side, list, setList, max, library }) {
         <button disabled={list.length >= max} onClick={() => add()}>+ Skill</button>
         <button onClick={() => (lib ? setLib(null) : openLibrary())}>{lib ? 'Cerrar biblioteca' : 'Biblioteca'}</button>
       </div>
-      {msg && <p style={{ ...style.line, color: '#f2d154' }}>{msg}</p>}
+      {msg && <p style={{ ...style.line, color: '#f0b429' }}>{msg}</p>}
       {lib && (
-        <div style={{ marginTop: 4, maxHeight: 160, overflowY: 'auto', border: '1px solid #3d4a42', borderRadius: 6, padding: 4 }}>
+        <div style={{ marginTop: 4, maxHeight: 160, overflowY: 'auto', border: '1px solid #3d4a42', borderRadius: 2, padding: 4 }}>
           {lib.length === 0 && <p style={style.line}>Todavía no hay skills publicadas.</p>}
           {lib.map((x) => (
             <div key={x.id} style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 12 }}>
@@ -134,7 +134,7 @@ function SideEditor({ side, list, setList, max, library }) {
       {list.map((s, idx) => {
         const upd = (patch) => setList((prev) => prev.map((q, i) => (i === idx ? { ...q, ...patch } : q)));
         return (
-          <div key={s.id} style={{ marginTop: 6, padding: 6, border: '1px solid #3d4a42', borderRadius: 6 }}>
+          <div key={s.id} style={{ marginTop: 6, padding: 6, border: '1px solid #3d4a42', borderRadius: 2 }}>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               <input value={s.name} maxLength={28} onChange={(ev) => upd({ name: ev.target.value })} style={{ flex: 1, minWidth: 0 }} />
               <select value={s.kind} onChange={(ev) => upd({ kind: ev.target.value, ...(side === 'patient' ? KIND_PRESETS[ev.target.value] : {}) })}>
@@ -156,7 +156,7 @@ function SideEditor({ side, list, setList, max, library }) {
   );
 }
 
-const style = { line: { fontSize: 12, color: '#c9cbd8', margin: '4px 0', display: 'block' } };
+const style = { line: { fontSize: 12, color: '#c5d3ca', margin: '4px 0', display: 'block' } };
 
 const SUPER_EDIT = [
   ['minceraft', 'Minceraft', [['max', 'Bloques máximos', 8, 256, 1, 64], ['lifeSec', 'Duración de bloques (s)', 3, 60, 1, 22], ['pistonPush', 'Empuje del pistón', 4, 40, 1, 14], ['pistonLifeSec', 'Duración del pistón (s)', 2, 30, 1, 9], ['tntDmg', 'Daño de TNT al Curador', 0, 100, 1, 6], ['tntFuseSec', 'Mecha de TNT (s)', 0.3, 5, 0.1, 1.4], ['tntR', 'Radio de TNT', 1, 12, 0.1, 3.6], ['slimeV', 'Rebote del slime', 4, 30, 1, 11]]],
@@ -175,7 +175,7 @@ function SupersEditor({ supers, setSupers }) {
     <div style={{ marginTop: 10 }}>
       <p style={{ ...style.line, fontWeight: 700 }}>Súperhabilidades de este mapa</p>
       {SUPER_EDIT.map(([id, label, params]) => (
-        <div key={id} style={{ marginTop: 6, padding: 6, border: '1px solid #3d4a42', borderRadius: 6 }}>
+        <div key={id} style={{ marginTop: 6, padding: 6, border: '1px solid #3d4a42', borderRadius: 2 }}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <label style={{ ...style.line, flex: 1, margin: 0 }}>
               <input type="checkbox" checked={enabled[id] !== false} onChange={(ev) => setOn(id, ev.target.checked)} /> {label}

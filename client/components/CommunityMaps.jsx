@@ -3,7 +3,7 @@ import { btn as uiBtn } from '../lib/ui';
 import { useEffect, useState } from 'react';
 import { listCommunityMaps, voteCommunityMap, deleteCommunityMap } from '../lib/community';
 
-const box = { position: 'absolute', top: 50, left: '50%', transform: 'translateX(-50%)', zIndex: 40, display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(20,24,40,0.97)', border: '1px solid #8fc6ea', borderRadius: 10, padding: 10, width: 'min(94vw, 460px)', maxHeight: 'calc(100% - 70px)', overflow: 'auto' };
+const box = { position: 'absolute', top: 50, left: '50%', transform: 'translateX(-50%)', zIndex: 40, display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(20,24,40,0.97)', border: '1px solid #8fc6ea', borderRadius: 4, padding: 10, width: 'min(94vw, 460px)', maxHeight: 'calc(100% - 70px)', overflow: 'auto' };
 const btn = (on) => ({ ...uiBtn.secondary(on), padding: '4px 10px', fontSize: 12 });
 
 export default function CommunityMaps({ isHost, currentMapId, onUse, onClose }) {
@@ -48,7 +48,7 @@ export default function CommunityMaps({ isHost, currentMapId, onUse, onClose }) 
       {!maps && !error && <div style={{ fontSize: 13 }}>Cargando…</div>}
       {maps && maps.length === 0 && <div style={{ fontSize: 13 }}>Aún no hay mapas publicados. Crea el primero en el editor.</div>}
       {(maps || []).map((m) => (
-        <div key={m.id} style={{ display: 'flex', gap: 6, alignItems: 'center', padding: 6, border: `1px solid ${m.id === currentMapId ? '#5fd58c' : '#2a2d3d'}`, borderRadius: 8 }}>
+        <div key={m.id} style={{ display: 'flex', gap: 6, alignItems: 'center', padding: 6, border: `1px solid ${m.id === currentMapId ? '#62c9a0' : '#2f4d44'}`, borderRadius: 2 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div translate="no" style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
             <div translate="no" style={{ fontSize: 11, opacity: 0.7 }}>{m.author}</div>

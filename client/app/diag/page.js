@@ -128,7 +128,7 @@ export default function Diag() {
 
   const bad = (v) => v === false || /NO |FALLA|NEGRO|error/.test(String(v));
   return (
-    <div translate="no" style={{ position: 'absolute', top: 0, left: 0, right: 0, minHeight: '100%', background: '#f4f4f4', color: '#111', padding: 20, fontFamily: 'Arial, sans-serif', fontSize: 20, textTransform: 'none' }}>
+    <div translate="no" style={{ position: 'absolute', top: 0, left: 0, right: 0, minHeight: '100%', background: '#f4f4f4', color: '#111', padding: 20, fontFamily: 'inherit', fontSize: 20, textTransform: 'none' }}>
       <h1 style={{ fontSize: 28, margin: '0 0 12px' }}>Diagnostico de compatibilidad {done ? '(listo)' : '(ejecutando)'}</h1>
       <p style={{ margin: '0 0 12px' }}>Haz una captura de esta pantalla completa y envíala.</p>
       <table style={{ borderCollapse: 'collapse', width: '100%' }}>

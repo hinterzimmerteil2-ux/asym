@@ -28,6 +28,6 @@ export default function AuthSuccessPage() {
 }
 
 const styles = {
-  main: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#12131a' },
-  text: { color: '#8a8da3', fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: 14 },
+  main: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0e1f1b' },
+  text: { color: '#9cb2a6', fontSize: 14 },
 };

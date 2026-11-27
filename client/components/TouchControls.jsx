@@ -153,7 +153,7 @@ function Stick({ pos, dims, edit, boxRef, orient }) {
           style={{ position: 'absolute', left: zone.left, top: zone.top, width: zoneW, height: zoneH, touchAction: 'none', pointerEvents: 'auto' }}
         >
           {origin && (
-            <div style={{ position: 'fixed', left: origin.x - RADIUS, top: origin.y - RADIUS, width: RADIUS * 2, height: RADIUS * 2, borderRadius: '50%', background: 'rgba(20,22,30,0.45)', border: '2px solid rgba(255,255,255,0.25)' }}>
+            <div style={{ position: 'fixed', left: origin.x - RADIUS, top: origin.y - RADIUS, width: RADIUS * 2, height: RADIUS * 2, borderRadius: '50%', background: 'rgba(14, 31, 27,0.45)', border: '2px solid rgba(255,255,255,0.25)' }}>
               <div style={{ position: 'absolute', left: RADIUS - 22 * BS + knob.x * RADIUS * 0.7, top: RADIUS - 22 * BS + knob.y * RADIUS * 0.7, width: 44 * BS, height: 44 * BS, borderRadius: '50%', background: 'rgba(255,255,255,0.65)' }} />
             </div>
           )}
@@ -186,7 +186,7 @@ function StickHome({ size, custom, edit, boxRef, orient }) {
     commitTouchLayout();
   }
   return (
-    <div data-tc="stick" style={{ position: 'absolute', width: size, height: size, borderRadius: '50%', border: '2px dashed rgba(255,255,255,0.28)', background: 'rgba(20,22,30,0.18)', pointerEvents: 'none', ...place }}>
+    <div data-tc="stick" style={{ position: 'absolute', width: size, height: size, borderRadius: '50%', border: '2px dashed rgba(255,255,255,0.28)', background: 'rgba(14, 31, 27,0.18)', pointerEvents: 'none', ...place }}>
       {edit && (
         <div
           onContextMenu={(e) => e.preventDefault()}
@@ -230,7 +230,7 @@ function Btn({ label, code, act, size, style, until = 0, icon, tint, onTap }) {
       onPointerDown={down}
       onPointerUp={up}
       onPointerCancel={up}
-      style={{ width: size, height: size, borderRadius: '50%', background: tint || (cooling ? 'rgba(20,22,30,0.35)' : 'rgba(20,22,30,0.7)'), color: cooling ? 'rgba(255,255,255,0.45)' : '#fff', border: '2px solid rgba(255,255,255,0.3)', fontWeight: 700, touchAction: 'none', pointerEvents: 'auto', userSelect: 'none', WebkitUserSelect: 'none', padding: 0, ...style, fontSize: (style?.fontSize || 15) * BS }}
+      style={{ width: size, height: size, borderRadius: '50%', background: tint || (cooling ? 'rgba(14, 31, 27,0.35)' : 'rgba(14, 31, 27,0.7)'), color: cooling ? 'rgba(255,255,255,0.45)' : '#fff', border: '2px solid rgba(255,255,255,0.3)', fontWeight: 700, touchAction: 'none', pointerEvents: 'auto', userSelect: 'none', WebkitUserSelect: 'none', padding: 0, ...style, fontSize: (style?.fontSize || 15) * BS }}
     >
       {cooling ? Math.ceil(remaining / 1000) : icon ? <SkillIcon id={icon} size={Math.round(size * 0.62)} /> : label}
     </button>
@@ -240,7 +240,7 @@ function Btn({ label, code, act, size, style, until = 0, icon, tint, onTap }) {
 function EditBar({ orient, lay, onExit, portrait }) {
   const [lo, hi] = TOUCH_SIZE_RANGE;
   return (
-    <div data-tc-edit="1" style={{ position: 'absolute', top: `calc(env(safe-area-inset-top, 0px) + ${portrait ? 100 : 50}px)`, left: 8, width: 'min(340px, calc(46% - 8px))', minWidth: 230, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', borderRadius: 12, background: 'rgba(14,16,24,0.92)', border: '1px solid rgba(255,214,102,0.6)', color: '#fff', fontSize: 12, pointerEvents: 'auto', zIndex: 5 }}>
+    <div data-tc-edit="1" style={{ position: 'absolute', top: `calc(env(safe-area-inset-top, 0px) + ${portrait ? 100 : 50}px)`, left: 8, width: 'min(340px, calc(46% - 8px))', minWidth: 230, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', borderRadius: 4, background: 'rgba(14,16,24,0.92)', border: '1px solid rgba(255,214,102,0.6)', color: '#fff', fontSize: 12, pointerEvents: 'auto', zIndex: 5 }}>
       <strong style={{ fontSize: 13 }}>Editar botones</strong>
       <span style={{ opacity: 0.8, lineHeight: 1.3 }}>Arrastra cada botón a donde te quede cómodo.</span>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

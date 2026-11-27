@@ -37,9 +37,9 @@ const TEXT = {
 
 const FROM_GAME = { es: 'es', 'en-GB': 'en', de: 'de' };
 
-const box = { maxWidth: 760, margin: '0 auto', padding: '32px 18px 64px', color: '#e8e6ef', lineHeight: 1.6, fontSize: 15 };
+const box = { maxWidth: 760, margin: '0 auto', padding: '32px 18px 64px', color: '#e8efe4', lineHeight: 1.6, fontSize: 15 };
 const tab = (on) => ({ ...btn.secondary(on), padding: '5px 12px' });
-const row = { borderLeft: '3px solid #d94a52', background: '#1c1a27', borderRadius: '0 8px 8px 0', padding: '12px 16px', margin: '14px 0' };
+const row = { borderLeft: '5px solid #f0b429', background: '#16312b', borderRadius: '0 4px 4px 0', padding: '12px 16px', margin: '14px 0' };
 
 function readLang() {
   try {
@@ -65,10 +65,10 @@ export default function TeamView() {
   };
   const t = TEXT[lang];
   return (
-    <main translate="no" style={{ minHeight: '100dvh', background: '#12111a' }}>
+    <main translate="no" style={{ minHeight: '100dvh', background: '#0e1f1b' }}>
       <div style={box}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <Link href="/" style={{ color: '#d94a52', textDecoration: 'none', fontSize: 13 }}>{t.back}</Link>
+          <Link href="/" style={{ color: '#f0b429', textDecoration: 'none', fontSize: 13 }}>{t.back}</Link>
           <div style={{ display: 'flex', gap: 6 }}>
             <button type="button" style={tab(lang === 'es')} onClick={() => pick('es')}>ES</button>
             <button type="button" style={tab(lang === 'en')} onClick={() => pick('en')}>EN</button>
@@ -79,14 +79,14 @@ export default function TeamView() {
         <p style={{ opacity: 0.7, margin: '0 0 18px' }}>{t.sub}</p>
         <section style={row}>
           <h2 style={{ fontSize: 17, margin: '0 0 4px', color: '#fff' }}>{t.langs[0]}</h2>
-          <p style={{ margin: 0 }}>{t.me} (<a href={`mailto:${MAIL}`} style={{ color: '#d94a52' }}>{MAIL}</a>)</p>
+          <p style={{ margin: 0 }}>{t.me} (<a href={`mailto:${MAIL}`} style={{ color: '#f0b429' }}>{MAIL}</a>)</p>
         </section>
         <section style={row}>
           <h2 style={{ fontSize: 17, margin: '0 0 4px', color: '#fff' }}>{t.langs[1]}</h2>
           <p style={{ margin: 0 }}>{t.skb}</p>
         </section>
         <p style={{ marginTop: 32, fontSize: 13 }}>
-          <Link href="/legal" style={{ color: '#d94a52', opacity: 0.85 }}>{t.legal}</Link>
+          <Link href="/legal" style={{ color: '#f0b429', opacity: 0.85 }}>{t.legal}</Link>
         </p>
       </div>
     </main>

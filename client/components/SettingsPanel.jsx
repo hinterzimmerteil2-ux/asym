@@ -60,7 +60,7 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
         <div style={styles.card}>
           <div style={styles.rowTop}>
             <span>Calidad gráfica</span>
-            <strong style={{ color: '#f2d154' }}>{q.toFixed(2)}</strong>
+            <strong style={{ color: '#f0b429' }}>{q.toFixed(2)}</strong>
           </div>
           <input
             type="range"
@@ -163,18 +163,18 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
 }
 
 const styles = {
-  backdrop: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 60, background: 'rgba(10, 11, 16, 0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  panel: { width: '100%', maxWidth: 640, maxHeight: '88vh', overflowY: 'auto', background: '#1a1215', border: '1px solid #3d2c33', borderRadius: 12, padding: '16px 20px 20px', color: '#e8e9f0' },
+  backdrop: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 60, background: 'rgba(6, 14, 12, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  panel: { width: '100%', maxWidth: 640, maxHeight: '88vh', overflowY: 'auto', background: '#16312b', border: '2px solid #4a7366', borderRadius: 6, boxShadow: '0 5px 0 rgba(0, 0, 0, 0.5)', padding: '16px 22px 22px', color: '#e8efe4' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  title: { margin: 0, fontSize: 20 },
-  close: { background: 'none', border: 'none', color: '#a8959a', fontSize: 26, cursor: 'pointer', lineHeight: 1 },
-  section: { margin: '18px 0 8px', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.6, color: '#a8959a' },
-  card: { background: '#181a24', border: '1px solid #3d2c33', borderRadius: 10, padding: 12 },
+  title: { margin: 0, fontFamily: 'var(--display)', fontStretch: '72%', fontWeight: 800, fontSize: 28, lineHeight: 1.1, color: '#dfe8dc' },
+  close: { ...btn.icon(false), fontSize: 18 },
+  section: { margin: '24px 0 8px', paddingBottom: 6, borderBottom: '2px solid #2f4d44', fontFamily: 'var(--display)', fontStretch: '72%', fontWeight: 800, fontSize: 18, color: '#dfe8dc' },
+  card: { background: '#0e1f1b', border: '2px solid #2f4d44', borderRadius: 4, padding: 14 },
   rowTop: { display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 14 },
   presets: { display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   preset: (on) => ({ ...btn.secondary(on), padding: '5px 10px', fontSize: 12 }),
-  list: { margin: '10px 0 0', paddingLeft: 18, fontSize: 12, color: '#b9bbcc', lineHeight: 1.6 },
-  hint: { fontSize: 12, color: '#a8959a', margin: '8px 0 0' },
-  check: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 13 },
+  list: { margin: '10px 0 0', paddingLeft: 18, fontSize: 13, color: '#c5d3ca', lineHeight: 1.6 },
+  hint: { fontSize: 13, color: '#9cb2a6', margin: '8px 0 0' },
+  check: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 14 },
   reset: { ...btn.secondary(false), marginTop: 8 },
 };

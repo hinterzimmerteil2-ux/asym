@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-const COLORS = { blackout: '#9aa5ff', alarm: '#ff6b6b', shuffle: '#ffd166', gatesLock: '#ffb454', gatesOpen: '#5fd58c', collapse: '#ff8a4c', appear: '#8ad7ff' };
+const COLORS = { blackout: '#9aa5ff', alarm: '#ff6b6b', shuffle: '#f0b429', gatesLock: '#ffb454', gatesOpen: '#62c9a0', collapse: '#ff8a4c', appear: '#8ad7ff' };
 
 const CRACKS = [
   'M32 8 L29 18 L34 24 L30 33',

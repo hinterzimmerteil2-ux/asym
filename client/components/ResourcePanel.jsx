@@ -14,11 +14,11 @@ function Row({ r }) {
           {Array.from({ length: r.max }).map((_, i) => <div key={i} style={{ width: 9, height: 9, background: i < r.cur ? r.color : 'rgba(255,255,255,0.2)', border: '1px solid rgba(0,0,0,0.5)' }} />)}
         </div>
       ) : (
-        <div style={{ width: 120, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
+        <div style={{ width: 120, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
           <div style={{ width: `${Math.max(0, Math.min(100, (r.cur / Math.max(1, r.max)) * 100))}%`, height: '100%', background: r.color }} />
         </div>
       )}
-      {r.extra && <span style={{ color: '#ffd86b' }}>{r.extra.label} {r.extra.value}</span>}
+      {r.extra && <span style={{ color: '#f0b429' }}>{r.extra.label} {r.extra.value}</span>}
       {r.timer && <span style={{ color: '#ffb347' }}>{r.timer.label} {Math.round(r.timer.pct * 100)}%</span>}
       {(r.tags || []).map((t, i) => <span key={i} style={{ color: t.color }}>{t.text}{t.value ? ` ${t.value}` : ''}</span>)}
     </div>

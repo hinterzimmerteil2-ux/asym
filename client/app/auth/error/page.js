@@ -27,9 +27,9 @@ export default function AuthErrorPage() {
 }
 
 const styles = {
-  main: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#12131a', fontFamily: 'system-ui, -apple-system, sans-serif' },
-  card: { width: 360, padding: 28, borderRadius: 12, background: '#1b1d29', border: '1px solid #2a2d3d', textAlign: 'center' },
-  title: { color: '#e0555f', fontWeight: 600, fontSize: 15, margin: '0 0 8px' },
-  message: { color: '#8a8da3', fontSize: 13, margin: '0 0 20px' },
-  link: { color: '#5468ff', fontSize: 13, textDecoration: 'none' },
+  main: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0e1f1b', fontFamily: 'inherit' },
+  card: { width: 360, padding: 28, borderRadius: 4, background: '#16312b', border: '2px solid #4a7366', textAlign: 'center' },
+  title: { color: '#e0503c', fontFamily: 'var(--display)', fontStretch: '72%', fontWeight: 800, fontSize: 22, margin: '0 0 8px' },
+  message: { color: '#9cb2a6', fontSize: 13, margin: '0 0 20px' },
+  link: { color: '#f0b429', fontSize: 13, textDecoration: 'none' },
 };

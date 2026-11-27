@@ -77,7 +77,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
               <label key={p.id} style={styles.row}>
                 <input type="checkbox" checked={Boolean(p.op)} onChange={(e) => onOp(p.id, e.target.checked)} />
                 <span style={{ flex: 1 }}>{p.name}</span>
-                <span style={{ color: p.op ? '#ffd24a' : '#8a8da3', fontSize: 11 }}>{p.op ? 'OP' : ''}</span>
+                <span style={{ color: p.op ? '#f0b429' : '#9cb2a6', fontSize: 11 }}>{p.op ? 'OP' : ''}</span>
               </label>
             ))}
           </div>
@@ -233,7 +233,7 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
               {tab === 'cards' && cardList.map((card) => (
                 <button key={card.id} type="button" onClick={() => give('card', card)} style={styles.item}>
                   <SkillIcon id={card.id} size={24} />
-                  <span style={{ ...styles.itemName, color: card.corrupt ? '#d94fd0' : '#e8e9f0' }}>{card.displayName}</span>
+                  <span style={{ ...styles.itemName, color: card.corrupt ? '#d94fd0' : '#e8efe4' }}>{card.displayName}</span>
                   <span style={styles.itemText}>{KEYWORDS[card.keywords?.[0]]?.label || ''}</span>
                 </button>
               ))}
@@ -257,22 +257,22 @@ export default function AdminPanel({ players, myPlayerId, isHost, phase, cards, 
 }
 
 const styles = {
-  backdrop: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 60, background: 'rgba(10, 11, 16, 0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  panel: { width: 'min(560px, 100%)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: '#1a1c28', border: '1px solid #2e3146', borderRadius: 12, color: '#e8e9f0', fontSize: 13 },
+  backdrop: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 60, background: 'rgba(8, 20, 17, 0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  panel: { width: 'min(560px, 100%)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: '#16312b', border: '1px solid #2f4d44', borderRadius: 4, color: '#e8efe4', fontSize: 13 },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 4px' },
   title: { margin: 0, fontSize: 16 },
   tabs: { display: 'flex', gap: 6, padding: '4px 16px 8px', flexWrap: 'wrap' },
   tab: (on) => btn.secondary(on),
   body: { padding: '4px 16px 16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0 },
-  hint: { color: '#8a8da3', fontSize: 12 },
-  subTitle: { color: '#8a8da3', fontSize: 11, marginTop: 4 },
+  hint: { color: '#9cb2a6', fontSize: 12 },
+  subTitle: { color: '#9cb2a6', fontSize: 11, marginTop: 4 },
   row: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px', cursor: 'pointer' },
   chips: { display: 'flex', flexWrap: 'wrap', gap: 6 },
   chip: (on) => ({ ...btn.secondary(on), padding: '4px 10px', fontSize: 12 }),
-  search: { padding: '6px 10px', borderRadius: 8, border: '1px solid #2e3146', background: '#12131a', color: '#e8e9f0', fontSize: 13 },
+  search: { padding: '6px 10px', borderRadius: 2, border: '1px solid #2f4d44', background: '#0e1f1b', color: '#e8efe4', fontSize: 13 },
   list: { display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto', maxHeight: '38vh', minHeight: 80 },
-  item: { display: 'grid', gridTemplateColumns: '24px minmax(0, 1fr) auto', alignItems: 'center', gap: 8, padding: '5px 6px', borderRadius: 6, border: 'none', background: 'transparent', color: '#e8e9f0', textAlign: 'left', cursor: 'pointer', fontSize: 12 },
+  item: { display: 'grid', gridTemplateColumns: '24px minmax(0, 1fr) auto', alignItems: 'center', gap: 8, padding: '5px 6px', borderRadius: 2, border: 'none', background: 'transparent', color: '#e8efe4', textAlign: 'left', cursor: 'pointer', fontSize: 12 },
   itemName: { fontWeight: 600, minWidth: 0, overflowWrap: 'anywhere' },
-  itemText: { color: '#8a8da3', fontSize: 11 },
-  toast: { alignSelf: 'center', padding: '4px 12px', borderRadius: 8, background: 'rgba(95,213,140,0.18)', color: '#8ff0b4', fontSize: 12 },
+  itemText: { color: '#9cb2a6', fontSize: 11 },
+  toast: { alignSelf: 'center', padding: '4px 12px', borderRadius: 2, background: 'rgba(95,213,140,0.18)', color: '#8ff0b4', fontSize: 12 },
 };

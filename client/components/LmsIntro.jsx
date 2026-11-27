@@ -3,10 +3,10 @@ import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { CosmeticPieces } from './GameScene';
 
-const PATIENT = '#5fd58c';
-const CURATOR = '#f2a154';
+const PATIENT = '#62c9a0';
+const CURATOR = '#f08a3c';
 const SKIN = '#f2d27a';
-const PANTS = '#3a3d52';
+const PANTS = '#3b5d52';
 
 function Fighter({ color, side, cosmetics }) {
   const root = useRef();
@@ -33,9 +33,9 @@ function Fighter({ color, side, cosmetics }) {
       <mesh position={[0, 1.08, 0]}><boxGeometry args={[0.72, 0.72, 0.36]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
       <group position={[0, 1.62, 0]}>
         <mesh><cylinderGeometry args={[0.18, 0.18, 0.36, 14]} /><meshStandardMaterial color={SKIN} roughness={0.6} /></mesh>
-        <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#1a1215" /></mesh>
-        <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#1a1215" /></mesh>
-        <mesh position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#1a1215" /></mesh>
+        <mesh position={[-0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#0e1f1b" /></mesh>
+        <mesh position={[0.07, 0.04, 0.175]}><boxGeometry args={[0.04, 0.06, 0.02]} /><meshBasicMaterial color="#0e1f1b" /></mesh>
+        <mesh position={[0, -0.06, 0.175]}><boxGeometry args={[0.12, 0.025, 0.02]} /><meshBasicMaterial color="#0e1f1b" /></mesh>
         <CosmeticPieces slot="head" cosmetics={cosmetics} />
       </group>
       <CosmeticPieces slot="torso" cosmetics={cosmetics} />
@@ -67,7 +67,7 @@ function Spark() {
 }
 
 const LINES = ['LAST', 'MORON', 'STANDING'];
-const TINTS = ['#ffd166', '#ff5d6c', '#5fd58c'];
+const TINTS = ['#f0b429', '#ff5d6c', '#62c9a0'];
 
 const GIMMICK_TEXT = {
   adrenalina: 'Adrenalina: velocidad extra (ambos bandos)',
@@ -103,8 +103,8 @@ export default function LmsIntro({ patientCosmetics, curatorCosmetics, gimmick, 
                     textTransform: 'uppercase',
                     fontSize: li === 1 ? 'min(18vw, 108px)' : 'min(13vw, 78px)',
                     color: TINTS[li],
-                    WebkitTextStroke: '3px #1a1215',
-                    textShadow: '0 5px 0 #1a1215, 0 10px 0 rgba(0,0,0,0.5), 0 0 28px ' + TINTS[li],
+                    WebkitTextStroke: '3px #0e1f1b',
+                    textShadow: '0 5px 0 #0e1f1b, 0 10px 0 rgba(0,0,0,0.5), 0 0 28px ' + TINTS[li],
                     letterSpacing: 2,
                     transform: `rotate(${r * 2.2}deg)`,
                     animation: `lmsSlam .6s ${li * 0.35 + i * 0.05}s both cubic-bezier(.2,1.4,.4,1)`,
@@ -118,7 +118,7 @@ export default function LmsIntro({ patientCosmetics, curatorCosmetics, gimmick, 
         ))}
       </div>
       {gimmick && (
-        <div style={{ position: 'absolute', left: 0, right: 0, top: '45%', textAlign: 'center', color: '#fff', fontWeight: 800, fontSize: 'min(5vw, 22px)', textShadow: '0 2px 0 #1a1215, 0 0 14px #ffd166', animation: 'lmsSlam .5s 1.2s both' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: '45%', textAlign: 'center', color: '#fff', fontWeight: 800, fontSize: 'min(5vw, 22px)', textShadow: '0 2px 0 #0e1f1b, 0 0 14px #f0b429', animation: 'lmsSlam .5s 1.2s both' }}>
           {survivorName ? <span translate="no">{survivorName}: </span> : null}{GIMMICK_TEXT[gimmick]}
         </div>
       )}
@@ -126,7 +126,7 @@ export default function LmsIntro({ patientCosmetics, curatorCosmetics, gimmick, 
         <Canvas camera={{ position: [0, 1.0, 6.4], fov: 38 }} gl={{ alpha: true }} style={{ background: 'transparent' }}>
           <ambientLight intensity={0.8} />
           <directionalLight position={[3, 5, 6]} intensity={1.3} />
-          <pointLight position={[0, 1, 2]} intensity={2} color="#ffd166" />
+          <pointLight position={[0, 1, 2]} intensity={2} color="#f0b429" />
           <group position={[0, -0.35, 0]}>
             <Fighter color={PATIENT} side={-1} cosmetics={patientCosmetics} />
             <Fighter color={CURATOR} side={1} cosmetics={curatorCosmetics} />

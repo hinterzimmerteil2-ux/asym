@@ -42,7 +42,7 @@ const TEXT = {
   },
 };
 
-const box = { maxWidth: 760, margin: '0 auto', padding: '32px 18px 64px', color: '#e8e6ef', lineHeight: 1.6, fontSize: 15 };
+const box = { maxWidth: 760, margin: '0 auto', padding: '32px 18px 64px', color: '#e8efe4', lineHeight: 1.6, fontSize: 15 };
 const h2 = { fontSize: 18, margin: '28px 0 8px', color: '#fff' };
 const tab = (on) => ({ ...btn.secondary(on), padding: '5px 12px' });
 
@@ -61,10 +61,10 @@ export default function LegalView() {
   };
   const t = TEXT[lang];
   return (
-    <main style={{ minHeight: '100dvh', background: '#12111a' }}>
+    <main style={{ minHeight: '100dvh', background: '#0e1f1b' }}>
       <div style={box}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <Link href="/" style={{ color: '#d94a52', textDecoration: 'none', fontSize: 13 }}>{t.back}</Link>
+          <Link href="/" style={{ color: '#f0b429', textDecoration: 'none', fontSize: 13 }}>{t.back}</Link>
           <div style={{ display: 'flex', gap: 6 }}>
             <button type="button" style={tab(lang === 'es')} onClick={() => pick('es')}>Español</button>
             <button type="button" style={tab(lang === 'en')} onClick={() => pick('en')}>English</button>
@@ -79,7 +79,7 @@ export default function LegalView() {
           </section>
         ))}
         <h2 style={h2}>{t.contactH}</h2>
-        <p>{t.contactA}<a href={`mailto:${MAIL}`} style={{ color: '#d94a52' }}>{MAIL}</a>{t.contactB}</p>
+        <p>{t.contactA}<a href={`mailto:${MAIL}`} style={{ color: '#f0b429' }}>{MAIL}</a>{t.contactB}</p>
         <p style={{ opacity: 0.5, fontSize: 12, marginTop: 32 }}>{t.note}</p>
       </div>
     </main>

@@ -70,7 +70,7 @@ const PAIRS = [
 ["Personalizar personaje","Customise character"],
 ["Mapa","Map"],
 ["(personalizado)","(custom)"],
-["Crear mapa nuevo →","Create new map →"],
+["Crear mapa nuevo","Create new map"],
 ["Bots:","Bots:"],
 ["Menos bots","Fewer bots"],
 ["Más bots","More bots"],

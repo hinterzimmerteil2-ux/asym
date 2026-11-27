@@ -19,7 +19,7 @@ import SkillIcon from '../components/SkillIcon';
 import { watchMedia, useInputMode } from '../lib/settings';
 import { protectNames } from '../lib/i18n';
 import HelpPanel from '../components/HelpPanel';
-import { btn } from '../lib/ui';
+import { btn, UI } from '../lib/ui';
 import AdminPanel from '../components/AdminPanel';
 import StatusColumn from '../components/StatusColumn';
 import ResourcePanel from '../components/ResourcePanel';
@@ -41,8 +41,8 @@ const LmsIntro = dynamic(() => import('../components/LmsIntro'), { ssr: false, l
 const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 const KIT_STYLE = {
-  loquito: { color: '#e0555f', stats: [2, 4, 3] },
-  hincha: { color: '#f2d154', stats: [4, 2, 2] },
+  loquito: { color: '#e0503c', stats: [2, 4, 3] },
+  hincha: { color: '#f0b429', stats: [4, 2, 2] },
   cobrador: { color: '#54d1f2', stats: [5, 3, 4] },
   quijote: { color: '#7dff8a', stats: [3, 5, 2] },
 };
@@ -51,59 +51,67 @@ function KitPicker({ roles, onPick }) {
   const [sel, setSel] = useState(0);
   const r = roles[Math.min(sel, roles.length - 1)];
   const sup = Boolean(r.isSuper);
-  const st = sup ? { color: '#ffe14a', stats: [0, 0, 0] } : KIT_STYLE[r.id] || { color: '#c8a2ff', stats: [3, 3, 3] };
+  const st = sup ? { color: '#f0b429', stats: [0, 0, 0] } : KIT_STYLE[r.id] || { color: '#c8a2ff', stats: [3, 3, 3] };
   const labels = ['Movilidad', 'Control', 'Daño'];
   return (
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(6,3,5,0.72)', padding: 12 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, width: 'min(680px, 100%)', maxHeight: '100%', overflowY: 'auto', padding: 14, borderRadius: 16, background: 'linear-gradient(160deg, #1d1319, #12141c)', border: `2px solid ${st.color}`, boxShadow: `0 0 40px ${st.color}44` }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: '1 1 190px' }}>
-          <strong style={{ fontSize: 15 }}>{sup ? 'Elige tu súper-habilidad' : 'Elige tu kit'}</strong>
-          {roles.map((k, i) => {
-            const c = k.isSuper ? '#ffe14a' : (KIT_STYLE[k.id] || {}).color || '#c8a2ff';
-            return (
-              <button key={k.id} type="button" onClick={() => setSel(i)} style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', color: '#e8e9f0', background: i === sel ? `${c}33` : 'rgba(255,255,255,0.04)', border: `2px solid ${i === sel ? c : '#3d2c33'}`, transition: 'transform 140ms, background 140ms', transform: i === sel ? 'translateX(6px)' : 'none' }}>
-                <div style={{ fontWeight: 800, fontSize: 14 }}>{k.name}</div>
-                <div style={{ fontSize: 11, opacity: 0.7 }}>{k.tagline}</div>
-              </button>
-            );
-          })}
-          <button type="button" onClick={() => onPick('none')} style={{ marginTop: 4, padding: 8, borderRadius: 10, cursor: 'pointer', color: '#cfe8fa', background: 'transparent', border: '1px dashed #4a6a8a' }}>{sup ? 'Sin súper-habilidad' : 'Sin Kit'}</button>
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(6, 14, 12, 0.8)', padding: 12 }}>
+      <div style={{ width: 'min(700px, 100%)', maxHeight: '100%', display: 'flex', flexDirection: 'column', borderRadius: 6, background: UI.panel, border: `2px solid ${UI.lineHi}`, boxShadow: '0 5px 0 rgba(0, 0, 0, 0.5)', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', padding: '12px 18px 18px', background: UI.paper, flex: 'none' }}>
+          <div className="disp" style={{ fontSize: 24, lineHeight: 1.1, color: UI.ink }}>{sup ? 'Elige tu súper-habilidad' : 'Elige tu kit'}</div>
+          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 10, background: 'var(--lines)' }} />
         </div>
-        <div key={r.id} style={{ flex: '2 1 280px', display: 'flex', flexDirection: 'column', gap: 10, animation: 'dealIn 360ms cubic-bezier(.2,.9,.3,1.1) both' }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ width: 84, height: 112, flex: 'none', borderRadius: 12, border: `2px solid ${st.color}`, background: '#14151d', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center', padding: 4, boxShadow: '0 8px 20px rgba(0,0,0,0.5)' }}>
-              {r.card?.id && <SkillIcon id={r.card.id} size={40} />}
-              <span style={{ fontSize: 11, fontWeight: 800 }}>{r.card?.displayName}</span>
-            </div>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: st.color }}>{r.name}</div>
-              <div style={{ fontSize: 13, opacity: 0.85 }}>{r.tagline}</div>
-              <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>{sup ? 'Reemplaza tus dos cartas' : 'Carta inicial incluida'}</div>
-            </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, padding: 16, overflowY: 'auto', minHeight: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: '1 1 190px' }}>
+            {roles.map((k, i) => {
+              const c = k.isSuper ? '#f0b429' : (KIT_STYLE[k.id] || {}).color || '#c8a2ff';
+              const on = i === sel;
+              return (
+                <button key={k.id} type="button" onClick={() => setSel(i)} style={{ textAlign: 'left', padding: '9px 12px 9px 16px', borderRadius: 2, cursor: 'pointer', color: on ? UI.ink : UI.text, background: on ? UI.paper : 'transparent', border: `2px solid ${on ? UI.paper : UI.lineHi}`, boxShadow: `inset 6px 0 0 ${c}` }}>
+                  <div style={{ fontWeight: 800, fontSize: 15 }}>{k.name}</div>
+                  <div style={{ fontSize: 12, fontWeight: 400, opacity: on ? 0.8 : 0.7 }}>{k.tagline}</div>
+                </button>
+              );
+            })}
+            <button type="button" onClick={() => onPick('none')} style={{ ...btn.ghost(false), marginTop: 4, textAlign: 'left', textDecoration: 'underline', fontWeight: 400 }}>{sup ? 'Sin súper-habilidad' : 'Sin Kit'}</button>
           </div>
-          {sup ? (
-            <div style={{ fontSize: 12, lineHeight: 1.5, opacity: 0.85 }}>{r.card?.description}</div>
-          ) : (
-            <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {labels.map((l, i) => (
-              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                <span style={{ width: 70, opacity: 0.8 }}>{l}</span>
-                <div style={{ flex: 1, height: 8, borderRadius: 4, background: '#232838' }}>
-                  <div style={{ height: 8, borderRadius: 4, width: `${st.stats[i] * 20}%`, background: st.color, transition: 'width 400ms' }} />
-                </div>
+          <div key={r.id} style={{ flex: '2 1 280px', display: 'flex', flexDirection: 'column', gap: 14, animation: 'dealIn 360ms cubic-bezier(.2,.9,.3,1.1) both' }}>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+              <div style={{ width: 84, height: 112, flex: 'none', borderRadius: 4, border: `2px solid ${UI.lineHi}`, borderTop: `12px solid ${st.color}`, background: UI.inset, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center', padding: 4, boxSizing: 'border-box' }}>
+                {r.card?.id && <SkillIcon id={r.card.id} size={40} />}
+                <span style={{ fontSize: 12, fontWeight: 800 }}>{r.card?.displayName}</span>
               </div>
-            ))}
-          </div>
-          <div>
-            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 4 }}>Segunda carta, a elegir entre:</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {(r.pool || []).map((n) => <span key={n} style={{ padding: '3px 8px', borderRadius: 999, fontSize: 11, background: `${st.color}22`, border: `1px solid ${st.color}88` }}>{n}</span>)}
+              <div>
+                <div className="disp" style={{ fontSize: 28, lineHeight: 1.05, color: UI.paper }}>{r.name}</div>
+                <div style={{ fontSize: 14, marginTop: 4 }}>{r.tagline}</div>
+                <div style={{ fontSize: 12, color: UI.muted, marginTop: 6 }}>{sup ? 'Reemplaza tus dos cartas' : 'Carta inicial incluida'}</div>
+              </div>
             </div>
+            {sup ? (
+              <div style={{ fontSize: 13, lineHeight: 1.5 }}>{r.card?.description}</div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {labels.map((l, i) => (
+                    <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+                      <span style={{ width: 76 }}>{l}</span>
+                      <div style={{ display: 'flex', gap: 4 }} role="img" aria-label={`${st.stats[i]} de 5`}>
+                        {[0, 1, 2, 3, 4].map((n) => <span key={n} style={{ width: 26, height: 12, borderRadius: 1, background: n < st.stats[i] ? st.color : UI.inset, border: `2px solid ${n < st.stats[i] ? st.color : UI.line}`, boxSizing: 'border-box' }} />)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, color: UI.muted, marginBottom: 6 }}>Segunda carta, a elegir entre:</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {(r.pool || []).map((n) => <span key={n} style={{ padding: '3px 8px', borderRadius: 2, fontSize: 12, background: UI.inset, border: `2px solid ${UI.line}` }}>{n}</span>)}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-            </>
-          )}
-          <button type="button" onClick={() => onPick(r.id)} style={{ marginTop: 'auto', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 800, color: '#10131c', background: st.color, boxShadow: `0 6px 18px ${st.color}66` }}>Elegir este kit</button>
+        </div>
+        <div style={{ flex: 'none', padding: '10px 16px 14px', borderTop: `2px solid ${UI.line}`, background: UI.inset, display: 'flex', justifyContent: 'flex-end' }}>
+          <button type="button" onClick={() => onPick(r.id)} style={{ ...btn.primary(false), padding: '11px 22px', fontSize: 15 }}>Elegir este kit</button>
         </div>
       </div>
     </div>
@@ -129,14 +137,13 @@ function KeywordChip({ id }) {
     <span
       title={`${k.label}: ${k.description}`}
       style={{
-        fontSize: 9,
-        fontWeight: 600,
-        padding: '1px 5px',
-        borderRadius: 4,
-        border: `1px solid ${k.color}`,
-        color: k.color,
-        textTransform: 'uppercase',
-        letterSpacing: 0.3,
+        fontSize: 11,
+        fontWeight: 700,
+        padding: '1px 5px 1px 6px',
+        borderRadius: 1,
+        background: UI.inset,
+        borderLeft: `4px solid ${k.color}`,
+        color: UI.text,
       }}
     >
       {k.label}
@@ -325,7 +332,7 @@ export default function LobbyPage() {
   const [cosmeticsOpen, setCosmeticsOpen] = useState(false);
   const [desgracias, setDesgracias] = useState({ balance: emptyQ(), owned: FREE_ITEMS });
   const [lastAward, setLastAward] = useState(null);
-  const AXIS_COLOR = { r: '#e6d8ff', i: '#ff8a8a', j: '#8ae6a0', k: '#ffd24a' };
+  const AXIS_COLOR = { r: '#e6d8ff', i: '#ff8a8a', j: '#8ae6a0', k: '#f0b429' };
   const [tutorial, setTutorial] = useState({ launching: false, active: false, minimized: false, flags: {} });
   const tutStartRef = useRef(null);
   const tutSentRef = useRef({ role: false, start: false });
@@ -1598,14 +1605,14 @@ export default function LobbyPage() {
                 max={19}
                 value={players.filter((pl) => pl.isBot).length}
                 onChange={(e) => handleBotCount(Number(e.target.value))}
-                style={{ flex: 1, height: 34, minWidth: 0, cursor: 'pointer', touchAction: 'none', accentColor: '#f0c26b' }}
+                style={{ flex: 1, height: 34, minWidth: 0, cursor: 'pointer', touchAction: 'none', accentColor: '#f0b429' }}
               />
               <button type="button" style={{ ...styles.smallButton, width: 34, height: 34, padding: 0, fontSize: 18 }} onClick={() => handleBotCount(Math.min(19, players.filter((pl) => pl.isBot).length + 1))} aria-label="Más bots">+</button>
             </label>
           )}
 
           <div style={{ marginTop: 14 }}>
-            <div style={{ color: '#a8959a', fontSize: 13, marginBottom: 6 }}>Lobby</div>
+            <div style={{ color: '#9cb2a6', fontSize: 13, marginBottom: 6 }}>Lobby</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {[{ id: 'auto', name: 'Automático' }, ...LOBBY_THEME_LIST].map((t) => (
                 <button key={t.id} type="button" style={btn.secondary(lobbyThemePref === t.id)} onClick={() => { setLobbyThemePref(t.id); setLobbyThemePrefState(t.id); }}>{t.name}</button>
@@ -1639,13 +1646,13 @@ export default function LobbyPage() {
             <button type="button" style={{ ...styles.smallButton, width: '100%' }} onClick={() => setCosmeticsOpen(true)}>Personalizar personaje <span style={{ color: '#e0b34a', marginLeft: 6 }}>{Math.floor(normQ(desgracias.balance))} ℍ</span></button>
           )}
           {phase === 'lobby' && !isAsymRole && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', border: '1px solid #3d2c33', borderRadius: 8, fontSize: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', border: '2px solid #4a7366', borderRadius: 2, fontSize: 12 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                 <input type="checkbox" checked={kitPref.on} onChange={(e) => updateKitPref({ ...kitPref, on: e.target.checked })} />
                 Preselección de kit
               </label>
               {kitPref.on && (
-                <select value={kitPref.kit} onChange={(e) => updateKitPref({ ...kitPref, kit: e.target.value })} style={{ background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 6, padding: 6 }}>
+                <select value={kitPref.kit} onChange={(e) => updateKitPref({ ...kitPref, kit: e.target.value })} style={{ background: '#16312b', color: '#e8f1f8', border: '1px solid #4a7366', borderRadius: 2, padding: 6 }}>
                   <option value="none">Sin kit</option>
                   <option value="loquito">Loquito de la Esquina</option>
                   <option value="hincha">Hincha Cantarín del Barrio</option>
@@ -1658,7 +1665,7 @@ export default function LobbyPage() {
           )}
 
           {phase === 'lobby' && isHost && (
-            <button type="button" style={{ ...styles.smallButton, width: '100%', borderColor: '#f2d154' }} onClick={handleStartTutorial} disabled={tutorial.launching}>
+            <button type="button" style={{ ...styles.smallButton, width: '100%', borderColor: '#f0b429' }} onClick={handleStartTutorial} disabled={tutorial.launching}>
               {tutorial.launching ? 'Preparando tutorial...' : 'Tutorial (jugar contra un bot)'}
             </button>
           )}
@@ -1666,9 +1673,9 @@ export default function LobbyPage() {
           </div>
           <div {...tabProps('votos')}>
           {phase === 'lobby' && isDefaultRoom && (
-            <div className="lb-vote" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 10px', border: '1px solid #3d2c33', borderRadius: 8, fontSize: 12 }}>
+            <div className="lb-vote" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 10px', border: '2px solid #4a7366', borderRadius: 2, fontSize: 12 }}>
               <strong>Votación de la sala</strong>
-              {startAt && <span style={{ color: '#f0c26b' }}>Inicio automático en {Math.max(0, Math.ceil((startAt - lobbyNow) / 1000))} s</span>}
+              {startAt && <span style={{ color: '#f0b429' }}>Inicio automático en {Math.max(0, Math.ceil((startAt - lobbyNow) / 1000))} s</span>}
               {[
                 ['bots', 'Bots', [0, 4, 8, 12, 16].map((n) => ({ id: n, label: String(n) }))],
                 ['map', 'Mapa', maps.filter((m) => !m.id.startsWith('c_')).map((m) => ({ id: m.id, label: m.name }))],
@@ -1817,7 +1824,7 @@ export default function LobbyPage() {
             </div>
             <div className="lg-links">
               <p style={{ fontSize: 10, opacity: 0.6, margin: '6px 0 0' }}>Modelo de Jeffrey: SinisterClock, CC-BY-NC 4.0</p>
-              <Link href="/editor" style={styles.editorLink}>Crear mapa nuevo →</Link>
+              <Link href="/editor" style={styles.editorLink}>Crear mapa nuevo</Link>
               <Link href="/legal" style={{ ...styles.editorLink, display: 'block', marginTop: 4, opacity: 0.8 }}>Aviso legal y contacto</Link>
               <Link href="/equipo" style={{ ...styles.editorLink, display: 'block', marginTop: 4, opacity: 0.8 }}>Equipo de traducción</Link>
             </div>
@@ -1883,7 +1890,7 @@ export default function LobbyPage() {
           const current = steps.findIndex(([k]) => !tutorial.flags[k]);
           const finished = current === -1;
           return (
-            <div style={{ position: 'absolute', left: 8, top: compact ? 96 : 200, zIndex: 40, width: compact ? 'min(260px, calc(100% - 16px))' : 'min(280px, calc(100% - 16px))', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, background: 'rgba(27,29,41,0.92)', border: '1px solid #f2d154', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ position: 'absolute', left: 8, top: compact ? 96 : 200, zIndex: 40, width: compact ? 'min(260px, calc(100% - 16px))' : 'min(280px, calc(100% - 16px))', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 2, background: 'rgba(22, 49, 43,0.92)', border: '1px solid #f0b429', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <strong>Tutorial</strong>
                 <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => setTutorial((t) => ({ ...t, minimized: !t.minimized }))}>{tutorial.minimized ? 'Mostrar' : 'Ocultar'}</button>
@@ -1891,11 +1898,11 @@ export default function LobbyPage() {
               {!tutorial.minimized && (
                 <>
                   {steps.map(([k, text], i) => (compact && i !== current ? null : (
-                    <div key={k} style={{ color: tutorial.flags[k] ? '#5fd58c' : i === current ? '#f2d154' : '#a8959a' }}>
+                    <div key={k} style={{ color: tutorial.flags[k] ? '#62c9a0' : i === current ? '#f0b429' : '#9cb2a6' }}>
                       {tutorial.flags[k] ? '✓' : i === current ? '→' : '-'} {text}
                     </div>
                   )))}
-                  {finished && <div style={{ color: '#5fd58c' }}>Tutorial completado. Gana cada Paciente que baja su HP a 0; el Curador gana si los cura a todos. Si la partida termina, el host puede volver al lobby.</div>}
+                  {finished && <div style={{ color: '#62c9a0' }}>Tutorial completado. Gana cada Paciente que baja su HP a 0; el Curador gana si los cura a todos. Si la partida termina, el host puede volver al lobby.</div>}
                 </>
               )}
             </div>
@@ -1905,11 +1912,11 @@ export default function LobbyPage() {
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
         {phase === 'action' && flojera?.astral && (
-          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: compact ? 50 : 44, width: 84, height: 5, zIndex: 35, borderRadius: 3, background: 'rgba(18,19,26,0.7)', border: '1px solid rgba(243,233,166,0.6)', overflow: 'hidden', pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: compact ? 50 : 44, width: 84, height: 5, zIndex: 35, borderRadius: 3, background: 'rgba(14, 31, 27,0.7)', border: '1px solid rgba(243,233,166,0.6)', overflow: 'hidden', pointerEvents: 'none' }}>
             <div style={{ height: '100%', width: `${Math.round(flojera.astral.charge * 100)}%`, background: flojera.astral.state === 'charging' ? '#f3e9a6' : '#f2b84a' }} />
           </div>
         )}
-        {phase === 'action' && matchSeed != null && <div style={{ position: 'absolute', left: 8, bottom: 8, fontSize: 11, color: '#a8959a', pointerEvents: 'none', userSelect: 'text' }}>Semilla: {matchSeed}</div>}
+        {phase === 'action' && matchSeed != null && <div style={{ position: 'absolute', left: 8, bottom: 8, fontSize: 11, color: '#9cb2a6', pointerEvents: 'none', userSelect: 'text' }}>Semilla: {matchSeed}</div>}
         {phase === 'action' && bossHud && <BossHud hud={bossHud} onAbility={(i) => handlePulse('b' + (i + 1))} onSize={(v) => connRef.current?.send('boss_size', { size: v })} onCrouch={(on) => connRef.current?.send('boss_crouch', { on })} />}
         {phase === 'action' && bossHud && <BossOverlay hud={bossHud} />}
         {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} onPress={() => pressMinigameRef.current()} onDir={(d) => pressDirRef.current(d)} />}
@@ -1923,7 +1930,7 @@ export default function LobbyPage() {
           />
         )}
         {phase === 'action' && lmsInfo && lmsUntil === 0 && (
-          <div style={{ position: 'absolute', top: 38, left: '50%', transform: 'translateX(-50%)', zIndex: 6, pointerEvents: 'none', padding: '3px 12px', borderRadius: 8, background: 'rgba(18,19,26,0.88)', border: '1px solid #ffd166', color: '#ffd166', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>
+          <div style={{ position: 'absolute', top: 38, left: '50%', transform: 'translateX(-50%)', zIndex: 6, pointerEvents: 'none', padding: '3px 12px', borderRadius: 2, background: 'rgba(14, 31, 27,0.88)', border: '1px solid #f0b429', color: '#f0b429', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>
             LAST MORON STANDING / <span translate="no">{players.find((p) => p.id === lmsInfo.survivorId)?.name}</span> / {({ adrenalina: 'Adrenalina', reflejos: 'Reflejos', escudo: 'Escudo', codicia: 'Codicia' })[lmsInfo.gimmick]}
           </div>
         )}
@@ -1940,13 +1947,13 @@ export default function LobbyPage() {
         )}
         {phase === 'lobby' && <TouchControls lobby />}
         {phase === 'action' && emoteOpen && !spectating && (
-          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 60, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(96px, 1fr))', gap: 8, padding: 12, borderRadius: 14, background: 'rgba(14,12,18,0.92)', border: '1px solid rgba(255,255,255,0.14)', maxWidth: '92vw' }}>
+          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 60, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(96px, 1fr))', gap: 8, padding: 12, borderRadius: 4, background: 'rgba(14,12,18,0.92)', border: '1px solid rgba(255,255,255,0.14)', maxWidth: '92vw' }}>
             {EMOTE_LIST.filter((m) => !m.curator || isAsymRole).map((m, i) => (
               <button
                 key={m.id}
                 type="button"
                 onClick={() => { connRef.current?.send('emote', { id: m.id }); setEmoteOpen(false); }}
-                style={{ padding: '14px 8px', minHeight: 52, borderRadius: 10, border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.07)', color: '#e8eaf2', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '14px 8px', minHeight: 52, borderRadius: 4, border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.07)', color: '#e8eaf2', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
               >
                 <span style={{ opacity: 0.55, marginRight: 6 }}>{i + 1}</span>{m.name}
               </button>
@@ -1970,12 +1977,12 @@ export default function LobbyPage() {
           <div aria-hidden className="heart-pulse" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 3, '--lvl': heartLevel, animationDuration: `${(1.25 - 0.8 * heartLevel).toFixed(2)}s`, boxShadow: `inset 0 0 ${60 + 120 * heartLevel}px rgba(255,40,60,${(0.15 + 0.6 * heartLevel).toFixed(2)})` }} />
         )}
         {phase === 'action' && mode === 'gravity' && (modeBanner || gravityFactor !== 1) && (
-          <div className="beat" style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 35, padding: '6px 14px', borderRadius: 10, background: 'rgba(20,10,16,0.8)', border: `1px solid ${gravityFactor < 1 ? '#54d1f2' : '#ff9a5a'}`, color: '#fff', fontWeight: 800, pointerEvents: 'none' }}>
+          <div className="beat" style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 35, padding: '6px 14px', borderRadius: 4, background: 'rgba(8, 20, 17,0.8)', border: `1px solid ${gravityFactor < 1 ? '#54d1f2' : '#ff9a5a'}`, color: '#fff', fontWeight: 800, pointerEvents: 'none' }}>
             {modeBanner || (gravityFactor < 1 ? 'Gravedad baja' : 'Gravedad alta')}
           </div>
         )}
         {phase === 'action' && mode === 'infection' && !isAsymRole && patients[myPlayerId]?.infected && (
-          <div style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 35, padding: '6px 14px', borderRadius: 10, background: 'rgba(60,10,40,0.85)', border: '1px solid #e07cf2', color: '#fff', fontWeight: 800, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 35, padding: '6px 14px', borderRadius: 4, background: 'rgba(60,10,40,0.85)', border: '1px solid #e07cf2', color: '#fff', fontWeight: 800, pointerEvents: 'none' }}>
             Estás infectado. Pierdes vida y contagias. La cura del Curador te limpia.
           </div>
         )}
@@ -2047,28 +2054,28 @@ export default function LobbyPage() {
             const laser = myTw.type === 'laser';
             return (
               <>
-                <div style={{ position: 'absolute', top: 88, left: '50%', transform: 'translateX(-50%)', zIndex: 31, padding: '5px 12px', borderRadius: 8, background: 'rgba(10,8,14,0.82)', border: `1px solid ${laser ? '#ff4a3a' : '#7dff5a'}`, color: '#fff', fontSize: 12, fontWeight: 700, pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', top: 88, left: '50%', transform: 'translateX(-50%)', zIndex: 31, padding: '5px 12px', borderRadius: 2, background: 'rgba(8, 20, 17,0.82)', border: `1px solid ${laser ? '#ff4a3a' : '#7dff5a'}`, color: '#fff', fontSize: 12, fontWeight: 700, pointerEvents: 'none' }}>
                   {laser ? (myTw.charge > 0 ? 'Cargando' : myTw.cd > 0 ? `Recarga ${Math.ceil(myTw.cd / 1000)} s` : 'Láser listo') : (myTw.reload > 0 ? 'Recargando' : `Balas ${myTw.ammo}/6`)} (interactuar para salir, W/S o rueda para subir o bajar)
                 </div>
                 <div style={{ position: 'absolute', right: 134, bottom: 128, zIndex: 31, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <button type="button" onClick={() => nudgeTowerPitch(0.1)} style={{ width: 44, height: 44, borderRadius: 10, border: '2px solid #ffd24a', background: 'rgba(20,10,14,0.85)', color: '#ffd24a', fontSize: 18 }}>▲</button>
-                  <button type="button" onClick={() => nudgeTowerPitch(-0.1)} style={{ width: 44, height: 44, borderRadius: 10, border: '2px solid #ffd24a', background: 'rgba(20,10,14,0.85)', color: '#ffd24a', fontSize: 18 }}>▼</button>
+                  <button type="button" onClick={() => nudgeTowerPitch(0.1)} style={{ width: 44, height: 44, borderRadius: 4, border: '2px solid #f0b429', background: 'rgba(8, 20, 17,0.85)', color: '#f0b429', fontSize: 18 }}>▲</button>
+                  <button type="button" onClick={() => nudgeTowerPitch(-0.1)} style={{ width: 44, height: 44, borderRadius: 4, border: '2px solid #f0b429', background: 'rgba(8, 20, 17,0.85)', color: '#f0b429', fontSize: 18 }}>▼</button>
                 </div>
-                <button type="button" onClick={() => handleSendAction('tower_action', { op: 'fire' })} style={{ position: 'absolute', right: 24, bottom: 120, zIndex: 31, width: 96, height: 96, borderRadius: '50%', border: `3px solid ${laser ? '#ff4a3a' : '#7dff5a'}`, background: 'rgba(20,10,14,0.85)', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Disparar</button>
+                <button type="button" onClick={() => handleSendAction('tower_action', { op: 'fire' })} style={{ position: 'absolute', right: 24, bottom: 120, zIndex: 31, width: 96, height: 96, borderRadius: '50%', border: `3px solid ${laser ? '#ff4a3a' : '#7dff5a'}`, background: 'rgba(8, 20, 17,0.85)', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Disparar</button>
               </>
             );
           }
-          if (near) return <div style={{ position: 'absolute', bottom: 210, left: '50%', transform: 'translateX(-50%)', zIndex: 31, padding: '5px 12px', borderRadius: 8, background: 'rgba(10,8,14,0.82)', color: '#ffd24a', fontSize: 12, fontWeight: 700, pointerEvents: 'none' }}>{near.mods >= near.need ? 'Interactuar para sentarte en la torre' : 'La torre se está construyendo'}</div>;
+          if (near) return <div style={{ position: 'absolute', bottom: 210, left: '50%', transform: 'translateX(-50%)', zIndex: 31, padding: '5px 12px', borderRadius: 2, background: 'rgba(8, 20, 17,0.82)', color: '#f0b429', fontSize: 12, fontWeight: 700, pointerEvents: 'none' }}>{near.mods >= near.need ? 'Interactuar para sentarte en la torre' : 'La torre se está construyendo'}</div>;
           return null;
         })()}
 
         {!isDefaultRoom && isOp && !tutorial.active && (phase === 'lobby' || phase === 'action') && (
-          <button type="button" onClick={() => setAdminOpen(true)} style={{ ...btn.secondary(false), position: 'absolute', top: phase === 'action' ? (compact ? 126 : 92) : 8, left: 16, zIndex: 25 }}>Panel de host</button>
+          <button type="button" onClick={() => setAdminOpen(true)} style={{ ...btn.secondary(false), position: 'absolute', top: phase === 'action' ? (compact ? 126 : 92) : 64, left: 16, zIndex: 25 }}>Panel de host</button>
         )}
 
         {towerPick !== null && phase === 'action' && (
-          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 210, zIndex: 40, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: 'rgba(10,8,14,0.9)', border: '1px solid #ffd24a' }}>
-            <span style={{ color: '#ffd24a', fontSize: 12, fontWeight: 700 }}>Elige la torre</span>
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 210, zIndex: 40, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 4, background: 'rgba(8, 20, 17,0.9)', border: '1px solid #f0b429' }}>
+            <span style={{ color: '#f0b429', fontSize: 12, fontWeight: 700 }}>Elige la torre</span>
             <button type="button" onClick={() => handleUseCard(towerPick, 'laser')} style={btn.secondary(false)}>Láser</button>
             <button type="button" onClick={() => handleUseCard(towerPick, 'rifle')} style={btn.secondary(false)}>Rifle</button>
             <button type="button" onClick={() => setTowerPick(null)} style={btn.ghost(false)}>×</button>
@@ -2087,7 +2094,7 @@ export default function LobbyPage() {
               const full = need > 0 && flojera.sup.used + need > flojera.sup.max;
               const on = m === 'carga' && flojera.sup.charging;
               return (
-                <button key={m} type="button" disabled={cd > 0 || full} onClick={() => handleSuper(m)} style={{ ...styles.cardButton(cd > 0 || full), outline: on || mcSel === m ? '2px solid #ffd86b' : 'none' }} title={label}>
+                <button key={m} type="button" disabled={cd > 0 || full} onClick={() => handleSuper(m)} style={{ ...styles.cardButton(cd > 0 || full), outline: on || mcSel === m ? '2px solid #f0b429' : 'none' }} title={label}>
                   <SkillIcon id={`${flojera.sup.id === 'town_level' ? 'tl' : flojera.sup.id === 'minceraft' ? 'mc' : 'pst'}_${m}`} size={34} />
                   <span style={styles.skillKey}>{(i + 1) % 10}</span>
                   {cd > 0 && <span style={styles.skillCooldownOverlay}>{Math.ceil(cd / 1000)}</span>}
@@ -2099,7 +2106,7 @@ export default function LobbyPage() {
 
         {phase === 'action' && !isAsymRole && flojera?.sup?.id === 'minceraft' && (
           <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 176, zIndex: 20, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#fff' }}>
-            <span style={{ color: '#ffd86b' }}>{mcSel ? (touch ? 'Toca el suelo para colocar' : 'Clic para colocar') : (touch ? 'Elige una pieza' : 'Elige una pieza (1 a 8)')}</span>
+            <span style={{ color: '#f0b429' }}>{mcSel ? (touch ? 'Toca el suelo para colocar' : 'Clic para colocar') : (touch ? 'Elige una pieza' : 'Elige una pieza (1 a 8)')}</span>
             {mcSel === 'piston' && <button type="button" onClick={() => setMcSticky((v) => !v)} style={btn.secondary(false)}>{mcSticky ? 'Variante: pegajoso (C)' : 'Variante: normal (C)'}</button>}
             {mcSel === 'piston' && <button type="button" onClick={() => setMcDir((d) => (d === 0 ? 1 : d === 1 ? -1 : 0))} style={btn.secondary(false)}>{mcDir === 0 ? 'Apuntado: automático (R)' : mcDir === 1 ? 'Apuntado: arriba (R)' : 'Apuntado: abajo (R)'}</button>}
             {mcSel && <button type="button" onClick={() => placeMc()} style={btn.secondary(false)}>Colocar</button>}
@@ -2107,7 +2114,7 @@ export default function LobbyPage() {
         )}
 
         {phase === 'action' && !isAsymRole && flojera?.sup && flojera.sup.id !== 'town_level' && flojera.sup.id !== 'platinum_star' && flojera.sup.id !== 'minceraft' && (
-          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: touch ? 150 : 150, zIndex: 20, width: 300, borderRadius: 4, overflow: 'hidden', border: '1px solid #2e6da4', background: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.45)', fontFamily: 'Arial, Helvetica, sans-serif', color: '#333', fontSize: 12 }}>
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: touch ? 150 : 150, zIndex: 20, width: 300, borderRadius: 2, overflow: 'hidden', border: '1px solid #2e6da4', background: '#fff', boxShadow: '0 3px 0 rgba(0, 0, 0, 0.45)', fontFamily: 'Arial, Helvetica, sans-serif', color: '#333', fontSize: 12 }}>
             <div style={{ background: '#337ab7', color: '#fff', padding: '6px 10px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
               <SkillIcon id="super_sunat_paperwork" size={18} />
               <span>SUNAT Operaciones en Línea</span>
@@ -2215,9 +2222,9 @@ export default function LobbyPage() {
         {shiftLock && <div style={{ position: 'absolute', left: '50%', top: '50%', width: 6, height: 6, marginLeft: -3, marginTop: -3, borderRadius: '50%', background: 'rgba(255,255,255,0.8)', pointerEvents: 'none', zIndex: 5 }} />}
         {compact && (
           <>
-            <button type="button" onClick={() => { setPanelOpen(!playersOpen); setChatOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 96, width: 36, height: 36, zIndex: 30, borderColor: playersOpen ? '#f0c26b' : '#3d2c33' })} aria-label="Jugadores">☰</button>
+            <button type="button" onClick={() => { setPanelOpen(!playersOpen); setChatOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 96, width: 36, height: 36, zIndex: 30, borderColor: playersOpen ? '#f0b429' : '#2f4d44' })} aria-label="Jugadores">☰</button>
             <button type="button" onClick={goFullscreen} style={sx(styles.helpButton, { top: 8, right: 184, width: 36, height: 36, zIndex: 30 })} aria-label="Pantalla completa">⛶</button>
-            <button type="button" onClick={() => { setChatOpen(!chatOpen); setPanelOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 140, width: 36, height: 36, zIndex: 30, borderColor: chatOpen ? '#f0c26b' : '#3d2c33' })} aria-label="Chat">💬</button>
+            <button type="button" onClick={() => { setChatOpen(!chatOpen); setPanelOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 140, width: 36, height: 36, zIndex: 30, borderColor: chatOpen ? '#f0b429' : '#2f4d44' })} aria-label="Chat">💬</button>
           </>
         )}
         {spectating && specTargets.length > 1 && (
@@ -2226,7 +2233,7 @@ export default function LobbyPage() {
               const pl = players.find((p) => p.id === id);
               const current = ((specIndex % specTargets.length) + specTargets.length) % specTargets.length === i;
               return (
-                <button key={id} type="button" onClick={() => setSpecIndex(i)} style={{ ...styles.smallButton, width: 'auto', borderColor: current ? '#f2d154' : pl?.isAsymRole ? '#f2a154' : '#3d2c33', background: current ? 'rgba(242,209,84,0.18)' : undefined }}>
+                <button key={id} type="button" onClick={() => setSpecIndex(i)} style={{ ...styles.smallButton, width: 'auto', borderColor: current ? '#f0b429' : pl?.isAsymRole ? '#f08a3c' : '#2f4d44', background: current ? 'rgba(242,209,84,0.18)' : undefined }}>
                   {id === myPlayerId ? 'Fantasma' : <><span>{pl?.isAsymRole ? '🩺 ' : ''}</span><span translate="no">{pl?.name || id}</span></>}
                 </button>
               );
@@ -2234,7 +2241,7 @@ export default function LobbyPage() {
           </div>
         )}
         {spectating && (
-          <div style={{ position: 'absolute', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, background: 'rgba(27, 29, 41, 0.9)', border: '1px solid #3d2c33', fontSize: 13 }}>
+          <div style={{ position: 'absolute', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 2, background: 'rgba(22, 49, 43, 0.9)', border: '2px solid #4a7366', fontSize: 13 }}>
             <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => setSpecIndex((i) => i - 1)} aria-label="Anterior">{'<-'}</button>
             <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={startReplay}>Repetición</button>
             <span>{ghostMode ? 'Tu fantasma' : specId ? `Espectando: ${players.find((p) => p.id === specId)?.name || specId}` : 'Nadie a quien seguir'}</span>
@@ -2247,13 +2254,13 @@ export default function LobbyPage() {
           </div>
         )}
         {touch && portrait && phase === 'action' && (
-          <p style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', margin: 0, padding: '10px 16px', borderRadius: 8, background: 'rgba(18,19,26,0.9)', border: '1px solid #3d2c33', fontSize: 14, zIndex: 25, textAlign: 'center', pointerEvents: 'none' }}>Gira el teléfono para jugar mejor</p>
+          <p style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', margin: 0, padding: '10px 16px', borderRadius: 2, background: 'rgba(14, 31, 27,0.9)', border: '2px solid #4a7366', fontSize: 14, zIndex: 25, textAlign: 'center', pointerEvents: 'none' }}>Gira el teléfono para jugar mejor</p>
         )}
         {adminOpen && isOp && <AdminPanel players={players} myPlayerId={myPlayerId} isHost={isHost} phase={phase} cards={cardCatalog} characters={characters} onOp={(id, on) => connRef.current?.send('set_op', { targetPlayerId: id, on })} onGrant={(g) => connRef.current?.send('admin_grant', g)} onStatus={(g) => connRef.current?.send('admin_status', g)} onTime={(g) => connRef.current?.send('admin_time', g)} onScale={(g) => connRef.current?.send('admin_scale', g)} onAttr={(g) => connRef.current?.send('admin_attr', g)} onClose={() => setAdminOpen(false)} />}
         {helpOpen && <HelpPanel characters={characters} cards={cardCatalog} onClose={() => setHelpOpen(false)} />}
 
         {warn && (
-          <div style={{ position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 60, width: 'min(420px, calc(100% - 24px))', boxSizing: 'border-box', padding: 12, borderRadius: 10, background: '#241a1e', border: '1px solid #f2a154', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 60, width: 'min(420px, calc(100% - 24px))', boxSizing: 'border-box', padding: 12, borderRadius: 4, background: '#16312b', border: '1px solid #f08a3c', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span>No se puede guardar el juego como marcador ni como archivo desde aquí.</span>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => setWarn(false)}>Entendido</button>
@@ -2281,19 +2288,19 @@ export default function LobbyPage() {
 
         {cosmeticsOpen && phase === 'lobby' && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 70, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setCosmeticsOpen(false)}>
-            <div style={{ width: 'min(440px, calc(100% - 24px))', maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', boxSizing: 'border-box', padding: 14, borderRadius: 10, background: '#241a1e', border: '1px solid #3d2c33', display: 'flex', flexDirection: 'column', gap: 10 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ width: 'min(440px, calc(100% - 24px))', maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', boxSizing: 'border-box', padding: 14, borderRadius: 4, background: '#16312b', border: '2px solid #4a7366', display: 'flex', flexDirection: 'column', gap: 10 }} onClick={(e) => e.stopPropagation()}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <strong>Personalizar personaje</strong>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                   <img src="/desgracias.png" alt="Desgracias (hipercomplejos)" title="Desgracias: se miden en hipercomplejos (ℍ, cuaterniones)" width={22} height={22} />
-                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}><strong>{Math.floor(normQ(desgracias.balance))} ℍ</strong><span style={{ fontSize: 10, color: '#a8959a' }}>{formatQ(desgracias.balance)}</span></span>
+                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}><strong>{Math.floor(normQ(desgracias.balance))} ℍ</strong><span style={{ fontSize: 10, color: '#9cb2a6' }}>{formatQ(desgracias.balance)}</span></span>
                 </span>
               </div>
               {Object.keys(ITEMS).map((slot) => (
                 <div key={slot} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span style={{ fontSize: 12, color: '#a8959a' }}>{SLOT_LABELS[slot]}</span>
+                  <span style={{ fontSize: 12, color: '#9cb2a6' }}>{SLOT_LABELS[slot]}</span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    <button type="button" style={{ ...styles.smallButton, width: 'auto', borderColor: !cosmetics[slot] ? '#f0c26b' : '#3d2c33' }} onClick={() => { const next = { ...cosmetics }; delete next[slot]; updateCosmetics(next); }}>Ninguno</button>
+                    <button type="button" style={{ ...styles.smallButton, width: 'auto', borderColor: !cosmetics[slot] ? '#f0b429' : '#2f4d44' }} onClick={() => { const next = { ...cosmetics }; delete next[slot]; updateCosmetics(next); }}>Ninguno</button>
                     {Object.entries(ITEMS[slot]).map(([id, def]) => {
                       const owned = desgracias.owned.includes(id);
                       const price = priceOf(id);
@@ -2302,13 +2309,13 @@ export default function LobbyPage() {
                         <button
                           key={id}
                           type="button"
-                          style={{ ...styles.smallButton, width: 'auto', borderColor: cosmetics[slot]?.id === id ? '#f0c26b' : owned ? '#3d2c33' : affordable ? '#f2d154' : '#3d2c33', opacity: owned || affordable ? 1 : 0.55 }}
+                          style={{ ...styles.smallButton, width: 'auto', borderColor: cosmetics[slot]?.id === id ? '#f0b429' : owned ? '#2f4d44' : affordable ? '#f0b429' : '#2f4d44', opacity: owned || affordable ? 1 : 0.55 }}
                           onClick={() => {
                             if (!owned && !buyItem(id)) return;
                             updateCosmetics({ ...cosmetics, [slot]: { id, color: cosmetics[slot]?.color || COLORS[0] } });
                           }}
                         >
-                          {def.name}{!owned && <span style={{ marginLeft: 6, color: '#f2d154' }}>{price} ℍ</span>}
+                          {def.name}{!owned && <span style={{ marginLeft: 6, color: '#f0b429' }}>{price} ℍ</span>}
                         </button>
                       );
                     })}
@@ -2316,7 +2323,7 @@ export default function LobbyPage() {
                   {cosmetics[slot] && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {COLORS.map((c) => (
-                        <button key={c} type="button" aria-label={`Color ${c}`} onClick={() => updateCosmetics({ ...cosmetics, [slot]: { ...cosmetics[slot], color: c } })} style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: cosmetics[slot].color === c ? '2px solid #fff' : '1px solid #3d2c33', cursor: 'pointer', padding: 0 }} />
+                        <button key={c} type="button" aria-label={`Color ${c}`} onClick={() => updateCosmetics({ ...cosmetics, [slot]: { ...cosmetics[slot], color: c } })} style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: cosmetics[slot].color === c ? '2px solid #fff' : '1px solid #2f4d44', cursor: 'pointer', padding: 0 }} />
                       ))}
                     </div>
                   )}
@@ -2327,7 +2334,7 @@ export default function LobbyPage() {
           </div>
         )}
         {replay && (
-          <div style={{ position: 'absolute', top: 56, left: '50%', transform: 'translateX(-50%)', zIndex: 60, display: 'flex', gap: 10, alignItems: 'center', padding: '6px 12px', borderRadius: 8, background: 'rgba(27, 29, 41, 0.92)', border: '1px solid #f2a154', fontSize: 13 }}>
+          <div style={{ position: 'absolute', top: 56, left: '50%', transform: 'translateX(-50%)', zIndex: 60, display: 'flex', gap: 10, alignItems: 'center', padding: '6px 12px', borderRadius: 2, background: 'rgba(22, 49, 43, 0.92)', border: '1px solid #f08a3c', fontSize: 13 }}>
             <span>Repetición</span>
             <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => setReplay(null)}>Saltar</button>
           </div>
@@ -2345,24 +2352,24 @@ export default function LobbyPage() {
                     : '¡Los Pacientes ganaron!'}
               </h2>
               {lastAward && lastAward.practice && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0', fontSize: 13, color: '#a8959a' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0', fontSize: 13, color: '#9cb2a6' }}>
                   <img src="/desgracias.png" alt="Desgracias" width={22} height={22} style={{ opacity: 0.5 }} />
                   <span>Esta partida no da Desgracias</span>
                 </div>
               )}
               {lastAward && lastAward.total > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '8px 0', fontSize: 13, padding: 10, borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(217,74,82,0.3)', maxHeight: '34dvh', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '8px 0', fontSize: 13, padding: 10, borderRadius: 2, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(224, 80, 60,0.3)', maxHeight: '34dvh', overflowY: 'auto' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <img src="/desgracias.png" alt="Desgracias" width={28} height={28} />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <strong>+{Math.round(normQ(awardToQ(lastAward.items)))} ℍ{lastAward.boss ? ' (partida contra el Jefe, x3)' : ''}</strong>
-                      <span style={{ color: '#a8959a', fontSize: 12 }}>{formatQ(awardToQ(lastAward.items))}</span>
+                      <span style={{ color: '#9cb2a6', fontSize: 12 }}>{formatQ(awardToQ(lastAward.items))}</span>
                     </div>
                   </div>
                   {[...lastAward.items].sort((x, y) => y.amount - x.amount).map((it) => (
-                    <div key={it.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: '#c9b8bd' }}>
+                    <div key={it.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: '#c5d3ca' }}>
                       <span>{it.label}</span>
-                      <span style={{ color: AXIS_COLOR[it.axis] || '#a8959a' }}>+{Math.round(it.amount * 10) / 10}{it.axis && it.axis !== 'r' ? it.axis : ''}</span>
+                      <span style={{ color: AXIS_COLOR[it.axis] || '#9cb2a6' }}>+{Math.round(it.amount * 10) / 10}{it.axis && it.axis !== 'r' ? it.axis : ''}</span>
                     </div>
                   ))}
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 4, marginTop: 2 }}>
@@ -2409,8 +2416,9 @@ export default function LobbyPage() {
   }
 
   return (
-    <main style={styles.main}>
-      <div style={styles.card}>
+    <main className="gate">
+      <div className="gate-run" aria-hidden="true"><i><i><i /></i></i></div>
+      <div className="gate-card">
         <Wordmark />
         <header style={styles.header}>
           <span style={styles.dot(status)} />
@@ -2422,24 +2430,20 @@ export default function LobbyPage() {
         {status === 'needs_login' && (
           <div style={styles.form}>
             <button
-              style={styles.oauthButton('#4285F4', oauthLoading !== null)}
+              style={styles.oauthButton(oauthLoading !== null)}
               onClick={() => { setOauthLoading('google'); redirectToOAuthLogin('google'); }}
               disabled={oauthLoading !== null}
             >
-              {oauthLoading === 'google' ? 'Redirigiendo...' : (<><span>Vende tus datos a cierta empresa multimillonaria</span><span style={{ display: 'block', fontSize: 11, opacity: 0.85, fontWeight: 400 }}>Continuar con Google</span></>)}
+              {oauthLoading === 'google' ? 'Redirigiendo...' : (<><span>Vende tus datos a cierta empresa multimillonaria</span><span style={{ display: 'block', fontSize: 12, fontWeight: 400, marginTop: 2 }}>Continuar con Google</span></>)}
             </button>
             <button
-              style={styles.oauthButton('#5865F2', oauthLoading !== null)}
+              style={styles.oauthButton(oauthLoading !== null)}
               onClick={() => { setOauthLoading('discord'); redirectToOAuthLogin('discord'); }}
               disabled={oauthLoading !== null}
             >
-              {oauthLoading === 'discord' ? 'Redirigiendo...' : (<><span>Vende tu alma a la aplicación con moderación de 4chan</span><span style={{ display: 'block', fontSize: 11, opacity: 0.85, fontWeight: 400 }}>Continuar con Discord</span></>)}
+              {oauthLoading === 'discord' ? 'Redirigiendo...' : (<><span>Vende tu alma a la aplicación con moderación de 4chan</span><span style={{ display: 'block', fontSize: 12, fontWeight: 400, marginTop: 2 }}>Continuar con Discord</span></>)}
             </button>
-            <div style={styles.divider}>
-              <span style={styles.dividerLine} />
-              <span style={styles.dividerText}>o</span>
-              <span style={styles.dividerLine} />
-            </div>
+            <div className="gate-sep">o</div>
             <form onSubmit={handleGuestLogin} style={styles.form}>
               <label style={styles.label}>
                 Jugar sin cuenta
@@ -2566,16 +2570,12 @@ function formatTime(ms) {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-const BODY_FONT = '"Bricolage Grotesque", system-ui, -apple-system, sans-serif';
+const BODY_FONT = 'var(--body)';
 
 function Wordmark() {
   return (
-    <div style={{ marginBottom: 22 }}>
-      <div className="cube3d" style={{ fontWeight: 800, fontSize: 46, letterSpacing: '-0.035em', lineHeight: 1.2, color: '#f3e8e5' }}>réplica</div>
-      <svg viewBox="0 0 240 28" width="100%" height="28" preserveAspectRatio="xMinYMid meet" aria-hidden="true" style={{ display: 'block', marginTop: 10, overflow: 'visible' }}>
-        <path className="beat" pathLength="1" d="M0 14 H56 L63 14 L69 3 L77 25 L84 8 L89 14 H134" fill="none" stroke="#d94a52" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M134 14 H240" fill="none" stroke="#7fe08b" strokeWidth="2" strokeLinecap="round" strokeDasharray="1 7" opacity="0.85" />
-      </svg>
+    <div className="gate-plate">
+      <div className="cube3d gate-mark">réplica</div>
     </div>
   );
 }
@@ -2601,68 +2601,57 @@ const MODE_LIST = [
   { id: 'gravity', name: 'Gravedad variable' },
 ];
 
+const slab = (stripe, extra) => ({
+  background: 'rgba(22, 49, 43, 0.96)',
+  border: `2px solid ${UI.lineHi}`,
+  borderRadius: 2,
+  boxShadow: `inset 5px 0 0 ${stripe}, 0 3px 0 rgba(0, 0, 0, 0.45)`,
+  ...extra,
+});
+
+const RARITY_EDGE = { super: '#f0b429', legendary: '#f0b429', rare: '#f08a3c', uncommon: '#e0503c' };
+
 const styles = {
-  main: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#1a1215',
-    color: '#f3e8e5',
-    fontFamily: BODY_FONT,
-  },
-  card: {
-    width: 'min(380px, calc(100vw - 32px))',
-    boxSizing: 'border-box',
-    padding: 28,
-    borderRadius: 12,
-    background: '#241a1e',
-    border: '1px solid #3d2c33',
-  },
   header: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 },
   dot: (status) => ({
-    width: 8,
-    height: 8,
-    borderRadius: '50%',
+    width: 10,
+    height: 10,
     background:
       status === 'needs_login' || status === 'disconnected'
-        ? '#e0555f'
+        ? UI.accent
         : status === 'checking_session'
-        ? '#a8959a'
-        : '#5fd58c',
+        ? UI.muted
+        : UI.ok,
   }),
-  statusText: { fontSize: 13, color: '#a8959a', letterSpacing: 0.2 },
+  statusText: { fontSize: 14, color: UI.muted },
   form: { display: 'flex', flexDirection: 'column', gap: 14 },
-  label: { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: '#a8959a' },
+  label: { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 700, color: UI.text },
   input: {
     padding: '10px 12px',
-    borderRadius: 8,
-    border: '1px solid #3d2c33',
-    background: '#1a1215',
-    color: '#f3e8e5',
-    fontSize: 14,
+    borderRadius: 2,
+    border: `2px solid ${UI.lineHi}`,
+    background: UI.inset,
+    color: UI.text,
+    fontSize: 15,
   },
   button: (disabled) => ({ ...btn.primary(disabled), marginTop: 6 }),
 
-  oauthButton: (bgColor, disabled) => ({ ...btn.primary(disabled), background: bgColor, color: '#fff', opacity: disabled ? 0.6 : 1 }),
+  oauthButton: (disabled) => ({ ...btn.plate(disabled), textAlign: 'left' }),
 
-  divider: { display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' },
-  dividerLine: { flex: 1, height: 1, background: '#3d2c33' },
-  dividerText: { fontSize: 12, color: '#a8959a' },
-  linkButton: (disabled) => ({ ...btn.ghost(disabled), padding: 0, textDecoration: 'underline', fontSize: 12, fontWeight: 500 }),
+  linkButton: (disabled) => ({ ...btn.ghost(disabled), padding: 0, textDecoration: 'underline', fontSize: 13, fontWeight: 400 }),
 
-  roomLabel: { fontSize: 14, color: '#a8959a', margin: 0 },
+  roomLabel: { fontSize: 15, color: UI.text, margin: 0 },
   nameEditRow: { display: 'flex', gap: 6, alignItems: 'center' },
   inRoomNameInput: {
     padding: '4px 8px',
-    borderRadius: 6,
-    border: '1px solid #3d2c33',
-    background: '#1a1215',
-    color: '#f3e8e5',
-    fontSize: 12,
+    borderRadius: 2,
+    border: `2px solid ${UI.lineHi}`,
+    background: UI.inset,
+    color: UI.text,
+    fontSize: 13,
     width: 110,
   },
-  phaseLabel: { fontSize: 13, color: '#a8959a', margin: 0 },
+  phaseLabel: { fontSize: 14, color: UI.muted, margin: 0 },
   playerList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '38vh', overflowY: 'auto' },
   playerItem: {
     display: 'flex',
@@ -2671,11 +2660,11 @@ const styles = {
     justifyContent: 'space-between',
     gap: 6,
     padding: '8px 10px',
-    borderRadius: 6,
-    background: '#1a1215',
+    borderRadius: 2,
+    background: UI.inset,
     fontSize: 14,
   },
-  playerTag: { fontSize: 12, color: '#a8959a' },
+  playerTag: { fontSize: 12, color: UI.muted },
   smallButton: { ...btn.secondary(false), width: '100%' },
 
   characterPicker: {
@@ -2683,42 +2672,45 @@ const styles = {
     flexDirection: 'column',
     gap: 6,
     padding: 10,
-    borderRadius: 6,
-    background: '#1a1215',
+    borderRadius: 2,
+    background: UI.inset,
   },
-  characterPickerLabel: { fontSize: 12, color: '#a8959a', margin: '0 0 2px' },
+  characterPickerLabel: { fontSize: 13, fontWeight: 700, color: UI.text, margin: '0 0 2px' },
   characterOption: (selected) => ({ ...btn.secondary(selected), display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, padding: '8px 10px', textAlign: 'left' }),
-  characterWeapon: { fontSize: 11, fontWeight: 400, color: '#a8959a' },
+  characterWeapon: { fontSize: 12, fontWeight: 400, color: 'inherit', opacity: 0.75 },
   mapPicker: {
     display: 'flex',
     flexDirection: 'column',
     gap: 6,
     padding: 10,
-    borderRadius: 6,
-    background: '#1a1215',
+    borderRadius: 2,
+    background: UI.inset,
   },
   mapSelect: {
     padding: '7px 10px',
-    borderRadius: 6,
-    border: '1px solid #3d2c33',
-    background: '#241a1e',
-    color: '#f3e8e5',
-    fontSize: 13,
+    borderRadius: 2,
+    border: `2px solid ${UI.lineHi}`,
+    background: UI.panel,
+    color: UI.text,
+    fontSize: 14,
   },
-  mapReadOnly: { fontSize: 13, color: '#f3e8e5', margin: 0 },
-  editorLink: { fontSize: 11, color: '#d94a52', textDecoration: 'none' },
-  roleTag: (isAsym) => ({ fontSize: 13, fontWeight: 600, color: isAsym ? '#f2a154' : '#5fd58c', margin: 0 }),
+  mapReadOnly: { fontSize: 14, color: UI.text, margin: 0 },
+  editorLink: { fontSize: 12, color: UI.signal, textDecoration: 'underline' },
+  roleTag: (isAsym) => ({ fontSize: 14, fontWeight: 700, color: isAsym ? '#f08a3c' : UI.ok, margin: 0 }),
   timerTag: (ms) => ({
-    fontSize: 13,
-    fontWeight: 700,
+    fontSize: 14,
+    fontWeight: 800,
     fontVariantNumeric: 'tabular-nums',
-    color: ms < 30000 ? '#e0555f' : '#f3e8e5',
+    color: ms < 30000 ? '#f27a65' : UI.text,
     margin: 0,
   }),
   error: {
     marginTop: 14,
-    fontSize: 13,
-    color: '#e0555f',
+    padding: '8px 10px',
+    fontSize: 14,
+    color: UI.ink,
+    background: '#f0a090',
+    borderLeft: `5px solid ${UI.accent}`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -2729,8 +2721,7 @@ const styles = {
     border: 'none',
     color: 'inherit',
     cursor: 'pointer',
-    fontSize: 12,
-    opacity: 0.8,
+    fontSize: 13,
     padding: '2px 4px',
     lineHeight: 1,
   },
@@ -2741,21 +2732,21 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
-    background: 'rgba(18, 19, 26, 0.6)',
+    background: UI.inset,
   },
-  chatEmpty: { fontSize: 12, color: '#565a6e', margin: 'auto 0', textAlign: 'center' },
-  chatLine: { fontSize: 13, margin: 0, lineHeight: 1.4, wordBreak: 'break-word' },
-  chatAuthor: (isMe) => ({ fontWeight: 600, color: isMe ? '#d94a52' : '#a8959a' }),
-  chatText: { color: '#f3e8e5' },
-  chatInputRow: { display: 'flex', gap: 8, padding: 8, borderTop: '1px solid #3d2c33', background: '#241a1e' },
+  chatEmpty: { fontSize: 13, color: UI.muted, margin: 'auto 0', textAlign: 'center' },
+  chatLine: { fontSize: 14, margin: 0, lineHeight: 1.4, wordBreak: 'break-word' },
+  chatAuthor: (isMe) => ({ fontWeight: 700, color: isMe ? UI.signal : UI.muted }),
+  chatText: { color: UI.text },
+  chatInputRow: { display: 'flex', gap: 8, padding: 8, borderTop: `2px solid ${UI.line}`, background: UI.panel },
   chatInput: {
     flex: 1,
     padding: '8px 10px',
-    borderRadius: 6,
-    border: '1px solid #3d2c33',
-    background: '#1a1215',
-    color: '#f3e8e5',
-    fontSize: 13,
+    borderRadius: 2,
+    border: `2px solid ${UI.lineHi}`,
+    background: UI.inset,
+    color: UI.text,
+    fontSize: 14,
   },
   chatSendButton: (disabled) => btn.primary(disabled),
 
@@ -2763,34 +2754,26 @@ const styles = {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
     overflow: 'hidden',
-    background: '#0a0b10',
+    background: UI.bg,
     fontFamily: BODY_FONT,
-    color: '#f3e8e5',
+    color: UI.text,
   },
   sceneContainer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, userSelect: 'none', WebkitUserSelect: 'none' },
-  topBar: {
+  topBar: slab(UI.signal, {
     position: 'absolute',
     top: 16,
     left: 16,
     display: 'flex',
     alignItems: 'center',
     gap: 10,
-    padding: '8px 14px',
-    borderRadius: 8,
-    background: 'rgba(27, 29, 41, 0.85)',
-    border: '1px solid #3d2c33',
-    backdropFilter: 'blur(4px)',
-  },
-  playersOverlay: {
+    padding: '7px 14px 7px 19px',
+  }),
+  playersOverlay: slab(UI.paper, {
     position: 'absolute',
     top: 52,
     right: 16,
     width: 220,
-    padding: 14,
-    borderRadius: 8,
-    background: 'rgba(27, 29, 41, 0.85)',
-    border: '1px solid #3d2c33',
-    backdropFilter: 'blur(4px)',
+    padding: '14px 14px 14px 19px',
     display: 'flex',
     flexDirection: 'column',
     gap: 10,
@@ -2799,27 +2782,25 @@ const styles = {
     boxSizing: 'border-box',
     overscrollBehavior: 'contain',
     scrollbarWidth: 'thin',
-  },
-  chatOverlay: {
+  }),
+  chatOverlay: slab(UI.lineHi, {
     position: 'absolute',
     bottom: 16,
     left: 16,
     width: 320,
-    borderRadius: 8,
     overflow: 'hidden',
-    border: '1px solid #3d2c33',
-    background: 'rgba(27, 29, 41, 0.9)',
-    backdropFilter: 'blur(4px)',
-  },
+  }),
   errorOverlay: {
     position: 'absolute',
     top: 70,
     left: 16,
-    fontSize: 13,
-    color: '#fff',
-    background: 'rgba(224, 85, 95, 0.9)',
+    fontSize: 14,
+    fontWeight: 700,
+    color: UI.ink,
+    background: '#f0a090',
+    borderLeft: `5px solid ${UI.accent}`,
     padding: '8px 14px',
-    borderRadius: 6,
+    borderRadius: 2,
     display: 'flex',
     alignItems: 'center',
     gap: 10,
@@ -2830,77 +2811,68 @@ const styles = {
     top: 16,
     left: '50%',
     transform: 'translateX(-50%)',
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#1a1215',
-    background: '#f2a154',
+    fontSize: 14,
+    fontWeight: 700,
+    color: UI.ink,
+    background: UI.signal,
     padding: '8px 14px',
-    borderRadius: 6,
+    borderRadius: 2,
     margin: 0,
   },
-  hpBarContainer: {
+  hpBarContainer: slab(UI.serum, {
     position: 'absolute',
     bottom: 16,
     left: '50%',
     transform: 'translateX(-50%)',
     width: 280,
-    padding: '10px 14px',
-    borderRadius: 8,
-    background: 'rgba(27, 29, 41, 0.85)',
-    border: '1px solid #3d2c33',
-    backdropFilter: 'blur(4px)',
-  },
+    padding: '8px 14px 10px 19px',
+  }),
   resolvedBanner: (won) => ({
     position: 'absolute',
     top: 110,
     left: '50%',
     transform: 'translateX(-50%)',
     padding: '10px 22px',
-    borderRadius: 10,
-    fontSize: 18,
-    fontWeight: 700,
+    borderRadius: 2,
+    fontFamily: 'var(--display)',
+    fontStretch: '72%',
+    fontSize: 24,
+    fontWeight: 800,
     textAlign: 'center',
-    color: won ? '#5fd58c' : '#e0555f',
-    background: 'rgba(18, 19, 26, 0.92)',
-    border: `1px solid ${won ? '#5fd58c' : '#e0555f'}`,
+    color: UI.ink,
+    background: won ? UI.ok : '#f0a090',
+    border: `2px solid ${won ? '#2f8a6c' : UI.accent}`,
+    boxShadow: '0 3px 0 rgba(0, 0, 0, 0.45)',
   }),
-  hpBarLabel: { fontSize: 12, color: '#a8959a', marginBottom: 6, textAlign: 'center' },
-  curatorHpBar: {
+  hpBarLabel: { fontSize: 13, fontWeight: 700, color: UI.text, marginBottom: 5, textAlign: 'left', fontVariantNumeric: 'tabular-nums' },
+  curatorHpBar: slab('#f08a3c', {
     position: 'absolute',
     top: 64,
     left: '50%',
     transform: 'translateX(-50%)',
     width: 320,
-    padding: '8px 14px',
-    borderRadius: 8,
-    background: 'rgba(27, 29, 41, 0.85)',
-    border: '1px solid #3d2c33',
-    backdropFilter: 'blur(4px)',
-  },
+    padding: '8px 14px 8px 19px',
+  }),
   curatorHpFill: (ratio) => ({
     height: '100%',
     width: `${Math.max(0, Math.min(1, ratio)) * 100}%`,
-    background: ratio < 0.2 || ratio > 0.85 ? '#e0555f' : '#f2a154',
+    background: ratio < 0.2 || ratio > 0.85 ? UI.accent : '#f08a3c',
     transition: 'width 0.2s linear',
   }),
-  flojeraBarContainer: {
+  flojeraBarContainer: slab(UI.accent, {
     position: 'absolute',
     bottom: 86,
     left: '50%',
     transform: 'translateX(-50%)',
-    width: 220,
-    padding: '8px 14px',
-    borderRadius: 8,
-    background: 'rgba(27, 29, 41, 0.85)',
-    border: '1px solid #3d2c33',
-    backdropFilter: 'blur(4px)',
-  },
-  flojeraBarLabel: { fontSize: 12, color: '#a8959a', marginBottom: 6, textAlign: 'center' },
-  flojeraBarTrack: { height: 6, borderRadius: 3, background: '#1a1215', overflow: 'hidden' },
+    width: 240,
+    padding: '8px 14px 10px 19px',
+  }),
+  flojeraBarLabel: { fontSize: 13, fontWeight: 700, color: UI.text, marginBottom: 5, textAlign: 'left', fontVariantNumeric: 'tabular-nums' },
+  flojeraBarTrack: { height: 10, borderRadius: 2, background: '#07120f', border: '2px solid #07120f', boxSizing: 'border-box', overflow: 'hidden' },
   flojeraBarFill: (value, max, locked) => ({
     height: '100%',
     width: `${Math.max(0, Math.min(1, value / max)) * 100}%`,
-    background: locked ? '#e0555f' : '#d94a52',
+    background: locked ? '#f0a090' : UI.accent,
     transition: 'width 0.15s linear',
   }),
   handContainer: {
@@ -2920,76 +2892,72 @@ const styles = {
     width: 64,
     height: 72,
     padding: 0,
-    borderRadius: 10,
-    border: '1px solid #3d2c33',
-    background: onCooldown ? 'rgba(27, 29, 41, 0.6)' : 'rgba(95, 213, 140, 0.15)',
-    color: onCooldown ? '#a8959a' : '#5fd58c',
+    borderRadius: 2,
+    border: `2px solid ${onCooldown ? UI.line : UI.paper}`,
+    background: onCooldown ? UI.inset : UI.panelHi,
+    boxShadow: onCooldown ? 'none' : '0 3px 0 rgba(0, 0, 0, 0.5)',
+    color: onCooldown ? UI.muted : UI.paper,
     cursor: onCooldown ? 'default' : 'pointer',
     overflow: 'hidden',
   }),
-  botRow: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#c3c5d6' },
+  botRow: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: UI.text },
   hitboxButton: (on) => ({ ...btn.icon(on), position: 'absolute', top: 16, right: 288 }),
 
-  hitboxSlider: {
+  hitboxSlider: slab(UI.lineHi, {
     position: 'absolute',
     top: 56,
     right: 248,
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
-    padding: '6px 10px',
-    borderRadius: 8,
-    background: 'rgba(27, 29, 41, 0.9)',
-    border: '1px solid #3d2c33',
-    fontSize: 11,
-    color: '#c3c5d6',
-  },
+    padding: '6px 10px 6px 15px',
+    fontSize: 12,
+    color: UI.text,
+  }),
   helpButton: { ...btn.icon(false), position: 'absolute', top: 16, right: 248 },
 
-  cardButtonName: { fontSize: 13, fontWeight: 600 },
-  draftSlot: {
+  cardButtonName: { fontSize: 13, fontWeight: 700, lineHeight: 1.15 },
+  draftSlot: slab(UI.lineHi, {
     display: 'flex',
     flexDirection: 'column',
     gap: 6,
     padding: 8,
-    borderRadius: 8,
-    background: 'rgba(27, 29, 41, 0.9)',
-    border: '1px solid #3d2c33',
     width: 170,
-  },
+  }),
   draftOverlay: { position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, maxWidth: '96vw' },
   draftRow: { display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' },
   draftCard: (rarity, corrupt, n) => ({
     position: 'relative',
-    width: 118,
-    height: 168,
-    borderRadius: 12,
-    border: `2px solid ${corrupt ? '#d94fd0' : rarity === 'super' ? '#ffe14a' : rarity === 'legendary' ? '#ffd24a' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#d94a52' : '#3d2c33'}`,
-    background: 'linear-gradient(160deg, #241a20, #14151d)',
-    boxShadow: '0 8px 22px rgba(0,0,0,0.55)',
+    width: 124,
+    height: 172,
+    borderRadius: 2,
+    border: `2px solid ${UI.lineHi}`,
+    borderTop: `12px solid ${corrupt ? '#d94fd0' : RARITY_EDGE[rarity] || UI.lineHi}`,
+    background: UI.panel,
+    boxShadow: '0 4px 0 rgba(0, 0, 0, 0.5)',
     animationDelay: `${n * 90}ms`,
   }),
-  draftFace: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', height: '100%', padding: '10px 6px', background: 'transparent', border: 'none', color: '#e8e9f0', cursor: 'pointer', borderRadius: 10, boxSizing: 'border-box', textAlign: 'center' },
-  draftReroll: (on) => ({ position: 'absolute', top: 4, right: 4, width: 24, height: 24, padding: 0, background: '#1b2238', color: '#e8f1f8', border: '1px solid #4a6a8a', borderRadius: 12, cursor: on ? 'pointer' : 'default', opacity: on ? 1 : 0.35 }),
-  draftTitle: { fontSize: 11, color: '#a8959a', textAlign: 'center' },
+  draftFace: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', height: '100%', padding: '10px 6px', background: 'transparent', border: 'none', color: UI.text, cursor: 'pointer', borderRadius: 2, boxSizing: 'border-box', textAlign: 'center' },
+  draftReroll: (on) => ({ position: 'absolute', top: 2, right: 2, width: 26, height: 26, padding: 0, background: UI.inset, color: UI.text, border: `2px solid ${UI.lineHi}`, borderRadius: 2, cursor: on ? 'pointer' : 'default', opacity: on ? 1 : 0.35 }),
+  draftTitle: { fontSize: 14, fontWeight: 700, color: UI.ink, background: UI.paper, padding: '5px 12px', borderRadius: 2, textAlign: 'center' },
   draftOption: (rarity, corrupt) => ({
     display: 'flex',
     flexDirection: 'column',
     gap: 2,
     padding: '6px 8px',
-    borderRadius: 6,
-    border: `1px solid ${corrupt ? '#d94fd0' : rarity === 'legendary' ? '#ffd24a' : rarity === 'rare' ? '#f2a154' : rarity === 'uncommon' ? '#d94a52' : '#3d2c33'}`,
-    background: 'rgba(18, 19, 26, 0.9)',
-    color: '#e8e9f0',
+    borderRadius: 2,
+    border: `2px solid ${corrupt ? '#d94fd0' : RARITY_EDGE[rarity] || UI.line}`,
+    background: UI.inset,
+    color: UI.text,
     cursor: 'pointer',
     textAlign: 'left',
     width: '100%',
     boxSizing: 'border-box',
   }),
   draftHeader: { display: 'flex', alignItems: 'center', gap: 8 },
-  draftDeck: { fontSize: 9, color: '#a8959a', textTransform: 'uppercase', letterSpacing: 0.4 },
-  draftDescription: { fontSize: 10, color: '#a8959a', fontWeight: 400 },
-  cardButtonCooldown: { fontSize: 11, fontVariantNumeric: 'tabular-nums' },
+  draftDeck: { fontSize: 10, color: UI.muted },
+  draftDescription: { fontSize: 11, color: UI.muted, fontWeight: 400 },
+  cardButtonCooldown: { fontSize: 12, fontVariantNumeric: 'tabular-nums' },
   skillBar: {
     position: 'absolute',
     bottom: 16,
@@ -3008,45 +2976,42 @@ const styles = {
     width: 64,
     height: 72,
     padding: 0,
-    borderRadius: 10,
-    border: '1px solid #3d2c33',
-    background: onCooldown ? 'rgba(27, 29, 41, 0.6)' : 'rgba(95, 213, 140, 0.15)',
-    color: onCooldown ? '#a8959a' : '#5fd58c',
+    borderRadius: 2,
+    border: `2px solid ${onCooldown ? UI.line : UI.paper}`,
+    background: onCooldown ? UI.inset : UI.panelHi,
+    boxShadow: onCooldown ? 'none' : '0 3px 0 rgba(0, 0, 0, 0.5)',
+    color: onCooldown ? UI.muted : UI.paper,
     cursor: onCooldown ? 'default' : 'pointer',
     overflow: 'hidden',
   }),
-  skillKey: { fontSize: 14, fontWeight: 800, lineHeight: 1, color: '#e8e9f0' },
+  skillKey: { position: 'absolute', top: 0, left: 0, minWidth: 20, height: 20, padding: '0 4px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, lineHeight: 1, color: UI.ink, background: UI.paper },
   skillCooldownOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'rgba(15, 17, 26, 0.72)',
+    background: 'rgba(7, 18, 15, 0.78)',
     fontSize: 22,
-    fontWeight: 700,
+    fontWeight: 800,
     fontVariantNumeric: 'tabular-nums',
-    color: '#e8e9f0',
+    color: UI.text,
   },
   keywordRow: { display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' },
-  pulseHud: {
+  pulseHud: slab(UI.ok, {
     position: 'absolute',
     bottom: 16,
     left: '50%',
     transform: 'translateX(-50%)',
-    padding: '8px 16px',
-    borderRadius: 8,
-    background: 'rgba(27, 29, 41, 0.85)',
-    border: '1px solid #3d2c33',
-    backdropFilter: 'blur(4px)',
-  },
-  pulseHudReady: { fontSize: 13, fontWeight: 600, color: '#5fd58c' },
-  pulseHudCooldown: { fontSize: 13, fontWeight: 600, color: '#a8959a', fontVariantNumeric: 'tabular-nums' },
-  hpBarTrack: { height: 8, borderRadius: 4, background: '#1a1215', overflow: 'hidden' },
+    padding: '8px 16px 8px 21px',
+  }),
+  pulseHudReady: { fontSize: 14, fontWeight: 700, color: UI.ok },
+  pulseHudCooldown: { fontSize: 14, fontWeight: 700, color: UI.muted, fontVariantNumeric: 'tabular-nums' },
+  hpBarTrack: { height: 12, borderRadius: 2, background: '#07120f', border: '2px solid #07120f', boxSizing: 'border-box', overflow: 'hidden' },
   hpBarFill: (hp, maxHp = 120) => {
-    if (maxHp > 1e6) return { height: '100%', width: '100%', background: '#54a8f2' };
+    if (maxHp > 1e6) return { height: '100%', width: '100%', background: UI.serum };
     const ratio = Math.max(0, Math.min(1, hp / maxHp));
-    const color = ratio < 0.5 ? '#5fd58c' : ratio < 0.85 ? '#f2a154' : '#e0555f';
+    const color = ratio < 0.5 ? UI.ok : ratio < 0.85 ? '#f08a3c' : UI.accent;
     return { height: '100%', width: `${ratio * 100}%`, background: color, transition: 'width 0.2s ease, background 0.3s ease' };
   },
   actionFeedback: {
@@ -3054,45 +3019,50 @@ const styles = {
     top: 70,
     left: '50%',
     transform: 'translateX(-50%)',
-    fontSize: 13,
-    color: '#f3e8e5',
-    background: 'rgba(84, 104, 255, 0.9)',
+    fontSize: 14,
+    fontWeight: 700,
+    color: UI.ink,
+    background: UI.paper,
     padding: '6px 14px',
-    borderRadius: 6,
+    borderRadius: 2,
     margin: 0,
   },
   gameOverOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
     zIndex: 40,
-    background: 'rgba(10, 11, 16, 0.85)',
+    background: 'rgba(8, 20, 17, 0.88)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backdropFilter: 'blur(2px)',
   },
-  gameOverCard: { width: 'min(380px, calc(100% - 32px))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box', padding: 28, borderRadius: 12, background: '#241a1e', border: '1px solid #3d2c33' },
+  gameOverCard: { width: 'min(400px, calc(100% - 32px))', maxHeight: '90dvh', overflowY: 'auto', boxSizing: 'border-box', padding: 26, borderRadius: 2, background: UI.panel, border: `2px solid ${UI.lineHi}`, boxShadow: '0 5px 0 rgba(0, 0, 0, 0.5)' },
   gameOverTitle: (curatorWon) => ({
-    fontSize: 18,
-    fontWeight: 700,
-    color: curatorWon ? '#f2a154' : '#5fd58c',
-    margin: '0 0 6px',
-    textAlign: 'center',
+    fontFamily: 'var(--display)',
+    fontStretch: '72%',
+    fontSize: 30,
+    fontWeight: 800,
+    lineHeight: 1.05,
+    color: UI.paper,
+    margin: '0 0 8px',
+    textAlign: 'left',
+    paddingBottom: 12,
+    borderBottom: `6px solid ${curatorWon ? '#f08a3c' : UI.ok}`,
   }),
-  gameOverReason: { fontSize: 13, color: '#a8959a', textAlign: 'center', margin: '0 0 18px' },
-  waitingForHost: { fontSize: 12, color: '#a8959a', textAlign: 'center', margin: '0 0 10px' },
-  gameOverList: { listStyle: 'none', padding: 0, margin: '0 0 20px', display: 'flex', flexDirection: 'column', gap: 8 },
+  gameOverReason: { fontSize: 14, color: UI.muted, textAlign: 'left', margin: '0 0 18px' },
+  waitingForHost: { fontSize: 13, color: UI.muted, textAlign: 'left', margin: '0 0 10px' },
+  gameOverList: { listStyle: 'none', padding: 0, margin: '0 0 20px', display: 'flex', flexDirection: 'column', gap: 6 },
   gameOverListItem: {
     display: 'flex',
     justifyContent: 'space-between',
     padding: '8px 10px',
-    borderRadius: 6,
-    background: '#1a1215',
-    fontSize: 13,
+    borderRadius: 2,
+    background: UI.inset,
+    fontSize: 14,
   },
   gameOverResultTag: (resultStatus) => ({
-    fontSize: 12,
-    fontWeight: 600,
-    color: resultStatus === 'self_won' ? '#5fd58c' : resultStatus === 'eliminated' ? '#e0555f' : '#a8959a',
+    fontSize: 13,
+    fontWeight: 700,
+    color: resultStatus === 'self_won' ? UI.ok : resultStatus === 'eliminated' ? '#f27a65' : UI.muted,
   }),
 };

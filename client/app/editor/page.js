@@ -21,19 +21,19 @@ const CANVAS_SIZE = 560;
 const CANVAS_HALF = CANVAS_SIZE / 2;
 
 const TEXTURES = [['', 'Por defecto'], ['marble', 'Mármol'], ['tile', 'Azulejo'], ['plaster', 'Yeso celeste'], ['tower', 'Paneles'], ['roof', 'Teja celeste'], ['ramp', 'Franjas'], ['concrete', 'Concreto'], ['brick', 'Ladrillo'], ['wood', 'Madera'], ['metal', 'Metal']];
-const TEX_COLORS = { marble: '#e7eef5', tile: '#eef3f8', plaster: '#8fc6ea', tower: '#b9dcf3', roof: '#9fd0f0', ramp: '#6fb6e8', concrete: '#c8d6e2', brick: '#d8dfe6', wood: '#c99a62', metal: '#b4c3d0' };
+const TEX_COLORS = { marble: '#e8efe4', tile: '#e8efe4', plaster: '#8fc6ea', tower: '#b9dcf3', roof: '#9fd0f0', ramp: '#6fb6e8', concrete: '#c5d3ca', brick: '#dfe8dc', wood: '#c99a62', metal: '#c5d3ca' };
 const COLLISION_TYPES = ['gurney', 'shelf', 'cart', 'pillar', 'crate', 'desk', 'plant', 'tank', 'bed', 'vending', 'mri', 'wheelchair', 'iv'];
 const REF_HALF = 30;
 const MAP_HALF = 60;
 const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3, crate: 1.1, desk: 1, plant: 1.4, tank: 2, bed: 1.1, vending: 2, mri: 2.4, wheelchair: 1, iv: 2 };
 
 const PREFABS = {
-  cama: { name: 'Cama (bloques)', parts: [[0, 0, 1, 0.5, 0.45, 0.25, '#c9d3d0'], [-0.7, 0, 0.3, 0.45, 0.2, 0.7, '#f1f4f2'], [1, 0, 0.06, 0.5, 0.6, 0.7, '#6f7b74'], [-0.95, -0.4, 0.06, 0.06, 0.25, 0, '#2a2d3d'], [-0.95, 0.4, 0.06, 0.06, 0.25, 0, '#2a2d3d'], [0.95, -0.4, 0.06, 0.06, 0.25, 0, '#2a2d3d'], [0.95, 0.4, 0.06, 0.06, 0.25, 0, '#2a2d3d']] },
+  cama: { name: 'Cama (bloques)', parts: [[0, 0, 1, 0.5, 0.45, 0.25, '#c9d3d0'], [-0.7, 0, 0.3, 0.45, 0.2, 0.7, '#f1f4f2'], [1, 0, 0.06, 0.5, 0.6, 0.7, '#6f7b74'], [-0.95, -0.4, 0.06, 0.06, 0.25, 0, '#2f4d44'], [-0.95, 0.4, 0.06, 0.06, 0.25, 0, '#2f4d44'], [0.95, -0.4, 0.06, 0.06, 0.25, 0, '#2f4d44'], [0.95, 0.4, 0.06, 0.06, 0.25, 0, '#2f4d44']] },
   letrero: { name: 'Letrero (poste + panel)', parts: [[0, 0, 0.08, 0.08, 2.2, 0, '#555d5a'], [0, 0, 0.8, 0.05, 0.6, 2.2, '#2f6f5a']] },
   mesa: { name: 'Mesa', parts: [[0, 0, 0.9, 0.5, 0.08, 0.8, '#7a5a3a'], [-0.8, -0.4, 0.06, 0.06, 0.8, 0, '#5a4129'], [0.8, -0.4, 0.06, 0.06, 0.8, 0, '#5a4129'], [-0.8, 0.4, 0.06, 0.06, 0.8, 0, '#5a4129'], [0.8, 0.4, 0.06, 0.06, 0.8, 0, '#5a4129']] },
-  mostrador: { name: 'Mostrador', parts: [[0, 0, 1.6, 0.4, 1, 0, '#8a948f'], [0, -0.2, 1.7, 0.45, 0.06, 1, '#c9d3d6']] },
+  mostrador: { name: 'Mostrador', parts: [[0, 0, 1.6, 0.4, 1, 0, '#8a948f'], [0, -0.2, 1.7, 0.45, 0.06, 1, '#c5d3ca']] },
   cortina: { name: 'Cortina de box', parts: [[0, 0, 1.2, 0.04, 1.9, 0.1, '#9fd3c7']] },
-  banca: { name: 'Banca', parts: [[0, 0, 1, 0.25, 0.08, 0.45, '#6f7b74'], [-0.85, 0, 0.06, 0.2, 0.45, 0, '#3a3f48'], [0.85, 0, 0.06, 0.2, 0.45, 0, '#3a3f48']] },
+  banca: { name: 'Banca', parts: [[0, 0, 1, 0.25, 0.08, 0.45, '#6f7b74'], [-0.85, 0, 0.06, 0.2, 0.45, 0, '#2f4d44'], [0.85, 0, 0.06, 0.2, 0.45, 0, '#2f4d44']] },
 };
 const SNAPS = [0, 0.01, 0.05, 0.1, 0.25, 0.5, 1];
 
@@ -48,13 +48,13 @@ function PlatformMesh({ p, onPick, selected, MAP_HALF }) {
   const texName = p.tex || (p.ramp ? 'ramp' : DEFAULT_TEX[p.kind] || 'concrete');
   const map = useMemo(() => getTexture(texName, Math.max(1, Math.round(hx * 2 / 3)), Math.max(1, Math.round(Math.max(hz * 2, p.h) / 3))), [texName, hx, hz, p.h]);
   const pick = onPick ? (e) => { e.stopPropagation(); onPick(p.id); } : undefined;
-  const color = selected ? '#facc15' : p.hp > 0 ? '#d9a679' : p.tint || '#ffffff';
+  const color = selected ? '#f0b429' : p.hp > 0 ? '#d9a679' : p.tint || '#ffffff';
   if (p.kind === 'pit') {
     if (!p.ramp) {
       return (
         <mesh position={[x, -p.h + 0.05, z]} onClick={pick}>
           <boxGeometry args={[hx * 2, 0.1, hz * 2]} />
-          <meshStandardMaterial color={selected ? '#facc15' : '#3b6ea5'} />
+          <meshStandardMaterial color={selected ? '#f0b429' : '#3b6ea5'} />
         </mesh>
       );
     }
@@ -63,7 +63,7 @@ function PlatformMesh({ p, onPick, selected, MAP_HALF }) {
     return (
       <mesh position={[x, -p.h / 2, z]} rotation={[0, 0, ang]} onClick={pick}>
         <boxGeometry args={[Math.hypot(len, p.h), 0.1, hz * 2]} />
-        <meshStandardMaterial color={selected ? '#facc15' : '#5b8fb0'} />
+        <meshStandardMaterial color={selected ? '#f0b429' : '#5b8fb0'} />
       </mesh>
     );
   }
@@ -71,7 +71,7 @@ function PlatformMesh({ p, onPick, selected, MAP_HALF }) {
     return (
       <mesh position={[x, y0 + p.h / 2, z]} onClick={pick}>
         <boxGeometry args={[hx * 2, p.h, hz * 2]} />
-        <meshStandardMaterial color={selected ? '#facc15' : p.kind === 'pgate' ? '#5fd58c' : '#f2a154'} transparent opacity={0.6} />
+        <meshStandardMaterial color={selected ? '#f0b429' : p.kind === 'pgate' ? '#62c9a0' : '#f08a3c'} transparent opacity={0.6} />
       </mesh>
     );
   }
@@ -114,7 +114,7 @@ function PlatformMesh({ p, onPick, selected, MAP_HALF }) {
 
 function Preview3D({ platforms, collisionObjects, selfDamageObjects, onGround, onPick, selectedId, MAP_HALF }) {
   return (
-    <Canvas camera={{ position: [0, 70, 80], fov: 50 }} style={{ width: CANVAS_SIZE, height: 380, background: '#0b0d14', borderRadius: 8 }}>
+    <Canvas camera={{ position: [0, 70, 80], fov: 50 }} style={{ width: CANVAS_SIZE, height: 380, background: '#0b1b17', borderRadius: 2 }}>
       <ambientLight intensity={0.7} />
       <directionalLight position={[30, 60, 20]} intensity={0.9} />
       <OrbitControls makeDefault maxPolarAngle={Math.PI / 2.05} />
@@ -137,7 +137,7 @@ function Preview3D({ platforms, collisionObjects, selfDamageObjects, onGround, o
       {selfDamageObjects.map((o) => (
         <mesh key={o.id} position={[o.xFrac * MAP_HALF, 0.6, o.zFrac * MAP_HALF]}>
           <sphereGeometry args={[0.6, 12, 12]} />
-          <meshStandardMaterial color="#e0555f" emissive="#e0555f" emissiveIntensity={0.4} />
+          <meshStandardMaterial color="#e0503c" emissive="#e0503c" emissiveIntensity={0.4} />
         </mesh>
       ))}
     </Canvas>
@@ -155,9 +155,9 @@ const TYPE_COLORS = {
   tank: '#5b8fb0',
   bed: '#b9c4c0',
   vending: '#a33a3a',
-  mri: '#c9d3d6',
-  wheelchair: '#4a4f58',
-  iv: '#9fb0b0',
+  mri: '#c5d3ca',
+  wheelchair: '#4a7366',
+  iv: '#9cb2a6',
 };
 
 // Mismos criterios usados para verificar a mano el mapa 'default' en
@@ -567,8 +567,8 @@ export default function MapEditorPage() {
             </label>
           </div>
           <p style={styles.countLine}>Herramienta</p>
-          <div style={{ ...styles.toolGroup, borderBottom: '1px solid #3a3d52', paddingBottom: 8, marginBottom: 8 }}>
-            <button style={styles.toolButton(selectedTool === 'edit', '#facc15')} onClick={() => setSelectedTool('edit')}>✎ Editar (altura / escala)</button>
+          <div style={{ ...styles.toolGroup, borderBottom: '2px solid #2f4d44', paddingBottom: 8, marginBottom: 8 }}>
+            <button style={styles.toolButton(selectedTool === 'edit', '#f0b429')} onClick={() => setSelectedTool('edit')}>✎ Editar (altura / escala)</button>
           </div>
           {selectedTool === 'edit' && (() => {
             const sp = platforms.find((q) => q.id === selectedId);
@@ -601,10 +601,10 @@ export default function MapEditorPage() {
                 {sp.ramp && (
                   <p style={styles.countLine}>
                     Sube hacia:{' '}
-                    <button style={styles.toolButton(sp.ramp === '-x', '#5468ff')} onClick={() => upd({ ramp: '-x' })}>-X</button>{' '}
-                    <button style={styles.toolButton(sp.ramp === '+x', '#5468ff')} onClick={() => upd({ ramp: '+x' })}>+X</button>{' '}
-                    <button style={styles.toolButton(sp.ramp === '-z', '#5468ff')} onClick={() => upd({ ramp: '-z' })}>-Z</button>{' '}
-                    <button style={styles.toolButton(sp.ramp === '+z', '#5468ff')} onClick={() => upd({ ramp: '+z' })}>+Z</button>
+                    <button style={styles.toolButton(sp.ramp === '-x', '#f0b429')} onClick={() => upd({ ramp: '-x' })}>-X</button>{' '}
+                    <button style={styles.toolButton(sp.ramp === '+x', '#f0b429')} onClick={() => upd({ ramp: '+x' })}>+X</button>{' '}
+                    <button style={styles.toolButton(sp.ramp === '-z', '#f0b429')} onClick={() => upd({ ramp: '-z' })}>-Z</button>{' '}
+                    <button style={styles.toolButton(sp.ramp === '+z', '#f0b429')} onClick={() => upd({ ramp: '+z' })}>+Z</button>
                   </p>
                 )}
                 {!['pit', 'gate', 'pgate'].includes(sp.kind) && (
@@ -620,7 +620,7 @@ export default function MapEditorPage() {
                   </>
                 )}
                 <p style={styles.countLine}>
-                  <button style={styles.toolButton(false, '#e0555f')} onClick={() => { setPlatforms((prev) => prev.filter((q) => q.id !== sp.id)); setSelectedId(null); }}>Eliminar</button>
+                  <button style={styles.toolButton(false, '#e0503c')} onClick={() => { setPlatforms((prev) => prev.filter((q) => q.id !== sp.id)); setSelectedId(null); }}>Eliminar</button>
                 </p>
               </div>
             );
@@ -636,30 +636,30 @@ export default function MapEditorPage() {
                 return items.length ? <optgroup key={g} label={g}>{items.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</optgroup> : null;
               })}
             </select>
-            <button style={styles.toolButton(false, '#5fd58c')} onClick={handleLoad} disabled={!loadId || loadStatus === 'loading'}>{loadStatus === 'loading' ? 'Cargando...' : 'Cargar en el editor'}</button>
+            <button style={styles.toolButton(false, '#62c9a0')} onClick={handleLoad} disabled={!loadId || loadStatus === 'loading'}>{loadStatus === 'loading' ? 'Cargando...' : 'Cargar en el editor'}</button>
             {loadStatus === 'done' && <p style={styles.saveSuccess}>✓ Cargado como copia: puedes cambiarlo y guardarlo con otro nombre.</p>}
             {loadStatus && loadStatus.error && <p style={styles.saveError}>{loadStatus.error}</p>}
           </div>
           <div style={styles.toolGroup}>
-            <button style={styles.toolButton(selectedTool === 'curator_spawn', '#f2a154')} onClick={() => setSelectedTool('curator_spawn')}>Spawn del Curador</button>
-            <button style={styles.toolButton(selectedTool === 'patient_spawn', '#5fd58c')} onClick={() => setSelectedTool('patient_spawn')}>Spawn de sobrevivientes</button>
+            <button style={styles.toolButton(selectedTool === 'curator_spawn', '#f08a3c')} onClick={() => setSelectedTool('curator_spawn')}>Spawn del Curador</button>
+            <button style={styles.toolButton(selectedTool === 'patient_spawn', '#62c9a0')} onClick={() => setSelectedTool('patient_spawn')}>Spawn de sobrevivientes</button>
           </div>
           <div style={styles.toolGroup}>
             <button
-              style={styles.toolButton(selectedTool === 'self_damage', '#e0555f')}
+              style={styles.toolButton(selectedTool === 'self_damage', '#e0503c')}
               onClick={() => setSelectedTool('self_damage')}
             >
               Módulo (auto-daño)
             </button>
             <button style={styles.toolButton(selectedTool === 'serum', '#54e0c0')} onClick={() => setSelectedTool('serum')}>Suero (cura Pacientes, lleva al Curador a la mitad)</button>
             <button style={styles.toolButton(selectedTool === 'prefab', '#c08a3e')} onClick={() => setSelectedTool('prefab')}>Mueble de bloques</button>
-            <button style={styles.toolButton(selectedTool === 'block', '#6b7280')} onClick={() => setSelectedTool('block')}>Bloque</button>
-            <button style={styles.toolButton(selectedTool === 'ramp', '#9ca3af')} onClick={() => setSelectedTool('ramp')}>Rampa</button>
+            <button style={styles.toolButton(selectedTool === 'block', '#7d9488')} onClick={() => setSelectedTool('block')}>Bloque</button>
+            <button style={styles.toolButton(selectedTool === 'ramp', '#9cb2a6')} onClick={() => setSelectedTool('ramp')}>Rampa</button>
             <button style={styles.toolButton(selectedTool === 'pit', '#3b6ea5')} onClick={() => setSelectedTool('pit')}>Sótano (foso)</button>
             <button style={styles.toolButton(selectedTool === 'pit_ramp', '#5b8fb0')} onClick={() => setSelectedTool('pit_ramp')}>Rampa de sótano (bajada)</button>
             <button style={styles.toolButton(selectedTool === 'slab', '#8fc6ea')} onClick={() => setSelectedTool('slab')}>Entrepiso (pasable por debajo)</button>
-            <button style={styles.toolButton(selectedTool === 'gate', '#f2a154')} onClick={() => setSelectedTool('gate')}>Puerta solo Curador</button>
-            <button style={styles.toolButton(selectedTool === 'pgate', '#5fd58c')} onClick={() => setSelectedTool('pgate')}>Puerta solo Pacientes</button>
+            <button style={styles.toolButton(selectedTool === 'gate', '#f08a3c')} onClick={() => setSelectedTool('gate')}>Puerta solo Curador</button>
+            <button style={styles.toolButton(selectedTool === 'pgate', '#62c9a0')} onClick={() => setSelectedTool('pgate')}>Puerta solo Pacientes</button>
             {COLLISION_TYPES.map((type) => (
               <button
                 key={type}
@@ -719,12 +719,12 @@ export default function MapEditorPage() {
               {(selectedTool === 'ramp' || selectedTool === 'pit_ramp') && (
                 <p style={styles.countLine}>
                   Sube hacia:{' '}
-                  <button style={styles.toolButton(rampDir === '-x', '#5468ff')} onClick={() => setRampDir('-x')}>-X</button>{' '}
-                  <button style={styles.toolButton(rampDir === '+x', '#5468ff')} onClick={() => setRampDir('+x')}>+X</button>{selectedTool === 'ramp' && (
+                  <button style={styles.toolButton(rampDir === '-x', '#f0b429')} onClick={() => setRampDir('-x')}>-X</button>{' '}
+                  <button style={styles.toolButton(rampDir === '+x', '#f0b429')} onClick={() => setRampDir('+x')}>+X</button>{selectedTool === 'ramp' && (
                     <>
                       {' '}
-                      <button style={styles.toolButton(rampDir === '-z', '#5468ff')} onClick={() => setRampDir('-z')}>-Z</button>{' '}
-                      <button style={styles.toolButton(rampDir === '+z', '#5468ff')} onClick={() => setRampDir('+z')}>+Z</button>
+                      <button style={styles.toolButton(rampDir === '-z', '#f0b429')} onClick={() => setRampDir('-z')}>-Z</button>{' '}
+                      <button style={styles.toolButton(rampDir === '+z', '#f0b429')} onClick={() => setRampDir('+z')}>+Z</button>
                     </>
                   )}
                 </p>
@@ -781,7 +781,7 @@ export default function MapEditorPage() {
               setSelEvent(ev.id);
             }}>+ Evento</button>
             {mapEvents.map((e) => (
-              <div key={e.id} style={{ marginTop: 4, padding: 4, border: `1px solid ${e.id === selEvent ? '#facc15' : '#3d4a42'}`, borderRadius: 6 }}>
+              <div key={e.id} style={{ marginTop: 4, padding: 4, border: `1px solid ${e.id === selEvent ? '#f0b429' : '#3d4a42'}`, borderRadius: 2 }}>
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                   <button style={{ fontSize: 11 }} onClick={() => setSelEvent(e.id === selEvent ? null : e.id)}>{e.id === selEvent ? '▾' : '▸'}</button>
                   <select value={e.kind} onChange={(ev) => setMapEvents((prev) => prev.map((q) => (q.id === e.id ? { ...q, kind: ev.target.value } : q)))}>
@@ -823,7 +823,7 @@ export default function MapEditorPage() {
                         <p style={styles.countLine}>
                           Modo:{' '}
                           <button style={styles.toolButton(e.mode === 'lock', '#ffb454')} onClick={() => upd({ mode: 'lock' })}>Cierra al Curador</button>{' '}
-                          <button style={styles.toolButton(e.mode === 'open', '#5fd58c')} onClick={() => upd({ mode: 'open' })}>Abre a Pacientes</button>
+                          <button style={styles.toolButton(e.mode === 'open', '#62c9a0')} onClick={() => upd({ mode: 'open' })}>Abre a Pacientes</button>
                         </p>
                       )}
                       {num('Empieza (s)', 'startSec', 0, 900, 5)}
@@ -985,7 +985,7 @@ export default function MapEditorPage() {
                   onContextMenu={(e) => { e.preventDefault(); handleRemove(p.id, e); }}
                   style={{ cursor: 'grab' }}
                 >
-                  <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.kind === 'gate' ? '#f2a154' : p.kind === 'pgate' ? '#5fd58c' : p.kind === 'pit' ? '#3b6ea5' : p.ramp ? '#9ca3af' : '#6b7280'} fillOpacity={0.55} stroke={p.id === selectedId ? '#facc15' : mapEvents.some((q) => q.targetId === p.id) ? '#ff7a45' : '#3d4a42'} strokeWidth={p.id === selectedId ? 4 : mapEvents.some((q) => q.targetId === p.id) ? 4 : 2} />
+                  <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.kind === 'gate' ? '#f08a3c' : p.kind === 'pgate' ? '#62c9a0' : p.kind === 'pit' ? '#3b6ea5' : p.ramp ? '#9cb2a6' : '#7d9488'} fillOpacity={0.55} stroke={p.id === selectedId ? '#f0b429' : mapEvents.some((q) => q.targetId === p.id) ? '#ff7a45' : '#3d4a42'} strokeWidth={p.id === selectedId ? 4 : mapEvents.some((q) => q.targetId === p.id) ? 4 : 2} />
                   <text x={0} y={4} fontSize={10} fill="#111" textAnchor="middle">{p.ramp ? `${{ '+x': '→', '-x': '←', '+z': '↓', '-z': '↑' }[p.ramp]} ${p.h.toFixed(1)}` : p.h.toFixed(1)}</text>
                 </g>
               );
@@ -994,13 +994,13 @@ export default function MapEditorPage() {
             {curatorSpawns.map((o) => (
               <g key={o.id} transform={`translate(${o.xFrac * CANVAS_HALF + CANVAS_HALF}, ${o.zFrac * CANVAS_HALF + CANVAS_HALF})`}
                 onPointerDown={(e) => handleMarkerPointerDown(e, o.id)} onContextMenu={(e) => { e.preventDefault(); handleRemove(o.id, e); }} style={{ cursor: 'grab' }}>
-                <polygon points="0,-11 3,-3 11,-3 5,2 7,10 0,5 -7,10 -5,2 -11,-3 -3,-3" fill="#f2a154" stroke="#fff" strokeWidth={2} />
+                <polygon points="0,-11 3,-3 11,-3 5,2 7,10 0,5 -7,10 -5,2 -11,-3 -3,-3" fill="#f08a3c" stroke="#fff" strokeWidth={2} />
               </g>
             ))}
             {patientSpawns.map((o) => (
               <g key={o.id} transform={`translate(${o.xFrac * CANVAS_HALF + CANVAS_HALF}, ${o.zFrac * CANVAS_HALF + CANVAS_HALF})`}
                 onPointerDown={(e) => handleMarkerPointerDown(e, o.id)} onContextMenu={(e) => { e.preventDefault(); handleRemove(o.id, e); }} style={{ cursor: 'grab' }}>
-                <circle r={9} fill="#5fd58c" stroke="#fff" strokeWidth={2} />
+                <circle r={9} fill="#62c9a0" stroke="#fff" strokeWidth={2} />
                 <text x={0} y={4} fontSize={10} fill="#0b3b1f" textAnchor="middle">S</text>
               </g>
             ))}
@@ -1022,7 +1022,7 @@ export default function MapEditorPage() {
                   onContextMenu={(e) => { e.preventDefault(); handleRemove(o.id, e); }}
                   style={{ cursor: 'grab' }}
                 >
-                  <circle r={10} fill={inConflict ? '#f2c14e' : '#e0555f'} stroke={inConflict ? '#e0555f' : '#fff'} strokeWidth={inConflict ? 3 : 2} />
+                  <circle r={10} fill={inConflict ? '#f2c14e' : '#e0503c'} stroke={inConflict ? '#e0503c' : '#fff'} strokeWidth={inConflict ? 3 : 2} />
                   <text x={14} y={4} fontSize={10} fill="#3d4a42">{o.id}</text>
                   <text
                     x={-4} y={4} fontSize={11} fill="#fff"
@@ -1099,9 +1099,9 @@ function labelForType(type) {
 const styles = {
   main: {
     minHeight: '100vh',
-    background: '#12131a',
-    color: '#e8e8ef',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    background: '#0e1f1b',
+    color: '#e8efe4',
+    fontFamily: 'inherit',
     padding: 24,
   },
   layout: { display: 'flex', gap: 24, maxWidth: 1000, margin: '0 auto' },
@@ -1112,103 +1112,103 @@ const styles = {
     gap: 16,
   },
   title: { fontSize: 18, fontWeight: 700, margin: 0 },
-  hint: { fontSize: 12, color: '#8a8da3', margin: 0, lineHeight: 1.5 },
+  hint: { fontSize: 12, color: '#9cb2a6', margin: 0, lineHeight: 1.5 },
   toolGroup: { display: 'flex', flexDirection: 'column', gap: 6 },
   toolButton: (active, color) => ({
     padding: '8px 12px',
-    borderRadius: 6,
-    border: active ? `2px solid ${color}` : '1px solid #2a2d3d',
-    background: active ? `${color}22` : '#1b1d29',
-    color: '#e8e8ef',
+    borderRadius: 2,
+    border: active ? `2px solid ${color}` : '1px solid #2f4d44',
+    background: active ? `${color}22` : '#16312b',
+    color: '#e8efe4',
     fontSize: 13,
     textAlign: 'left',
     cursor: 'pointer',
   }),
   countsBox: {
     padding: 12,
-    borderRadius: 8,
-    background: '#1b1d29',
-    border: '1px solid #2a2d3d',
+    borderRadius: 2,
+    background: '#16312b',
+    border: '2px solid #4a7366',
   },
-  countLine: { fontSize: 12, color: '#8a8da3', margin: '4px 0' },
+  countLine: { fontSize: 12, color: '#9cb2a6', margin: '4px 0' },
   conflictWarning: { fontSize: 11, color: '#f2c14e', margin: '8px 0 0', lineHeight: 1.5 },
   radiusPanel: {
     padding: 12,
-    borderRadius: 8,
-    background: '#1b1d29',
-    border: '1px solid #2a2d3d',
+    borderRadius: 2,
+    background: '#16312b',
+    border: '2px solid #4a7366',
     display: 'flex',
     flexDirection: 'column',
     gap: 8,
   },
-  radiusPanelTitle: { fontSize: 12, fontWeight: 600, margin: '0 0 4px', color: '#8a8da3' },
+  radiusPanelTitle: { fontSize: 12, fontWeight: 600, margin: '0 0 4px', color: '#9cb2a6' },
   radiusRow: { display: 'flex', flexDirection: 'column', gap: 2 },
-  radiusLabel: { fontSize: 11, color: '#8a8da3' },
+  radiusLabel: { fontSize: 11, color: '#9cb2a6' },
   radiusSlider: { width: '100%' },
   saveBox: {
     padding: 12,
-    borderRadius: 8,
-    background: '#1b1d29',
-    border: '1px solid #2a2d3d',
+    borderRadius: 2,
+    background: '#16312b',
+    border: '2px solid #4a7366',
     display: 'flex',
     flexDirection: 'column',
     gap: 8,
   },
-  saveLabel: { display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, color: '#8a8da3' },
+  saveLabel: { display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, color: '#9cb2a6' },
   saveInput: {
     padding: '7px 10px',
-    borderRadius: 6,
-    border: '1px solid #2a2d3d',
-    background: '#12131a',
-    color: '#e8e8ef',
+    borderRadius: 2,
+    border: '2px solid #4a7366',
+    background: '#0e1f1b',
+    color: '#e8efe4',
     fontSize: 13,
   },
   saveButton: (saving) => ({
     padding: '9px 14px',
-    borderRadius: 6,
+    borderRadius: 2,
     border: 'none',
-    background: saving ? '#2a2d3d' : '#5fd58c',
-    color: saving ? '#8a8da3' : '#12131a',
+    background: saving ? '#2f4d44' : '#62c9a0',
+    color: saving ? '#9cb2a6' : '#0e1f1b',
     fontSize: 13,
     fontWeight: 600,
     cursor: saving ? 'default' : 'pointer',
   }),
-  saveSuccess: { fontSize: 11, color: '#5fd58c', margin: 0, lineHeight: 1.5 },
-  saveError: { fontSize: 11, color: '#e0555f', margin: 0, lineHeight: 1.5 },
-  backLink: { fontSize: 12, color: '#8a8da3', textDecoration: 'none' },
+  saveSuccess: { fontSize: 11, color: '#62c9a0', margin: 0, lineHeight: 1.5 },
+  saveError: { fontSize: 11, color: '#e0503c', margin: 0, lineHeight: 1.5 },
+  backLink: { fontSize: 12, color: '#9cb2a6', textDecoration: 'none' },
   actionsRow: { display: 'flex', gap: 8 },
   exportButton: {
     flex: 1,
     padding: '10px 14px',
-    borderRadius: 8,
+    borderRadius: 2,
     border: 'none',
-    background: '#5468ff',
-    color: '#fff',
+    background: '#f0b429',
+    color: '#10201b',
     fontSize: 13,
     fontWeight: 600,
     cursor: 'pointer',
   },
   clearButton: {
     padding: '10px 14px',
-    borderRadius: 8,
-    border: '1px solid #2a2d3d',
+    borderRadius: 2,
+    border: '2px solid #4a7366',
     background: 'transparent',
-    color: '#8a8da3',
+    color: '#9cb2a6',
     fontSize: 13,
     cursor: 'pointer',
   },
   canvasArea: { flex: 1 },
   canvas: {
-    borderRadius: 8,
-    border: '2px solid #2a2d3d',
+    borderRadius: 2,
+    border: '2px solid #2f4d44',
     cursor: 'crosshair',
     userSelect: 'none',
   },
-  canvasCaption: { fontSize: 11, color: '#565a6e', marginTop: 8, lineHeight: 1.5 },
+  canvasCaption: { fontSize: 11, color: '#7d9488', marginTop: 8, lineHeight: 1.5 },
   exportOverlay: {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(10, 11, 16, 0.85)',
+    background: 'rgba(8, 20, 17, 0.85)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1218,33 +1218,33 @@ const styles = {
     width: 560,
     maxHeight: '80vh',
     padding: 24,
-    borderRadius: 12,
-    background: '#1b1d29',
-    border: '1px solid #2a2d3d',
+    borderRadius: 4,
+    background: '#16312b',
+    border: '2px solid #4a7366',
     display: 'flex',
     flexDirection: 'column',
     gap: 12,
   },
   exportTitle: { fontSize: 16, fontWeight: 700, margin: 0 },
-  exportHint: { fontSize: 12, color: '#8a8da3', margin: 0, lineHeight: 1.5 },
+  exportHint: { fontSize: 12, color: '#9cb2a6', margin: 0, lineHeight: 1.5 },
   exportTextarea: {
     width: '100%',
     height: 280,
     padding: 12,
-    borderRadius: 8,
-    border: '1px solid #2a2d3d',
-    background: '#12131a',
-    color: '#5fd58c',
+    borderRadius: 2,
+    border: '2px solid #4a7366',
+    background: '#0e1f1b',
+    color: '#62c9a0',
     fontSize: 12,
     fontFamily: 'monospace',
     resize: 'vertical',
   },
   closeExportButton: {
     padding: '8px 14px',
-    borderRadius: 6,
+    borderRadius: 2,
     border: 'none',
-    background: '#5468ff',
-    color: '#fff',
+    background: '#f0b429',
+    color: '#10201b',
     fontSize: 13,
     fontWeight: 600,
     cursor: 'pointer',
