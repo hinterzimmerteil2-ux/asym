@@ -911,4 +911,10 @@ export const DE = [
 "Nächtlicher Flur",
 "Operationssaal",
 "Innenhof",
+"Super",
+"Größe",
+"Tasten bearbeiten",
+"Ziehe jede Taste dorthin, wo sie für dich bequem ist.",
+"Touch-Tasten bearbeiten",
+"Platziere jede Taste und den Joystick dort, wo es bequem ist, zum Beispiel den Sprung neben dem linken Daumen. Die Anordnung wird getrennt für Quer- und Hochformat gespeichert. Im Wartezimmer werden alle Tasten angezeigt.",
 ];

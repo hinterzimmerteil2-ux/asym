@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import KeybindsEditor from './KeybindsEditor';
 import { useSettings, setSettings, gfx, detectMode } from '../lib/settings';
 import { btn } from '../lib/ui';
+import { setTouchEdit } from '../lib/touchLayout';
 
 const MODES = [
   ['touch', 'Táctil (como celular)'],
@@ -122,6 +123,10 @@ export default function SettingsPanel({ onClose, lang, onLang, langs = [] }) {
               <button key={v} type="button" onClick={() => setSettings({ detectTouch: false, inputMode: v })} style={styles.preset(shownMode === v)}>{name}</button>
             ))}
           </div>
+          {shownMode !== 'keyboard' && (
+            <button type="button" onClick={() => { setTouchEdit(true); onClose(); }} style={{ ...styles.reset, marginTop: 10 }}>Editar botones táctiles</button>
+          )}
+          {shownMode !== 'keyboard' && <p style={styles.hint}>Coloca cada botón y el joystick donde te quede cómodo, por ejemplo el salto junto al pulgar izquierdo. Se guarda por separado en horizontal y vertical. Desde la sala de espera aparecen todos los botones.</p>}
           <p style={styles.hint}>{`Detectado ahora: ${MODES.find((m) => m[0] === detected)[1]}`}</p>
           <p style={styles.hint}>Táctil muestra el joystick y los botones en pantalla. Mixto los muestra y además deja usar teclado y ratón. Si la detección se equivoca, elige el tipo aquí y la detección se desactiva sola; vuelve a marcarla para detectar de nuevo. Si tu equipo no tiene teclado, como una pizarra táctil, elige Táctil.</p>
         </div>

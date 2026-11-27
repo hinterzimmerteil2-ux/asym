@@ -29,6 +29,7 @@ import EventLayer from '../components/EventLayer';
 import CommunityMaps from '../components/CommunityMaps';
 import { matches as keyMatches, getKey, keyLabel } from '../lib/keybinds';
 import TouchControls from '../components/TouchControls';
+import { useTouchEdit } from '../lib/touchLayout';
 import { createModeKey } from '../lib/modeKey';
 import { KEYWORDS } from '../lib/keywords';
 import { ITEMS, COLORS, SLOT_LABELS } from '../lib/cosmetics';
@@ -1344,6 +1345,7 @@ export default function LobbyPage() {
   const shakeIds = mapEvents.filter((e) => e.target && e.phase === 'warn').map((e) => e.target);
   const sx = (base, extra) => (compact ? { ...base, ...extra } : base);
   const tabProps = (id) => (phase === 'lobby' ? { className: 'lb-tab', style: { display: lobbyTab === id ? 'block' : 'none' } } : { style: { display: 'contents' } });
+  const touchEdit = useTouchEdit();
   const playersOpen = panelOpen ?? phase === 'lobby';
   isAsymRoleRef.current = isAsymRole;
   const mySeatTower = towers.find((t) => t.seat === myPlayerId) || null;
@@ -1532,7 +1534,7 @@ export default function LobbyPage() {
           )}
         </div>
 
-        <div ref={playersBoxRef} className={phase === 'lobby' ? 'pl-overlay lb-shell lb-skin' + (lbMax ? ' lb-max' : lbWin ? ' lb-custom' : '') : 'pl-overlay'} style={{ ...(phase === 'lobby' && lbWin ? { '--lb-x': lbWin.x + 'px', '--lb-y': lbWin.y + 'px', '--lb-w': lbWin.w + 'px', '--lb-h': lbWin.h + 'px' } : {}), '--lb-zoom': lbZoom, ...sx(styles.playersOverlay, { top: 52, right: 8, width: 'min(300px, calc(100% - 16px))', maxHeight: 'calc(100dvh - 72px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', scrollbarWidth: 'thin', boxSizing: 'border-box', padding: 10, zIndex: 30 }), ...(compact && !playersOpen ? { display: 'none' } : {}) }}>
+        <div ref={playersBoxRef} className={phase === 'lobby' ? 'pl-overlay lb-shell lb-skin' + ((compact && !playersOpen) || touchEdit ? ' lb-off' : '') + (lbMax ? ' lb-max' : lbWin ? ' lb-custom' : '') : 'pl-overlay'} style={{ ...(phase === 'lobby' && lbWin ? { '--lb-x': lbWin.x + 'px', '--lb-y': lbWin.y + 'px', '--lb-w': lbWin.w + 'px', '--lb-h': lbWin.h + 'px' } : {}), '--lb-zoom': lbZoom, ...sx(styles.playersOverlay, { top: 52, right: 8, width: 'min(300px, calc(100% - 16px))', maxHeight: 'calc(100dvh - 72px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', scrollbarWidth: 'thin', boxSizing: 'border-box', padding: 10, zIndex: 30 }), ...((compact && !playersOpen) || touchEdit ? { display: 'none' } : {}) }}>
           {phase === 'lobby' && (
             <div className="lb-head" onPointerDown={lbBegin('move')} onDoubleClick={(e) => { if (!(e.target.closest && e.target.closest('button'))) lbToggleMax(); }}>
               <h2 className="lb-title">Sala de espera</h2>
@@ -1951,7 +1953,7 @@ export default function LobbyPage() {
             ))}
           </div>
         )}
-        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} getCarry={getCarryRef.current}  supIcons={flojera?.sup ? (flojera.sup.id === 'town_level' ? ['tl_bayoneta', 'tl_barrera', 'tl_senuelo', 'tl_carga'] : flojera.sup.id === 'platinum_star' ? ['pst_rafaga', 'pst_stellar', 'pst_atrapar', 'pst_pausa'] : flojera.sup.id === 'minceraft' ? null : ['sun_notificacion', 'sun_vuelva', 'sun_anulacion']) : null} />}
+        {phase === 'action' && (!spectating || ghostMode) && <TouchControls ghost={ghostMode} onReveal={() => handlePulse(0)} ghostUsed={ghostBlocked} onInteract={handleInteract} isAsymRole={isAsymRole} cardIds={hand.map((sl, i) => (flojera?.astral?.state === 'ready' && flojera.astral.slot === i ? 'astral_sphere' : sl.chosen?.id))} skillIds={mySkills.map((sk) => sk.id)} cardCooldowns={cardCooldowns} skillCooldowns={skillCooldowns} getCarry={getCarryRef.current}  canLayer={Boolean(flojera?.sup) && flojera.sup.id !== 'minceraft' && hand.some((sl) => sl.chosen && !sl.chosen.super)} cardLayer={cardLayer} onLayer={() => setCardLayer((v) => !v)} supIcons={flojera?.sup && !(cardLayer && hand.some((sl) => sl.chosen && !sl.chosen.super)) ? (flojera.sup.id === 'town_level' ? ['tl_bayoneta', 'tl_barrera', 'tl_senuelo', 'tl_carga'] : flojera.sup.id === 'platinum_star' ? ['pst_rafaga', 'pst_stellar', 'pst_atrapar', 'pst_pausa'] : flojera.sup.id === 'minceraft' ? null : ['sun_notificacion', 'sun_vuelva', 'sun_anulacion']) : null} />}
 
         {phase === 'action' && flojera && !bossHud?.isBoss && (
           <div style={sx(styles.flojeraBarContainer, { ...bar, bottom: 'auto', top: compact ? (isAsymRole ? 40 : 64) : (isAsymRole ? 80 : 110) })}>

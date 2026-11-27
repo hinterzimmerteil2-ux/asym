@@ -915,6 +915,12 @@ const PAIRS = [
 ["Pasillo nocturno","Night corridor"],
 ["Quirófano","Operating theatre"],
 ["Patio interior","Inner courtyard"],
+["Súper","Super"],
+["Tamaño","Size"],
+["Editar botones","Edit buttons"],
+["Arrastra cada botón a donde te quede cómodo.","Drag each button wherever is comfortable for you."],
+["Editar botones táctiles","Edit touch buttons"],
+["Coloca cada botón y el joystick donde te quede cómodo, por ejemplo el salto junto al pulgar izquierdo. Se guarda por separado en horizontal y vertical. Desde la sala de espera aparecen todos los botones.","Place each button and the joystick wherever is comfortable, for example jump next to your left thumb. It is saved separately for landscape and portrait. In the waiting room all the buttons are shown."],
 ];
 
 const MAPS = { 'en-GB': new Map(), de: new Map(), pie: new Map(), skb: new Map() };
