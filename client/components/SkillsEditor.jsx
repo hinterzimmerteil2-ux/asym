@@ -156,7 +156,7 @@ function SideEditor({ side, list, setList, max, library }) {
   );
 }
 
-const style = { line: { fontSize: 12, color: '#c5d3ca', margin: '4px 0', display: 'block' } };
+const style = { line: { fontSize: 12, color: '#c3ced4', margin: '4px 0', display: 'block' } };
 
 const SUPER_EDIT = [
   ['minceraft', 'Minceraft', [['max', 'Bloques máximos', 8, 256, 1, 64], ['lifeSec', 'Duración de bloques (s)', 3, 60, 1, 22], ['pistonPush', 'Empuje del pistón', 4, 40, 1, 14], ['pistonLifeSec', 'Duración del pistón (s)', 2, 30, 1, 9], ['tntDmg', 'Daño de TNT al Curador', 0, 100, 1, 6], ['tntFuseSec', 'Mecha de TNT (s)', 0.3, 5, 0.1, 1.4], ['tntR', 'Radio de TNT', 1, 12, 0.1, 3.6], ['slimeV', 'Rebote del slime', 4, 30, 1, 11]]],

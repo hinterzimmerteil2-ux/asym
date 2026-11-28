@@ -14,7 +14,7 @@ export const BOSS_NAMES = [
   'Pantalla Roja',
 ];
 export const SCREEN_MODES = ['Pantalla Azul', 'Luz Blanca', 'Barra Negra'];
-export const SCREEN_COLORS = ['#2f58ff', '#e8efe4', '#15151c'];
+export const SCREEN_COLORS = ['#2f58ff', '#e9ecec', '#15151c'];
 export const BOSS_HP_MAX = 30000000;
 const SIZE_MIN = 0.18;
 const SIZE_MAX = 3.5;
@@ -71,7 +71,7 @@ function useBossFont() {
   }, []);
 }
 
-function Bar({ value, color, height = 8, back = '#16312b', marker }) {
+function Bar({ value, color, height = 8, back = '#1d2a33', marker }) {
   return (
     <div style={{ position: 'relative', height, background: back, borderRadius: height / 2, overflow: 'hidden' }}>
       <div style={{ height, width: `${Math.max(0, Math.min(100, value * 100))}%`, background: color, borderRadius: height / 2, transition: 'width 120ms linear' }} />
@@ -156,7 +156,7 @@ export default function BossHud({ hud, onAbility, onSize, onCrouch }) {
       </div>
       {hud.isBoss && (
         <div style={{ position: 'fixed', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: '#fff', width: 'min(96vw, 560px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', fontSize: 11, background: '#14141bcc', borderRadius: 4, padding: '6px 10px', border: '1px solid #2f4d44' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', fontSize: 11, background: '#14141bcc', borderRadius: 4, padding: '6px 10px', border: '1px solid #33444f' }}>
             <BossIcon id={0} size={20} />
             <input
               type="range"
@@ -170,7 +170,7 @@ export default function BossHud({ hud, onAbility, onSize, onCrouch }) {
               style={{ flex: 1, accentColor: '#9b4dff' }}
             />
             <span style={{ width: 52, textAlign: 'right' }}>{cdSize > 0 ? `${Math.ceil(cdSize)} s` : `x${sizeShown.toFixed(2)}`}</span>
-            <button type="button" onClick={() => onCrouch(!hud.cr)} title="Agacharse (C)" style={{ background: hud.cr ? '#6a2cff' : '#16312b', color: '#fff', border: '1px solid #556', borderRadius: 2, padding: '3px 6px', display: 'flex', alignItems: 'center' }}>
+            <button type="button" onClick={() => onCrouch(!hud.cr)} title="Agacharse (C)" style={{ background: hud.cr ? '#6a2cff' : '#1d2a33', color: '#fff', border: '1px solid #556', borderRadius: 2, padding: '3px 6px', display: 'flex', alignItems: 'center' }}>
               <BossIcon id="crouch" size={18} />
             </button>
           </div>
@@ -186,7 +186,7 @@ export default function BossHud({ hud, onAbility, onSize, onCrouch }) {
                   type="button"
                   title={`${i + 1} ${shown}`}
                   onClick={() => onAbility(i)}
-                  style={{ position: 'relative', width: 52, height: 52, borderRadius: 4, border: `1px solid ${i === 2 ? SCREEN_COLORS[hud.vm || 0] : '#4a7366'}`, background: '#14141bdd', color: i === 8 ? '#ff6b6b' : '#e8e4ff', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: locked ? 0.35 : 1 }}
+                  style={{ position: 'relative', width: 52, height: 52, borderRadius: 4, border: `1px solid ${i === 2 ? SCREEN_COLORS[hud.vm || 0] : '#4b606e'}`, background: '#14141bdd', color: i === 8 ? '#ff6b6b' : '#e8e4ff', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: locked ? 0.35 : 1 }}
                 >
                   <BossIcon id={i} size={28} />
                   <span style={{ position: 'absolute', left: 4, top: 1, fontSize: 9, opacity: 0.7 }}>{i + 1}</span>

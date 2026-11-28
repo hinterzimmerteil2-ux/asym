@@ -45,7 +45,7 @@ const styles = {
     justifyContent: 'center',
     borderRadius: 2,
     border: `2px ${dynamic ? 'solid' : 'dashed'} ${color}`,
-    background: 'rgba(14, 31, 27, 0.9)',
+    background: 'rgba(19, 28, 34, 0.9)',
     cursor: 'help',
   }),
   level: {
@@ -54,7 +54,7 @@ const styles = {
     bottom: 1,
     fontSize: 11,
     fontWeight: 800,
-    color: '#e8efe4',
+    color: '#e9ecec',
     textShadow: '0 0 3px #000',
   },
   tooltip: {
@@ -64,10 +64,10 @@ const styles = {
     width: 220,
     padding: '8px 10px',
     borderRadius: 2,
-    background: '#0e1f1b',
-    border: '2px solid #4a7366',
+    background: '#131c22',
+    border: '2px solid #4b606e',
     pointerEvents: 'none',
   },
   tooltipTitle: { fontSize: 12, fontWeight: 700, marginBottom: 4 },
-  tooltipText: { fontSize: 12, color: '#c5d3ca', lineHeight: 1.35 },
+  tooltipText: { fontSize: 12, color: '#c3ced4', lineHeight: 1.35 },
 };

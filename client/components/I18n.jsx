@@ -141,14 +141,14 @@ export default function I18n() {
     {ui.fps && <FpsCounter />}
     <AutoQuality />
     <div translate="no" style={{ position: 'fixed', top: 3, right: 3, zIndex: 500, display: 'flex', gap: 3 }}>
-      <button type="button" onClick={() => setSettingsOpen(true)} title="Ajustes" aria-label="Ajustes" style={{ ...btn.secondary(false), padding: '3px 9px', fontSize: 13, background: 'rgba(14, 31, 27, 0.92)' }}>⚙</button>
+      <button type="button" onClick={() => setSettingsOpen(true)} title="Ajustes" aria-label="Ajustes" style={{ ...btn.secondary(false), padding: '3px 9px', fontSize: 13, background: 'rgba(19, 28, 34, 0.92)' }}>⚙</button>
       {!narrow && LANGS.map((l) => (
         <button
           key={l}
           type="button"
           onClick={() => choose(l)}
           aria-label={`language ${l}`}
-          style={{ ...btn.secondary(lang === l), padding: '3px 9px', fontSize: 13, ...(lang === l ? null : { background: 'rgba(14, 31, 27, 0.92)' }) }}
+          style={{ ...btn.secondary(lang === l), padding: '3px 9px', fontSize: 13, ...(lang === l ? null : { background: 'rgba(19, 28, 34, 0.92)' }) }}
         >
           {l === 'en-GB' ? 'en' : l}
         </button>

@@ -48,7 +48,7 @@ export default function CommunityMaps({ isHost, currentMapId, onUse, onClose }) 
       {!maps && !error && <div style={{ fontSize: 13 }}>Cargando…</div>}
       {maps && maps.length === 0 && <div style={{ fontSize: 13 }}>Aún no hay mapas publicados. Crea el primero en el editor.</div>}
       {(maps || []).map((m) => (
-        <div key={m.id} style={{ display: 'flex', gap: 6, alignItems: 'center', padding: 6, border: `1px solid ${m.id === currentMapId ? '#62c9a0' : '#2f4d44'}`, borderRadius: 2 }}>
+        <div key={m.id} style={{ display: 'flex', gap: 6, alignItems: 'center', padding: 6, border: `1px solid ${m.id === currentMapId ? '#62c9a0' : '#33444f'}`, borderRadius: 2 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div translate="no" style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
             <div translate="no" style={{ fontSize: 11, opacity: 0.7 }}>{m.author}</div>

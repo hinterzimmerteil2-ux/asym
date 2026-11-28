@@ -1,14 +1,14 @@
 :root {
-  --deep: #0b1b17;
-  --inset: #0e1f1b;
-  --enamel: #16312b;
-  --enamel-hi: #1e3f37;
-  --keyline: #2f4d44;
-  --keyline-hi: #4a7366;
-  --paper: #dfe8dc;
-  --ink: #10201b;
-  --text: #e8efe4;
-  --muted: #9cb2a6;
+  --deep: #0f161b;
+  --inset: #131c22;
+  --enamel: #1d2a33;
+  --enamel-hi: #26363f;
+  --keyline: #33444f;
+  --keyline-hi: #4b606e;
+  --paper: #e6e4dc;
+  --ink: #11191e;
+  --text: #e9ecec;
+  --muted: #9fb0ba;
   --signal: #f0b429;
   --signal-edge: #8a6208;
   --urgent: #e0503c;
@@ -87,14 +87,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .lb-vote { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px !important; border: 0 !important; padding: 0 !important; }
 .lb-vote > strong, .lb-vote > span { grid-column: 1 / -1; }
 
-.gate { position: relative; min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; box-sizing: border-box; overflow: hidden; background: var(--deep); color: var(--text); }
-.gate-card { position: relative; width: min(400px, 100%); box-sizing: border-box; padding: 26px 26px 24px; border: 2px solid var(--keyline-hi); border-radius: 6px; background: var(--enamel); box-shadow: 0 5px 0 rgba(0, 0, 0, 0.5); }
+.gate { position: relative; min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; box-sizing: border-box; overflow: hidden; background: repeating-conic-gradient(rgba(233, 236, 236, 0.035) 0% 25%, transparent 0% 50%) 0 0 / 112px 112px, var(--deep); color: var(--text); }
+.gate-card { position: relative; width: min(420px, 100%); box-sizing: border-box; padding: 26px 26px 24px; border: 2px solid var(--keyline-hi); border-radius: 6px; background: var(--enamel); box-shadow: 0 5px 0 rgba(0, 0, 0, 0.5); }
 .gate-plate { margin: -26px -26px 22px; padding: 20px 26px 26px; border-radius: 4px 4px 0 0; background: var(--paper); position: relative; }
 .gate-plate::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: var(--lines); }
-.gate-mark { font-family: var(--display); font-stretch: 62%; font-weight: 900; font-size: 68px; line-height: 0.9; color: var(--ink); }
-.gate-run { position: absolute; left: 7vw; right: calc(50% + 200px); top: 0; bottom: calc(50% - 8px); pointer-events: none; }
-.gate-run i { display: block; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-left: 4px solid var(--urgent); border-bottom: 4px solid var(--urgent); }
-.gate-run i i { left: 3px; bottom: 3px; border-color: var(--signal); }
+.gate-mark { font-family: var(--display); font-stretch: 68%; font-weight: 800; font-size: 66px; line-height: 0.9; letter-spacing: 0.01em; color: var(--ink); }
+.gate-run { position: absolute; left: 7vw; right: calc(50% + 210px); top: 0; bottom: calc(50% - 8px); pointer-events: none; }
+.gate-run i { display: block; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-left: 3px solid var(--urgent); border-bottom: 3px solid var(--urgent); }
+.gate-run i i { left: 4px; bottom: 4px; border-color: var(--signal); }
 .gate-run i i i { border-color: var(--ok); }
 @media (max-width: 780px) { .gate-run { display: none; } }
 .gate-sep { display: flex; align-items: center; gap: 12px; margin: 4px 0; color: var(--muted); font-size: 13px; }

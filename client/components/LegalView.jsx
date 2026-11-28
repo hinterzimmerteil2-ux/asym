@@ -42,7 +42,7 @@ const TEXT = {
   },
 };
 
-const box = { maxWidth: 760, margin: '0 auto', padding: '32px 18px 64px', color: '#e8efe4', lineHeight: 1.6, fontSize: 15 };
+const box = { maxWidth: 760, margin: '0 auto', padding: '32px 18px 64px', color: '#e9ecec', lineHeight: 1.6, fontSize: 15 };
 const h2 = { fontSize: 18, margin: '28px 0 8px', color: '#fff' };
 const tab = (on) => ({ ...btn.secondary(on), padding: '5px 12px' });
 
@@ -61,7 +61,7 @@ export default function LegalView() {
   };
   const t = TEXT[lang];
   return (
-    <main style={{ minHeight: '100dvh', background: '#0e1f1b' }}>
+    <main style={{ minHeight: '100dvh', background: '#131c22' }}>
       <div style={box}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <Link href="/" style={{ color: '#f0b429', textDecoration: 'none', fontSize: 13 }}>{t.back}</Link>

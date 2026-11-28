@@ -54,7 +54,7 @@ function KitPicker({ roles, onPick }) {
   const st = sup ? { color: '#f0b429', stats: [0, 0, 0] } : KIT_STYLE[r.id] || { color: '#c8a2ff', stats: [3, 3, 3] };
   const labels = ['Movilidad', 'Control', 'Daño'];
   return (
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(6, 14, 12, 0.8)', padding: 12 }}>
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(8, 12, 15, 0.8)', padding: 12 }}>
       <div style={{ width: 'min(700px, 100%)', maxHeight: '100%', display: 'flex', flexDirection: 'column', borderRadius: 6, background: UI.panel, border: `2px solid ${UI.lineHi}`, boxShadow: '0 5px 0 rgba(0, 0, 0, 0.5)', overflow: 'hidden' }}>
         <div style={{ position: 'relative', padding: '12px 18px 18px', background: UI.paper, flex: 'none' }}>
           <div className="disp" style={{ fontSize: 24, lineHeight: 1.1, color: UI.ink }}>{sup ? 'Elige tu súper-habilidad' : 'Elige tu kit'}</div>
@@ -1612,7 +1612,7 @@ export default function LobbyPage() {
           )}
 
           <div style={{ marginTop: 14 }}>
-            <div style={{ color: '#9cb2a6', fontSize: 13, marginBottom: 6 }}>Lobby</div>
+            <div style={{ color: '#9fb0ba', fontSize: 13, marginBottom: 6 }}>Lobby</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {[{ id: 'auto', name: 'Automático' }, ...LOBBY_THEME_LIST].map((t) => (
                 <button key={t.id} type="button" style={btn.secondary(lobbyThemePref === t.id)} onClick={() => { setLobbyThemePref(t.id); setLobbyThemePrefState(t.id); }}>{t.name}</button>
@@ -1646,13 +1646,13 @@ export default function LobbyPage() {
             <button type="button" style={{ ...styles.smallButton, width: '100%' }} onClick={() => setCosmeticsOpen(true)}>Personalizar personaje <span style={{ color: '#e0b34a', marginLeft: 6 }}>{Math.floor(normQ(desgracias.balance))} ℍ</span></button>
           )}
           {phase === 'lobby' && !isAsymRole && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', border: '2px solid #4a7366', borderRadius: 2, fontSize: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', border: '2px solid #4b606e', borderRadius: 2, fontSize: 12 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                 <input type="checkbox" checked={kitPref.on} onChange={(e) => updateKitPref({ ...kitPref, on: e.target.checked })} />
                 Preselección de kit
               </label>
               {kitPref.on && (
-                <select value={kitPref.kit} onChange={(e) => updateKitPref({ ...kitPref, kit: e.target.value })} style={{ background: '#16312b', color: '#e8f1f8', border: '1px solid #4a7366', borderRadius: 2, padding: 6 }}>
+                <select value={kitPref.kit} onChange={(e) => updateKitPref({ ...kitPref, kit: e.target.value })} style={{ background: '#1d2a33', color: '#e8f1f8', border: '1px solid #4b606e', borderRadius: 2, padding: 6 }}>
                   <option value="none">Sin kit</option>
                   <option value="loquito">Loquito de la Esquina</option>
                   <option value="hincha">Hincha Cantarín del Barrio</option>
@@ -1673,7 +1673,7 @@ export default function LobbyPage() {
           </div>
           <div {...tabProps('votos')}>
           {phase === 'lobby' && isDefaultRoom && (
-            <div className="lb-vote" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 10px', border: '2px solid #4a7366', borderRadius: 2, fontSize: 12 }}>
+            <div className="lb-vote" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 10px', border: '2px solid #4b606e', borderRadius: 2, fontSize: 12 }}>
               <strong>Votación de la sala</strong>
               {startAt && <span style={{ color: '#f0b429' }}>Inicio automático en {Math.max(0, Math.ceil((startAt - lobbyNow) / 1000))} s</span>}
               {[
@@ -1890,7 +1890,7 @@ export default function LobbyPage() {
           const current = steps.findIndex(([k]) => !tutorial.flags[k]);
           const finished = current === -1;
           return (
-            <div style={{ position: 'absolute', left: 8, top: compact ? 96 : 200, zIndex: 40, width: compact ? 'min(260px, calc(100% - 16px))' : 'min(280px, calc(100% - 16px))', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 2, background: 'rgba(22, 49, 43,0.92)', border: '1px solid #f0b429', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ position: 'absolute', left: 8, top: compact ? 96 : 200, zIndex: 40, width: compact ? 'min(260px, calc(100% - 16px))' : 'min(280px, calc(100% - 16px))', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 2, background: 'rgba(29, 42, 51,0.92)', border: '1px solid #f0b429', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <strong>Tutorial</strong>
                 <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => setTutorial((t) => ({ ...t, minimized: !t.minimized }))}>{tutorial.minimized ? 'Mostrar' : 'Ocultar'}</button>
@@ -1898,7 +1898,7 @@ export default function LobbyPage() {
               {!tutorial.minimized && (
                 <>
                   {steps.map(([k, text], i) => (compact && i !== current ? null : (
-                    <div key={k} style={{ color: tutorial.flags[k] ? '#62c9a0' : i === current ? '#f0b429' : '#9cb2a6' }}>
+                    <div key={k} style={{ color: tutorial.flags[k] ? '#62c9a0' : i === current ? '#f0b429' : '#9fb0ba' }}>
                       {tutorial.flags[k] ? '✓' : i === current ? '→' : '-'} {text}
                     </div>
                   )))}
@@ -1912,11 +1912,11 @@ export default function LobbyPage() {
         {phase === 'action' && flojera && <StatusColumn statuses={flojera.statuses} compact={compact} />}
         {phase === 'action' && flojera?.channel && <RhythmBar channelRef={channelRef} />}
         {phase === 'action' && flojera?.astral && (
-          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: compact ? 50 : 44, width: 84, height: 5, zIndex: 35, borderRadius: 3, background: 'rgba(14, 31, 27,0.7)', border: '1px solid rgba(243,233,166,0.6)', overflow: 'hidden', pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: compact ? 50 : 44, width: 84, height: 5, zIndex: 35, borderRadius: 3, background: 'rgba(19, 28, 34,0.7)', border: '1px solid rgba(243,233,166,0.6)', overflow: 'hidden', pointerEvents: 'none' }}>
             <div style={{ height: '100%', width: `${Math.round(flojera.astral.charge * 100)}%`, background: flojera.astral.state === 'charging' ? '#f3e9a6' : '#f2b84a' }} />
           </div>
         )}
-        {phase === 'action' && matchSeed != null && <div style={{ position: 'absolute', left: 8, bottom: 8, fontSize: 11, color: '#9cb2a6', pointerEvents: 'none', userSelect: 'text' }}>Semilla: {matchSeed}</div>}
+        {phase === 'action' && matchSeed != null && <div style={{ position: 'absolute', left: 8, bottom: 8, fontSize: 11, color: '#9fb0ba', pointerEvents: 'none', userSelect: 'text' }}>Semilla: {matchSeed}</div>}
         {phase === 'action' && bossHud && <BossHud hud={bossHud} onAbility={(i) => handlePulse('b' + (i + 1))} onSize={(v) => connRef.current?.send('boss_size', { size: v })} onCrouch={(on) => connRef.current?.send('boss_crouch', { on })} />}
         {phase === 'action' && bossHud && <BossOverlay hud={bossHud} />}
         {phase === 'action' && flojera?.sdGame && <SelfDamageBar gameRef={sdRef} onPress={() => pressMinigameRef.current()} onDir={(d) => pressDirRef.current(d)} />}
@@ -1930,7 +1930,7 @@ export default function LobbyPage() {
           />
         )}
         {phase === 'action' && lmsInfo && lmsUntil === 0 && (
-          <div style={{ position: 'absolute', top: 38, left: '50%', transform: 'translateX(-50%)', zIndex: 6, pointerEvents: 'none', padding: '3px 12px', borderRadius: 2, background: 'rgba(14, 31, 27,0.88)', border: '1px solid #f0b429', color: '#f0b429', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>
+          <div style={{ position: 'absolute', top: 38, left: '50%', transform: 'translateX(-50%)', zIndex: 6, pointerEvents: 'none', padding: '3px 12px', borderRadius: 2, background: 'rgba(19, 28, 34,0.88)', border: '1px solid #f0b429', color: '#f0b429', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>
             LAST MORON STANDING / <span translate="no">{players.find((p) => p.id === lmsInfo.survivorId)?.name}</span> / {({ adrenalina: 'Adrenalina', reflejos: 'Reflejos', escudo: 'Escudo', codicia: 'Codicia' })[lmsInfo.gimmick]}
           </div>
         )}
@@ -1977,7 +1977,7 @@ export default function LobbyPage() {
           <div aria-hidden className="heart-pulse" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 3, '--lvl': heartLevel, animationDuration: `${(1.25 - 0.8 * heartLevel).toFixed(2)}s`, boxShadow: `inset 0 0 ${60 + 120 * heartLevel}px rgba(255,40,60,${(0.15 + 0.6 * heartLevel).toFixed(2)})` }} />
         )}
         {phase === 'action' && mode === 'gravity' && (modeBanner || gravityFactor !== 1) && (
-          <div className="beat" style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 35, padding: '6px 14px', borderRadius: 4, background: 'rgba(8, 20, 17,0.8)', border: `1px solid ${gravityFactor < 1 ? '#54d1f2' : '#ff9a5a'}`, color: '#fff', fontWeight: 800, pointerEvents: 'none' }}>
+          <div className="beat" style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 35, padding: '6px 14px', borderRadius: 4, background: 'rgba(10, 16, 20,0.8)', border: `1px solid ${gravityFactor < 1 ? '#54d1f2' : '#ff9a5a'}`, color: '#fff', fontWeight: 800, pointerEvents: 'none' }}>
             {modeBanner || (gravityFactor < 1 ? 'Gravedad baja' : 'Gravedad alta')}
           </div>
         )}
@@ -2054,18 +2054,18 @@ export default function LobbyPage() {
             const laser = myTw.type === 'laser';
             return (
               <>
-                <div style={{ position: 'absolute', top: 88, left: '50%', transform: 'translateX(-50%)', zIndex: 31, padding: '5px 12px', borderRadius: 2, background: 'rgba(8, 20, 17,0.82)', border: `1px solid ${laser ? '#ff4a3a' : '#7dff5a'}`, color: '#fff', fontSize: 12, fontWeight: 700, pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', top: 88, left: '50%', transform: 'translateX(-50%)', zIndex: 31, padding: '5px 12px', borderRadius: 2, background: 'rgba(10, 16, 20,0.82)', border: `1px solid ${laser ? '#ff4a3a' : '#7dff5a'}`, color: '#fff', fontSize: 12, fontWeight: 700, pointerEvents: 'none' }}>
                   {laser ? (myTw.charge > 0 ? 'Cargando' : myTw.cd > 0 ? `Recarga ${Math.ceil(myTw.cd / 1000)} s` : 'Láser listo') : (myTw.reload > 0 ? 'Recargando' : `Balas ${myTw.ammo}/6`)} (interactuar para salir, W/S o rueda para subir o bajar)
                 </div>
                 <div style={{ position: 'absolute', right: 134, bottom: 128, zIndex: 31, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <button type="button" onClick={() => nudgeTowerPitch(0.1)} style={{ width: 44, height: 44, borderRadius: 4, border: '2px solid #f0b429', background: 'rgba(8, 20, 17,0.85)', color: '#f0b429', fontSize: 18 }}>▲</button>
-                  <button type="button" onClick={() => nudgeTowerPitch(-0.1)} style={{ width: 44, height: 44, borderRadius: 4, border: '2px solid #f0b429', background: 'rgba(8, 20, 17,0.85)', color: '#f0b429', fontSize: 18 }}>▼</button>
+                  <button type="button" onClick={() => nudgeTowerPitch(0.1)} style={{ width: 44, height: 44, borderRadius: 4, border: '2px solid #f0b429', background: 'rgba(10, 16, 20,0.85)', color: '#f0b429', fontSize: 18 }}>▲</button>
+                  <button type="button" onClick={() => nudgeTowerPitch(-0.1)} style={{ width: 44, height: 44, borderRadius: 4, border: '2px solid #f0b429', background: 'rgba(10, 16, 20,0.85)', color: '#f0b429', fontSize: 18 }}>▼</button>
                 </div>
-                <button type="button" onClick={() => handleSendAction('tower_action', { op: 'fire' })} style={{ position: 'absolute', right: 24, bottom: 120, zIndex: 31, width: 96, height: 96, borderRadius: '50%', border: `3px solid ${laser ? '#ff4a3a' : '#7dff5a'}`, background: 'rgba(8, 20, 17,0.85)', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Disparar</button>
+                <button type="button" onClick={() => handleSendAction('tower_action', { op: 'fire' })} style={{ position: 'absolute', right: 24, bottom: 120, zIndex: 31, width: 96, height: 96, borderRadius: '50%', border: `3px solid ${laser ? '#ff4a3a' : '#7dff5a'}`, background: 'rgba(10, 16, 20,0.85)', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Disparar</button>
               </>
             );
           }
-          if (near) return <div style={{ position: 'absolute', bottom: 210, left: '50%', transform: 'translateX(-50%)', zIndex: 31, padding: '5px 12px', borderRadius: 2, background: 'rgba(8, 20, 17,0.82)', color: '#f0b429', fontSize: 12, fontWeight: 700, pointerEvents: 'none' }}>{near.mods >= near.need ? 'Interactuar para sentarte en la torre' : 'La torre se está construyendo'}</div>;
+          if (near) return <div style={{ position: 'absolute', bottom: 210, left: '50%', transform: 'translateX(-50%)', zIndex: 31, padding: '5px 12px', borderRadius: 2, background: 'rgba(10, 16, 20,0.82)', color: '#f0b429', fontSize: 12, fontWeight: 700, pointerEvents: 'none' }}>{near.mods >= near.need ? 'Interactuar para sentarte en la torre' : 'La torre se está construyendo'}</div>;
           return null;
         })()}
 
@@ -2074,7 +2074,7 @@ export default function LobbyPage() {
         )}
 
         {towerPick !== null && phase === 'action' && (
-          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 210, zIndex: 40, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 4, background: 'rgba(8, 20, 17,0.9)', border: '1px solid #f0b429' }}>
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 210, zIndex: 40, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 4, background: 'rgba(10, 16, 20,0.9)', border: '1px solid #f0b429' }}>
             <span style={{ color: '#f0b429', fontSize: 12, fontWeight: 700 }}>Elige la torre</span>
             <button type="button" onClick={() => handleUseCard(towerPick, 'laser')} style={btn.secondary(false)}>Láser</button>
             <button type="button" onClick={() => handleUseCard(towerPick, 'rifle')} style={btn.secondary(false)}>Rifle</button>
@@ -2222,9 +2222,9 @@ export default function LobbyPage() {
         {shiftLock && <div style={{ position: 'absolute', left: '50%', top: '50%', width: 6, height: 6, marginLeft: -3, marginTop: -3, borderRadius: '50%', background: 'rgba(255,255,255,0.8)', pointerEvents: 'none', zIndex: 5 }} />}
         {compact && (
           <>
-            <button type="button" onClick={() => { setPanelOpen(!playersOpen); setChatOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 96, width: 36, height: 36, zIndex: 30, borderColor: playersOpen ? '#f0b429' : '#2f4d44' })} aria-label="Jugadores">☰</button>
+            <button type="button" onClick={() => { setPanelOpen(!playersOpen); setChatOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 96, width: 36, height: 36, zIndex: 30, borderColor: playersOpen ? '#f0b429' : '#33444f' })} aria-label="Jugadores">☰</button>
             <button type="button" onClick={goFullscreen} style={sx(styles.helpButton, { top: 8, right: 184, width: 36, height: 36, zIndex: 30 })} aria-label="Pantalla completa">⛶</button>
-            <button type="button" onClick={() => { setChatOpen(!chatOpen); setPanelOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 140, width: 36, height: 36, zIndex: 30, borderColor: chatOpen ? '#f0b429' : '#2f4d44' })} aria-label="Chat">💬</button>
+            <button type="button" onClick={() => { setChatOpen(!chatOpen); setPanelOpen(false); }} style={sx(styles.helpButton, { top: 8, right: 140, width: 36, height: 36, zIndex: 30, borderColor: chatOpen ? '#f0b429' : '#33444f' })} aria-label="Chat">💬</button>
           </>
         )}
         {spectating && specTargets.length > 1 && (
@@ -2233,7 +2233,7 @@ export default function LobbyPage() {
               const pl = players.find((p) => p.id === id);
               const current = ((specIndex % specTargets.length) + specTargets.length) % specTargets.length === i;
               return (
-                <button key={id} type="button" onClick={() => setSpecIndex(i)} style={{ ...styles.smallButton, width: 'auto', borderColor: current ? '#f0b429' : pl?.isAsymRole ? '#f08a3c' : '#2f4d44', background: current ? 'rgba(242,209,84,0.18)' : undefined }}>
+                <button key={id} type="button" onClick={() => setSpecIndex(i)} style={{ ...styles.smallButton, width: 'auto', borderColor: current ? '#f0b429' : pl?.isAsymRole ? '#f08a3c' : '#33444f', background: current ? 'rgba(242,209,84,0.18)' : undefined }}>
                   {id === myPlayerId ? 'Fantasma' : <><span>{pl?.isAsymRole ? '🩺 ' : ''}</span><span translate="no">{pl?.name || id}</span></>}
                 </button>
               );
@@ -2241,7 +2241,7 @@ export default function LobbyPage() {
           </div>
         )}
         {spectating && (
-          <div style={{ position: 'absolute', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 2, background: 'rgba(22, 49, 43, 0.9)', border: '2px solid #4a7366', fontSize: 13 }}>
+          <div style={{ position: 'absolute', left: '50%', bottom: 12, transform: 'translateX(-50%)', zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 2, background: 'rgba(29, 42, 51, 0.9)', border: '2px solid #4b606e', fontSize: 13 }}>
             <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => setSpecIndex((i) => i - 1)} aria-label="Anterior">{'<-'}</button>
             <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={startReplay}>Repetición</button>
             <span>{ghostMode ? 'Tu fantasma' : specId ? `Espectando: ${players.find((p) => p.id === specId)?.name || specId}` : 'Nadie a quien seguir'}</span>
@@ -2254,13 +2254,13 @@ export default function LobbyPage() {
           </div>
         )}
         {touch && portrait && phase === 'action' && (
-          <p style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', margin: 0, padding: '10px 16px', borderRadius: 2, background: 'rgba(14, 31, 27,0.9)', border: '2px solid #4a7366', fontSize: 14, zIndex: 25, textAlign: 'center', pointerEvents: 'none' }}>Gira el teléfono para jugar mejor</p>
+          <p style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', margin: 0, padding: '10px 16px', borderRadius: 2, background: 'rgba(19, 28, 34,0.9)', border: '2px solid #4b606e', fontSize: 14, zIndex: 25, textAlign: 'center', pointerEvents: 'none' }}>Gira el teléfono para jugar mejor</p>
         )}
         {adminOpen && isOp && <AdminPanel players={players} myPlayerId={myPlayerId} isHost={isHost} phase={phase} cards={cardCatalog} characters={characters} onOp={(id, on) => connRef.current?.send('set_op', { targetPlayerId: id, on })} onGrant={(g) => connRef.current?.send('admin_grant', g)} onStatus={(g) => connRef.current?.send('admin_status', g)} onTime={(g) => connRef.current?.send('admin_time', g)} onScale={(g) => connRef.current?.send('admin_scale', g)} onAttr={(g) => connRef.current?.send('admin_attr', g)} onClose={() => setAdminOpen(false)} />}
         {helpOpen && <HelpPanel characters={characters} cards={cardCatalog} onClose={() => setHelpOpen(false)} />}
 
         {warn && (
-          <div style={{ position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 60, width: 'min(420px, calc(100% - 24px))', boxSizing: 'border-box', padding: 12, borderRadius: 4, background: '#16312b', border: '1px solid #f08a3c', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 60, width: 'min(420px, calc(100% - 24px))', boxSizing: 'border-box', padding: 12, borderRadius: 4, background: '#1d2a33', border: '1px solid #f08a3c', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span>No se puede guardar el juego como marcador ni como archivo desde aquí.</span>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => setWarn(false)}>Entendido</button>
@@ -2288,19 +2288,19 @@ export default function LobbyPage() {
 
         {cosmeticsOpen && phase === 'lobby' && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 70, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setCosmeticsOpen(false)}>
-            <div style={{ width: 'min(440px, calc(100% - 24px))', maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', boxSizing: 'border-box', padding: 14, borderRadius: 4, background: '#16312b', border: '2px solid #4a7366', display: 'flex', flexDirection: 'column', gap: 10 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ width: 'min(440px, calc(100% - 24px))', maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', boxSizing: 'border-box', padding: 14, borderRadius: 4, background: '#1d2a33', border: '2px solid #4b606e', display: 'flex', flexDirection: 'column', gap: 10 }} onClick={(e) => e.stopPropagation()}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <strong>Personalizar personaje</strong>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                   <img src="/desgracias.png" alt="Desgracias (hipercomplejos)" title="Desgracias: se miden en hipercomplejos (ℍ, cuaterniones)" width={22} height={22} />
-                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}><strong>{Math.floor(normQ(desgracias.balance))} ℍ</strong><span style={{ fontSize: 10, color: '#9cb2a6' }}>{formatQ(desgracias.balance)}</span></span>
+                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}><strong>{Math.floor(normQ(desgracias.balance))} ℍ</strong><span style={{ fontSize: 10, color: '#9fb0ba' }}>{formatQ(desgracias.balance)}</span></span>
                 </span>
               </div>
               {Object.keys(ITEMS).map((slot) => (
                 <div key={slot} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span style={{ fontSize: 12, color: '#9cb2a6' }}>{SLOT_LABELS[slot]}</span>
+                  <span style={{ fontSize: 12, color: '#9fb0ba' }}>{SLOT_LABELS[slot]}</span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    <button type="button" style={{ ...styles.smallButton, width: 'auto', borderColor: !cosmetics[slot] ? '#f0b429' : '#2f4d44' }} onClick={() => { const next = { ...cosmetics }; delete next[slot]; updateCosmetics(next); }}>Ninguno</button>
+                    <button type="button" style={{ ...styles.smallButton, width: 'auto', borderColor: !cosmetics[slot] ? '#f0b429' : '#33444f' }} onClick={() => { const next = { ...cosmetics }; delete next[slot]; updateCosmetics(next); }}>Ninguno</button>
                     {Object.entries(ITEMS[slot]).map(([id, def]) => {
                       const owned = desgracias.owned.includes(id);
                       const price = priceOf(id);
@@ -2309,7 +2309,7 @@ export default function LobbyPage() {
                         <button
                           key={id}
                           type="button"
-                          style={{ ...styles.smallButton, width: 'auto', borderColor: cosmetics[slot]?.id === id ? '#f0b429' : owned ? '#2f4d44' : affordable ? '#f0b429' : '#2f4d44', opacity: owned || affordable ? 1 : 0.55 }}
+                          style={{ ...styles.smallButton, width: 'auto', borderColor: cosmetics[slot]?.id === id ? '#f0b429' : owned ? '#33444f' : affordable ? '#f0b429' : '#33444f', opacity: owned || affordable ? 1 : 0.55 }}
                           onClick={() => {
                             if (!owned && !buyItem(id)) return;
                             updateCosmetics({ ...cosmetics, [slot]: { id, color: cosmetics[slot]?.color || COLORS[0] } });
@@ -2323,7 +2323,7 @@ export default function LobbyPage() {
                   {cosmetics[slot] && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {COLORS.map((c) => (
-                        <button key={c} type="button" aria-label={`Color ${c}`} onClick={() => updateCosmetics({ ...cosmetics, [slot]: { ...cosmetics[slot], color: c } })} style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: cosmetics[slot].color === c ? '2px solid #fff' : '1px solid #2f4d44', cursor: 'pointer', padding: 0 }} />
+                        <button key={c} type="button" aria-label={`Color ${c}`} onClick={() => updateCosmetics({ ...cosmetics, [slot]: { ...cosmetics[slot], color: c } })} style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: cosmetics[slot].color === c ? '2px solid #fff' : '1px solid #33444f', cursor: 'pointer', padding: 0 }} />
                       ))}
                     </div>
                   )}
@@ -2334,7 +2334,7 @@ export default function LobbyPage() {
           </div>
         )}
         {replay && (
-          <div style={{ position: 'absolute', top: 56, left: '50%', transform: 'translateX(-50%)', zIndex: 60, display: 'flex', gap: 10, alignItems: 'center', padding: '6px 12px', borderRadius: 2, background: 'rgba(22, 49, 43, 0.92)', border: '1px solid #f08a3c', fontSize: 13 }}>
+          <div style={{ position: 'absolute', top: 56, left: '50%', transform: 'translateX(-50%)', zIndex: 60, display: 'flex', gap: 10, alignItems: 'center', padding: '6px 12px', borderRadius: 2, background: 'rgba(29, 42, 51, 0.92)', border: '1px solid #f08a3c', fontSize: 13 }}>
             <span>Repetición</span>
             <button type="button" style={{ ...styles.smallButton, width: 'auto' }} onClick={() => setReplay(null)}>Saltar</button>
           </div>
@@ -2352,7 +2352,7 @@ export default function LobbyPage() {
                     : '¡Los Pacientes ganaron!'}
               </h2>
               {lastAward && lastAward.practice && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0', fontSize: 13, color: '#9cb2a6' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0', fontSize: 13, color: '#9fb0ba' }}>
                   <img src="/desgracias.png" alt="Desgracias" width={22} height={22} style={{ opacity: 0.5 }} />
                   <span>Esta partida no da Desgracias</span>
                 </div>
@@ -2363,13 +2363,13 @@ export default function LobbyPage() {
                     <img src="/desgracias.png" alt="Desgracias" width={28} height={28} />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <strong>+{Math.round(normQ(awardToQ(lastAward.items)))} ℍ{lastAward.boss ? ' (partida contra el Jefe, x3)' : ''}</strong>
-                      <span style={{ color: '#9cb2a6', fontSize: 12 }}>{formatQ(awardToQ(lastAward.items))}</span>
+                      <span style={{ color: '#9fb0ba', fontSize: 12 }}>{formatQ(awardToQ(lastAward.items))}</span>
                     </div>
                   </div>
                   {[...lastAward.items].sort((x, y) => y.amount - x.amount).map((it) => (
-                    <div key={it.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: '#c5d3ca' }}>
+                    <div key={it.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: '#c3ced4' }}>
                       <span>{it.label}</span>
-                      <span style={{ color: AXIS_COLOR[it.axis] || '#9cb2a6' }}>+{Math.round(it.amount * 10) / 10}{it.axis && it.axis !== 'r' ? it.axis : ''}</span>
+                      <span style={{ color: AXIS_COLOR[it.axis] || '#9fb0ba' }}>+{Math.round(it.amount * 10) / 10}{it.axis && it.axis !== 'r' ? it.axis : ''}</span>
                     </div>
                   ))}
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 4, marginTop: 2 }}>
@@ -2602,7 +2602,7 @@ const MODE_LIST = [
 ];
 
 const slab = (stripe, extra) => ({
-  background: 'rgba(22, 49, 43, 0.96)',
+  background: 'rgba(29, 42, 51, 0.96)',
   border: `2px solid ${UI.lineHi}`,
   borderRadius: 2,
   boxShadow: `inset 5px 0 0 ${stripe}, 0 3px 0 rgba(0, 0, 0, 0.45)`,
@@ -2868,7 +2868,7 @@ const styles = {
     padding: '8px 14px 10px 19px',
   }),
   flojeraBarLabel: { fontSize: 13, fontWeight: 700, color: UI.text, marginBottom: 5, textAlign: 'left', fontVariantNumeric: 'tabular-nums' },
-  flojeraBarTrack: { height: 10, borderRadius: 2, background: '#07120f', border: '2px solid #07120f', boxSizing: 'border-box', overflow: 'hidden' },
+  flojeraBarTrack: { height: 10, borderRadius: 2, background: '#0a1014', border: '2px solid #0a1014', boxSizing: 'border-box', overflow: 'hidden' },
   flojeraBarFill: (value, max, locked) => ({
     height: '100%',
     width: `${Math.max(0, Math.min(1, value / max)) * 100}%`,
@@ -2991,7 +2991,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'rgba(7, 18, 15, 0.78)',
+    background: 'rgba(10, 16, 20, 0.78)',
     fontSize: 22,
     fontWeight: 800,
     fontVariantNumeric: 'tabular-nums',
@@ -3007,7 +3007,7 @@ const styles = {
   }),
   pulseHudReady: { fontSize: 14, fontWeight: 700, color: UI.ok },
   pulseHudCooldown: { fontSize: 14, fontWeight: 700, color: UI.muted, fontVariantNumeric: 'tabular-nums' },
-  hpBarTrack: { height: 12, borderRadius: 2, background: '#07120f', border: '2px solid #07120f', boxSizing: 'border-box', overflow: 'hidden' },
+  hpBarTrack: { height: 12, borderRadius: 2, background: '#0a1014', border: '2px solid #0a1014', boxSizing: 'border-box', overflow: 'hidden' },
   hpBarFill: (hp, maxHp = 120) => {
     if (maxHp > 1e6) return { height: '100%', width: '100%', background: UI.serum };
     const ratio = Math.max(0, Math.min(1, hp / maxHp));
@@ -3031,7 +3031,7 @@ const styles = {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
     zIndex: 40,
-    background: 'rgba(8, 20, 17, 0.88)',
+    background: 'rgba(10, 16, 20, 0.88)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

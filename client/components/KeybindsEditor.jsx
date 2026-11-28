@@ -32,7 +32,7 @@ export default function KeybindsEditor() {
             style={{ ...btn.secondary(waiting === a.id), display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, textAlign: 'left', fontWeight: 500 }}
           >
             <span>{a.label}</span>
-            <span translate="no" style={{ minWidth: 54, textAlign: 'center', padding: '2px 8px', borderRadius: 2, background: waiting === a.id ? '#f0b429' : '#2f4d44', color: waiting === a.id ? '#0e1f1b' : '#e8efe4', fontWeight: 700 }}>
+            <span translate="no" style={{ minWidth: 54, textAlign: 'center', padding: '2px 8px', borderRadius: 2, background: waiting === a.id ? '#f0b429' : '#33444f', color: waiting === a.id ? '#131c22' : '#e9ecec', fontWeight: 700 }}>
               {waiting === a.id ? '...' : keyLabel(binds[a.id])}
             </span>
           </button>

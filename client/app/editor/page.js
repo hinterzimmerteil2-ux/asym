@@ -21,19 +21,19 @@ const CANVAS_SIZE = 560;
 const CANVAS_HALF = CANVAS_SIZE / 2;
 
 const TEXTURES = [['', 'Por defecto'], ['marble', 'Mármol'], ['tile', 'Azulejo'], ['plaster', 'Yeso celeste'], ['tower', 'Paneles'], ['roof', 'Teja celeste'], ['ramp', 'Franjas'], ['concrete', 'Concreto'], ['brick', 'Ladrillo'], ['wood', 'Madera'], ['metal', 'Metal']];
-const TEX_COLORS = { marble: '#e8efe4', tile: '#e8efe4', plaster: '#8fc6ea', tower: '#b9dcf3', roof: '#9fd0f0', ramp: '#6fb6e8', concrete: '#c5d3ca', brick: '#dfe8dc', wood: '#c99a62', metal: '#c5d3ca' };
+const TEX_COLORS = { marble: '#e9ecec', tile: '#e9ecec', plaster: '#8fc6ea', tower: '#b9dcf3', roof: '#9fd0f0', ramp: '#6fb6e8', concrete: '#c3ced4', brick: '#e6e4dc', wood: '#c99a62', metal: '#c3ced4' };
 const COLLISION_TYPES = ['gurney', 'shelf', 'cart', 'pillar', 'crate', 'desk', 'plant', 'tank', 'bed', 'vending', 'mri', 'wheelchair', 'iv'];
 const REF_HALF = 30;
 const MAP_HALF = 60;
 const OBJECT_HEIGHTS = { gurney: 0.9, shelf: 2.2, cart: 1, pillar: 3, crate: 1.1, desk: 1, plant: 1.4, tank: 2, bed: 1.1, vending: 2, mri: 2.4, wheelchair: 1, iv: 2 };
 
 const PREFABS = {
-  cama: { name: 'Cama (bloques)', parts: [[0, 0, 1, 0.5, 0.45, 0.25, '#c9d3d0'], [-0.7, 0, 0.3, 0.45, 0.2, 0.7, '#f1f4f2'], [1, 0, 0.06, 0.5, 0.6, 0.7, '#6f7b74'], [-0.95, -0.4, 0.06, 0.06, 0.25, 0, '#2f4d44'], [-0.95, 0.4, 0.06, 0.06, 0.25, 0, '#2f4d44'], [0.95, -0.4, 0.06, 0.06, 0.25, 0, '#2f4d44'], [0.95, 0.4, 0.06, 0.06, 0.25, 0, '#2f4d44']] },
+  cama: { name: 'Cama (bloques)', parts: [[0, 0, 1, 0.5, 0.45, 0.25, '#c9d3d0'], [-0.7, 0, 0.3, 0.45, 0.2, 0.7, '#f1f4f2'], [1, 0, 0.06, 0.5, 0.6, 0.7, '#6f7b74'], [-0.95, -0.4, 0.06, 0.06, 0.25, 0, '#33444f'], [-0.95, 0.4, 0.06, 0.06, 0.25, 0, '#33444f'], [0.95, -0.4, 0.06, 0.06, 0.25, 0, '#33444f'], [0.95, 0.4, 0.06, 0.06, 0.25, 0, '#33444f']] },
   letrero: { name: 'Letrero (poste + panel)', parts: [[0, 0, 0.08, 0.08, 2.2, 0, '#555d5a'], [0, 0, 0.8, 0.05, 0.6, 2.2, '#2f6f5a']] },
   mesa: { name: 'Mesa', parts: [[0, 0, 0.9, 0.5, 0.08, 0.8, '#7a5a3a'], [-0.8, -0.4, 0.06, 0.06, 0.8, 0, '#5a4129'], [0.8, -0.4, 0.06, 0.06, 0.8, 0, '#5a4129'], [-0.8, 0.4, 0.06, 0.06, 0.8, 0, '#5a4129'], [0.8, 0.4, 0.06, 0.06, 0.8, 0, '#5a4129']] },
-  mostrador: { name: 'Mostrador', parts: [[0, 0, 1.6, 0.4, 1, 0, '#8a948f'], [0, -0.2, 1.7, 0.45, 0.06, 1, '#c5d3ca']] },
+  mostrador: { name: 'Mostrador', parts: [[0, 0, 1.6, 0.4, 1, 0, '#8a948f'], [0, -0.2, 1.7, 0.45, 0.06, 1, '#c3ced4']] },
   cortina: { name: 'Cortina de box', parts: [[0, 0, 1.2, 0.04, 1.9, 0.1, '#9fd3c7']] },
-  banca: { name: 'Banca', parts: [[0, 0, 1, 0.25, 0.08, 0.45, '#6f7b74'], [-0.85, 0, 0.06, 0.2, 0.45, 0, '#2f4d44'], [0.85, 0, 0.06, 0.2, 0.45, 0, '#2f4d44']] },
+  banca: { name: 'Banca', parts: [[0, 0, 1, 0.25, 0.08, 0.45, '#6f7b74'], [-0.85, 0, 0.06, 0.2, 0.45, 0, '#33444f'], [0.85, 0, 0.06, 0.2, 0.45, 0, '#33444f']] },
 };
 const SNAPS = [0, 0.01, 0.05, 0.1, 0.25, 0.5, 1];
 
@@ -114,7 +114,7 @@ function PlatformMesh({ p, onPick, selected, MAP_HALF }) {
 
 function Preview3D({ platforms, collisionObjects, selfDamageObjects, onGround, onPick, selectedId, MAP_HALF }) {
   return (
-    <Canvas camera={{ position: [0, 70, 80], fov: 50 }} style={{ width: CANVAS_SIZE, height: 380, background: '#0b1b17', borderRadius: 2 }}>
+    <Canvas camera={{ position: [0, 70, 80], fov: 50 }} style={{ width: CANVAS_SIZE, height: 380, background: '#0f161b', borderRadius: 2 }}>
       <ambientLight intensity={0.7} />
       <directionalLight position={[30, 60, 20]} intensity={0.9} />
       <OrbitControls makeDefault maxPolarAngle={Math.PI / 2.05} />
@@ -155,9 +155,9 @@ const TYPE_COLORS = {
   tank: '#5b8fb0',
   bed: '#b9c4c0',
   vending: '#a33a3a',
-  mri: '#c5d3ca',
-  wheelchair: '#4a7366',
-  iv: '#9cb2a6',
+  mri: '#c3ced4',
+  wheelchair: '#4b606e',
+  iv: '#9fb0ba',
 };
 
 // Mismos criterios usados para verificar a mano el mapa 'default' en
@@ -567,7 +567,7 @@ export default function MapEditorPage() {
             </label>
           </div>
           <p style={styles.countLine}>Herramienta</p>
-          <div style={{ ...styles.toolGroup, borderBottom: '2px solid #2f4d44', paddingBottom: 8, marginBottom: 8 }}>
+          <div style={{ ...styles.toolGroup, borderBottom: '2px solid #33444f', paddingBottom: 8, marginBottom: 8 }}>
             <button style={styles.toolButton(selectedTool === 'edit', '#f0b429')} onClick={() => setSelectedTool('edit')}>✎ Editar (altura / escala)</button>
           </div>
           {selectedTool === 'edit' && (() => {
@@ -653,8 +653,8 @@ export default function MapEditorPage() {
             </button>
             <button style={styles.toolButton(selectedTool === 'serum', '#54e0c0')} onClick={() => setSelectedTool('serum')}>Suero (cura Pacientes, lleva al Curador a la mitad)</button>
             <button style={styles.toolButton(selectedTool === 'prefab', '#c08a3e')} onClick={() => setSelectedTool('prefab')}>Mueble de bloques</button>
-            <button style={styles.toolButton(selectedTool === 'block', '#7d9488')} onClick={() => setSelectedTool('block')}>Bloque</button>
-            <button style={styles.toolButton(selectedTool === 'ramp', '#9cb2a6')} onClick={() => setSelectedTool('ramp')}>Rampa</button>
+            <button style={styles.toolButton(selectedTool === 'block', '#7f929d')} onClick={() => setSelectedTool('block')}>Bloque</button>
+            <button style={styles.toolButton(selectedTool === 'ramp', '#9fb0ba')} onClick={() => setSelectedTool('ramp')}>Rampa</button>
             <button style={styles.toolButton(selectedTool === 'pit', '#3b6ea5')} onClick={() => setSelectedTool('pit')}>Sótano (foso)</button>
             <button style={styles.toolButton(selectedTool === 'pit_ramp', '#5b8fb0')} onClick={() => setSelectedTool('pit_ramp')}>Rampa de sótano (bajada)</button>
             <button style={styles.toolButton(selectedTool === 'slab', '#8fc6ea')} onClick={() => setSelectedTool('slab')}>Entrepiso (pasable por debajo)</button>
@@ -985,7 +985,7 @@ export default function MapEditorPage() {
                   onContextMenu={(e) => { e.preventDefault(); handleRemove(p.id, e); }}
                   style={{ cursor: 'grab' }}
                 >
-                  <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.kind === 'gate' ? '#f08a3c' : p.kind === 'pgate' ? '#62c9a0' : p.kind === 'pit' ? '#3b6ea5' : p.ramp ? '#9cb2a6' : '#7d9488'} fillOpacity={0.55} stroke={p.id === selectedId ? '#f0b429' : mapEvents.some((q) => q.targetId === p.id) ? '#ff7a45' : '#3d4a42'} strokeWidth={p.id === selectedId ? 4 : mapEvents.some((q) => q.targetId === p.id) ? 4 : 2} />
+                  <rect x={-w} y={-d} width={w * 2} height={d * 2} fill={p.kind === 'gate' ? '#f08a3c' : p.kind === 'pgate' ? '#62c9a0' : p.kind === 'pit' ? '#3b6ea5' : p.ramp ? '#9fb0ba' : '#7f929d'} fillOpacity={0.55} stroke={p.id === selectedId ? '#f0b429' : mapEvents.some((q) => q.targetId === p.id) ? '#ff7a45' : '#3d4a42'} strokeWidth={p.id === selectedId ? 4 : mapEvents.some((q) => q.targetId === p.id) ? 4 : 2} />
                   <text x={0} y={4} fontSize={10} fill="#111" textAnchor="middle">{p.ramp ? `${{ '+x': '→', '-x': '←', '+z': '↓', '-z': '↑' }[p.ramp]} ${p.h.toFixed(1)}` : p.h.toFixed(1)}</text>
                 </g>
               );
@@ -1099,8 +1099,8 @@ function labelForType(type) {
 const styles = {
   main: {
     minHeight: '100vh',
-    background: '#0e1f1b',
-    color: '#e8efe4',
+    background: '#131c22',
+    color: '#e9ecec',
     fontFamily: 'inherit',
     padding: 24,
   },
@@ -1112,14 +1112,14 @@ const styles = {
     gap: 16,
   },
   title: { fontSize: 18, fontWeight: 700, margin: 0 },
-  hint: { fontSize: 12, color: '#9cb2a6', margin: 0, lineHeight: 1.5 },
+  hint: { fontSize: 12, color: '#9fb0ba', margin: 0, lineHeight: 1.5 },
   toolGroup: { display: 'flex', flexDirection: 'column', gap: 6 },
   toolButton: (active, color) => ({
     padding: '8px 12px',
     borderRadius: 2,
-    border: active ? `2px solid ${color}` : '1px solid #2f4d44',
-    background: active ? `${color}22` : '#16312b',
-    color: '#e8efe4',
+    border: active ? `2px solid ${color}` : '1px solid #33444f',
+    background: active ? `${color}22` : '#1d2a33',
+    color: '#e9ecec',
     fontSize: 13,
     textAlign: 'left',
     cursor: 'pointer',
@@ -1127,55 +1127,55 @@ const styles = {
   countsBox: {
     padding: 12,
     borderRadius: 2,
-    background: '#16312b',
-    border: '2px solid #4a7366',
+    background: '#1d2a33',
+    border: '2px solid #4b606e',
   },
-  countLine: { fontSize: 12, color: '#9cb2a6', margin: '4px 0' },
+  countLine: { fontSize: 12, color: '#9fb0ba', margin: '4px 0' },
   conflictWarning: { fontSize: 11, color: '#f2c14e', margin: '8px 0 0', lineHeight: 1.5 },
   radiusPanel: {
     padding: 12,
     borderRadius: 2,
-    background: '#16312b',
-    border: '2px solid #4a7366',
+    background: '#1d2a33',
+    border: '2px solid #4b606e',
     display: 'flex',
     flexDirection: 'column',
     gap: 8,
   },
-  radiusPanelTitle: { fontSize: 12, fontWeight: 600, margin: '0 0 4px', color: '#9cb2a6' },
+  radiusPanelTitle: { fontSize: 12, fontWeight: 600, margin: '0 0 4px', color: '#9fb0ba' },
   radiusRow: { display: 'flex', flexDirection: 'column', gap: 2 },
-  radiusLabel: { fontSize: 11, color: '#9cb2a6' },
+  radiusLabel: { fontSize: 11, color: '#9fb0ba' },
   radiusSlider: { width: '100%' },
   saveBox: {
     padding: 12,
     borderRadius: 2,
-    background: '#16312b',
-    border: '2px solid #4a7366',
+    background: '#1d2a33',
+    border: '2px solid #4b606e',
     display: 'flex',
     flexDirection: 'column',
     gap: 8,
   },
-  saveLabel: { display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, color: '#9cb2a6' },
+  saveLabel: { display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, color: '#9fb0ba' },
   saveInput: {
     padding: '7px 10px',
     borderRadius: 2,
-    border: '2px solid #4a7366',
-    background: '#0e1f1b',
-    color: '#e8efe4',
+    border: '2px solid #4b606e',
+    background: '#131c22',
+    color: '#e9ecec',
     fontSize: 13,
   },
   saveButton: (saving) => ({
     padding: '9px 14px',
     borderRadius: 2,
     border: 'none',
-    background: saving ? '#2f4d44' : '#62c9a0',
-    color: saving ? '#9cb2a6' : '#0e1f1b',
+    background: saving ? '#33444f' : '#62c9a0',
+    color: saving ? '#9fb0ba' : '#131c22',
     fontSize: 13,
     fontWeight: 600,
     cursor: saving ? 'default' : 'pointer',
   }),
   saveSuccess: { fontSize: 11, color: '#62c9a0', margin: 0, lineHeight: 1.5 },
   saveError: { fontSize: 11, color: '#e0503c', margin: 0, lineHeight: 1.5 },
-  backLink: { fontSize: 12, color: '#9cb2a6', textDecoration: 'none' },
+  backLink: { fontSize: 12, color: '#9fb0ba', textDecoration: 'none' },
   actionsRow: { display: 'flex', gap: 8 },
   exportButton: {
     flex: 1,
@@ -1183,7 +1183,7 @@ const styles = {
     borderRadius: 2,
     border: 'none',
     background: '#f0b429',
-    color: '#10201b',
+    color: '#11191e',
     fontSize: 13,
     fontWeight: 600,
     cursor: 'pointer',
@@ -1191,24 +1191,24 @@ const styles = {
   clearButton: {
     padding: '10px 14px',
     borderRadius: 2,
-    border: '2px solid #4a7366',
+    border: '2px solid #4b606e',
     background: 'transparent',
-    color: '#9cb2a6',
+    color: '#9fb0ba',
     fontSize: 13,
     cursor: 'pointer',
   },
   canvasArea: { flex: 1 },
   canvas: {
     borderRadius: 2,
-    border: '2px solid #2f4d44',
+    border: '2px solid #33444f',
     cursor: 'crosshair',
     userSelect: 'none',
   },
-  canvasCaption: { fontSize: 11, color: '#7d9488', marginTop: 8, lineHeight: 1.5 },
+  canvasCaption: { fontSize: 11, color: '#7f929d', marginTop: 8, lineHeight: 1.5 },
   exportOverlay: {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(8, 20, 17, 0.85)',
+    background: 'rgba(10, 16, 20, 0.85)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1219,21 +1219,21 @@ const styles = {
     maxHeight: '80vh',
     padding: 24,
     borderRadius: 4,
-    background: '#16312b',
-    border: '2px solid #4a7366',
+    background: '#1d2a33',
+    border: '2px solid #4b606e',
     display: 'flex',
     flexDirection: 'column',
     gap: 12,
   },
   exportTitle: { fontSize: 16, fontWeight: 700, margin: 0 },
-  exportHint: { fontSize: 12, color: '#9cb2a6', margin: 0, lineHeight: 1.5 },
+  exportHint: { fontSize: 12, color: '#9fb0ba', margin: 0, lineHeight: 1.5 },
   exportTextarea: {
     width: '100%',
     height: 280,
     padding: 12,
     borderRadius: 2,
-    border: '2px solid #4a7366',
-    background: '#0e1f1b',
+    border: '2px solid #4b606e',
+    background: '#131c22',
     color: '#62c9a0',
     fontSize: 12,
     fontFamily: 'monospace',
@@ -1244,7 +1244,7 @@ const styles = {
     borderRadius: 2,
     border: 'none',
     background: '#f0b429',
-    color: '#10201b',
+    color: '#11191e',
     fontSize: 13,
     fontWeight: 600,
     cursor: 'pointer',

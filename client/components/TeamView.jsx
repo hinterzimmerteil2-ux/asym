@@ -37,9 +37,9 @@ const TEXT = {
 
 const FROM_GAME = { es: 'es', 'en-GB': 'en', de: 'de' };
 
-const box = { maxWidth: 760, margin: '0 auto', padding: '32px 18px 64px', color: '#e8efe4', lineHeight: 1.6, fontSize: 15 };
+const box = { maxWidth: 760, margin: '0 auto', padding: '32px 18px 64px', color: '#e9ecec', lineHeight: 1.6, fontSize: 15 };
 const tab = (on) => ({ ...btn.secondary(on), padding: '5px 12px' });
-const row = { borderLeft: '5px solid #f0b429', background: '#16312b', borderRadius: '0 4px 4px 0', padding: '12px 16px', margin: '14px 0' };
+const row = { borderLeft: '5px solid #f0b429', background: '#1d2a33', borderRadius: '0 4px 4px 0', padding: '12px 16px', margin: '14px 0' };
 
 function readLang() {
   try {
@@ -65,7 +65,7 @@ export default function TeamView() {
   };
   const t = TEXT[lang];
   return (
-    <main translate="no" style={{ minHeight: '100dvh', background: '#0e1f1b' }}>
+    <main translate="no" style={{ minHeight: '100dvh', background: '#131c22' }}>
       <div style={box}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <Link href="/" style={{ color: '#f0b429', textDecoration: 'none', fontSize: 13 }}>{t.back}</Link>
